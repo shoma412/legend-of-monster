@@ -2,6 +2,7 @@
 import { COMBAT } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { updateBoss } from './boss.js';
 import { hurtPlayer } from './combat.js';
 import { burst } from './fx.js';
 
@@ -106,6 +107,10 @@ export function updateEnemies(world, dt) {
       e.spawnT -= dt;
       continue;
     }
+    if (e.boss) {
+      updateBoss(world, e, dt);
+      continue;
+    }
     e.hit -= dt;
     e.cd -= dt;
     e.stagger -= dt;
@@ -133,11 +138,16 @@ export function updateEnemies(world, dt) {
       const dist = Math.hypot(dx, dy);
       const min = a.r + b.r;
       if (dist < min && dist > 0) {
-        const push = (min - dist) / 2;
-        a.x -= (dx / dist) * push;
-        a.y -= (dy / dist) * push;
-        b.x += (dx / dist) * push;
-        b.y += (dy / dist) * push;
+        // ボスは押されない
+        const push = (min - dist) / (a.boss || b.boss ? 1 : 2);
+        if (!a.boss) {
+          a.x -= (dx / dist) * push;
+          a.y -= (dy / dist) * push;
+        }
+        if (!b.boss) {
+          b.x += (dx / dist) * push;
+          b.y += (dy / dist) * push;
+        }
       }
     }
   }

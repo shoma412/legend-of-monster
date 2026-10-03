@@ -1,8 +1,8 @@
 // 攻撃を当てる・受ける処理
 import { COMBAT, FEEL, PLAYER } from '../data/balance.js';
-import { COLORS } from '../data/theme.js';
+import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { calcDamage } from '../logic/damage.js';
-import { addShake, burst, floatText } from './fx.js';
+import { addHitstop, addShake, burst, floatText } from './fx.js';
 
 // 敵にダメージを与える。(dirX, dirY) は吹き飛ばす向き
 export function hitEnemy(world, enemy, base, dirX, dirY, knockback) {
@@ -19,19 +19,22 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback) {
   });
   enemy.hp -= amount;
   enemy.hit = 0.1;
-  enemy.stagger = COMBAT.stagger;
-  // ひるんだら構えは中断する
-  if (enemy.state !== 'chase') {
-    enemy.state = 'chase';
-    enemy.cd = Math.max(enemy.cd, 0.3);
+  // ボスはひるまず、吹き飛ばない
+  if (!enemy.boss) {
+    enemy.stagger = COMBAT.stagger;
+    // ひるんだら構えは中断する
+    if (enemy.state !== 'chase') {
+      enemy.state = 'chase';
+      enemy.cd = Math.max(enemy.cd, 0.3);
+    }
+    const len = Math.hypot(dirX, dirY) || 1;
+    const kb = knockback * (1 - (enemy.def.knockbackResist ?? 0));
+    enemy.vx += (dirX / len) * kb;
+    enemy.vy += (dirY / len) * kb;
   }
-  const len = Math.hypot(dirX, dirY) || 1;
-  const kb = knockback * (1 - (enemy.def.knockbackResist ?? 0));
-  enemy.vx += (dirX / len) * kb;
-  enemy.vy += (dirY / len) * kb;
 
   const label = (crit ? '会心 ' : '') + amount + (weak ? ' 弱点' : '');
-  floatText(world, enemy.x, enemy.y - enemy.r - 6, label, crit ? COLORS.amber : COLORS.ink, crit || weak ? 20 : 15);
+  floatText(world, enemy.x, enemy.y - enemy.r - 6, label, crit ? COLORS.amber : weak ? ELEMENT_COLORS.cold : COLORS.ink, crit || weak ? 20 : 15);
   burst(world, enemy.x, enemy.y, enemy.color, crit ? 10 : 5);
   if (enemy.hp <= 0) killEnemy(world, enemy);
   return { amount, crit, weak };
@@ -41,8 +44,9 @@ export function killEnemy(world, enemy) {
   if (enemy.dead) return;
   enemy.dead = true;
   world.kills++;
-  burst(world, enemy.x, enemy.y, enemy.color, 18, 240);
-  addShake(world, FEEL.shake.kill);
+  burst(world, enemy.x, enemy.y, enemy.color, enemy.boss ? 90 : 18, enemy.boss ? 400 : 240);
+  addShake(world, enemy.boss ? FEEL.shake.bossKill : FEEL.shake.kill);
+  if (enemy.boss) addHitstop(world, FEEL.hitstop.bossKill);
 }
 
 export function hurtPlayer(world, damage) {

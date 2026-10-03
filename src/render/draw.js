@@ -96,13 +96,13 @@ export function drawEnemies(g, world) {
       // 出現予告
       const k = Math.min(1, e.spawnT / ROOM.spawnWarning);
       g.lineStyle(2, color, 0.3 + 0.4 * Math.abs(Math.sin(world.time * 14)));
-      g.strokeCircle(e.x, e.y, e.r + 4 + k * 22);
+      g.strokeCircle(e.x, e.y, e.r + 4 + (e.boss ? 0 : k * 22));
       g.lineBetween(e.x - 5, e.y, e.x + 5, e.y).lineBetween(e.x, e.y - 5, e.x, e.y + 5);
       continue;
     }
     drawTelegraph(g, e, world);
     SHAPES[e.def.shape](g, e, e.hit > 0 ? WHITE : color, world);
-    if (e.hp < e.maxHp) {
+    if (!e.boss && e.hp < e.maxHp) {
       g.fillStyle(hex(COLORS.line), 1).fillRect(e.x - 14, e.y - e.r - 11, 28, 3);
       g.fillStyle(color, 1).fillRect(e.x - 14, e.y - e.r - 11, (28 * Math.max(0, e.hp)) / e.maxHp, 3);
     }
@@ -206,4 +206,103 @@ function cooldownBar(g, x, y, ratio, color) {
   g.fillStyle(0x1b1631, 1).fillRect(x, y, w, 10);
   g.fillStyle(color, ratio >= 1 ? 1 : 0.45).fillRect(x, y, w * Math.min(1, ratio), 10);
   g.lineStyle(1, ratio >= 1 ? color : hex(COLORS.line), 1).strokeRect(x, y, w, 10);
+}
+
+// ---- ボス ----
+
+function rotatedEllipse(x, y, rx, ry, rotation, steps = 28) {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const pts = [];
+  for (let i = 0; i < steps; i++) {
+    const a = (i * Math.PI * 2) / steps;
+    const ex = Math.cos(a) * rx;
+    const ey = Math.sin(a) * ry;
+    pts.push({ x: x + ex * cos - ey * sin, y: y + ex * sin + ey * cos });
+  }
+  return pts;
+}
+
+// ボスから見た (前, 横) の位置を画面上の位置に直す
+function local(b, forward, side) {
+  const cos = Math.cos(b.angle);
+  const sin = Math.sin(b.angle);
+  return { x: b.x + forward * cos - side * sin, y: b.y + forward * sin + side * cos };
+}
+
+// 攻撃の予告。パターンの部品（src/game/bossPatterns.js）ごとに描き方を決める
+const BOSS_TELEGRAPHS = {
+  charge(g, b, act, world) {
+    if (act.phase !== 'telegraph') return;
+    const def = act.def;
+    const len = def.speed * def.duration;
+    const locked = act.t <= def.lockTime;
+    const alpha = locked ? 0.55 : 0.2 + 0.2 * Math.abs(Math.sin(world.time * 16));
+    g.lineStyle(b.r * 1.6, hex(COLORS.red), alpha);
+    g.lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+  },
+  shockwave(g, b, act) {
+    if (act.phase !== 'telegraph') return;
+    const k = 1 - act.t / act.def.telegraph;
+    g.fillStyle(hex(COLORS.red), 0.14 + 0.16 * k).fillCircle(b.x, b.y, b.r + k * 70);
+    g.lineStyle(2, hex(COLORS.red), 0.7).strokeCircle(b.x, b.y, b.r + 70);
+  },
+};
+
+SHAPES.boar = (g, b, color) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const body = rotatedEllipse(b.x, b.y, r * 1.15, r * 0.85, b.angle);
+  g.fillStyle(BODY_FILL, 0.9).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  // 牙
+  for (const side of [-1, 1]) {
+    const from = local(b, r * 0.9, side * r * 0.4);
+    const to = local(b, r * 1.55, side * r * 0.7);
+    neonStroke(g, color, 3, () => g.lineBetween(from.x, from.y, to.x, to.y));
+  }
+  // 背中の電線
+  const spineA = local(b, -r * 0.9, 0);
+  const spineB = local(b, r * 0.3, 0);
+  g.lineStyle(2, color, 0.6).lineBetween(spineA.x, spineA.y, spineB.x, spineB.y);
+  // 目。スタン中は消える
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.6, side * r * 0.3);
+      g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+};
+
+export function drawBossTelegraph(g, world) {
+  const b = world.boss;
+  if (!b || b.dead || b.spawnT > 0 || !b.act) return;
+  BOSS_TELEGRAPHS[b.act.def.pattern]?.(g, b, b.act, world);
+}
+
+export function drawHazards(g, world) {
+  for (const h of world.hazards) {
+    if (h.type === 'ring') {
+      const color = hex(h.color);
+      const fade = Math.min(1, (h.max - h.r) / 60);
+      g.lineStyle(h.width + 10, color, 0.18 * fade).strokeCircle(h.x, h.y, h.r);
+      g.lineStyle(h.width * 0.45, color, fade).strokeCircle(h.x, h.y, h.r);
+    }
+  }
+}
+
+export function drawBossBar(g, world) {
+  const b = world.boss;
+  if (!b || b.spawnT > 0) return;
+  const w = 420;
+  const x = (SCREEN.width - w) / 2;
+  const y = SCREEN.height - ROOM.wall - 22;
+  const ratio = Math.max(0, b.hp) / b.maxHp;
+  g.fillStyle(0x1b1631, 0.9).fillRect(x, y, w, 8);
+  g.fillStyle(hex(b.color), 1).fillRect(x, y, w * ratio, 8);
+  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(x, y, w, 8);
+  // 段階が切り替わるHPの目印
+  for (const ph of b.def.phases) {
+    if (ph.hpAbove > 0) g.lineStyle(2, hex(COLORS.ink), 0.8).lineBetween(x + w * ph.hpAbove, y - 3, x + w * ph.hpAbove, y + 11);
+  }
 }

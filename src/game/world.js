@@ -2,21 +2,28 @@
 import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { roomBounds } from '../logic/geometry.js';
+import { createBoss } from './boss.js';
+import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
 import { createPlayer, updatePlayer } from './player.js';
 
-// waves: [{ 敵のid: 数, ... }, ...]
-export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random } = {}) {
+// waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを出す
+// playerHp: 前の部屋から引き継ぐHP（省略すると満タン）
+export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, playerHp = null } = {}) {
   const bounds = roomBounds(SCREEN, ROOM.wall);
+  const player = createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2);
+  if (playerHp != null) player.hp = Math.min(player.stats.maxHp, playerHp);
   return {
     mode: 'play', // play / dead / clear
     time: 0,
     rng,
     bounds,
-    player: createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2),
+    player,
     enemies: [],
+    boss: null, // ボス部屋のボス（HPバー表示用。倒した後も残す）
     shots: [],
+    hazards: [],
     waves,
     wave: -1,
     waveTimer: 0.4,
@@ -37,6 +44,7 @@ export function updateWorld(world, dt, input) {
   updatePlayer(world, dt, input);
   updateEnemies(world, dt);
   updateShots(world, dt);
+  updateHazards(world, dt);
   updateWaves(world, dt);
 }
 
@@ -45,6 +53,7 @@ function updateWaves(world, dt) {
   if (world.wave + 1 >= world.waves.length) {
     world.mode = 'clear';
     world.shots = [];
+    world.hazards = [];
     return;
   }
   world.waveTimer -= dt;
@@ -59,6 +68,12 @@ export function spawnWave(world, wave) {
   const b = world.bounds;
   const p = world.player;
   const margin = 30;
+  if (wave.boss) {
+    const def = DATA.bosses.get(wave.boss);
+    world.boss = createBoss(def, b.right - 200, (b.top + b.bottom) / 2, ROOM.bossWarning);
+    world.enemies.push(world.boss);
+    return;
+  }
   for (const [id, count] of Object.entries(wave)) {
     const def = DATA.enemies.get(id);
     for (let i = 0; i < count; i++) {
