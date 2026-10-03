@@ -1,17 +1,18 @@
 import * as Phaser from 'phaser';
-import { SCREEN } from '../data/balance.js';
+import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { chooseImplant } from '../game/build.js';
 import { interact, useKit } from '../game/objects.js';
-import { createRun, currentArea, enterRoom, leaveRoom } from '../game/run.js';
+import { createRun, currentArea, enterRoom, leaveRoom, skipToBoss } from '../game/run.js';
 import { updateWorld } from '../game/world.js';
+import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
   drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawShots, drawZones,
 } from '../render/draw.js';
-import { drawObjects, drawRoomIcon, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
-import { areaOverview } from '../logic/areaGen.js';
+import { drawAreaMap, nodePosition } from '../render/areaMap.js';
+import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
 import { createBuildList, createChoicePanel, createCommLog, createComparePanel } from './battleUi.js';
 
 const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
@@ -46,7 +47,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,ESC,E,Q,ONE,TWO,THREE,B');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,ESC,E,Q,M,ONE,TWO,THREE,B');
     this.dashPressed = false;
     this.attackPressed = false;
     this.choiceShownAt = 0;
@@ -57,6 +58,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.keys.E.on('down', () => interact(this.world));
     this.keys.Q.on('down', () => useKit(this.world));
+    this.keys.M.on('down', () => this.bigMap.setVisible(!this.bigMap.visible));
     ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => this.choose(i)));
     this.keys.ENTER.on('down', () => {
       const world = this.world;
@@ -69,8 +71,7 @@ export class BattleScene extends Phaser.Scene {
     if (import.meta.env.DEV) {
       this.keys.B.on('down', () => {
         if (run.plan.current === 'boss') return;
-        run.plan.pool = [];
-        leaveRoom(run, this.world, 'boss');
+        skipToBoss(run, this.world);
         this.scene.restart({ run });
       });
     }
@@ -85,7 +86,7 @@ export class BattleScene extends Phaser.Scene {
     this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋へ' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　Esc タイトル${devHelp}`, {
+    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc タイトル${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -101,6 +102,10 @@ export class BattleScene extends Phaser.Scene {
     this.comparePanel = createComparePanel(this);
     this.choicePanel = createChoicePanel(this, (i) => this.choose(i));
     this.commLog = createCommLog(this);
+    this.createBigMap();
+    this.countText = this.add.text(W / 2, H / 2 - 20, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '110px', color: COLORS.cyan })
+      .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 24, false, true).setDepth(9).setVisible(false);
+    this.countWasOn = false;
     this.showSectorBanner();
     this.createBossWarning();
     this.bossIntroDone = false;
@@ -215,7 +220,7 @@ export class BattleScene extends Phaser.Scene {
     this.levelText.setText(`Lv ${p.build.level}　${p.build.xp}/${xpToNext(p.build.level)}`);
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
-    const fighting = world.mode === 'play' && !boss && world.waves.length > 0;
+    const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.length}`);
 
     this.buildList.update(p.build);
@@ -225,6 +230,7 @@ export class BattleScene extends Phaser.Scene {
     this.promptText.setVisible(!!prompt);
     if (prompt) this.promptText.setText(prompt.text).setColor(prompt.color);
 
+    this.updateCountdown();
     this.updateBossPresentation(boss);
     this.commLog.update(delta);
 
@@ -257,19 +263,51 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // エリアのマップ（右上）。通った部屋は暗い緑、今いる部屋は枠つき、この先の部屋は種類の色で出す。
-  // この先の部屋は好きな順に通れる。最後がボス
+  // エリアの地図（右上）。線でつながった部屋にだけ進める。白い枠が今いる部屋
   drawRoomMap() {
-    const g = this.hud;
-    const nodes = areaOverview(this.run.plan);
-    const gap = 21;
-    const x0 = SCREEN.width - 44 - (nodes.length - 1) * gap;
-    const y = 14;
-    nodes.forEach((node, i) => {
-      const x = x0 + i * gap;
-      if (node.state === 'current') g.lineStyle(1, hex(COLORS.ink), 0.9).strokeRect(x - 9, y - 9, 18, 18);
-      drawRoomIcon(g, node.type, x, y, 5, node.state === 'done' ? 0x2f6b4c : null);
-    });
+    const plan = this.run.plan;
+    const colGap = 22;
+    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 14, colGap, rowGap: 13, icon: 4, line: 1, bg: 0x16122a });
+  }
+
+  // M キーで出す大きい地図。部屋の中では地図は変わらないので、最初に1回だけ描く
+  createBigMap() {
+    const { width: W, height: H } = SCREEN;
+    const plan = this.run.plan;
+    const bg = 0x110f1d;
+    const layout = { x: W / 2 - ((plan.columns - 1) * 120) / 2, y: H / 2 + 6, colGap: 120, rowGap: 120, icon: 13, line: 2, bg };
+    const c = this.add.container(0, 0).setDepth(15).setVisible(false);
+    const panel = this.add.rectangle(W / 2, H / 2, 660, 330, bg, 0.96).setStrokeStyle(1, hex(COLORS.cyan));
+    const g = this.add.graphics();
+    drawAreaMap(g, plan, layout);
+    const title = this.add.text(W / 2, H / 2 - 146, `${this.area.code} // ${this.area.name} — MAP`, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color: COLORS.cyan }).setOrigin(0.5);
+    const note = this.add.text(W / 2, H / 2 + 146, '白い枠＝今いる部屋　明るい線＝進める道　暗い部屋＝もう行けない　｜　M で閉じる', { fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim }).setOrigin(0.5);
+    c.add([panel, g, title, note]);
+    for (const node of Object.values(plan.nodes)) {
+      const pos = nodePosition(node, layout);
+      const room = DATA.rooms.get(node.type);
+      // 通った部屋と、もう行けない部屋の名前は暗くする
+      const state = nodeState(plan, node.id);
+      const color = state === 'off' ? '#4a4470' : state === 'done' ? '#2f6b4c' : COLORS[room.color];
+      c.add(this.add.text(pos.x, pos.y + 26, room.label, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '12px', color }).setOrigin(0.5));
+    }
+    this.bigMap = c;
+  }
+
+  // ランの最初の部屋のカウントダウン（3, 2, 1）
+  updateCountdown() {
+    const left = this.world.countdown;
+    if (left > 0) {
+      const step = ROOM.startCountdown.step;
+      const n = Math.ceil(left / step);
+      const k = (left % step) / step; // 1→0 で1つぶん進む
+      this.countText.setVisible(true).setText(`${n}`).setScale(1 + 0.5 * k).setAlpha(0.35 + 0.65 * k);
+      this.countWasOn = true;
+    } else if (this.countWasOn) {
+      this.countWasOn = false;
+      this.countText.setText('GO').setScale(1).setAlpha(1);
+      this.tweens.add({ targets: this.countText, alpha: 0, scale: 1.6, duration: 450, onComplete: () => this.countText.setVisible(false) });
+    }
   }
 
   // 文字の一覧を画面に出す。Text を使い回す。items: [{ x, y, text, color, size, life?, max? }]

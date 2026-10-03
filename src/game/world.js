@@ -37,7 +37,8 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     room,
     objects: [...room.objects], // 扉・補給端末・闇市の商品・データ金庫の装備
     focusObject: null, // 近くにある、E で調べられるもの
-    exit: null, // 扉を選んだら、次の部屋の種類が入る
+    exit: null, // 扉を選んだら、進む先の部屋（地図の id）が入る
+    countdown: room.countdown ?? 0, // 開始前のカウントダウンの残り（秒）。0 になるまで敵は出ない
     choice: null, // 選択待ち（レベルアップのインプラント3択）。出ている間は戦闘が止まる
     pendingLevelUps: 0,
     waves: room.waves,
@@ -63,7 +64,10 @@ export function updateWorld(world, dt, input) {
   }
 
   updatePlayer(world, dt, input);
-  if (world.mode === 'play') {
+  if (world.countdown > 0) {
+    // カウントダウン中は動けるが、敵はまだ出ない
+    world.countdown -= dt;
+  } else if (world.mode === 'play') {
     updateEnemies(world, dt);
     updateShots(world, dt);
     updateHazards(world, dt);

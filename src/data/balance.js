@@ -39,6 +39,7 @@ export const ROOM = {
   waveDelay: 0.9, // 波と波の間（秒）
   spawnMinDistance: 200, // プレイヤーからこれ以上離れた場所に出す（px）
   doorSpacing: 170, // 扉が2つのときの間隔（px）
+  startCountdown: { count: 3, step: 0.7 }, // ランの最初の部屋のカウントダウン（3, 2, 1）と、1つあたりの秒数
 };
 
 // まだ実装していない仕組み。true にすると、それを必要とする装備効果やインプラントが出るようになる

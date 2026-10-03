@@ -3,8 +3,9 @@
 //
 // code / name : 区画名の表示に使う（例：「SECTOR 01 // 下層スラム」）
 // first       : 最初に入る部屋の種類
-// pool        : 残りの部屋。扉の2択で、この中から選んで進む
-// specialRooms: 特殊部屋の候補。ランごとに1つ選ばれて pool に加わる
+// map         : 地図の作り方。columns 途中の列の数（各列は上下2部屋）/ elites エリート部屋の数 /
+//               specials 特殊部屋の数（別々の種類が入る）/ crossChance 斜めの線が引かれる確率
+// specialRooms: 特殊部屋の候補
 // enemies     : 出る雑魚と出やすさ（weight）
 // eliteBases  : エリートになる雑魚
 // boss        : エリアの最後のボス
@@ -15,7 +16,7 @@ export const areas = [
     code: 'SECTOR 01',
     name: '下層スラム',
     first: 'combat',
-    pool: ['combat', 'elite'],
+    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault'],
     enemies: [
       { id: 'drone', weight: 5 },

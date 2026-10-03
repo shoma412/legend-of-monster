@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ECONOMY, ELITE, PLAYER, ROOMGEN } from '../src/data/balance.js';
+import { ECONOMY, ELITE, PLAYER, ROOM, ROOMGEN } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { hasTraitPart } from '../src/game/elite.js';
@@ -7,7 +7,7 @@ import { interact, useKit } from '../src/game/objects.js';
 import { buildRoom, hasRoomBuilder } from '../src/game/rooms.js';
 import { createRun, currentArea, enterRoom, leaveRoom } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { advancePlan, areaOverview, createAreaPlan, doorOptions, generateEliteWaves, generateShop, generateVault, generateWaves } from '../src/logic/areaGen.js';
+import { advancePlan, createAreaPlan, doorOptions, nodeState, reachableNodes, generateEliteWaves, generateShop, generateVault, generateWaves } from '../src/logic/areaGen.js';
 import { createBuild } from '../src/logic/stats.js';
 import { hasIcon } from '../src/render/objects.js';
 
@@ -51,7 +51,8 @@ describe('定義データのつじつま', () => {
 
   it('エリアが使う部屋・敵・ボスは定義されている', () => {
     for (const a of DATA.areas.all()) {
-      for (const r of [a.first, ...a.pool, ...a.specialRooms]) expect(DATA.rooms.has(r), r).toBe(true);
+      for (const r of [a.first, ...a.specialRooms]) expect(DATA.rooms.has(r), r).toBe(true);
+      expect(a.specialRooms.length).toBeGreaterThanOrEqual(a.map.specials);
       for (const e of [...a.enemies.map((x) => x.id), ...a.eliteBases]) expect(DATA.enemies.has(e), e).toBe(true);
       expect(DATA.bosses.has(a.boss)).toBe(true);
     }
@@ -63,70 +64,96 @@ describe('定義データのつじつま', () => {
   });
 });
 
-describe('エリアの部屋の並び', () => {
-  // 扉をランダムに選んで最後まで進み、通った部屋の並びを返す
+describe('エリアの地図', () => {
+  const SPECIAL = ['supply', 'market', 'vault'];
+  const spread = (n) => seeded((n * 2654435761) % 4294967296); // 連番の種だと最初の乱数が似るので散らす
+
+  it('最初の部屋・途中の3列（上下2部屋）・ボスでできている', () => {
+    for (let n = 1; n <= 200; n++) {
+      const plan = createAreaPlan(area, spread(n));
+      const nodes = Object.values(plan.nodes);
+      expect(nodes).toHaveLength(8);
+      expect(plan.nodes.start).toMatchObject({ col: 0, type: 'combat' });
+      expect(plan.nodes.boss).toMatchObject({ col: 4, type: 'boss' });
+      const middle = nodes.filter((x) => x.col >= 1 && x.col <= 3).map((x) => x.type);
+      // 途中の6部屋：エリート1つ以上、特殊部屋2つ（別の種類）、残りは戦闘
+      const elites = middle.filter((t) => t === 'elite').length;
+      expect(elites).toBeGreaterThanOrEqual(1);
+      expect(elites).toBeLessThanOrEqual(2);
+      const specials = middle.filter((t) => SPECIAL.includes(t));
+      expect(specials).toHaveLength(2);
+      expect(new Set(specials).size).toBe(2);
+      expect(middle.filter((t) => t === 'combat')).toHaveLength(6 - elites - 2);
+      // 同じ列の上下は違う種類
+      for (let c = 1; c <= 3; c++) expect(plan.nodes[`${c}-0`].type).not.toBe(plan.nodes[`${c}-1`].type);
+    }
+  });
+
+  it('どの部屋からも次の列の1〜2部屋へ進め、どの部屋にも入ってくる道がある', () => {
+    for (let n = 1; n <= 200; n++) {
+      const plan = createAreaPlan(area, spread(n));
+      const incoming = new Set();
+      for (const node of Object.values(plan.nodes)) {
+        if (node.id === 'boss') {
+          expect(node.next).toEqual([]);
+          continue;
+        }
+        expect(node.next.length).toBeGreaterThanOrEqual(1);
+        expect(node.next.length).toBeLessThanOrEqual(2);
+        for (const id of node.next) {
+          expect(plan.nodes[id].col).toBe(node.col + 1);
+          incoming.add(id);
+        }
+      }
+      expect(incoming.size).toBe(7); // 最初の部屋以外すべて
+    }
+  });
+
+  // 扉をランダムに選んで最後まで進み、通った部屋の種類を返す
   function walk(n) {
-    const seed = (n * 2654435761) % 4294967296; // 連番の種だと最初の乱数が似るので散らす
-    const rng = seeded(seed);
+    const rng = spread(n);
     const plan = createAreaPlan(area, rng);
-    const path = [plan.current];
+    const path = [plan.nodes[plan.current].type];
     for (let guard = 0; guard < 10; guard++) {
-      const doors = doorOptions(plan, rng);
+      const doors = doorOptions(plan);
       if (doors.length === 0) break;
-      expect(doors.length).toBeLessThanOrEqual(2);
-      expect(new Set(doors).size).toBe(doors.length);
-      advancePlan(plan, doors[Math.floor(rng() * doors.length)]);
-      path.push(plan.current);
+      const door = doors[Math.floor(rng() * doors.length)];
+      advancePlan(plan, door.id);
+      path.push(door.type);
     }
     return path;
   }
 
-  it('どの道順でも、戦闘3部屋（うち1つエリート）＋特殊部屋1つ＋ボスになる', () => {
-    for (let seed = 1; seed <= 200; seed++) {
-      const path = walk(seed);
+  it('どの道でも5部屋で、最初は戦闘、最後はボス。道によって中身が変わる', () => {
+    const paths = new Set();
+    for (let n = 1; n <= 300; n++) {
+      const path = walk(n);
       expect(path).toHaveLength(5);
       expect(path[0]).toBe('combat');
       expect(path[4]).toBe('boss');
-      expect(path.filter((t) => t === 'combat')).toHaveLength(2);
-      expect(path.filter((t) => t === 'elite')).toHaveLength(1);
-      expect(path.filter((t) => ['supply', 'market', 'vault'].includes(t))).toHaveLength(1);
+      paths.add(path.join('>'));
     }
+    expect(paths.size).toBeGreaterThan(20);
+    // エリート2連戦の道も、エリートなしの道もありうる
+    expect([...paths].some((p) => p.split('elite').length - 1 === 2)).toBe(true);
+    expect([...paths].some((p) => !p.includes('elite'))).toBe(true);
   });
 
-  it('道順はランごとに変わる', () => {
-    const paths = new Set();
-    for (let seed = 1; seed <= 200; seed++) paths.add(walk(seed).join('>'));
-    expect(paths.size).toBeGreaterThan(8);
-  });
-
-  it('エリアのマップ：通った部屋・今の部屋・この先の部屋・ボスが並ぶ', () => {
-    const plan = createAreaPlan(area, seeded(3));
-    const special = plan.pool[2];
-    expect(areaOverview(plan)).toEqual([
-      { type: 'combat', state: 'current' },
-      { type: 'combat', state: 'ahead' },
-      { type: 'elite', state: 'ahead' },
-      { type: special, state: 'ahead' },
-      { type: 'boss', state: 'ahead' },
-    ]);
-    advancePlan(plan, 'elite');
-    expect(areaOverview(plan).map((n) => n.type + ':' + n.state)).toEqual(['combat:done', 'elite:current', 'combat:ahead', special + ':ahead', 'boss:ahead']);
-    advancePlan(plan, 'combat');
-    advancePlan(plan, special);
-    advancePlan(plan, 'boss');
-    expect(areaOverview(plan).at(-1)).toEqual({ type: 'boss', state: 'current' });
-    expect(areaOverview(plan)).toHaveLength(5);
-  });
-
-  it('残りが2種類以上あれば扉は2つ、残りがなくなるとボスの扉だけ', () => {
-    const plan = createAreaPlan(area, seeded(3));
-    expect(doorOptions(plan, seeded(1))).toHaveLength(2);
-    plan.pool = ['combat'];
-    expect(doorOptions(plan, seeded(1))).toEqual(['combat']);
-    plan.pool = [];
-    expect(doorOptions(plan, seeded(1))).toEqual(['boss']);
-    plan.current = 'boss';
-    expect(doorOptions(plan, seeded(1))).toEqual([]);
+  it('線でつながっていない部屋には進めない。進むと、行けなくなった部屋が分かる', () => {
+    const plan = createAreaPlan(area, () => 0.99); // 斜めの線が1本も引かれない地図
+    expect(doorOptions(plan).map((d) => d.id)).toEqual(['1-0', '1-1']);
+    expect(nodeState(plan, 'start')).toBe('current');
+    expect(nodeState(plan, '1-0')).toBe('next');
+    expect(nodeState(plan, '3-1')).toBe('ahead');
+    expect(() => advancePlan(plan, '2-0')).toThrow();
+    advancePlan(plan, '1-0');
+    expect(plan.step).toBe(1);
+    expect(doorOptions(plan).map((d) => d.id)).toEqual(['2-0']);
+    expect(nodeState(plan, 'start')).toBe('done');
+    expect(nodeState(plan, '1-1')).toBe('off');
+    expect(nodeState(plan, '3-1')).toBe('off');
+    expect(nodeState(plan, 'boss')).toBe('ahead');
+    expect([...reachableNodes(plan)].sort()).toEqual(['2-0', '3-0', 'boss']);
   });
 });
 
@@ -353,14 +380,30 @@ describe('ラン', () => {
     first.kills = 5;
 
     const next = first.room.doors[0];
-    leaveRoom(r, first, next);
+    leaveRoom(r, first, next.id);
     const second = enterRoom(r);
-    expect(second.room.type).toBe(next);
+    expect(second.room.type).toBe(next.type);
     expect(r.plan.step).toBe(1);
     expect(second.player.hp).toBe(42);
     expect(second.player.build.credits).toBe(77);
     expect(second.player.stats.attackMul).toBeCloseTo(1.2);
     expect(r.kills).toBe(5);
+  });
+
+  it('ランの最初の部屋だけ、3・2・1 のカウントダウンがある。その間は敵が出ない', () => {
+    const r = createRun({ rng: seeded(8) });
+    const first = enterRoom(r);
+    const total = ROOM.startCountdown.count * ROOM.startCountdown.step;
+    expect(first.countdown).toBeCloseTo(total);
+    const x = first.player.x;
+    run(first, total - 0.2, { ...idle, mx: 1 });
+    expect(first.enemies).toHaveLength(0);
+    expect(first.player.x).toBeGreaterThan(x); // カウントダウン中も動ける
+    run(first, 1.2);
+    expect(first.enemies.length).toBeGreaterThan(0);
+
+    leaveRoom(r, first, first.room.doors[0].id);
+    expect(enterRoom(r).countdown).toBe(0);
   });
 
   it('新しいランは、まっさらな状態で始まる', () => {

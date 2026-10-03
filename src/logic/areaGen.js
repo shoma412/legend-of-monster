@@ -18,48 +18,101 @@ function pickWeighted(list, rng) {
   return list[list.length - 1];
 }
 
-// エリアの全体マップに出す並び：通ってきた部屋 → まだ通っていない部屋（順番は自由に選べる）→ ボス
-// [{ type, state }]  state: done（通った）/ current（今いる）/ ahead（この先）
-export function areaOverview(plan) {
-  const nodes = plan.path.map((type, i) => ({ type, state: i === plan.path.length - 1 ? 'current' : 'done' }));
-  for (const type of plan.pool) nodes.push({ type, state: 'ahead' });
-  if (plan.current !== 'boss') nodes.push({ type: 'boss', state: 'ahead' });
-  return nodes;
-}
-
-// エリアの進み具合。current: 今いる部屋の種類 / pool: まだ通っていない部屋 / step: 何部屋目か（0から）
-export function createAreaPlan(area, rng) {
-  return {
-    areaId: area.id,
-    step: 0,
-    total: 1 + area.pool.length + 1 + 1, // 最初の部屋 + 残りの部屋 + 特殊部屋 + ボス
-    current: area.first,
-    path: [area.first], // 通ってきた部屋（今の部屋を含む）
-    pool: [...area.pool, pick(area.specialRooms, rng)],
-  };
-}
-
-// 今の部屋をクリアしたあとに開く扉（次の部屋の種類）。最大2つで、同じ種類は並ばない。
-// 残りの部屋がなくなったらボス部屋だけ。ボスの後は扉なし
-export function doorOptions(plan, rng) {
-  if (plan.current === 'boss') return [];
-  if (plan.pool.length === 0) return ['boss'];
-  const types = [...new Set(plan.pool)];
-  for (let i = types.length - 1; i > 0; i--) {
+function shuffle(list, rng) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [types[i], types[j]] = [types[j], types[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return types.slice(0, 2);
+  return a;
 }
 
-// 扉を選んで次の部屋へ進む
-export function advancePlan(plan, type) {
-  const i = plan.pool.indexOf(type);
-  if (i >= 0) plan.pool.splice(i, 1);
-  else if (type !== 'boss') throw new Error(`部屋「${type}」はこのエリアに残っていません`);
-  plan.current = type;
-  plan.path.push(type);
-  plan.step++;
+// エリアの地図を作る。左から右へ進み、線（next）でつながった部屋にだけ進める。
+//   列0：最初の部屋 / 途中の列：上下2部屋ずつ / 最後の列：ボス
+//   nodes: { id: { id, col, row, type, next: [id, ...] } }  row は 0=上, 1=下（1部屋だけの列は 0.5）
+//   current: 今いる部屋の id / visited: 通ってきた部屋の id / step: 何部屋目か（0から）
+export function createAreaPlan(area, rng) {
+  const gen = area.map;
+  const lanes = 2;
+  const count = gen.columns * lanes;
+
+  // 途中の部屋の中身：エリート、特殊部屋（別々の種類）、残りは戦闘
+  const elites = gen.elites.min + Math.floor(rng() * (gen.elites.max - gen.elites.min + 1));
+  const specials = shuffle(area.specialRooms, rng).slice(0, gen.specials);
+  const types = [...Array(elites).fill('elite'), ...specials];
+  while (types.length < count) types.push('combat');
+
+  // 同じ列の上下が同じ種類にならない並びを探す
+  let placed = shuffle(types, rng);
+  for (let tries = 0; tries < 100; tries++) {
+    let ok = true;
+    for (let c = 0; c < gen.columns; c++) if (placed[c * lanes] === placed[c * lanes + 1]) ok = false;
+    if (ok) break;
+    placed = shuffle(types, rng);
+  }
+
+  const nodes = {};
+  const add = (id, col, row, type) => { nodes[id] = { id, col, row, type, next: [] }; };
+  add('start', 0, 0.5, area.first);
+  for (let c = 0; c < gen.columns; c++) {
+    for (let r = 0; r < lanes; r++) add(`${c + 1}-${r}`, c + 1, r, placed[c * lanes + r]);
+  }
+  add('boss', gen.columns + 1, 0.5, 'boss');
+
+  // 線を引く：まっすぐ進む線は必ずあり、ときどき斜めの線が足される
+  nodes.start.next = ['1-0', '1-1'];
+  for (let c = 1; c <= gen.columns; c++) {
+    for (let r = 0; r < lanes; r++) {
+      const node = nodes[`${c}-${r}`];
+      if (c === gen.columns) {
+        node.next = ['boss'];
+        continue;
+      }
+      node.next = [`${c + 1}-${r}`];
+      if (rng() < gen.crossChance) node.next.push(`${c + 1}-${1 - r}`);
+      node.next.sort(); // 上の部屋が先（扉も上から並ぶ）
+    }
+  }
+
+  return { areaId: area.id, nodes, current: 'start', visited: ['start'], step: 0, columns: gen.columns + 2 };
+}
+
+export function currentNode(plan) {
+  return plan.nodes[plan.current];
+}
+
+// 今の部屋をクリアしたあとに開く扉。[{ id, type }]（上の部屋から順）。ボスの後は扉なし
+export function doorOptions(plan) {
+  return currentNode(plan).next.map((id) => ({ id, type: plan.nodes[id].type }));
+}
+
+// 扉を選んで次の部屋へ進む。線でつながっていない部屋には進めない
+export function advancePlan(plan, id) {
+  if (!currentNode(plan).next.includes(id)) throw new Error(`部屋「${id}」へは、今の部屋から進めません`);
+  plan.current = id;
+  plan.visited.push(id);
+  plan.step = plan.nodes[id].col;
+}
+
+// 今の部屋から、この先たどり着ける部屋の id
+export function reachableNodes(plan) {
+  const seen = new Set();
+  const stack = [...currentNode(plan).next];
+  while (stack.length > 0) {
+    const id = stack.pop();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    stack.push(...plan.nodes[id].next);
+  }
+  return seen;
+}
+
+// 地図の上での部屋の状態：done（通った）/ current（今いる）/ next（扉で進める）/ ahead（この先たどり着ける）/ off（もう行けない）
+export function nodeState(plan, id, reachable = reachableNodes(plan)) {
+  if (id === plan.current) return 'current';
+  if (plan.visited.includes(id)) return 'done';
+  if (currentNode(plan).next.includes(id)) return 'next';
+  return reachable.has(id) ? 'ahead' : 'off';
 }
 
 // 予算ぶんだけ雑魚を選ぶ。{ 敵のid: 数 }

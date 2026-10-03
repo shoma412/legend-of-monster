@@ -35,7 +35,7 @@ const BUILDERS = {
   },
 };
 
-// 部屋を作る。doors は、クリア後に開く扉（次の部屋の種類の並び）
+// 部屋を作る。doors は、クリア後に開く扉（進める部屋 { id, type } の並び）
 export function buildRoom(type, ctx, doors = []) {
   const def = DATA.rooms.get(type);
   const built = BUILDERS[def.build](ctx);
@@ -55,9 +55,11 @@ export function hasRoomBuilder(name) {
 // クリア後の扉を右の壁に並べる
 export function doorObjects(doors) {
   const x = SCREEN.width - ROOM.wall;
-  return doors.map((type, i) => ({
+  // door は { id, type }。種類の名前だけでもよい（テスト用）
+  return doors.map((door, i) => ({
     kind: 'door',
-    type,
+    type: door.type ?? door,
+    target: door.id ?? door, // 進む先（world.exit に入る）
     x,
     y: CY + (i - (doors.length - 1) / 2) * ROOM.doorSpacing,
     r: 56,
