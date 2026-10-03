@@ -16,6 +16,7 @@ export const PLAYER = {
   },
   attackBuffer: 0.2, // 攻撃ボタンを押してから受け付ける猶予（秒）。硬直中のクリックで次の段がつながる
   hitInvincible: 0.6, // 被弾後の無敵（秒）
+  kit: { heal: 35, start: 2 }, // 修復キット：回復量と、ラン開始時の数
   critChance: 0.05,
   critMultiplier: 2,
   minDamageTaken: 0.3, // 被ダメージ軽減を重ねても、これより小さい倍率にはならない
@@ -34,14 +35,15 @@ export const ENEMY_SCALING = {
 export const ROOM = {
   wall: 28, // 壁の厚み（px）
   spawnWarning: 0.7, // 敵が出る前の予告（秒）
-  bossWarning: 1.6, // ボスが出る前の予告（秒）
+  bossWarning: 2.4, // ボスが出る前の予告（秒）。この間に警告と異名を出す
   waveDelay: 0.9, // 波と波の間（秒）
   spawnMinDistance: 200, // プレイヤーからこれ以上離れた場所に出す（px）
+  doorSpacing: 170, // 扉が2つのときの間隔（px）
 };
 
 // まだ実装していない仕組み。true にすると、それを必要とする装備効果やインプラントが出るようになる
 export const FEATURES = {
-  credits: false, // クレジット（M4）
+  credits: true, // クレジット（M4 で実装）
 };
 
 // レベルと経験値
@@ -83,14 +85,31 @@ export const FEEL = {
   shake: { hit: 2.5, heavy: 6, charged: 12, kill: 3, bossKill: 20, hurt: 8, death: 14 },
 };
 
-// 確認用の部屋（M4 で部屋生成に置き換える）。波ごとに出す敵の id と数。{ boss: id } はボスを出す
-export const TEST_STAGES = {
-  room: {
-    waves: [
-      { drone: 4, grunt: 1 },
-      { drone: 3, grunt: 2, turret: 1 },
-      { drone: 5, grunt: 2, turret: 2 },
-    ],
+// 部屋の中身の抽選
+export const ROOMGEN = {
+  // 戦闘部屋：波の数と、1波あたりの敵の予算（敵ごとの cost の合計）
+  combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 1.5, budgetPerWave: 1 },
+  elite: { minionBudget: 4 }, // エリートの取り巻きの予算
+  supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
+  vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ
+};
+
+// エリート（雑魚の強化版）
+export const ELITE = {
+  hpMul: 3,
+  sizeMul: 1.3,
+  xpMul: 3,
+  creditMul: 5,
+  knockbackResist: 0.7,
+  drops: { count: 1, minRarity: 1 }, // レア以上の装備が確定
+};
+
+// クレジット
+export const ECONOMY = {
+  prices: {
+    gear: [30, 55, 90, 150], // レア度ごとの装備の値段
+    kit: 35,
+    implant: 70,
   },
-  boss: { waves: [{ boss: 'boltboar' }] },
+  shop: { gearCount: 2, rarityBonus: 0 },
 };

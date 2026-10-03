@@ -3,16 +3,22 @@ import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { roomBounds } from '../logic/geometry.js';
 import { createBoss } from './boss.js';
-import { findFocusLoot, openImplantChoice } from './build.js';
+import { openImplantChoice } from './build.js';
+import { makeElite } from './elite.js';
+import { updateFocus } from './objects.js';
+import { doorObjects } from './rooms.js';
 import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
 import { createPlayer, updatePlayer } from './player.js';
 
-// waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを出す
+// room: 部屋の中身（src/game/rooms.js の buildRoom が作る）{ type, waves, objects, doors, clearCredits }
+//   waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを、{ elite: { base, trait } } はエリートを出す
+// waves だけを直接渡してもよい（テスト用）
 // carry: 前の部屋から引き継ぐもの { hp, build }（省略するとまっさらな状態）
-export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, carry = null } = {}) {
+export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, carry = null, room = null } = {}) {
+  room ??= { type: 'combat', waves, objects: [], doors: [], clearCredits: 0 };
   const bounds = roomBounds(SCREEN, ROOM.wall);
   const player = createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2, carry);
   return {
@@ -28,9 +34,13 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
+    room,
+    objects: [...room.objects], // 扉・補給端末・闇市の商品・データ金庫の装備
+    focusObject: null, // 近くにある、E で調べられるもの
+    exit: null, // 扉を選んだら、次の部屋の種類が入る
     choice: null, // 選択待ち（レベルアップのインプラント3択）。出ている間は戦闘が止まる
     pendingLevelUps: 0,
-    waves,
+    waves: room.waves,
     wave: -1,
     waveTimer: 0.4,
     kills: 0,
@@ -61,16 +71,13 @@ export function updateWorld(world, dt, input) {
     updateWaves(world, dt);
   }
   for (const l of world.loot) l.t += dt;
-  world.focusLoot = findFocusLoot(world);
+  updateFocus(world);
 }
 
 function updateWaves(world, dt) {
   if (world.mode !== 'play' || world.enemies.length > 0) return;
   if (world.wave + 1 >= world.waves.length) {
-    world.mode = 'clear';
-    world.shots = [];
-    world.hazards = [];
-    world.zones = [];
+    clearRoom(world);
     return;
   }
   world.waveTimer -= dt;
@@ -81,9 +88,34 @@ function updateWaves(world, dt) {
   }
 }
 
-export function spawnWave(world, wave) {
+// 部屋をクリアした：報酬を渡して、次の部屋への扉を開く
+function clearRoom(world) {
+  const p = world.player;
+  world.mode = 'clear';
+  world.shots = [];
+  world.hazards = [];
+  world.zones = [];
+  p.build.credits += Math.round(world.room.clearCredits * p.stats.creditMul);
+  // ボスを倒したら全回復
+  if (world.boss) p.hp = p.stats.maxHp;
+  world.objects.push(...doorObjects(world.room.doors));
+}
+
+function randomSpot(world, margin) {
   const b = world.bounds;
   const p = world.player;
+  let x = 0;
+  let y = 0;
+  for (let tries = 0; tries < 30; tries++) {
+    x = b.left + margin + world.rng() * (b.right - b.left - margin * 2);
+    y = b.top + margin + world.rng() * (b.bottom - b.top - margin * 2);
+    if (Math.hypot(x - p.x, y - p.y) >= ROOM.spawnMinDistance) break;
+  }
+  return { x, y };
+}
+
+export function spawnWave(world, wave) {
+  const b = world.bounds;
   const margin = 30;
   if (wave.boss) {
     const def = DATA.bosses.get(wave.boss);
@@ -91,16 +123,16 @@ export function spawnWave(world, wave) {
     world.enemies.push(world.boss);
     return;
   }
+  if (wave.elite) {
+    const { x, y } = randomSpot(world, 60);
+    const e = createEnemy(DATA.enemies.get(wave.elite.base), x, y, ROOM.spawnWarning + 0.4, world.rng);
+    world.enemies.push(makeElite(e, wave.elite.trait));
+  }
   for (const [id, count] of Object.entries(wave)) {
+    if (id === 'elite') continue;
     const def = DATA.enemies.get(id);
     for (let i = 0; i < count; i++) {
-      let x = 0;
-      let y = 0;
-      for (let tries = 0; tries < 30; tries++) {
-        x = b.left + margin + world.rng() * (b.right - b.left - margin * 2);
-        y = b.top + margin + world.rng() * (b.bottom - b.top - margin * 2);
-        if (Math.hypot(x - p.x, y - p.y) >= ROOM.spawnMinDistance) break;
-      }
+      const { x, y } = randomSpot(world, margin);
       world.enemies.push(createEnemy(def, x, y, ROOM.spawnWarning + world.rng() * 0.3, world.rng));
     }
   }

@@ -8,6 +8,8 @@ import { legendEffects } from './legendEffects.js';
 import { implants } from './implants.js';
 import { rooms } from './rooms.js';
 import { upgrades } from './upgrades.js';
+import { areas } from './areas.js';
+import { eliteTraits } from './eliteTraits.js';
 
 export const DATA = {
   enemies: defineRegistry('敵', enemies),
@@ -18,4 +20,6 @@ export const DATA = {
   implants: defineRegistry('インプラント', implants),
   rooms: defineRegistry('部屋の種類', rooms),
   upgrades: defineRegistry('恒久強化', upgrades),
+  areas: defineRegistry('エリア', areas),
+  eliteTraits: defineRegistry('エリートの特性', eliteTraits),
 };

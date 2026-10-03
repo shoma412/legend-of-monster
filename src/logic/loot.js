@@ -34,8 +34,8 @@ function rollLine(def, rarity, rng) {
 }
 
 // 装備を1つ作る。{ slot, rarity, effects: [{ id, value } | { id, element }], unique, name }
-export function makeItem(rng, { rarityBonus = 0, slot = null, rarity = null } = {}) {
-  const rarityIndex = rarity ?? rollRarity(rng, rarityBonus);
+export function makeItem(rng, { rarityBonus = 0, minRarity = 0, slot = null, rarity = null } = {}) {
+  const rarityIndex = rarity ?? Math.max(minRarity, rollRarity(rng, rarityBonus));
   const rar = LOOT.rarities[rarityIndex];
   const slotDef = slot ? LOOT.slots.find((s) => s.id === slot) : pick(LOOT.slots, rng);
   const pool = DATA.gearEffects.all().filter(isAvailable);

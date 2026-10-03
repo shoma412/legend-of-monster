@@ -125,10 +125,12 @@ describe('装備ドロップ', () => {
     expect(avg[1]).toBeGreaterThan(avg[0]);
   });
 
-  it('まだ実装していないクレジットの効果は出ない', () => {
+  it('クレジットの効果も出る（M4 でクレジットを実装したため）', () => {
     const rng = seeded(5);
-    for (let i = 0; i < 300; i++) expect(makeItem(rng).effects.some((e) => e.id === 'credit')).toBe(false);
-    expect(rollImplantChoices(createBuild(), seeded(2), 99).some((d) => d.id === 'greed')).toBe(false);
+    let found = false;
+    for (let i = 0; i < 300; i++) found ||= makeItem(rng).effects.some((e) => e.id === 'credit');
+    expect(found).toBe(true);
+    expect(rollImplantChoices(createBuild(), seeded(2), 99).some((d) => d.id === 'greed')).toBe(true);
   });
 
   it('倒した敵が装備を落とし、近づいて E で付け替えられる。外した装備はその場に残る', () => {

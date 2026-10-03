@@ -12,6 +12,8 @@ export function createBuild() {
     xp: 0,
     gear: { mod: null, armor: null, acc: null }, // スロットごとの装備
     implants: {}, // { インプラントのid: 持っている数 }
+    credits: 0,
+    kits: PLAYER.kit.start, // 修復キットの数
   };
 }
 

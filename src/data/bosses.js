@@ -11,6 +11,7 @@ export const bosses = [
   {
     id: 'boltboar',
     name: 'ボルトボア',
+    alias: '電線喰らい', // 登場時に出す異名
     shape: 'boar',
     color: 'shock',
     weakness: 'cold',
@@ -19,6 +20,7 @@ export const bosses = [
     speed: 70,
     contactDamage: 22,
     xp: 120,
+    credits: 60,
     drops: { count: 3, rarityBonus: 1 }, // 倒すと必ず落とす装備の数と、レア度の底上げ
     attacks: {
       charge: {

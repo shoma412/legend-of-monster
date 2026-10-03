@@ -5,6 +5,7 @@ import { calcDamage } from '../logic/damage.js';
 import { addXp } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
+import { eliteDeath } from './elite.js';
 import { addHitstop, addShake, burst, floatText } from './fx.js';
 
 // ---- 状態異常 ----
@@ -39,8 +40,9 @@ function applyElementStatus(world, enemy, elements) {
 // 敵の動く速さの倍率（1 = 通常, 0 = 止まっている）
 export function enemySpeedFactor(enemy) {
   if (enemy.stopT > 0) return 0;
-  if (enemy.slowT > 0) return 1 - STATUS.slow.amount * (enemy.boss ? STATUS.bossSlowScale : 1);
-  return 1;
+  const haste = enemy.haste ?? 1; // エリートの特性「加速」
+  if (enemy.slowT > 0) return haste * (1 - STATUS.slow.amount * (enemy.boss ? STATUS.bossSlowScale : 1));
+  return haste;
 }
 
 // ---- 敵へのダメージ ----
@@ -98,6 +100,17 @@ export function effectDamage(world, enemy, base, element = null) {
 // HPを減らして数字を出す。倒したら撃破の処理へ
 export function damageEnemy(world, enemy, amount, { crit = false, weak = false, color = null, small = false } = {}) {
   if (enemy.dead) return;
+  // エリートの特性「障壁」：障壁が残っている間は、ダメージを障壁が受ける
+  if (enemy.barrier > 0) {
+    const absorbed = Math.min(enemy.barrier, amount);
+    enemy.barrier -= absorbed;
+    amount -= absorbed;
+    enemy.hit = 0.1;
+    if (amount <= 0) {
+      floatText(world, enemy.x, enemy.y - enemy.r - 6, enemy.barrier > 0 ? '障壁' : '障壁破壊', COLORS.cyan, 13);
+      return;
+    }
+  }
   enemy.hp -= amount;
   enemy.hit = 0.1;
   const label = (crit ? '会心 ' : '') + amount + (weak ? ' 弱点' : '');
@@ -117,6 +130,8 @@ export function killEnemy(world, enemy) {
   const p = world.player;
   if (p.stats.killHeal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.killHeal);
   world.pendingLevelUps += addXp(p.build, enemy.def.xp ?? 0);
+  p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
+  eliteDeath(world, enemy);
   dropLoot(world, enemy);
   fire(world, 'kill', { target: enemy });
 }
@@ -127,7 +142,7 @@ function dropLoot(world, enemy) {
     // ボスなどの確定ドロップ
     for (let i = 0; i < drops.count; i++) {
       const offset = (i - (drops.count - 1) / 2) * 44;
-      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: drops.rarityBonus ?? 0 }), t: 0 });
+      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: drops.rarityBonus ?? 0, minRarity: drops.minRarity ?? 0 }), t: 0 });
     }
   } else if (world.rng() < (enemy.def.dropChance ?? 0)) {
     world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng), t: 0 });

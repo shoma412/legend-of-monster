@@ -45,20 +45,20 @@ export function createComparePanel(scene) {
   let shown = null;
   let shownEquipped = null;
   return {
-    // loot: 足元の装備（なければ null）, gear: 今の装備
-    update(loot, gear) {
-      if (!loot) {
+    // focus: 比べる装備 { item, head, hint }（なければ null）, gear: 今の装備
+    update(focus, gear) {
+      if (!focus) {
         shown = null;
         c.setVisible(false);
         return;
       }
-      const item = loot.item;
+      const item = focus.item;
       const equipped = gear[item.slot];
       if (item === shown && equipped === shownEquipped) return;
       shown = item;
       shownEquipped = equipped;
 
-      left.head.setText(`落ちている装備（${slotName(item.slot)}）`);
+      left.head.setText(`${focus.head}（${slotName(item.slot)}）`);
       left.name.setText(item.name).setColor(rarityColor(item));
       left.lines.setText(describeItem(item).join('\n'));
       right.head.setText('今の装備');
@@ -71,7 +71,8 @@ export function createComparePanel(scene) {
       }
       const bottom = 44 + Math.max(left.lines.height, right.lines.height, 16) + 8;
       divider.setSize(1, bottom - 12);
-      hint.setText(equipped ? 'E：付け替える（外した装備はその場に落ちる）' : 'E：装備する').setY(bottom);
+      const base = focus.hint ?? (equipped ? 'E：付け替える' : 'E：装備する');
+      hint.setText(equipped ? `${base}（外した装備はその場に落ちる）` : base).setY(bottom);
       bg.setSize(500, bottom + 26);
       c.setVisible(true);
     },
@@ -164,6 +165,39 @@ export function createBuildList(scene) {
       const lines = Object.entries(build.implants).map(([id, n]) => DATA.implants.get(id).name + (n > 1 ? ` ×${n}` : ''));
       for (const f of activeFamilyBonuses(build)) lines.push(`◆ ${families[f].name}系統：${families[f].bonus.desc}`);
       implantText.setText(lines.join('\n'));
+    },
+  };
+}
+
+// ---- 通信ログ（画面左上に1文字ずつ流れる。戦闘は止めない） ----
+
+const COMM_SPEED = 38; // 1秒に出す文字数
+const COMM_HOLD = 4500; // 出し終わってから消えるまで（ミリ秒）
+
+export function createCommLog(scene) {
+  const text = scene.add.text(40, 36, '', body(13, COLORS.amber, { fontStyle: '700', lineSpacing: 5, wordWrap: { width: 460, useAdvancedWrap: true } }))
+    .setDepth(7).setShadow(0, 0, '#000000', 4, false, true).setVisible(false);
+  let full = '';
+  let shown = 0;
+  let hold = 0;
+  return {
+    play(lines) {
+      if (!lines?.length) return;
+      full = lines.join('\n');
+      shown = 0;
+      hold = COMM_HOLD;
+      text.setText('').setAlpha(1).setVisible(true);
+    },
+    update(deltaMs) {
+      if (!text.visible) return;
+      if (shown < full.length) {
+        shown = Math.min(full.length, shown + (COMM_SPEED * deltaMs) / 1000);
+        text.setText(full.slice(0, Math.floor(shown)));
+      } else {
+        hold -= deltaMs;
+        if (hold < 600) text.setAlpha(Math.max(0, hold / 600));
+        if (hold <= 0) text.setVisible(false);
+      }
     },
   };
 }

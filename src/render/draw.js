@@ -108,6 +108,23 @@ function drawStatus(g, e, world) {
   }
 }
 
+// エリートの目印：赤いとげの輪。障壁が残っている間は水色の膜
+function drawEliteMark(g, e, world) {
+  const red = hex(COLORS.red);
+  const n = 6;
+  for (let i = 0; i < n; i++) {
+    const a = world.time * 1.5 + (i * Math.PI * 2) / n;
+    const r1 = e.r + 7;
+    const r2 = e.r + 13;
+    g.lineStyle(2, red, 0.9).lineBetween(e.x + Math.cos(a) * r1, e.y + Math.sin(a) * r1, e.x + Math.cos(a) * r2, e.y + Math.sin(a) * r2);
+  }
+  if (e.barrier > 0) {
+    const k = e.barrier / e.barrierMax;
+    g.fillStyle(hex(COLORS.cyan), 0.1 + 0.15 * k).fillCircle(e.x, e.y, e.r + 9);
+    g.lineStyle(2, hex(COLORS.cyan), 0.4 + 0.6 * k).strokeCircle(e.x, e.y, e.r + 9);
+  }
+}
+
 export function drawEnemies(g, world) {
   for (const e of world.enemies) {
     if (e.dead) continue;
@@ -124,6 +141,7 @@ export function drawEnemies(g, world) {
     const frozen = e.stopT > 0;
     SHAPES[e.def.shape](g, e, e.hit > 0 ? WHITE : frozen ? hex(ELEMENT_COLORS.cold) : color, world);
     drawStatus(g, e, world);
+    if (e.elite) drawEliteMark(g, e, world);
     if (!e.boss && e.hp < e.maxHp) {
       g.fillStyle(hex(COLORS.line), 1).fillRect(e.x - 14, e.y - e.r - 11, 28, 3);
       g.fillStyle(color, 1).fillRect(e.x - 14, e.y - e.r - 11, (28 * Math.max(0, e.hp)) / e.maxHp, 3);

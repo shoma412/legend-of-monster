@@ -4,6 +4,7 @@ import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer } from './combat.js';
+import { updateEliteTrait } from './elite.js';
 import { burst } from './fx.js';
 
 export function createEnemy(def, x, y, spawnT, rng) {
@@ -135,6 +136,7 @@ export function updateEnemies(world, dt) {
       updateBoss(world, e, edt);
       continue;
     }
+    updateEliteTrait(world, e, dt);
     e.hit -= dt;
     e.cd -= edt;
     e.stagger -= dt;
