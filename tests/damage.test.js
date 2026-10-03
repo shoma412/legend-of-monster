@@ -15,13 +15,13 @@ describe('calcDamage', () => {
   });
 
   it('弱点属性は×1.5。属性がなければ弱点にならない', () => {
-    expect(calcDamage({ base: 30, element: 'cold', weakness: 'cold', rng: never }).amount).toBe(45);
-    expect(calcDamage({ base: 30, element: 'heat', weakness: 'cold', rng: never }).weak).toBe(false);
-    expect(calcDamage({ base: 30, element: null, weakness: null, rng: never }).weak).toBe(false);
+    expect(calcDamage({ base: 30, elements: ['cold'], weakness: 'cold', rng: never }).amount).toBe(45);
+    expect(calcDamage({ base: 30, elements: ['heat', 'shock'], weakness: 'cold', rng: never }).weak).toBe(false);
+    expect(calcDamage({ base: 30, elements: [], weakness: null, rng: never }).weak).toBe(false);
   });
 
   it('会心と弱点は掛け算で重なり、最低でも1は与える', () => {
-    expect(calcDamage({ base: 30, critChance: 1, element: 'cold', weakness: 'cold', rng: always }).amount).toBe(90);
+    expect(calcDamage({ base: 30, critChance: 1, elements: ['heat', 'cold'], weakness: 'cold', rng: always }).amount).toBe(90);
     expect(calcDamage({ base: 0.1, rng: never }).amount).toBe(1);
   });
 });

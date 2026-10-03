@@ -1,9 +1,9 @@
 // 雑魚敵の動き方の部品。敵の定義（src/data/enemies.js）の behavior で選ぶ。
-import { COMBAT } from '../data/balance.js';
-import { COLORS } from '../data/theme.js';
+import { COMBAT, STATUS } from '../data/balance.js';
+import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
-import { hurtPlayer } from './combat.js';
+import { damageEnemy, enemySpeedFactor, hurtPlayer } from './combat.js';
 import { burst } from './fx.js';
 
 export function createEnemy(def, x, y, spawnT, rng) {
@@ -19,6 +19,10 @@ export function createEnemy(def, x, y, spawnT, rng) {
     vy: 0,
     hit: 0, // 白く光る残り時間
     stagger: 0, // ひるみの残り時間
+    burnT: 0, // 燃焼の残り時間
+    burnAcc: 0,
+    slowT: 0, // 減速の残り時間
+    stopT: 0, // 凍結・停止の残り時間
     spawnT, // 出現予告の残り時間。0 になるまで動かず、攻撃も当たらない
     state: 'chase',
     t: 0,
@@ -98,6 +102,22 @@ const BEHAVIORS = {
   },
 };
 
+// 状態異常の時間を進める。燃焼は一定間隔でダメージ
+function updateStatus(world, e, dt) {
+  e.slowT -= dt;
+  e.stopT -= dt;
+  if (e.burnT > 0) {
+    e.burnT -= dt;
+    e.burnAcc += dt;
+    const burn = STATUS.burn;
+    while (e.burnAcc >= burn.tick && !e.dead) {
+      e.burnAcc -= burn.tick;
+      const amount = Math.max(1, Math.round(burn.dps * burn.tick * world.player.stats.burnMul));
+      damageEnemy(world, e, amount, { color: ELEMENT_COLORS.heat, small: true });
+    }
+  }
+}
+
 export function updateEnemies(world, dt) {
   const p = world.player;
   const damp = Math.exp(-COMBAT.knockbackDamping * dt);
@@ -107,18 +127,22 @@ export function updateEnemies(world, dt) {
       e.spawnT -= dt;
       continue;
     }
+    updateStatus(world, e, dt);
+    if (e.dead) continue;
+    // 減速・凍結中は、その敵の時間の進みを遅くする（動きも構えも遅くなる）
+    const edt = dt * enemySpeedFactor(e);
     if (e.boss) {
-      updateBoss(world, e, dt);
+      updateBoss(world, e, edt);
       continue;
     }
     e.hit -= dt;
-    e.cd -= dt;
+    e.cd -= edt;
     e.stagger -= dt;
     if (e.swingT > 0) e.swingT -= dt;
-    if (e.stagger <= 0) {
+    if (e.stagger <= 0 && edt > 0) {
       const dx = p.x - e.x;
       const dy = p.y - e.y;
-      BEHAVIORS[e.def.behavior](world, e, dt, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
+      BEHAVIORS[e.def.behavior](world, e, edt, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
     }
     e.x += e.vx * dt;
     e.y += e.vy * dt;

@@ -18,6 +18,10 @@ export function createBoss(def, x, y, spawnT) {
     vx: 0,
     vy: 0,
     hit: 0,
+    burnT: 0,
+    burnAcc: 0,
+    slowT: 0,
+    stopT: 0,
     spawnT,
     act: null, // 実行中の攻撃
     phaseIndex: 0,

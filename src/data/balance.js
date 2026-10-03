@@ -18,6 +18,7 @@ export const PLAYER = {
   hitInvincible: 0.6, // 被弾後の無敵（秒）
   critChance: 0.05,
   critMultiplier: 2,
+  minDamageTaken: 0.3, // 被ダメージ軽減を重ねても、これより小さい倍率にはならない
 };
 
 export const COMBAT = {
@@ -36,6 +37,44 @@ export const ROOM = {
   bossWarning: 1.6, // ボスが出る前の予告（秒）
   waveDelay: 0.9, // 波と波の間（秒）
   spawnMinDistance: 200, // プレイヤーからこれ以上離れた場所に出す（px）
+};
+
+// まだ実装していない仕組み。true にすると、それを必要とする装備効果やインプラントが出るようになる
+export const FEATURES = {
+  credits: false, // クレジット（M4）
+};
+
+// レベルと経験値
+export const LEVEL = {
+  baseXp: 40, // Lv1→2 に必要な経験値
+  growth: 1.35, // レベルが1上がるごとの必要経験値の倍率
+  choices: 3, // インプラントの選択肢の数
+};
+
+// 装備ドロップ
+export const LOOT = {
+  // weight: 出やすさ / effects: 効果の数 / roll: 効果の値が範囲のどのあたりになるか（0=最小, 1=最大）
+  // unique: 効果のうち1つがレジェンド固有効果になる
+  rarities: [
+    { id: 'common', name: 'コモン', weight: 60, effects: 1, roll: [0, 0.4] },
+    { id: 'rare', name: 'レア', weight: 28, effects: 2, roll: [0.2, 0.6] },
+    { id: 'epic', name: 'エピック', weight: 10, effects: 3, roll: [0.4, 0.8] },
+    { id: 'legend', name: 'レジェンド', weight: 2, effects: 4, roll: [0.7, 1], unique: true },
+  ],
+  slots: [
+    { id: 'mod', name: '武器モッド', noun: '武器モッド' },
+    { id: 'armor', name: '防具', noun: '装甲ジャケット' },
+    { id: 'acc', name: 'アクセ', noun: 'データリング' },
+  ],
+  pickupRadius: 36, // この距離まで近づくと比較が出る（px）
+};
+
+// 属性の状態異常
+export const STATUS = {
+  burn: { duration: 3, dps: 6, tick: 0.5 }, // 熱：継続ダメージ
+  slow: { duration: 2, amount: 0.4 }, // 冷却：減速
+  freeze: { duration: 1.5 }, // 凍結：動けない
+  bossSlowScale: 0.5, // ボスへの減速はこの倍率に弱まる。ボスは凍結・停止しない
 };
 
 // 手触りの演出

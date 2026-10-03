@@ -1,6 +1,7 @@
 // 戦闘画面の描画。world の状態を読んで、毎フレーム Graphics にネオン線画を描き直す。
-import { PLAYER, ROOM, SCREEN } from '../data/balance.js';
-import { COLORS, hex } from '../data/theme.js';
+import { LOOT, PLAYER, ROOM, SCREEN } from '../data/balance.js';
+import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { xpToNext } from '../logic/level.js';
 import { DEG } from '../logic/geometry.js';
 
 const BODY_FILL = 0x0a0814;
@@ -88,6 +89,25 @@ function drawTelegraph(g, e, world) {
   }
 }
 
+// 状態異常の目印：減速は水色の輪、凍結・停止は水色の塗り、燃焼はオレンジのちらつき
+function drawStatus(g, e, world) {
+  const cold = hex(ELEMENT_COLORS.cold);
+  if (e.stopT > 0) {
+    g.fillStyle(cold, 0.3).fillCircle(e.x, e.y, e.r + 5);
+    g.lineStyle(2, cold, 0.9).strokeCircle(e.x, e.y, e.r + 5);
+  } else if (e.slowT > 0) {
+    g.lineStyle(1.5, cold, 0.8).strokeCircle(e.x, e.y, e.r + 6);
+  }
+  if (e.burnT > 0) {
+    const heat = hex(ELEMENT_COLORS.heat);
+    for (let i = 0; i < 3; i++) {
+      const a = world.time * 7 + i * 2.1 + e.x * 0.05;
+      const rr = e.r * (0.4 + 0.5 * Math.abs(Math.sin(a * 1.3)));
+      g.fillStyle(heat, 0.85).fillRect(e.x + Math.cos(a) * rr - 2, e.y + Math.sin(a) * rr - 2 - 3 * Math.abs(Math.sin(a)), 4, 4);
+    }
+  }
+}
+
 export function drawEnemies(g, world) {
   for (const e of world.enemies) {
     if (e.dead) continue;
@@ -101,7 +121,9 @@ export function drawEnemies(g, world) {
       continue;
     }
     drawTelegraph(g, e, world);
-    SHAPES[e.def.shape](g, e, e.hit > 0 ? WHITE : color, world);
+    const frozen = e.stopT > 0;
+    SHAPES[e.def.shape](g, e, e.hit > 0 ? WHITE : frozen ? hex(ELEMENT_COLORS.cold) : color, world);
+    drawStatus(g, e, world);
     if (!e.boss && e.hp < e.maxHp) {
       g.fillStyle(hex(COLORS.line), 1).fillRect(e.x - 14, e.y - e.r - 11, 28, 3);
       g.fillStyle(color, 1).fillRect(e.x - 14, e.y - e.r - 11, (28 * Math.max(0, e.hp)) / e.maxHp, 3);
@@ -199,6 +221,11 @@ export function drawHud(g, world) {
   // ダッシュと特殊攻撃のクールダウン
   cooldownBar(g, 362, y, 1 - Math.max(0, p.dashCd) / PLAYER.dash.cooldown, hex(COLORS.cyan));
   cooldownBar(g, 500, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
+
+  // 経験値（HPバーの下の細い線）
+  const xpRatio = Math.min(1, p.build.xp / xpToNext(p.build.level));
+  g.fillStyle(0x1b1631, 1).fillRect(x, y + 13, w, 3);
+  g.fillStyle(hex(COLORS.magenta), 1).fillRect(x, y + 13, w * xpRatio, 3);
 }
 
 function cooldownBar(g, x, y, ratio, color) {
@@ -304,5 +331,44 @@ export function drawBossBar(g, world) {
   // 段階が切り替わるHPの目印
   for (const ph of b.def.phases) {
     if (ph.hpAbove > 0) g.lineStyle(2, hex(COLORS.ink), 0.8).lineBetween(x + w * ph.hpAbove, y - 3, x + w * ph.hpAbove, y + 11);
+  }
+}
+
+// ---- 装備とインプラントの効果 ----
+
+export function drawLoot(g, world) {
+  for (const l of world.loot) {
+    const color = hex(RARITY_COLORS[LOOT.rarities[l.item.rarity].id]);
+    const bob = Math.sin(world.time * 4 + l.x) * 3;
+    const focused = l === world.focusLoot;
+    // エピック以上は光の柱で目立たせる
+    if (l.item.rarity >= 2) g.fillStyle(color, 0.22).fillRect(l.x - 2, l.y - 64, 4, 64);
+    const pts = polygon(l.x, l.y + bob, focused ? 12 : 10, 4, 0);
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, focused ? 3 : 2, () => g.strokePoints(pts, true, true));
+    if (focused) g.lineStyle(1, color, 0.5).strokeCircle(l.x, l.y, LOOT.pickupRadius * 0.7);
+  }
+}
+
+export function drawZones(g, world) {
+  for (const z of world.zones) {
+    const k = Math.min(1, z.life / 0.5);
+    const color = hex(z.color);
+    g.fillStyle(color, 0.16 * k).fillCircle(z.x, z.y, z.r);
+    g.lineStyle(1.5, color, 0.6 * k).strokeCircle(z.x, z.y, z.r * (0.85 + 0.15 * Math.sin(world.time * 10 + z.x)));
+  }
+}
+
+// 連鎖放電などの稲妻。毎フレーム形を変えてバチバチさせる
+export function drawBolts(g, world) {
+  const color = hex(ELEMENT_COLORS.shock);
+  for (const b of world.fx.bolts) {
+    const pts = [{ x: b.x1, y: b.y1 }];
+    for (let i = 1; i < 5; i++) {
+      const k = i / 5;
+      pts.push({ x: b.x1 + (b.x2 - b.x1) * k + (Math.random() - 0.5) * 18, y: b.y1 + (b.y2 - b.y1) * k + (Math.random() - 0.5) * 18 });
+    }
+    pts.push({ x: b.x2, y: b.y2 });
+    neonStroke(g, color, 2, () => g.strokePoints(pts, false, false));
   }
 }

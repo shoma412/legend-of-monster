@@ -18,6 +18,8 @@ export const bosses = [
     hp: 1100,
     speed: 70,
     contactDamage: 22,
+    xp: 120,
+    drops: { count: 3, rarityBonus: 1 }, // 倒すと必ず落とす装備の数と、レア度の底上げ
     attacks: {
       charge: {
         pattern: 'charge',

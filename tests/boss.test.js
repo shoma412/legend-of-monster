@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { PATTERNS } from '../src/game/bossPatterns.js';
+import { chooseImplant } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 
@@ -140,7 +141,7 @@ describe('ボルトボア', () => {
     const world = bossWorld();
     const b = world.boss;
     expect(hitEnemy(world, b, 40, 1, 0, 500)).toMatchObject({ amount: 40, weak: false });
-    world.player.stats.element = 'cold';
+    world.player.stats.elements = ['cold'];
     expect(hitEnemy(world, b, 40, 1, 0, 500)).toMatchObject({ amount: 60, weak: true });
   });
 
@@ -150,7 +151,12 @@ describe('ボルトボア', () => {
     hitEnemy(world, b, 40, 1, 0, 500);
     expect(b.vx).toBe(0);
     hitEnemy(world, b, 99999, 1, 0, 0);
-    run(world, 1);
+    // レベルアップの選択を済ませる
+    for (let i = 0; i < 10; i++) {
+      run(world, 0.7);
+      if (world.choice) chooseImplant(world, 0);
+    }
+    expect(world.loot).toHaveLength(def.drops.count);
     expect(world.mode).toBe('clear');
     expect(world.hazards).toHaveLength(0);
   });

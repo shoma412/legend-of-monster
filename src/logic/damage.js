@@ -5,13 +5,13 @@ export function calcDamage({
   attackMul = 1,
   critChance = 0,
   critMul = 2,
-  element = null,
+  elements = [], // 攻撃に付いている属性
   weakness = null,
   weaknessMul = 1.5,
   rng = Math.random,
 }) {
   const crit = rng() < critChance;
-  const weak = element != null && element === weakness;
+  const weak = weakness != null && elements.includes(weakness);
   let amount = base * attackMul;
   if (crit) amount *= critMul;
   if (weak) amount *= weaknessMul;

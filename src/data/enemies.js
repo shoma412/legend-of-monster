@@ -17,6 +17,8 @@ export const enemies = [
     hp: 28,
     speed: 125,
     damage: 8,
+    xp: 6,
+    dropChance: 0.16, // 倒したとき装備を落とす確率
     wobble: 0.6, // ふらつきの強さ
   },
   {
@@ -29,6 +31,8 @@ export const enemies = [
     hp: 64,
     speed: 72,
     damage: 13,
+    xp: 12,
+    dropChance: 0.32,
     knockbackResist: 0.5, // 吹き飛びにくさ（0〜1）
     attack: { triggerRange: 46, range: 58, arc: 110, windup: 0.45, recover: 0.7 },
   },
@@ -42,6 +46,8 @@ export const enemies = [
     hp: 46,
     speed: 30,
     damage: 10,
+    xp: 10,
+    dropChance: 0.32,
     keepDistance: { min: 240, max: 360 },
     shot: { interval: 1.9, aim: 0.45, speed: 235, radius: 5, life: 3 },
   },

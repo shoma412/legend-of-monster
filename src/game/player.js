@@ -3,24 +3,21 @@ import { FEEL, PLAYER } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, clampToBounds } from '../logic/geometry.js';
+import { createBuild } from '../logic/stats.js';
+import { recalcStats } from './build.js';
 import { hitEnemy } from './combat.js';
+import { fire } from './effects.js';
 import { addHitstop, addShake, floatText, ghost, ring } from './fx.js';
 
-export function createPlayer(weaponId, x, y) {
-  return {
+// carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
+export function createPlayer(weaponId, x, y, carry = null) {
+  const player = {
     x,
     y,
     r: PLAYER.radius,
-    hp: PLAYER.maxHp,
-    // M3 で装備とインプラントの補正がここに乗る
-    stats: {
-      maxHp: PLAYER.maxHp,
-      moveSpeed: PLAYER.moveSpeed,
-      attackMul: 1,
-      critChance: PLAYER.critChance,
-      critMul: PLAYER.critMultiplier,
-      element: null,
-    },
+    hp: 0,
+    build: carry?.build ?? createBuild(), // 装備・インプラント・レベル
+    stats: null, // build から計算する（src/logic/stats.js）
     weapon: DATA.weapons.get(weaponId),
     fx: 1, // 向き
     fy: 0,
@@ -36,7 +33,13 @@ export function createPlayer(weaponId, x, y) {
     dvx: 0,
     dvy: 0,
     inv: 0,
+    sinceDash: Infinity, // 最後にダッシュしてからの秒数
+    dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
+    forceCrit: false, // 次の攻撃が必ず会心
   };
+  recalcStats(player);
+  player.hp = Math.min(player.stats.maxHp, carry?.hp ?? player.stats.maxHp);
+  return player;
 }
 
 // input: { mx, my, aimX, aimY, attack, attackPressed, dashPressed }
@@ -50,6 +53,7 @@ export function updatePlayer(world, dt, input) {
   p.specialCd -= dt;
   p.dashBuffer -= dt;
   p.attackBuffer -= dt;
+  p.sinceDash += dt;
   if (!p.attack) p.comboTimer -= dt;
 
   let mx = input.mx;
@@ -79,6 +83,7 @@ export function updatePlayer(world, dt, input) {
     p.x += p.dvx * dt;
     p.y += p.dvy * dt;
     ghost(world, p.x, p.y, p.r, COLORS.cyan);
+    fire(world, 'dashMove', { dash: p.dashState });
   } else {
     let slow = 1;
     if (p.attack) slow = weapon.moveSlow;
@@ -95,6 +100,8 @@ function startDash(p, dx, dy) {
   p.dashBuffer = 0;
   p.dashT = d.duration;
   p.dashCd = d.cooldown;
+  p.sinceDash = 0;
+  p.dashState = { hit: new Set(), lastFloor: null };
   p.inv = Math.max(p.inv, d.invincible);
   p.dvx = (dx * d.distance) / d.duration;
   p.dvy = (dy * d.distance) / d.duration;
@@ -186,16 +193,17 @@ function releaseCharge(world, stage) {
 }
 
 function makeAttack(p, def, damage, range, arcDeg, extra) {
+  const speed = 1 + p.stats.attackSpeed; // 攻撃速度が上がると全体が短くなる
   return {
     phase: 'windup',
     t: 0,
     angle: Math.atan2(p.fy, p.fx),
     damage,
-    range,
+    range: range * p.stats.meleeRange,
     arc: arcDeg * DEG,
-    windup: def.windup,
-    swing: def.swing,
-    recover: def.recover,
+    windup: def.windup / speed,
+    swing: def.swing / speed,
+    recover: def.recover / speed,
     knockback: def.knockback,
     lunge: def.lunge ?? 0,
     heavy: !!def.heavy,

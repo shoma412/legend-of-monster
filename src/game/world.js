@@ -3,19 +3,20 @@ import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { roomBounds } from '../logic/geometry.js';
 import { createBoss } from './boss.js';
+import { findFocusLoot, openImplantChoice } from './build.js';
+import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
 import { createPlayer, updatePlayer } from './player.js';
 
 // waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを出す
-// playerHp: 前の部屋から引き継ぐHP（省略すると満タン）
-export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, playerHp = null } = {}) {
+// carry: 前の部屋から引き継ぐもの { hp, build }（省略するとまっさらな状態）
+export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, carry = null } = {}) {
   const bounds = roomBounds(SCREEN, ROOM.wall);
-  const player = createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2);
-  if (playerHp != null) player.hp = Math.min(player.stats.maxHp, playerHp);
+  const player = createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2, carry);
   return {
-    mode: 'play', // play / dead / clear
+    mode: 'play', // play / dead / clear（clear のあとも歩き回って装備を拾える）
     time: 0,
     rng,
     bounds,
@@ -24,6 +25,11 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     boss: null, // ボス部屋のボス（HPバー表示用。倒した後も残す）
     shots: [],
     hazards: [],
+    zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
+    loot: [], // 落ちている装備 { x, y, item }
+    focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
+    choice: null, // 選択待ち（レベルアップのインプラント3択）。出ている間は戦闘が止まる
+    pendingLevelUps: 0,
     waves,
     wave: -1,
     waveTimer: 0.4,
@@ -39,13 +45,23 @@ export function updateWorld(world, dt, input) {
     world.fx.hitstop -= dt;
     return;
   }
-  if (world.mode !== 'play') return;
+  if (world.choice || world.mode === 'dead') return;
+  if (world.pendingLevelUps > 0) {
+    world.pendingLevelUps--;
+    openImplantChoice(world);
+    if (world.choice) return;
+  }
 
   updatePlayer(world, dt, input);
-  updateEnemies(world, dt);
-  updateShots(world, dt);
-  updateHazards(world, dt);
-  updateWaves(world, dt);
+  if (world.mode === 'play') {
+    updateEnemies(world, dt);
+    updateShots(world, dt);
+    updateHazards(world, dt);
+    updateZones(world, dt);
+    updateWaves(world, dt);
+  }
+  for (const l of world.loot) l.t += dt;
+  world.focusLoot = findFocusLoot(world);
 }
 
 function updateWaves(world, dt) {
@@ -54,6 +70,7 @@ function updateWaves(world, dt) {
     world.mode = 'clear';
     world.shots = [];
     world.hazards = [];
+    world.zones = [];
     return;
   }
   world.waveTimer -= dt;
