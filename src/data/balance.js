@@ -14,6 +14,7 @@ export const PLAYER = {
     invincible: 0.25, // 秒
     buffer: 0.12, // 押してから受け付ける猶予（秒）。攻撃の硬直明けにすぐ出せるようにする
   },
+  attackBuffer: 0.2, // 攻撃ボタンを押してから受け付ける猶予（秒）。硬直中のクリックで次の段がつながる
   hitInvincible: 0.6, // 被弾後の無敵（秒）
   critChance: 0.05,
   critMultiplier: 2,

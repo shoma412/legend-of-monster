@@ -1,11 +1,11 @@
 // 武器の定義（M1 で大剣、M6 で片手剣と弓）
 // 1件 = { id, ... } の形で足す。
 //
-// combo: 通常攻撃（J）の段。順番に出る
+// combo: 通常攻撃（左クリック）の段。順番に出る
 //   damage 威力 / range 届く距離(px) / arc 扇の広さ(度)
 //   windup 振りかぶり(秒) / swing 振っている時間(秒) / recover 振った後の硬直(秒)
 //   knockback 吹き飛ばす強さ / lunge 踏み込む距離(px) / heavy 重い一撃（演出が強くなる）
-// special: 特殊攻撃（K）
+// special: 特殊攻撃（大剣は左クリック長押し）
 export const weapons = [
   {
     id: 'greatsword',

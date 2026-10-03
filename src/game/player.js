@@ -32,13 +32,16 @@ export function createPlayer(weaponId, x, y) {
     dashT: 0,
     dashCd: 0,
     dashBuffer: 0,
+    attackBuffer: 0,
     dvx: 0,
     dvy: 0,
     inv: 0,
   };
 }
 
-// input: { mx, my, attack, special, dashPressed }
+// input: { mx, my, aimX, aimY, attack, attackPressed, dashPressed }
+//   aimX, aimY: マウスカーソルの位置。攻撃はこの方向に出る
+//   attack: 攻撃ボタンを押している間 true / attackPressed: 押した瞬間だけ true
 export function updatePlayer(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
@@ -46,6 +49,7 @@ export function updatePlayer(world, dt, input) {
   p.inv -= dt;
   p.specialCd -= dt;
   p.dashBuffer -= dt;
+  p.attackBuffer -= dt;
   if (!p.attack) p.comboTimer -= dt;
 
   let mx = input.mx;
@@ -54,14 +58,20 @@ export function updatePlayer(world, dt, input) {
   if (ml > 0) {
     mx /= ml;
     my /= ml;
-    // 振っている間は向きを変えられない
-    if (!p.attack) {
-      p.fx = mx;
-      p.fy = my;
+  }
+  // カーソルの方を向く。振っている間は向きを変えられない
+  if (!p.attack && input.aimX != null) {
+    const ax = input.aimX - p.x;
+    const ay = input.aimY - p.y;
+    const al = Math.hypot(ax, ay);
+    if (al > 1) {
+      p.fx = ax / al;
+      p.fy = ay / al;
     }
   }
 
   if (input.dashPressed) p.dashBuffer = PLAYER.dash.buffer;
+  if (input.attackPressed) p.attackBuffer = PLAYER.attackBuffer;
   if (p.dashBuffer > 0 && p.dashCd <= 0 && p.dashT <= 0) startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
 
   if (p.dashT > 0) {
@@ -88,8 +98,6 @@ function startDash(p, dx, dy) {
   p.inv = Math.max(p.inv, d.invincible);
   p.dvx = (dx * d.distance) / d.duration;
   p.dvy = (dy * d.distance) / d.duration;
-  p.fx = dx;
-  p.fy = dy;
   // ダッシュは攻撃や溜めを中断して出せる
   p.attack = null;
   p.charge = null;
@@ -125,7 +133,7 @@ function updateAttack(world, dt, input) {
 
   const special = weapon.special;
   if (p.charge) {
-    if (input.special) {
+    if (input.attack) {
       p.charge.t += dt;
       const stage = chargeStage(special, p.charge.t);
       if (stage > p.charge.stage) {
@@ -140,16 +148,19 @@ function updateAttack(world, dt, input) {
     return;
   }
 
-  if (input.special && p.specialCd <= 0 && special.type === 'charge') {
-    p.charge = { t: 0, stage: -1 };
-    return;
-  }
-
-  if (input.attack) {
+  // 押した瞬間に通常攻撃。硬直中に押したぶんも少しの間は覚えておく
+  if (p.attackBuffer > 0) {
+    p.attackBuffer = 0;
     const step = p.comboTimer > 0 ? p.comboStep : 0;
     const def = weapon.combo[step];
     p.attack = makeAttack(p, def, def.damage, def.range, def.arc, { step });
     p.comboStep = (step + 1) % weapon.combo.length;
+    return;
+  }
+
+  // 押しっぱなしなら溜め始める
+  if (input.attack && p.specialCd <= 0 && special.type === 'charge') {
+    p.charge = { t: 0, stage: -1 };
   }
 }
 

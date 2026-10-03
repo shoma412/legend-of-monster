@@ -6,7 +6,7 @@ import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 
 const DT = 1 / 60;
-const idle = { mx: 0, my: 0, attack: false, special: false, dashPressed: false };
+const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
 
 // 会心が出ない固定の乱数
 function makeWorld() {
@@ -75,7 +75,7 @@ describe('大剣', () => {
     for (let t = 0; t < 3 && seen.length < 4; t += DT) {
       e.x = world.player.x + 40; // 吹き飛ばされても目の前に戻す
       e.y = world.player.y;
-      updateWorld(world, DT, { ...idle, attack: true });
+      updateWorld(world, DT, { ...idle, attackPressed: true });
       if (e.hp !== last) {
         seen.push(last - e.hp);
         last = e.hp;
@@ -84,11 +84,30 @@ describe('大剣', () => {
     expect(seen).toEqual([30, 34, 50, 30]);
   });
 
+  it('攻撃はカーソルの方向に出る', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'turret', 0, 60);
+    e.cd = 99;
+    run(world, 0.3, { ...idle, attackPressed: true, aimX: p.x, aimY: p.y + 200 });
+    expect(e.hp).toBe(e.maxHp - 30);
+  });
+
+  it('クリックしてから押しっぱなしにすると、振り終わってから溜めが始まる', () => {
+    const world = makeWorld();
+    run(world, 0.3, (t) => ({ ...idle, attack: true, attackPressed: t === 0 }));
+    expect(world.player.attack).not.toBe(null);
+    expect(world.player.charge).toBe(null);
+    run(world, 0.5, { ...idle, attack: true });
+    expect(world.player.attack).toBe(null);
+    expect(world.player.charge).not.toBe(null);
+  });
+
   it('背後の敵には当たらない', () => {
     const world = makeWorld();
     const e = addEnemy(world, 'turret', -70);
     e.cd = 99;
-    run(world, 0.3, { ...idle, attack: true });
+    run(world, 0.3, { ...idle, attackPressed: true });
     expect(e.hp).toBe(e.maxHp);
   });
 
@@ -101,7 +120,7 @@ describe('大剣', () => {
     e.x += 20; // 殴られない距離
     run(world, 1.3, () => {
       e.x = world.player.x + 80;
-      return { ...idle, special: true };
+      return { ...idle, attack: true };
     });
     expect(world.player.charge.stage).toBe(2);
     updateWorld(world, DT, idle);
@@ -111,7 +130,7 @@ describe('大剣', () => {
 
   it('溜めが足りないうちに離すと不発で、クールダウンにも入らない', () => {
     const world = makeWorld();
-    run(world, 0.2, { ...idle, special: true });
+    run(world, 0.2, { ...idle, attack: true });
     updateWorld(world, DT, idle);
     expect(world.player.attack).toBe(null);
     expect(world.player.specialCd).toBeLessThanOrEqual(0);

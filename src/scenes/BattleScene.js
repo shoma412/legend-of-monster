@@ -26,9 +26,14 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,J,K,SPACE,ENTER,ESC');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,ESC');
     this.dashPressed = false;
-    this.keys.SPACE.on('down', () => { this.dashPressed = true; });
+    this.attackPressed = false;
+    this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
+    this.input.mouse.disableContextMenu();
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.leftButtonDown()) this.attackPressed = true;
+    });
     this.keys.ENTER.on('down', () => {
       if (this.world.mode !== 'play') this.scene.restart();
     });
@@ -40,7 +45,7 @@ export class BattleScene extends Phaser.Scene {
     this.add.text(326, 7, 'DASH', label);
     this.add.text(446, 6, '溜め斬り', { ...label, fontFamily: FONTS.body });
     this.waveText = this.add.text(W - 40, 5, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '14px', color: COLORS.cyan }).setOrigin(1, 0);
-    this.add.text(W / 2, H - 14, 'WASD 移動　J 攻撃（長押しで連続）　K 長押しで溜め斬り　Space ダッシュ　Esc タイトルへ', {
+    this.add.text(W / 2, H - 14, 'WASD 移動　マウス 向き　左クリック 攻撃　左クリック長押し 溜め斬り　Shift ダッシュ　Esc タイトルへ', {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -63,14 +68,18 @@ export class BattleScene extends Phaser.Scene {
 
   readInput() {
     const k = this.keys;
+    const pointer = this.input.activePointer;
     const input = {
       mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0),
       my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
-      attack: k.J.isDown,
-      special: k.K.isDown,
+      aimX: pointer.worldX,
+      aimY: pointer.worldY,
+      attack: pointer.leftButtonDown(),
+      attackPressed: this.attackPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;
+    this.attackPressed = false;
     return input;
   }
 
