@@ -27,11 +27,13 @@ export const weapons = [
       swing: 0.28,
       recover: 0.4,
       knockback: 720,
+      // 角度は、同じ段の通常攻撃の角度にこの倍率を掛けたもの（1段階目 = 通常1段目の1.15倍 …）
+      arcScale: 1.15,
       // time 秒溜めるとその段階になる。1段階目に届く前に離すと不発（クールダウンなし）
       stages: [
-        { time: 0.35, multiplier: 1.5, range: 96, arc: 200 },
-        { time: 0.75, multiplier: 2.2, range: 112, arc: 260 },
-        { time: 1.2, multiplier: 3, range: 132, arc: 360 },
+        { time: 0.35, multiplier: 1.5, range: 96 },
+        { time: 0.75, multiplier: 2.2, range: 112 },
+        { time: 1.2, multiplier: 3, range: 132 },
       ],
     },
   },

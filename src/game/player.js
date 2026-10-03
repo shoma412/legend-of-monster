@@ -184,7 +184,10 @@ function releaseCharge(world, stage) {
   const special = p.weapon.special;
   const s = special.stages[stage];
   const def = { windup: 0, swing: special.swing, recover: special.recover, knockback: special.knockback, lunge: 0, heavy: true };
-  p.attack = makeAttack(p, def, special.damage * s.multiplier, s.range, s.arc, { charged: stage + 1 });
+  // 溜めの段階ごとに、同じ段の通常攻撃より少し広い角度になる
+  const combo = p.weapon.combo;
+  const arc = combo[Math.min(stage, combo.length - 1)].arc * special.arcScale;
+  p.attack = makeAttack(p, def, special.damage * s.multiplier, s.range, arc, { charged: stage + 1 });
   p.attack.phase = 'swing';
   p.specialCd = special.cooldown;
   p.comboTimer = 0;

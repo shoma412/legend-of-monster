@@ -125,6 +125,8 @@ describe('大剣', () => {
     expect(world.player.charge.stage).toBe(2);
     updateWorld(world, DT, idle);
     expect(e.maxHp - e.hp).toBe(special.damage * 3);
+    // 角度は通常攻撃3段目の1.15倍
+    expect((world.player.attack.arc * 180) / Math.PI).toBeCloseTo(world.player.weapon.combo[2].arc * 1.15);
     expect(world.player.specialCd).toBeGreaterThan(special.cooldown - 0.1);
   });
 
