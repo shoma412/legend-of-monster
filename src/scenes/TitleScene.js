@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { SCREEN } from '../data/balance.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 
-// タイトル画面。M0 では表示だけ。隠れ家への遷移は M5 でつなぐ。
+// タイトル画面。今は Enter で確認用の戦闘部屋に入る。隠れ家への遷移は M5 でつなぐ。
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('Title');
@@ -30,19 +30,11 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5).setShadow(0, 0, COLORS.amber, 10, false, true);
     this.tweens.add({ targets: prompt, alpha: 0.25, duration: 700, yoyo: true, repeat: -1 });
 
-    const notice = this.add.text(W / 2, H * 0.68 + 40, 'ここから先は準備中です（M1 で戦闘を実装します）', {
-      fontFamily: FONTS.body, fontSize: '14px', color: COLORS.ink,
-    }).setOrigin(0.5).setAlpha(0);
-
-    this.add.text(W - 16, H - 14, `v${__APP_VERSION__} · M0`, {
+    this.add.text(W - 16, H - 14, `v${__APP_VERSION__} · M1`, {
       fontFamily: FONTS.display, fontStyle: '500', fontSize: '12px', color: COLORS.dim,
     }).setOrigin(1, 1);
 
-    this.input.keyboard.on('keydown-ENTER', () => {
-      this.tweens.killTweensOf(notice);
-      notice.setAlpha(1);
-      this.tweens.add({ targets: notice, alpha: 0, delay: 1600, duration: 500 });
-    });
+    this.input.keyboard.once('keydown-ENTER', () => this.scene.start('Battle'));
   }
 
   drawBackdrop(W, H) {
