@@ -7,7 +7,7 @@ import { interact, useKit } from '../src/game/objects.js';
 import { buildRoom, hasRoomBuilder } from '../src/game/rooms.js';
 import { createRun, currentArea, enterRoom, leaveRoom } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { advancePlan, createAreaPlan, doorOptions, generateEliteWaves, generateShop, generateVault, generateWaves } from '../src/logic/areaGen.js';
+import { advancePlan, areaOverview, createAreaPlan, doorOptions, generateEliteWaves, generateShop, generateVault, generateWaves } from '../src/logic/areaGen.js';
 import { createBuild } from '../src/logic/stats.js';
 import { hasIcon } from '../src/render/objects.js';
 
@@ -99,6 +99,25 @@ describe('エリアの部屋の並び', () => {
     expect(paths.size).toBeGreaterThan(8);
   });
 
+  it('エリアのマップ：通った部屋・今の部屋・この先の部屋・ボスが並ぶ', () => {
+    const plan = createAreaPlan(area, seeded(3));
+    const special = plan.pool[2];
+    expect(areaOverview(plan)).toEqual([
+      { type: 'combat', state: 'current' },
+      { type: 'combat', state: 'ahead' },
+      { type: 'elite', state: 'ahead' },
+      { type: special, state: 'ahead' },
+      { type: 'boss', state: 'ahead' },
+    ]);
+    advancePlan(plan, 'elite');
+    expect(areaOverview(plan).map((n) => n.type + ':' + n.state)).toEqual(['combat:done', 'elite:current', 'combat:ahead', special + ':ahead', 'boss:ahead']);
+    advancePlan(plan, 'combat');
+    advancePlan(plan, special);
+    advancePlan(plan, 'boss');
+    expect(areaOverview(plan).at(-1)).toEqual({ type: 'boss', state: 'current' });
+    expect(areaOverview(plan)).toHaveLength(5);
+  });
+
   it('残りが2種類以上あれば扉は2つ、残りがなくなるとボスの扉だけ', () => {
     const plan = createAreaPlan(area, seeded(3));
     expect(doorOptions(plan, seeded(1))).toHaveLength(2);
@@ -134,6 +153,12 @@ describe('部屋の中身', () => {
     run(world, 2);
     const elite = world.enemies.find((e) => e.elite);
     expect(elite.maxHp).toBe(elite.baseDef.hp * ELITE.hpMul);
+    expect(elite.def.damage).toBe(Math.round(elite.baseDef.damage * ELITE.damageMul));
+    // ひるまない：構えている最中に攻撃されても中断されない
+    elite.state = 'windup';
+    hitEnemy(world, elite, 1, 1, 0, 0);
+    expect(elite.state).toBe('windup');
+    expect(elite.stagger).toBeLessThanOrEqual(0);
     expect(world.enemies.length).toBeGreaterThan(1);
     elite.barrier = 0;
     hitEnemy(world, elite, 99999, 1, 0, 0);

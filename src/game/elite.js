@@ -68,12 +68,14 @@ export function makeElite(e, traitId) {
   e.def = {
     ...base,
     name: `${base.name}［${trait.name}］`,
+    damage: Math.round(base.damage * ELITE.damageMul),
     xp: base.xp * ELITE.xpMul,
     credits: base.credits * ELITE.creditMul,
     dropChance: 0,
     drops: ELITE.drops,
     knockbackResist: Math.max(base.knockbackResist ?? 0, ELITE.knockbackResist),
   };
+  e.noStagger = ELITE.noStagger;
   e.hp = e.maxHp = base.hp * ELITE.hpMul;
   e.r *= ELITE.sizeMul;
   TRAIT_PARTS[trait.part].onCreate?.(e, trait);

@@ -89,7 +89,7 @@ export const FEEL = {
 export const ROOMGEN = {
   // 戦闘部屋：波の数と、1波あたりの敵の予算（敵ごとの cost の合計）
   combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 1.5, budgetPerWave: 1 },
-  elite: { minionBudget: 4 }, // エリートの取り巻きの予算
+  elite: { minionBudget: 7 }, // エリートの取り巻きの予算
   supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
   vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ
 };
@@ -97,10 +97,12 @@ export const ROOMGEN = {
 // エリート（雑魚の強化版）
 export const ELITE = {
   hpMul: 3,
-  sizeMul: 1.3,
+  damageMul: 1.5, // 攻撃力の倍率
+  sizeMul: 1.4,
   xpMul: 3,
   creditMul: 5,
-  knockbackResist: 0.7,
+  knockbackResist: 0.9,
+  noStagger: true, // 攻撃を当ててもひるまず、構えも中断されない
   drops: { count: 1, minRarity: 1 }, // レア以上の装備が確定
 };
 

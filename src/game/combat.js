@@ -65,11 +65,14 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback) {
   });
   // ボスはひるまず、吹き飛ばない
   if (!enemy.boss) {
-    enemy.stagger = COMBAT.stagger;
-    // ひるんだら構えは中断する
-    if (enemy.state !== 'chase') {
-      enemy.state = 'chase';
-      enemy.cd = Math.max(enemy.cd, 0.3);
+    // エリートはひるまない（吹き飛びにくいだけ）
+    if (!enemy.noStagger) {
+      enemy.stagger = COMBAT.stagger;
+      // ひるんだら構えは中断する
+      if (enemy.state !== 'chase') {
+        enemy.state = 'chase';
+        enemy.cd = Math.max(enemy.cd, 0.3);
+      }
     }
     const len = Math.hypot(dirX, dirY) || 1;
     const kb = knockback * (1 - (enemy.def.knockbackResist ?? 0));

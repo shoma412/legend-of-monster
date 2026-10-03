@@ -18,6 +18,15 @@ function pickWeighted(list, rng) {
   return list[list.length - 1];
 }
 
+// エリアの全体マップに出す並び：通ってきた部屋 → まだ通っていない部屋（順番は自由に選べる）→ ボス
+// [{ type, state }]  state: done（通った）/ current（今いる）/ ahead（この先）
+export function areaOverview(plan) {
+  const nodes = plan.path.map((type, i) => ({ type, state: i === plan.path.length - 1 ? 'current' : 'done' }));
+  for (const type of plan.pool) nodes.push({ type, state: 'ahead' });
+  if (plan.current !== 'boss') nodes.push({ type: 'boss', state: 'ahead' });
+  return nodes;
+}
+
 // エリアの進み具合。current: 今いる部屋の種類 / pool: まだ通っていない部屋 / step: 何部屋目か（0から）
 export function createAreaPlan(area, rng) {
   return {
@@ -25,6 +34,7 @@ export function createAreaPlan(area, rng) {
     step: 0,
     total: 1 + area.pool.length + 1 + 1, // 最初の部屋 + 残りの部屋 + 特殊部屋 + ボス
     current: area.first,
+    path: [area.first], // 通ってきた部屋（今の部屋を含む）
     pool: [...area.pool, pick(area.specialRooms, rng)],
   };
 }
@@ -48,6 +58,7 @@ export function advancePlan(plan, type) {
   if (i >= 0) plan.pool.splice(i, 1);
   else if (type !== 'boss') throw new Error(`部屋「${type}」はこのエリアに残っていません`);
   plan.current = type;
+  plan.path.push(type);
   plan.step++;
 }
 

@@ -47,6 +47,12 @@ const ICONS = {
   },
 };
 
+// 部屋の種類のアイコンを描く（扉、エリアのマップ）
+export function drawRoomIcon(g, type, x, y, size, color = null) {
+  const room = DATA.rooms.get(type);
+  ICONS[room.icon](g, x, y, size, color ?? hex(COLORS[room.color]));
+}
+
 export function hasIcon(name) {
   return name in ICONS;
 }

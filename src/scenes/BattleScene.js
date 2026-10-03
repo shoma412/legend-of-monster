@@ -10,7 +10,8 @@ import { xpToNext } from '../logic/level.js';
 import {
   drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawShots, drawZones,
 } from '../render/draw.js';
-import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
+import { drawObjects, drawRoomIcon, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
+import { areaOverview } from '../logic/areaGen.js';
 import { createBuildList, createChoicePanel, createCommLog, createComparePanel } from './battleUi.js';
 
 const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
@@ -256,20 +257,19 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // エリアの進み具合（右上の四角の並び。最後の三角がボス）
+  // エリアのマップ（右上）。通った部屋は暗い緑、今いる部屋は枠つき、この先の部屋は種類の色で出す。
+  // この先の部屋は好きな順に通れる。最後がボス
   drawRoomMap() {
     const g = this.hud;
-    const plan = this.run.plan;
-    const x0 = SCREEN.width - 40 - (plan.total - 1) * 16;
-    for (let i = 0; i < plan.total; i++) {
-      const x = x0 + i * 16;
-      const y = 14;
-      const color = hex(i < plan.step ? COLORS.green : i === plan.step ? COLORS.cyan : '#3a3360');
-      g.lineStyle(2, color, 1);
-      if (i === plan.total - 1) g.strokeTriangle(x - 5, y + 5, x + 5, y + 5, x, y - 5);
-      else g.strokeRect(x - 4, y - 4, 8, 8);
-      if (i === plan.step) g.fillStyle(color, 1).fillRect(x - 1.5, y - 1.5, 3, 3);
-    }
+    const nodes = areaOverview(this.run.plan);
+    const gap = 21;
+    const x0 = SCREEN.width - 44 - (nodes.length - 1) * gap;
+    const y = 14;
+    nodes.forEach((node, i) => {
+      const x = x0 + i * gap;
+      if (node.state === 'current') g.lineStyle(1, hex(COLORS.ink), 0.9).strokeRect(x - 9, y - 9, 18, 18);
+      drawRoomIcon(g, node.type, x, y, 5, node.state === 'done' ? 0x2f6b4c : null);
+    });
   }
 
   // 文字の一覧を画面に出す。Text を使い回す。items: [{ x, y, text, color, size, life?, max? }]
