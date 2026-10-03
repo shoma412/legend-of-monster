@@ -73,6 +73,10 @@ export const implants = [
     effect: { mods: [{ stat: 'meleeRange', add: 0.25 }, { stat: 'pierce', add: 1 }] },
   },
   {
+    id: 'wideblade', family: 'general', name: '広角ブレード', desc: '近接攻撃の角度 +50%', stack: true,
+    effect: { mods: [{ stat: 'meleeArc', add: 0.5 }] },
+  },
+  {
     id: 'nano', family: 'general', name: 'ナノ修復', desc: '撃破するたびHP +2',
     effect: { mods: [{ stat: 'killHeal', add: 2 }] },
   },

@@ -71,6 +71,7 @@ export function computeStats(build) {
     attackSpeed: 0,
     damageTaken: 1,
     meleeRange: 1,
+    meleeArc: 1, // 近接攻撃の角度の倍率
     killHeal: 0,
     creditMul: 1,
     pierce: 0,

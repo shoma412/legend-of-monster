@@ -70,8 +70,8 @@ describe('定義データのつじつま', () => {
     }
   });
 
-  it('仕様どおり、インプラント16種・固有効果4種・装備効果10種がある', () => {
-    expect(DATA.implants.all()).toHaveLength(16);
+  it('仕様どおり、インプラント17種・固有効果4種・装備効果10種がある', () => {
+    expect(DATA.implants.all()).toHaveLength(17);
     expect(DATA.legendEffects.all()).toHaveLength(4);
     expect(DATA.gearEffects.all()).toHaveLength(10);
     for (const f of ['shock', 'heat', 'cold']) expect(DATA.implants.all().filter((d) => d.family === f)).toHaveLength(3);
@@ -339,6 +339,20 @@ describe('インプラントの効果', () => {
     world.player.hp = 50;
     hitEnemy(world, addEnemy(world, 'drone', 40), 9999, 1, 0, 0);
     expect(world.player.hp).toBe(52);
+  });
+
+  it('広角ブレード：近接攻撃の角度+50%（重ねがけ可、360度が上限）', () => {
+    const p = makeWorld().player;
+    const angles = (world) => {
+      updateWorld(world, DT, { ...idle, attackPressed: true });
+      updateWorld(world, DT, idle);
+      return Math.round((world.player.attack.arc * 180) / Math.PI);
+    };
+    expect(p.weapon.combo[0].arc).toBe(45);
+    expect(angles(makeWorld())).toBe(45);
+    expect(angles(makeWorld(['wideblade']))).toBe(68);
+    expect(angles(makeWorld(['wideblade', 'wideblade']))).toBe(90);
+    expect(angles(makeWorld(Array(20).fill('wideblade')))).toBe(360);
   });
 
   it('拡張ブレード：近接範囲+25%', () => {

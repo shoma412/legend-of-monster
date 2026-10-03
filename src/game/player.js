@@ -200,7 +200,7 @@ function makeAttack(p, def, damage, range, arcDeg, extra) {
     angle: Math.atan2(p.fy, p.fx),
     damage,
     range: range * p.stats.meleeRange,
-    arc: arcDeg * DEG,
+    arc: Math.min(360, arcDeg * p.stats.meleeArc) * DEG,
     windup: def.windup / speed,
     swing: def.swing / speed,
     recover: def.recover / speed,
