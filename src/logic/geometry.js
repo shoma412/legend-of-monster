@@ -9,14 +9,17 @@ export function angleDiff(a, b) {
 }
 
 // (ox, oy) から angle の向きに広がる扇（広さ arc ラジアン、半径 range）が、
-// 中心 (tx, ty)・半径 tr の円に当たるか。密着している相手は向きに関係なく当たる。
+// 中心 (tx, ty)・半径 tr の円に当たるか。円の端が扇にかかっていれば当たる。
+// 密着している相手は向きに関係なく当たる。
 export function arcHitsCircle(ox, oy, angle, arc, range, tx, ty, tr, closeRadius = 0) {
   const dx = tx - ox;
   const dy = ty - oy;
   const dist = Math.hypot(dx, dy);
   if (dist - tr > range) return false;
   if (dist < tr + closeRadius) return true;
-  return Math.abs(angleDiff(Math.atan2(dy, dx), angle)) <= arc / 2;
+  // 相手の半径ぶん、角度に余裕を持たせる（狭い扇でも、かすっていれば当たる）
+  const margin = Math.asin(Math.min(1, tr / dist));
+  return Math.abs(angleDiff(Math.atan2(dy, dx), angle)) <= arc / 2 + margin;
 }
 
 export function circlesOverlap(ax, ay, ar, bx, by, br) {

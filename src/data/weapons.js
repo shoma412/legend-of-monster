@@ -14,9 +14,9 @@ export const weapons = [
     moveSlow: 0.45, // 振っている間の移動速度の倍率
     comboReset: 0.7, // この秒数攻撃しないと1段目に戻る
     combo: [
-      { damage: 30, range: 80, arc: 150, windup: 0.1, swing: 0.2, recover: 0.26, knockback: 380, lunge: 16 },
-      { damage: 34, range: 80, arc: 150, windup: 0.1, swing: 0.2, recover: 0.28, knockback: 400, lunge: 16 },
-      { damage: 50, range: 94, arc: 220, windup: 0.15, swing: 0.24, recover: 0.42, knockback: 600, lunge: 24, heavy: true },
+      { damage: 30, range: 80, arc: 45, windup: 0.1, swing: 0.2, recover: 0.26, knockback: 380, lunge: 16 },
+      { damage: 34, range: 80, arc: 45, windup: 0.1, swing: 0.2, recover: 0.28, knockback: 400, lunge: 16 },
+      { damage: 50, range: 94, arc: 90, windup: 0.15, swing: 0.24, recover: 0.42, knockback: 600, lunge: 24, heavy: true },
     ],
     special: {
       type: 'charge',

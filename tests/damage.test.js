@@ -43,6 +43,13 @@ describe('arcHitsCircle', () => {
     expect(arcHitsCircle(0, 0, 0, arc, 80, -20, 0, 10, 18)).toBe(true);
   });
 
+  it('扇の外でも、円の端がかかっていれば当たる。完全に外なら当たらない', () => {
+    const narrow = 45 * DEG;
+    // 30度の方向・距離60・半径10：中心は扇（±22.5度）の外だが、端がかかる
+    expect(arcHitsCircle(0, 0, 0, narrow, 80, 60 * Math.cos(30 * DEG), 60 * Math.sin(30 * DEG), 10)).toBe(true);
+    expect(arcHitsCircle(0, 0, 0, narrow, 80, 60 * Math.cos(45 * DEG), 60 * Math.sin(45 * DEG), 10)).toBe(false);
+  });
+
   it('角度が -π と π をまたいでも判定できる', () => {
     expect(arcHitsCircle(0, 0, Math.PI, arc, 80, -60, -5, 10)).toBe(true);
     expect(arcHitsCircle(0, 0, Math.PI, arc, 80, -60, 5, 10)).toBe(true);
