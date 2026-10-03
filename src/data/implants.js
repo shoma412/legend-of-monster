@@ -69,7 +69,7 @@ export const implants = [
     effect: { mods: [{ stat: 'attackMul', add: 0.5, when: 'recentDash', window: 2 }] },
   },
   {
-    id: 'blade', family: 'general', name: '拡張ブレード', desc: '近接範囲 +25%／矢が1体貫通',
+    id: 'blade', family: 'general', name: '拡張ブレード', desc: '近接範囲 +25%／弾が1体貫通',
     effect: { mods: [{ stat: 'meleeRange', add: 0.25 }, { stat: 'pierce', add: 1 }] },
   },
   {
