@@ -11,7 +11,7 @@ import { getSave, persist } from '../game/saveStore.js';
 import { createWorld, updateWorld } from '../game/world.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
-import { drawFloor, drawFx, drawPlayer } from '../render/draw.js';
+import { drawFloor, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { MenuOverlay, costText } from './menuOverlay.js';
 
@@ -37,7 +37,6 @@ export class HideoutScene extends Phaser.Scene {
     const bonus = permanentBonuses(this.save);
     const room = { type: 'hideout', waves: [], objects: this.buildStations(), doors: [], clearCredits: 0 };
     this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
-    this.refreshStations();
     if (import.meta.env.DEV) window.__world = this.world;
 
     drawFloor(this.add.graphics());
@@ -56,7 +55,7 @@ export class HideoutScene extends Phaser.Scene {
     this.add.text(40, 5, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
     this.materialText = this.add.text(W - 40, 5, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(1, 0);
     this.refreshStations();
-    this.add.text(W / 2, H - 14, 'WASD 移動　E 調べる・選ぶ　左クリック 攻撃（試し斬り）　Shift ダッシュ　Esc メニュー', body(12, COLORS.dim)).setOrigin(0.5);
+    this.add.text(W / 2, H - 14, `WASD 移動　E 調べる・選ぶ　左クリック 攻撃・右クリック 特殊（試し斬り）　Shift ダッシュ　Esc メニュー${import.meta.env.DEV ? '　｜　確認用：U 武器を全解放' : ''}`, body(12, COLORS.dim)).setOrigin(0.5);
     this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5).setDepth(7).setVisible(false);
 
     // 依頼文（出撃ゲートに近づくと出る）
@@ -69,16 +68,27 @@ export class HideoutScene extends Phaser.Scene {
     ]);
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E,U');
     this.dashPressed = false;
     this.attackPressed = false;
+    this.specialPressed = false;
+    // 確認用のキー（開発中の画面だけ。公開版では効かない）：武器をすべて解放する
+    if (import.meta.env.DEV) {
+      this.keys.U.on('down', () => {
+        for (const w of weaponUnlocks) if (!this.save.weapons.includes(w.weapon)) this.save.weapons.push(w.weapon);
+        persist();
+        this.refreshStations();
+      });
+    }
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.keys.E.on('down', () => {
       if (!this.menu.isOpen) interact(this.world);
     });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.leftButtonDown() && !this.menu.isOpen) this.attackPressed = true;
+      if (this.menu.isOpen) return;
+      if (pointer.leftButtonDown()) this.attackPressed = true;
+      if (pointer.rightButtonDown()) this.specialPressed = true;
     });
 
     this.menu = new MenuOverlay(this, {
@@ -129,7 +139,7 @@ export class HideoutScene extends Phaser.Scene {
       }
     }
     const parts = DATA.materials.all().map((m) => `${m.name} ×${save.materials[m.id] ?? 0}`);
-    this.materialText?.setText(parts.join('　　'));
+    this.materialText.setText(parts.join('　　'));
   }
 
   // 買った恒久強化を、隠れ家の中のキャラにもすぐ反映する（二重ダッシュなどを試せる）
@@ -171,6 +181,8 @@ export class HideoutScene extends Phaser.Scene {
       p.weapon = DATA.weapons.get(weaponId);
       p.attack = null;
       p.charge = null;
+      p.guard = null;
+      p.comboStep = 0;
       ring(world, p.x, p.y, 44, COLORS.cyan);
       floatText(world, p.x, p.y - 48, `${def.name}を選んだ`, COLORS.cyan, 14);
     }
@@ -188,10 +200,12 @@ export class HideoutScene extends Phaser.Scene {
       aimY: pointer.worldY,
       attack: pointer.leftButtonDown(),
       attackPressed: this.attackPressed,
+      specialPressed: this.specialPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;
     this.attackPressed = false;
+    this.specialPressed = false;
     return input;
   }
 
@@ -214,6 +228,7 @@ export class HideoutScene extends Phaser.Scene {
     g.clear();
     drawObjects(g, world);
     drawFx(g, world);
+    drawPlayerShots(g, world);
     drawPlayer(g, world);
     this.syncTexts(this.floatTexts, world.fx.texts, 5);
     this.syncTexts(this.labelTexts, objectLabels(world), 6);

@@ -10,7 +10,8 @@ import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawShots, drawZones,
+  drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
@@ -53,11 +54,14 @@ export class BattleScene extends Phaser.Scene {
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B');
     this.dashPressed = false;
     this.attackPressed = false;
+    this.specialPressed = false;
     this.choiceShownAt = 0;
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.leftButtonDown() && !this.world.choice && !this.menu.isOpen) this.attackPressed = true;
+      if (this.world.choice || this.menu.isOpen) return;
+      if (pointer.leftButtonDown()) this.attackPressed = true;
+      if (pointer.rightButtonDown()) this.specialPressed = true;
     });
     // ポーズ画面が開いている間は、ゲームの操作を受け付けない
     const playing = () => !this.menu.isOpen;
@@ -103,13 +107,15 @@ export class BattleScene extends Phaser.Scene {
     this.add.text(40, 7, 'HP', label);
     this.hpText = this.add.text(250, 7, '', { ...label, color: COLORS.ink });
     this.add.text(326, 7, 'DASH', label);
-    this.add.text(446, 6, '溜め斬り', { ...label, fontFamily: FONTS.body });
-    this.levelText = this.add.text(580, 7, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
-    this.kitText = this.add.text(690, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
+    const weapon = this.world.player.weapon;
+    // 特殊アクションの名前（長い名前は縮めて、クールダウンの棒に重ならないようにする）
+    this.add.text(510, 6, weapon.special.name, { ...label, fontFamily: FONTS.body }).setOrigin(1, 0);
+    this.levelText = this.add.text(592, 7, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
+    this.kitText = this.add.text(696, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
     this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋へ' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc ポーズ${devHelp}`, {
+    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる　Q 修復キット　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -206,10 +212,12 @@ export class BattleScene extends Phaser.Scene {
       aimY: pointer.worldY,
       attack: pointer.leftButtonDown(),
       attackPressed: this.attackPressed,
+      specialPressed: this.specialPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;
     this.attackPressed = false;
+    this.specialPressed = false;
     return input;
   }
 
@@ -248,6 +256,7 @@ export class BattleScene extends Phaser.Scene {
     drawFx(g, world);
     drawHazards(g, world);
     drawEnemies(g, world);
+    drawPlayerShots(g, world);
     drawShots(g, world);
     drawBolts(g, world);
     drawPlayer(g, world);

@@ -159,7 +159,18 @@ describe('恒久強化', () => {
     expect(save.upgrades.frame).toBe(5);
     expect(nextUpgradeCost(save, DATA.upgrades.get('frame'))).toBe(null);
     expect(buyUpgrade(save, 'ougi-greatsword')).toBe(false);
-    expect(unlockWeapon(save, 'sword')).toBe(false); // M6 で実装するまでは解放できない
+  });
+
+  it('武器の解放：片手剣はボアコア2個、銃はクライオコア2個。足りないと解放できない', () => {
+    const save = createSave();
+    save.materials = { boarCore: 1 };
+    expect(unlockWeapon(save, 'sword')).toBe(false);
+    save.materials = { boarCore: 2, cryoCore: 2 };
+    expect(unlockWeapon(save, 'sword')).toBe(true);
+    expect(unlockWeapon(save, 'sword')).toBe(false); // 2回は買えない
+    expect(unlockWeapon(save, 'gun')).toBe(true);
+    expect(save.weapons).toEqual(['greatsword', 'sword', 'gun']);
+    expect(save.materials).toEqual({ boarCore: 0, cryoCore: 0 });
   });
 
   it('買った強化は次のランに乗る：最大HP、攻撃力、修復キット、二重ダッシュ、起動プログラム', () => {

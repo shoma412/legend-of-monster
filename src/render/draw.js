@@ -149,6 +149,19 @@ export function drawEnemies(g, world) {
   }
 }
 
+// プレイヤーの弾：進む向きに伸びた光の線
+export function drawPlayerShots(g, world) {
+  const elements = world.player.stats.elements;
+  const color = hex(elements.length > 0 ? ELEMENT_COLORS[elements[0]] : COLORS.cyan);
+  for (const s of world.playerShots) {
+    const len = Math.hypot(s.vx, s.vy) || 1;
+    const tx = s.x - (s.vx / len) * 16;
+    const ty = s.y - (s.vy / len) * 16;
+    g.lineStyle(8, color, 0.18).lineBetween(s.x, s.y, tx, ty);
+    g.lineStyle(3, color, 1).lineBetween(s.x, s.y, tx, ty);
+  }
+}
+
 export function drawShots(g, world) {
   const color = hex(COLORS.amber);
   for (const s of world.shots) {
@@ -177,6 +190,17 @@ export function drawPlayer(g, world) {
     arcPath(g, p.x, p.y, a.range * 0.92, from, from + sweep);
   }
 
+  // ジャストガードの構え：体の前に盾の弧
+  if (p.guard) {
+    const k = p.guard.t / special.window;
+    const facing = Math.atan2(p.fy, p.fx);
+    g.lineStyle(10, cyan, 0.2);
+    arcPath(g, p.x, p.y, p.r + 12, facing - 1.2, facing + 1.2);
+    g.lineStyle(4, k < 0.5 ? WHITE : cyan, 1 - 0.5 * k);
+    arcPath(g, p.x, p.y, p.r + 12, facing - 1.2, facing + 1.2);
+    g.lineStyle(1.5, cyan, 0.5).strokeCircle(p.x, p.y, p.r + 12);
+  }
+
   // 溜めの輪。段階が上がるほど大きく、最大で金色
   if (p.charge) {
     const max = special.stages[special.stages.length - 1].time;
@@ -202,9 +226,16 @@ export function drawPlayer(g, world) {
     { x: p.x + Math.cos(ang - 0.42) * (p.r - 1), y: p.y + Math.sin(ang - 0.42) * (p.r - 1) },
   ];
   g.fillStyle(cyan, 1).fillPoints(tip, true);
+  // 銃：銃身と、撃った瞬間の光
+  if (p.weapon.type === 'ranged') {
+    const mx = p.x + Math.cos(ang) * (p.r + 14);
+    const my = p.y + Math.sin(ang) * (p.r + 14);
+    g.lineStyle(4, cyan, 1).lineBetween(p.x + Math.cos(ang) * p.r, p.y + Math.sin(ang) * p.r, mx, my);
+    if (p.firingT > 0.08) g.fillStyle(WHITE, 0.9).fillCircle(mx, my, 5);
+  }
 
   // 振りかぶり中は剣を後ろに引いて見せる
-  if (a && a.phase === 'windup') {
+  if (a && a.phase === 'windup' && a.windup > 0) {
     const back = a.angle - a.arc / 2;
     g.lineStyle(4, cyan, 0.9);
     g.lineBetween(p.x, p.y, p.x + Math.cos(back) * a.range * 0.7, p.y + Math.sin(back) * a.range * 0.7);
@@ -245,7 +276,7 @@ export function drawHud(g, world) {
       g.fillStyle(hex(i < p.dashCharges ? COLORS.cyan : COLORS.line), 1).fillRect(362 + i * 8, y + 13, 6, 3);
     }
   }
-  cooldownBar(g, 500, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
+  cooldownBar(g, 516, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
 
   // 経験値（HPバーの下の細い線）
   const xpRatio = Math.min(1, p.build.xp / xpToNext(p.build.level));

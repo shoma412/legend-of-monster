@@ -11,7 +11,7 @@ import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
-import { createPlayer, updatePlayer } from './player.js';
+import { createPlayer, updatePlayer, updatePlayerShots } from './player.js';
 
 // room: 部屋の中身（src/game/rooms.js の buildRoom が作る）{ type, waves, objects, doors, clearCredits }
 //   waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを、{ elite: { base, trait } } はエリートを出す
@@ -29,7 +29,8 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     player,
     enemies: [],
     boss: null, // ボス部屋のボス（HPバー表示用。倒した後も残す）
-    shots: [],
+    shots: [], // 敵の弾
+    playerShots: [], // プレイヤーの弾（銃）
     hazards: [],
     zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
     loot: [], // 落ちている装備 { x, y, item }
@@ -72,11 +73,14 @@ export function updateWorld(world, dt, input) {
     world.countdown -= dt;
   } else if (world.mode === 'play') {
     updateEnemies(world, dt);
+    updatePlayerShots(world, dt);
     updateShots(world, dt);
     updateHazards(world, dt);
     updateZones(world, dt);
     updateWaves(world, dt);
   }
+  // クリア後や隠れ家でも、撃った弾は飛ぶ（試し撃ち）
+  if (world.mode === 'clear') updatePlayerShots(world, dt);
   for (const l of world.loot) l.t += dt;
   updateFocus(world);
 }

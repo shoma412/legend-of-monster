@@ -7,6 +7,7 @@ import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
 import { eliteDeath } from './elite.js';
 import { addHitstop, addShake, burst, floatText } from './fx.js';
+import { triggerCounter } from './player.js';
 
 // ---- 状態異常 ----
 
@@ -160,6 +161,11 @@ function dropLoot(world, enemy) {
 export function hurtPlayer(world, damage) {
   const p = world.player;
   if (p.inv > 0 || world.mode !== 'play') return false;
+  // ジャストガードの構え中なら、無効化して反撃する（弾は消える）
+  if (p.guard) {
+    triggerCounter(world);
+    return true;
+  }
   const amount = Math.max(1, Math.round(damage * p.stats.damageTaken));
   p.hp = Math.max(0, p.hp - amount);
   world.damageTaken += amount;

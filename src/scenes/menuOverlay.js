@@ -375,11 +375,11 @@ export class MenuOverlay {
     this.text(40, 114, `解除 ${save.achievements.length} / ${list.length}`, 12, COLORS.dim);
     list.forEach((def, i) => {
       const x = 40 + (i % 2) * 445;
-      const y = 134 + Math.floor(i / 2) * 60;
+      const y = 134 + Math.floor(i / 2) * 54;
       const done = save.achievements.includes(def.id);
-      this.panel(x, y, 435, 52, done ? COLORS.amber : COLORS.line);
-      this.text(x + 14, y + 7, `${done ? '◆' : '◇'} ${def.name}`, 15, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
-      this.text(x + 14, y + 30, def.desc, 12, done ? COLORS.ink : LOCKED);
+      this.panel(x, y, 435, 48, done ? COLORS.amber : COLORS.line);
+      this.text(x + 14, y + 5, `${done ? '◆' : '◇'} ${def.name}`, 15, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
+      this.text(x + 14, y + 27, def.desc, 12, done ? COLORS.ink : LOCKED);
     });
   }
 }

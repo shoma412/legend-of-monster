@@ -16,4 +16,6 @@ export const achievements = [
   { id: 'fragment-all', name: '全記録回収', desc: 'データ片をすべて集めた', on: 'fragment', check: 'allFragments' },
   { id: 'kills-100', name: '百体処理', desc: '累計で100体倒した', on: 'kill', check: 'totalKills', count: 100 },
   { id: 'clear-greatsword', name: '大剣使い', desc: '大剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'greatsword' },
+  { id: 'clear-sword', name: '片手剣使い', desc: '片手剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'sword' },
+  { id: 'clear-gun', name: '銃使い', desc: '銃で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'gun' },
 ];

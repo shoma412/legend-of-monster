@@ -1,11 +1,18 @@
 // 武器の定義（M1 で大剣、M6 で片手剣と銃）
 // 1件 = { id, ... } の形で足す。
 //
+// type: melee（近接。combo を順に出す）/ ranged（遠距離。shot を撃ち続ける）
+// special.type は特殊アクションの部品の名前（src/game/player.js の SPECIALS）
+//   charge : 左クリック長押しで溜めて斬る（大剣）
+//   guard  : 右クリックで少しの間だけ構え、攻撃を受けると無効化して反撃（片手剣）
+//   spread : 右クリックで扇状に同時に撃つ（銃）
+// special.hint は画面下の操作説明に出す文
+//
 // combo: 通常攻撃（左クリック）の段。順番に出る
 //   damage 威力 / range 届く距離(px) / arc 扇の広さ(度)
 //   windup 振りかぶり(秒) / swing 振っている時間(秒) / recover 振った後の硬直(秒)
 //   knockback 吹き飛ばす強さ / lunge 踏み込む距離(px) / heavy 重い一撃（演出が強くなる）
-// special: 特殊攻撃（大剣は左クリック長押し）
+// special: 特殊アクション
 export const weapons = [
   {
     id: 'greatsword',
@@ -21,6 +28,7 @@ export const weapons = [
     special: {
       type: 'charge',
       name: '溜め斬り',
+      hint: '左クリック長押し 溜め斬り',
       cooldown: 4, // 秒
       moveSlow: 0.5, // 溜めている間の移動速度の倍率
       damage: 40, // これに段階ごとの倍率がかかる
@@ -35,6 +43,50 @@ export const weapons = [
         { time: 0.75, multiplier: 2.2, range: 112 },
         { time: 1.2, multiplier: 3, range: 132 },
       ],
+    },
+  },
+  {
+    id: 'sword',
+    name: '片手剣',
+    type: 'melee',
+    moveSlow: 0.8, // 振っている間の移動速度の倍率
+    comboReset: 0.6,
+    // 速い4段コンボ。4段目だけ威力1.5倍
+    combo: [
+      { damage: 12, range: 58, arc: 70, windup: 0.04, swing: 0.1, recover: 0.07, knockback: 160, lunge: 10 },
+      { damage: 12, range: 58, arc: 70, windup: 0.04, swing: 0.1, recover: 0.07, knockback: 160, lunge: 10 },
+      { damage: 12, range: 58, arc: 70, windup: 0.04, swing: 0.1, recover: 0.07, knockback: 160, lunge: 10 },
+      { damage: 18, range: 66, arc: 110, windup: 0.06, swing: 0.14, recover: 0.2, knockback: 340, lunge: 18, heavy: true },
+    ],
+    special: {
+      type: 'guard',
+      name: 'ジャストガード',
+      hint: '右クリック ジャストガード',
+      window: 0.3, // 構えている時間（秒）。この間に攻撃を受けると成功
+      moveSlow: 0.3, // 構えている間の移動速度の倍率
+      cooldown: 2.5, // 秒
+      successCooldown: 0.4, // 成功したときのクールダウン（秒）
+      invincible: 0.5, // 成功したあとの無敵（秒）
+      // 反撃：周囲を斬り払う
+      counter: { damage: 45, range: 96, arc: 360, swing: 0.2, recover: 0.12, knockback: 520 },
+    },
+  },
+  {
+    id: 'gun',
+    name: '銃',
+    type: 'ranged',
+    moveSlow: 0.8, // 撃っている間の移動速度の倍率
+    // ハンドガン。左クリックを押している間、撃ち続ける
+    shot: { damage: 14, interval: 0.28, speed: 640, radius: 4, life: 0.9, knockback: 110 },
+    special: {
+      type: 'spread',
+      name: '拡散射撃',
+      hint: '右クリック 拡散射撃',
+      cooldown: 3, // 秒
+      count: 5, // 同時に撃つ数
+      angle: 50, // 扇の広さ（度）
+      damage: 14, // 1発あたり
+      recover: 0.3, // 撃ったあと、通常の弾が撃てるようになるまで（秒）
     },
   },
 ];

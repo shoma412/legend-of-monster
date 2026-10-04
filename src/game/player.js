@@ -2,12 +2,12 @@
 import { FEEL, PLAYER } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
-import { DEG, arcHitsCircle, clampToBounds } from '../logic/geometry.js';
+import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { createBuild } from '../logic/stats.js';
 import { recalcStats } from './build.js';
 import { hitEnemy } from './combat.js';
 import { fire } from './effects.js';
-import { addHitstop, addShake, floatText, ghost, ring } from './fx.js';
+import { addHitstop, addShake, burst, floatText, ghost, ring } from './fx.js';
 
 // carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
 export function createPlayer(weaponId, x, y, carry = null) {
@@ -21,10 +21,13 @@ export function createPlayer(weaponId, x, y, carry = null) {
     weapon: DATA.weapons.get(weaponId),
     fx: 1, // 向き
     fy: 0,
-    attack: null, // 今出している攻撃
+    attack: null, // 今出している近接攻撃
     comboStep: 0, // 次に出る通常攻撃の段
     comboTimer: 0,
-    charge: null, // 溜め中
+    charge: null, // 溜め中（大剣）
+    guard: null, // ジャストガードの構え中（片手剣）
+    shotCd: 0, // 次の弾が撃てるまでの秒数（銃）
+    firingT: 0, // 撃っている最中の残り時間（銃。この間は移動が少し遅い）
     specialCd: 0,
     dashT: 0,
     dashCd: 0, // 次のダッシュが出せるまでの秒数（HUD 用）
@@ -45,9 +48,10 @@ export function createPlayer(weaponId, x, y, carry = null) {
   return player;
 }
 
-// input: { mx, my, aimX, aimY, attack, attackPressed, dashPressed }
+// input: { mx, my, aimX, aimY, attack, attackPressed, specialPressed, dashPressed }
 //   aimX, aimY: マウスカーソルの位置。攻撃はこの方向に出る
-//   attack: 攻撃ボタンを押している間 true / attackPressed: 押した瞬間だけ true
+//   attack: 攻撃ボタン（左クリック）を押している間 true / attackPressed: 押した瞬間だけ true
+//   specialPressed: 特殊アクションのボタン（右クリック）を押した瞬間だけ true
 export function updatePlayer(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
@@ -63,6 +67,8 @@ export function updatePlayer(world, dt, input) {
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.inv -= dt;
   p.specialCd -= dt;
+  p.shotCd -= dt;
+  p.firingT -= dt;
   p.dashBuffer -= dt;
   p.attackBuffer -= dt;
   p.sinceDash += dt;
@@ -98,7 +104,8 @@ export function updatePlayer(world, dt, input) {
     fire(world, 'dashMove', { dash: p.dashState });
   } else {
     let slow = 1;
-    if (p.attack) slow = weapon.moveSlow;
+    if (p.guard) slow = weapon.special.moveSlow;
+    else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
     p.x += mx * p.stats.moveSpeed * slow * dt;
     p.y += my * p.stats.moveSpeed * slow * dt;
@@ -119,69 +126,133 @@ function startDash(p, dx, dy) {
   p.inv = Math.max(p.inv, d.invincible);
   p.dvx = (dx * d.distance) / d.duration;
   p.dvy = (dy * d.distance) / d.duration;
-  // ダッシュは攻撃や溜めを中断して出せる
+  // ダッシュは攻撃・溜め・構えを中断して出せる
   p.attack = null;
   p.charge = null;
+  p.guard = null;
 }
+
+// 近接攻撃の進行（振りかぶり → 斬る → 硬直）
+function updateSwing(world, dt) {
+  const p = world.player;
+  const a = p.attack;
+  a.t += dt;
+  if (a.phase === 'windup') {
+    // 踏み込み
+    if (a.windup > 0) {
+      p.x += (Math.cos(a.angle) * a.lunge * dt) / a.windup;
+      p.y += (Math.sin(a.angle) * a.lunge * dt) / a.windup;
+    }
+    if (a.t >= a.windup) {
+      a.phase = 'swing';
+      a.t = 0;
+      resolveSwing(world, a);
+    }
+  } else if (a.phase === 'swing') {
+    if (a.t >= a.swing) {
+      a.phase = 'recover';
+      a.t = 0;
+    }
+  } else if (a.t >= a.recover) {
+    p.attack = null;
+    p.comboTimer = p.weapon.comboReset ?? 0;
+  }
+}
+
+// 特殊アクションの部品。武器の定義（src/data/weapons.js）の special.type で選ぶ
+//   update(world, dt, input) が true を返したら、その間は通常攻撃を出せない
+const SPECIALS = {
+  // 溜め斬り：左クリックを押しっぱなしで溜め、離すと斬る
+  charge(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (p.charge) {
+      if (input.attack) {
+        p.charge.t += dt;
+        const stage = chargeStage(special, p.charge.t);
+        if (stage > p.charge.stage) {
+          p.charge.stage = stage;
+          ring(world, p.x, p.y, 30 + stage * 12, stage === special.stages.length - 1 ? COLORS.amber : COLORS.cyan);
+        }
+      } else {
+        const stage = p.charge.stage;
+        p.charge = null;
+        if (stage >= 0) releaseCharge(world, stage);
+      }
+      return true;
+    }
+    // 通常攻撃を出したあとも押しっぱなしなら、溜め始める
+    if (input.attack && p.attackBuffer <= 0 && p.specialCd <= 0) {
+      p.charge = { t: 0, stage: -1 };
+      return true;
+    }
+    return false;
+  },
+
+  // ジャストガード：右クリックで少しの間だけ構える。その間に攻撃を受けると無効化して反撃する
+  guard(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (p.guard) {
+      p.guard.t += dt;
+      if (p.guard.t >= special.window) p.guard = null;
+      return true;
+    }
+    if (input.specialPressed && p.specialCd <= 0) {
+      p.guard = { t: 0 };
+      p.specialCd = special.cooldown;
+      return true;
+    }
+    return false;
+  },
+
+  // 拡散射撃：右クリックで、扇状に何発も同時に撃つ
+  spread(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (!input.specialPressed || p.specialCd > 0) return false;
+    p.specialCd = special.cooldown;
+    // 「広角ブレード」は、銃では拡散射撃の広がりを大きくする
+    const total = Math.min(360, special.angle * p.stats.meleeArc) * DEG;
+    const base = Math.atan2(p.fy, p.fx);
+    for (let i = 0; i < special.count; i++) {
+      const a = base + (special.count > 1 ? (i / (special.count - 1) - 0.5) * total : 0);
+      fireShot(world, a, { ...p.weapon.shot, damage: special.damage });
+    }
+    p.firingT = 0.2;
+    p.shotCd = Math.max(p.shotCd, special.recover);
+    addShake(world, FEEL.shake.heavy);
+    return true;
+  },
+};
 
 function updateAttack(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
 
   if (p.attack) {
-    const a = p.attack;
-    a.t += dt;
-    if (a.phase === 'windup') {
-      // 踏み込み
-      p.x += (Math.cos(a.angle) * a.lunge * dt) / a.windup;
-      p.y += (Math.sin(a.angle) * a.lunge * dt) / a.windup;
-      if (a.t >= a.windup) {
-        a.phase = 'swing';
-        a.t = 0;
-        resolveSwing(world, a);
-      }
-    } else if (a.phase === 'swing') {
-      if (a.t >= a.swing) {
-        a.phase = 'recover';
-        a.t = 0;
-      }
-    } else if (a.t >= a.recover) {
-      p.attack = null;
-      p.comboTimer = weapon.comboReset;
+    updateSwing(world, dt);
+    return;
+  }
+  if (SPECIALS[weapon.special.type](world, dt, input)) return;
+
+  if (weapon.type === 'ranged') {
+    // 銃：押している間、撃ち続ける
+    if (input.attack && p.shotCd <= 0) {
+      p.shotCd = weapon.shot.interval / (1 + p.stats.attackSpeed);
+      p.firingT = 0.15;
+      fireShot(world, Math.atan2(p.fy, p.fx), weapon.shot);
     }
     return;
   }
 
-  const special = weapon.special;
-  if (p.charge) {
-    if (input.attack) {
-      p.charge.t += dt;
-      const stage = chargeStage(special, p.charge.t);
-      if (stage > p.charge.stage) {
-        p.charge.stage = stage;
-        ring(world, p.x, p.y, 30 + stage * 12, stage === special.stages.length - 1 ? COLORS.amber : COLORS.cyan);
-      }
-    } else {
-      const stage = p.charge.stage;
-      p.charge = null;
-      if (stage >= 0) releaseCharge(world, stage);
-    }
-    return;
-  }
-
-  // 押した瞬間に通常攻撃。硬直中に押したぶんも少しの間は覚えておく
+  // 近接：押した瞬間に通常攻撃。硬直中に押したぶんも少しの間は覚えておく
   if (p.attackBuffer > 0) {
     p.attackBuffer = 0;
     const step = p.comboTimer > 0 ? p.comboStep : 0;
     const def = weapon.combo[step];
     p.attack = makeAttack(p, def, def.damage, def.range, def.arc, { step });
     p.comboStep = (step + 1) % weapon.combo.length;
-    return;
-  }
-
-  // 押しっぱなしなら溜め始める
-  if (input.attack && p.specialCd <= 0 && special.type === 'charge') {
-    p.charge = { t: 0, stage: -1 };
   }
 }
 
@@ -205,7 +276,28 @@ function releaseCharge(world, stage) {
   p.attack.phase = 'swing';
   p.specialCd = special.cooldown;
   p.comboTimer = 0;
-  floatText(world, p.x, p.y - 30, `溜め斬り Lv${stage + 1}`, COLORS.amber, 14);
+  floatText(world, p.x, p.y - 30, `${special.name} Lv${stage + 1}`, COLORS.amber, 14);
+  resolveSwing(world, p.attack);
+}
+
+// ジャストガード成功：攻撃を無効化して、周囲を斬り払う。src/game/combat.js の hurtPlayer から呼ばれる
+export function triggerCounter(world) {
+  const p = world.player;
+  const special = p.weapon.special;
+  const c = special.counter;
+  p.guard = null;
+  p.inv = Math.max(p.inv, special.invincible);
+  // 成功するとクールダウンが短くなる
+  p.specialCd = Math.min(p.specialCd, special.successCooldown);
+  const def = { windup: 0, swing: c.swing, recover: c.recover, knockback: c.knockback, lunge: 0, heavy: true };
+  p.attack = makeAttack(p, def, c.damage, c.range, c.arc, { charged: 1 });
+  p.attack.phase = 'swing';
+  // 反撃の角度は広角ブレードの影響を受けない（全方位のまま）
+  p.attack.arc = c.arc * DEG;
+  floatText(world, p.x, p.y - 30, 'JUST GUARD', COLORS.amber, 16);
+  ring(world, p.x, p.y, c.range, COLORS.amber);
+  burst(world, p.x, p.y, COLORS.amber, 16, 260);
+  addHitstop(world, FEEL.hitstop.charged);
   resolveSwing(world, p.attack);
 }
 
@@ -246,4 +338,49 @@ function resolveSwing(world, a) {
     addShake(world, FEEL.shake.hit);
   }
   return hits;
+}
+
+// ---- 銃の弾 ----
+
+function fireShot(world, angle, shot) {
+  const p = world.player;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  world.playerShots.push({
+    x: p.x + dx * (p.r + 6),
+    y: p.y + dy * (p.r + 6),
+    vx: dx * shot.speed,
+    vy: dy * shot.speed,
+    r: shot.radius,
+    damage: shot.damage,
+    knockback: shot.knockback,
+    pierce: p.stats.pierce, // あと何体貫通できるか
+    hit: new Set(),
+    life: shot.life,
+  });
+}
+
+export function updatePlayerShots(world, dt) {
+  const b = world.bounds;
+  for (const s of world.playerShots) {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.life -= dt;
+    if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) {
+      s.life = 0;
+      burst(world, s.x, s.y, COLORS.cyan, 2, 90);
+    }
+    if (s.life <= 0) continue;
+    for (const e of world.enemies) {
+      if (e.dead || e.spawnT > 0 || s.hit.has(e)) continue;
+      if (!circlesOverlap(s.x, s.y, s.r, e.x, e.y, e.r)) continue;
+      s.hit.add(e);
+      hitEnemy(world, e, s.damage, s.vx, s.vy, s.knockback);
+      if (s.pierce-- <= 0) {
+        s.life = 0;
+        break;
+      }
+    }
+  }
+  world.playerShots = world.playerShots.filter((s) => s.life > 0);
 }
