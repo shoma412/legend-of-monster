@@ -2,6 +2,7 @@
 // 1件 = { id, ... } の形で足す。
 //
 // code / name : 区画名の表示に使う（例：「SECTOR 01 // 下層スラム」）
+// theme       : 床と壁の色（src/data/theme.js の AREA_THEMES）
 // first       : 最初に入る部屋の種類
 // map         : 地図の作り方。columns 途中の列の数（各列は上下2部屋）/ elites エリート部屋の数 /
 //               specials 特殊部屋の数（別々の種類が入る）/ crossChance 斜めの線が引かれる確率
@@ -15,6 +16,7 @@ export const areas = [
     id: 'slum',
     code: 'SECTOR 01',
     name: '下層スラム',
+    theme: 'slum',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault'],
@@ -34,6 +36,35 @@ export const areas = [
       bossDefeated: [
         '依頼主＞ 反応消失を確認。コアを回収しろ。',
         '依頼主＞ 下の冷却プラントへ降りるルートが開いた。',
+      ],
+    },
+  },
+  {
+    id: 'plant',
+    code: 'SECTOR 02',
+    name: '冷却プラント',
+    theme: 'plant',
+    first: 'combat',
+    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
+    specialRooms: ['supply', 'market', 'vault'],
+    enemies: [
+      { id: 'drone', weight: 3 },
+      { id: 'grunt', weight: 2 },
+      { id: 'turret', weight: 2 },
+      { id: 'bomber', weight: 3 },
+      { id: 'sprayer', weight: 3 },
+    ],
+    eliteBases: ['grunt', 'turret', 'sprayer'],
+    boss: 'cryowyvern',
+    final: false,
+    comms: {
+      bossIntro: [
+        '依頼主＞ プラントの心臓部だ。上を飛んでいるのが次の標的だ。',
+        '依頼主＞ 冷気を浴びると足が鈍る。熱が効くはずだ。',
+      ],
+      bossDefeated: [
+        '依頼主＞ 冷却が止まった。上の連中が騒ぎ出す前に進め。',
+        '依頼主＞ 次は企業タワーの最深部だ。',
       ],
     },
   },

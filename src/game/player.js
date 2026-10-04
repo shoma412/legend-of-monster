@@ -1,5 +1,5 @@
 // プレイヤーの移動・ダッシュ・攻撃
-import { FEEL, PLAYER } from '../data/balance.js';
+import { FEEL, PLAYER, STATUS } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
@@ -38,6 +38,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
     dvx: 0,
     dvy: 0,
     inv: 0,
+    slowT: 0, // 冷気を浴びて遅くなっている残り時間
     sinceDash: Infinity, // 最後にダッシュしてからの秒数
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
     forceCrit: false, // 次の攻撃が必ず会心
@@ -66,6 +67,7 @@ export function updatePlayer(world, dt, input) {
   }
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.inv -= dt;
+  p.slowT -= dt;
   p.specialCd -= dt;
   p.shotCd -= dt;
   p.firingT -= dt;
@@ -107,6 +109,7 @@ export function updatePlayer(world, dt, input) {
     if (p.guard) slow = weapon.special.moveSlow;
     else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
+    if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
     p.x += mx * p.stats.moveSpeed * slow * dt;
     p.y += my * p.stats.moveSpeed * slow * dt;
     updateAttack(world, dt, input);

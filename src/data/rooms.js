@@ -14,4 +14,6 @@ export const rooms = [
   { id: 'market', label: '闇市', tag: '闇市', color: 'amber', icon: 'coin', build: 'market' },
   { id: 'vault', label: 'データ金庫', tag: 'データ金庫', color: 'magenta', icon: 'vault', build: 'vault' },
   { id: 'boss', label: 'BOSS', tag: '最深部', color: 'red', icon: 'warning', build: 'boss', clearCredits: 50 },
+  // ボスを倒したあとに開く、次のエリアへの扉（部屋ではない）
+  { id: 'descend', label: '次のエリアへ', tag: '', color: 'cyan', icon: 'down', build: 'none' },
 ];

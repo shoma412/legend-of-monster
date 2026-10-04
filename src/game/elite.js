@@ -15,6 +15,7 @@ export const TRAIT_PARTS = {
     onDeath(world, e, trait) {
       for (let i = 0; i < trait.count; i++) {
         const a = (i / trait.count) * Math.PI * 2 + world.rng() * 0.5;
+        // baseDef はすでにエリアの倍率がかかった値
         const mini = createEnemy(e.baseDef, e.x + Math.cos(a) * e.r, e.y + Math.sin(a) * e.r, 0.35, world.rng);
         mini.hp = mini.maxHp = Math.round(e.baseDef.hp * trait.hpRatio * ELITE.hpMul);
         mini.r *= trait.sizeRatio;

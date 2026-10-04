@@ -3,11 +3,13 @@ import { COMBAT, STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
-import { damageEnemy, enemySpeedFactor, hurtPlayer } from './combat.js';
+import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { updateEliteTrait } from './elite.js';
-import { burst } from './fx.js';
+import { addShake, burst, ring } from './fx.js';
 
-export function createEnemy(def, x, y, spawnT, rng) {
+// scale: エリアが進んだぶんの、HPと攻撃力の倍率
+export function createEnemy(def, x, y, spawnT, rng, scale = 1) {
+  if (scale !== 1) def = { ...def, hp: Math.round(def.hp * scale), damage: Math.round(def.damage * scale) };
   return {
     def,
     x,
@@ -15,7 +17,7 @@ export function createEnemy(def, x, y, spawnT, rng) {
     r: def.radius,
     hp: def.hp,
     maxHp: def.hp,
-    color: COLORS[def.color] ?? COLORS.ink,
+    color: COLORS[def.color] ?? ELEMENT_COLORS[def.color] ?? COLORS.ink,
     vx: 0, // 吹き飛び
     vy: 0,
     hit: 0, // 白く光る残り時間
@@ -70,6 +72,65 @@ const BEHAVIORS = {
     } else if (e.state === 'recover') {
       e.t -= dt;
       if (e.t <= 0) e.state = 'chase';
+    }
+  },
+
+  // 自爆ボット：近づいたら止まって点滅し、時間が来たら爆発する
+  bomber(world, e, dt, d) {
+    const bomb = e.def.bomb;
+    if (e.state === 'chase') {
+      e.x += (d.dx / d.dist) * e.def.speed * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * dt;
+      if (d.dist <= bomb.triggerRange) {
+        e.state = 'fuse';
+        e.t = bomb.fuse;
+      }
+    } else if (e.state === 'fuse') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        const p = world.player;
+        if (circlesOverlap(e.x, e.y, bomb.radius, p.x, p.y, p.r)) hurtPlayer(world, e.def.damage);
+        ring(world, e.x, e.y, bomb.radius, e.color);
+        burst(world, e.x, e.y, e.color, 26, 300);
+        addShake(world, 7);
+        e.dead = true; // 自爆は撃破に数えない（経験値もドロップもなし）
+      }
+    }
+  },
+
+  // フロストスプレイヤー：近づいて構え、前方の扇に冷気を噴き続ける
+  sprayer(world, e, dt, d) {
+    const spray = e.def.spray;
+    const p = world.player;
+    if (e.state === 'chase') {
+      if (d.dist > spray.triggerRange) {
+        e.x += (d.dx / d.dist) * e.def.speed * dt;
+        e.y += (d.dy / d.dist) * e.def.speed * dt;
+      } else if (e.cd <= 0) {
+        e.state = 'windup';
+        e.t = spray.windup;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'windup') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        e.state = 'spray';
+        e.t = spray.duration;
+      }
+    } else if (e.state === 'spray') {
+      e.t -= dt;
+      if (arcHitsCircle(e.x, e.y, e.angle, spray.arc * DEG, spray.range, p.x, p.y, p.r)) {
+        slowPlayer(world);
+        hurtPlayer(world, e.def.damage);
+      }
+      if (world.rng() < 0.7) {
+        const a = e.angle + (world.rng() - 0.5) * spray.arc * DEG;
+        world.fx.particles.push({ x: e.x + Math.cos(a) * e.r, y: e.y + Math.sin(a) * e.r, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, life: 0.35, max: 0.35, color: e.color, size: 3 });
+      }
+      if (e.t <= 0) {
+        e.state = 'chase';
+        e.cd = spray.recover;
+      }
     }
   },
 

@@ -11,6 +11,7 @@ export const COLORS = {
   amber: '#ffc23a',
   red: '#ff4d5e',
   green: '#5dffa0',
+  ice: '#8fd8ff',
 };
 
 export const ELEMENT_COLORS = {
@@ -24,6 +25,13 @@ export const RARITY_COLORS = {
   rare: '#2ef2ff',
   epic: '#c77dff',
   legend: '#ffc23a',
+};
+
+// エリアごとの床と壁の色（エリアの定義の theme で選ぶ）
+export const AREA_THEMES = {
+  slum: { floor: 0x0b0914, grid: 0x785aff, wall: 0x16122a, edge: '#ff2bd6' },
+  plant: { floor: 0x08101a, grid: 0x4fb8ff, wall: 0x101e30, edge: '#8fd8ff' },
+  tower: { floor: 0x120a0a, grid: 0xff7a3d, wall: 0x241414, edge: '#ffc23a' },
 };
 
 export const FONTS = {

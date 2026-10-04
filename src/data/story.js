@@ -40,4 +40,20 @@ export const fragments = [
     id: 'bb-core', area: 'slum', source: 'boss', title: 'ボルトボアのコアログ',
     text: '稼働時間 41,000 時間。最後に受けた命令は「保守を続けろ」。命令を出した者の記録は残っていない。',
   },
+  {
+    id: 'cw-01', area: 'plant', source: 'vault', title: '冷却系統 保守記録',
+    text: '冷却プラントは、都市の演算塔を冷やすために造られた。プラントが止まれば、上層の灯りは三日で消える。',
+  },
+  {
+    id: 'cw-04', area: 'plant', source: 'vault', title: '試験体CW 飛行記録',
+    text: '配管の点検には、飛べる機体が必要だった。CWシリーズは冷却剤を背負い、漏れた配管を凍らせて塞ぐ。',
+  },
+  {
+    id: 'cw-memo', area: 'plant', source: 'vault', title: '担当者の走り書き',
+    text: 'あいつは、漏れていない配管まで凍らせ始めた。止めに行った二人は戻らない。上には「順調」と報告しておく。',
+  },
+  {
+    id: 'cw-core', area: 'plant', source: 'boss', title: 'クライオ・ワイバーンのコアログ',
+    text: '保守対象：プラント全域。異常箇所：全域。処置：凍結。処置を継続する。',
+  },
 ];

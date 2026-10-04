@@ -51,6 +51,8 @@ export function updateBoss(world, b, dt) {
     b.phaseIndex = phaseIndex;
     b.seqIndex = 0;
     const phase = b.def.phases[phaseIndex];
+    // 部屋の端から凍りつき、動ける範囲が狭まる
+    if (phase.arena && !world.arena) world.arena = { inset: 0, target: phase.arena.inset, speed: phase.arena.inset / phase.arena.seconds, base: { ...world.bounds } };
     if (phase.announce) {
       floatText(world, b.x, b.y - b.r - 16, phase.announce, COLORS.red, 26);
       burst(world, b.x, b.y, COLORS.red, 30, 300);

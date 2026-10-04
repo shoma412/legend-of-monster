@@ -4,13 +4,13 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { chooseImplant } from '../game/build.js';
 import { interact, useKit } from '../game/objects.js';
-import { createRun, currentArea, enterRoom, finishRun, handleEvents, leaveRoom, skipToBoss } from '../game/run.js';
+import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist } from '../game/saveStore.js';
 import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  drawArena, drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -43,7 +43,7 @@ export class BattleScene extends Phaser.Scene {
     if (import.meta.env.DEV) window.__world = this.world;
 
     this.floor = this.add.graphics();
-    drawFloor(this.floor);
+    drawFloor(this.floor, this.area.theme);
     this.gfx = this.add.graphics();
     this.hud = this.add.graphics().setScrollFactor(0);
     this.floatTexts = [];
@@ -51,7 +51,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B,N');
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
@@ -101,6 +101,12 @@ export class BattleScene extends Phaser.Scene {
         skipToBoss(run, this.world);
         this.scene.restart({ run });
       });
+      // 確認用：次のエリアへ飛ぶ
+      this.keys.N.on('down', () => {
+        if (!hasNextArea(run) || this.menu.isOpen) return;
+        leaveRoom(run, this.world, NEXT_AREA);
+        this.scene.restart({ run });
+      });
     }
 
     const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim };
@@ -114,7 +120,7 @@ export class BattleScene extends Phaser.Scene {
     this.kitText = this.add.text(696, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
     this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
-    const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋へ' : '';
+    const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア' : '';
     this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる　Q 修復キット　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
@@ -249,6 +255,7 @@ export class BattleScene extends Phaser.Scene {
 
     const g = this.gfx;
     g.clear();
+    drawArena(g, world);
     drawBossTelegraph(g, world);
     drawZones(g, world);
     drawObjects(g, world);
@@ -312,10 +319,16 @@ export class BattleScene extends Phaser.Scene {
     const world = this.world;
     if (boss) {
       this.commLog.play(this.area.comms.bossDefeated);
-      // 今あるエリアを最後まで進んだ。この先のエリアができたら、ここで次のエリアへ進む
-      finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
-      persist();
-      this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する（この先のエリアは準備中）`).setVisible(true);
+      if (hasNextArea(this.run)) {
+        // 次のエリアへの扉が開く
+        this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);
+      } else {
+        // 今あるエリアを最後まで進んだ
+        finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
+        persist();
+        const note = this.area.final ? '' : '（この先のエリアは準備中）';
+        this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する${note}`).setVisible(true);
+      }
     } else if (world.room.waves.length > 0) {
       const bonus = world.room.clearCredits > 0 ? `　+${Math.round(world.room.clearCredits * world.player.stats.creditMul)} c` : '';
       this.clearText.setText(`区画制圧${bonus}　｜　右の扉を選んで進め`).setVisible(true);

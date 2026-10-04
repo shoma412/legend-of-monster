@@ -1,5 +1,5 @@
 // 1回のラン（出撃から死亡またはクリアまで）の進行。部屋をまたいで持ち越すものをまとめる。
-import { ROOM } from '../data/balance.js';
+import { ENEMY_SCALING, ROOM, ROOMGEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
@@ -8,8 +8,11 @@ import { createBuild } from '../logic/stats.js';
 import { buildRoom } from './rooms.js';
 import { createWorld } from './world.js';
 
-// エリアの順番。エリア2・3は M7・M8 で足す
-export const AREA_ORDER = ['slum'];
+// エリアの順番。エリア3は M8 で足す
+export const AREA_ORDER = ['slum', 'plant'];
+
+// ボスを倒したあとに開く「次のエリアへ」の扉の行き先
+export const NEXT_AREA = '@next';
 
 // save: セーブデータ（隠れ家の進行状況）。恒久強化がランに乗り、ボス素材・データ片・実績がここに記録される
 export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave() } = {}) {
@@ -39,12 +42,23 @@ export function currentArea(run) {
   return DATA.areas.get(AREA_ORDER[run.areaIndex]);
 }
 
+export function hasNextArea(run) {
+  return run.areaIndex + 1 < AREA_ORDER.length;
+}
+
 // 今の部屋の world を作る
 export function enterRoom(run) {
   const area = currentArea(run);
   const { plan, rng, save } = run;
-  const ctx = { area, step: plan.step, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng) };
-  const room = buildRoom(currentNode(plan).type, ctx, doorOptions(plan));
+  // 奥のエリアほど、敵の数が増える（部屋数ぶん先に進んだものとして数える）
+  const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea;
+  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng) };
+  let doors = doorOptions(plan);
+  // ボス部屋：倒したあと、次のエリアがあればそこへの扉が開く
+  if (plan.current === 'boss' && hasNextArea(run)) doors = [{ id: NEXT_AREA, type: 'descend' }];
+  const room = buildRoom(currentNode(plan).type, ctx, doors);
+  // 奥のエリアほど、雑魚のHPと攻撃力が上がる
+  room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex;
   const first = !run.started;
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
   if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
@@ -64,6 +78,12 @@ export function enterRoom(run) {
 export function leaveRoom(run, world, nextId) {
   run.hp = world.player.hp;
   run.kills += world.kills;
+  if (nextId === NEXT_AREA) {
+    // 次のエリアへ。新しい地図を作る
+    run.areaIndex++;
+    run.plan = createAreaPlan(currentArea(run), run.rng);
+    return;
+  }
   advancePlan(run.plan, nextId);
 }
 

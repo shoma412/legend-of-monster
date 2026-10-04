@@ -39,6 +39,12 @@ const ICONS = {
     glowLine(g, c, 2, () => g.strokeRect(x - s, y - s, s * 2, s * 2));
     glowLine(g, c, 2, () => g.strokeRect(x - s * 0.4, y - s * 0.4, s * 0.8, s * 0.8));
   },
+  // 下向きの矢印（次のエリアへ降りる）
+  down(g, x, y, s, c) {
+    const pts = [{ x: x - s, y: y - s * 0.3 }, { x, y: y + s * 0.8 }, { x: x + s, y: y - s * 0.3 }];
+    glowLine(g, c, 2.5, () => g.strokePoints(pts, false, false));
+    glowLine(g, c, 2.5, () => g.lineBetween(x, y - s, x, y + s * 0.6));
+  },
   warning(g, x, y, s, c) {
     const pts = [{ x, y: y - s * 1.1 }, { x: x + s * 1.1, y: y + s * 0.9 }, { x: x - s * 1.1, y: y + s * 0.9 }];
     glowLine(g, c, 2, () => g.strokePoints(pts, true, true));
@@ -224,6 +230,7 @@ export function focusPrompt(world) {
   if (!o) return null;
   const p = world.player;
   if (o.kind === 'station') return o.prompt ? { text: o.prompt, color: o.color ?? COLORS.ink } : null;
+  if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };

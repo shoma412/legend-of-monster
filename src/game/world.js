@@ -32,6 +32,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     shots: [], // 敵の弾
     playerShots: [], // プレイヤーの弾（銃）
     hazards: [],
+    arena: null, // ボスが部屋を狭めているとき { inset, target, speed, base }
     zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
@@ -76,6 +77,7 @@ export function updateWorld(world, dt, input) {
     updatePlayerShots(world, dt);
     updateShots(world, dt);
     updateHazards(world, dt);
+    updateArena(world, dt);
     updateZones(world, dt);
     updateWaves(world, dt);
   }
@@ -99,6 +101,17 @@ function updateWaves(world, dt) {
   }
 }
 
+// 凍りついて狭まっていく部屋。world.bounds を少しずつ内側に寄せる（プレイヤーも敵もその中に押し戻される）
+function updateArena(world, dt) {
+  const a = world.arena;
+  if (!a || a.inset >= a.target) return;
+  a.inset = Math.min(a.target, a.inset + a.speed * dt);
+  world.bounds.left = a.base.left + a.inset;
+  world.bounds.top = a.base.top + a.inset;
+  world.bounds.right = a.base.right - a.inset;
+  world.bounds.bottom = a.base.bottom - a.inset;
+}
+
 // 部屋をクリアした：報酬を渡して、次の部屋への扉を開く
 function clearRoom(world) {
   const p = world.player;
@@ -109,6 +122,11 @@ function clearRoom(world) {
   p.build.credits += Math.round(world.room.clearCredits * p.stats.creditMul);
   // ボスを倒したら全回復
   if (world.boss) p.hp = p.stats.maxHp;
+  // 狭まっていた部屋は元に戻る
+  if (world.arena) {
+    Object.assign(world.bounds, world.arena.base);
+    world.arena = null;
+  }
   world.objects.push(...doorObjects(world.room.doors));
 }
 
@@ -128,6 +146,7 @@ function randomSpot(world, margin) {
 export function spawnWave(world, wave) {
   const b = world.bounds;
   const margin = 30;
+  const scale = world.room.enemyScale ?? 1; // エリアが進んだぶんの、雑魚のHPと攻撃力の倍率
   if (wave.boss) {
     const def = DATA.bosses.get(wave.boss);
     world.boss = createBoss(def, b.right - 200, (b.top + b.bottom) / 2, ROOM.bossWarning);
@@ -136,7 +155,7 @@ export function spawnWave(world, wave) {
   }
   if (wave.elite) {
     const { x, y } = randomSpot(world, 60);
-    const e = createEnemy(DATA.enemies.get(wave.elite.base), x, y, ROOM.spawnWarning + 0.4, world.rng);
+    const e = createEnemy(DATA.enemies.get(wave.elite.base), x, y, ROOM.spawnWarning + 0.4, world.rng, scale);
     world.enemies.push(makeElite(e, wave.elite.trait));
   }
   for (const [id, count] of Object.entries(wave)) {
@@ -144,7 +163,7 @@ export function spawnWave(world, wave) {
     const def = DATA.enemies.get(id);
     for (let i = 0; i < count; i++) {
       const { x, y } = randomSpot(world, margin);
-      world.enemies.push(createEnemy(def, x, y, ROOM.spawnWarning + world.rng() * 0.3, world.rng));
+      world.enemies.push(createEnemy(def, x, y, ROOM.spawnWarning + world.rng() * 0.3, world.rng, scale));
     }
   }
 }

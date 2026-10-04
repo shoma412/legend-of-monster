@@ -16,6 +16,7 @@ const BUILDERS = {
   combat: ({ area, step, rng }) => ({ waves: generateWaves(area, step, rng) }),
   elite: ({ area, step, rng }) => ({ waves: generateEliteWaves(area, step, rng) }),
   boss: ({ area }) => ({ waves: [{ boss: area.boss }] }),
+  none: () => ({}),
 
   // 補給：端末を調べるとHPが回復する
   supply: () => ({ objects: [{ kind: 'heal', x: CX, y: CY, r: 50, used: false }] }),

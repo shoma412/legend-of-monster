@@ -5,7 +5,10 @@
 //   swarm   : ふらつきながら突っ込む。体当たりでダメージ
 //   brawler : 近づいて、構えてから前方を殴る
 //   gunner  : 距離を取り、狙いをつけてから弾を撃つ
+//   bomber  : 近づいて、点滅してから自爆する。爆発の範囲は床に出る
+//   sprayer : 近づいて、構えてから前方に冷気を噴射する。当たると減速
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
+// hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
 export const enemies = [
   {
     id: 'drone',
@@ -56,5 +59,39 @@ export const enemies = [
     dropChance: 0.32,
     keepDistance: { min: 240, max: 360 },
     shot: { interval: 1.9, aim: 0.45, speed: 235, radius: 5, life: 3 },
+  },
+  {
+    id: 'bomber',
+    name: '自爆ボット',
+    behavior: 'bomber',
+    shape: 'hexagon',
+    color: 'red',
+    radius: 11,
+    hp: 26,
+    speed: 150,
+    damage: 16,
+    xp: 8,
+    credits: 3,
+    cost: 2,
+    dropChance: 0.16,
+    // triggerRange まで近づくと fuse 秒点滅して爆発する。爆発前に倒せば爆発しない
+    bomb: { triggerRange: 62, fuse: 1, radius: 86 },
+  },
+  {
+    id: 'sprayer',
+    name: 'フロストスプレイヤー',
+    behavior: 'sprayer',
+    shape: 'pentagon',
+    color: 'ice',
+    radius: 14,
+    hp: 40,
+    speed: 64,
+    damage: 5, // 噴射が当たるたびのダメージ
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.32,
+    // triggerRange まで近づくと windup 秒構え、duration 秒のあいだ前方の扇に冷気を噴く
+    spray: { triggerRange: 150, range: 175, arc: 46, windup: 0.55, duration: 1.3, recover: 1.4 },
   },
 ];

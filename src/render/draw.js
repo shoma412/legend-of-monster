@@ -1,6 +1,6 @@
 // 戦闘画面の描画。world の状態を読んで、毎フレーム Graphics にネオン線画を描き直す。
 import { LOOT, PLAYER, ROOM, SCREEN } from '../data/balance.js';
-import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { AREA_THEMES, COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
 import { xpToNext } from '../logic/level.js';
 import { DEG } from '../logic/geometry.js';
 
@@ -30,16 +30,18 @@ function arcPath(g, x, y, r, from, to) {
   g.strokePath();
 }
 
-export function drawFloor(g) {
+// theme: エリアごとの床と壁の色（src/data/theme.js の AREA_THEMES の名前）
+export function drawFloor(g, theme = 'slum') {
   const { width: W, height: H } = SCREEN;
   const wall = ROOM.wall;
-  g.fillStyle(0x0b0914, 1).fillRect(0, 0, W, H);
-  g.lineStyle(1, 0x785aff, 0.1);
+  const t = AREA_THEMES[theme] ?? AREA_THEMES.slum;
+  g.fillStyle(t.floor, 1).fillRect(0, 0, W, H);
+  g.lineStyle(1, t.grid, 0.1);
   for (let x = wall; x < W; x += 40) g.lineBetween(x, 0, x, H);
   for (let y = wall; y < H; y += 40) g.lineBetween(0, y, W, y);
-  g.fillStyle(0x16122a, 1);
+  g.fillStyle(t.wall, 1);
   g.fillRect(0, 0, W, wall).fillRect(0, H - wall, W, wall).fillRect(0, 0, wall, H).fillRect(W - wall, 0, wall, H);
-  neonStroke(g, hex(COLORS.magenta), 2, () => g.strokeRect(wall, wall, W - wall * 2, H - wall * 2));
+  neonStroke(g, hex(t.edge), 2, () => g.strokeRect(wall, wall, W - wall * 2, H - wall * 2));
 }
 
 const SHAPES = {
@@ -56,6 +58,24 @@ const SHAPES = {
     neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
     g.fillStyle(color, 1).fillCircle(e.x + Math.cos(facing) * e.r * 0.5, e.y + Math.sin(facing) * e.r * 0.5, 3);
   },
+  // 自爆ボット：とげのある六角形。点滅中は白く光る
+  hexagon(g, e, color, world) {
+    const blink = e.state === 'fuse' && Math.floor(world.time * (6 + 14 * (1 - e.t / e.def.bomb.fuse))) % 2 === 0;
+    const c = blink ? WHITE : color;
+    const pts = polygon(e.x, e.y, e.r * 1.25, 6, world.time * 2 + e.seed);
+    g.fillStyle(blink ? c : BODY_FILL, blink ? 0.5 : 0.85).fillPoints(pts, true);
+    neonStroke(g, c, 2.5, () => g.strokePoints(pts, true, true));
+    g.fillStyle(c, 1).fillCircle(e.x, e.y, 3);
+  },
+  // フロストスプレイヤー：噴射口のついた五角形
+  pentagon(g, e, color, world) {
+    const p = world.player;
+    const facing = e.state === 'chase' ? Math.atan2(p.y - e.y, p.x - e.x) : e.angle;
+    const pts = polygon(e.x, e.y, e.r * 1.3, 5, facing);
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    neonStroke(g, color, 4, () => g.lineBetween(e.x + Math.cos(facing) * e.r, e.y + Math.sin(facing) * e.r, e.x + Math.cos(facing) * e.r * 1.9, e.y + Math.sin(facing) * e.r * 1.9));
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -67,6 +87,21 @@ const SHAPES = {
 
 function drawTelegraph(g, e, world) {
   const red = hex(COLORS.red);
+  if (e.def.behavior === 'bomber' && e.state === 'fuse') {
+    // 爆発の範囲。時間が近づくほど濃く、速く点滅する
+    const bomb = e.def.bomb;
+    const k = 1 - e.t / bomb.fuse;
+    g.fillStyle(red, 0.1 + 0.22 * k).fillCircle(e.x, e.y, bomb.radius);
+    g.lineStyle(2, red, 0.5 + 0.5 * Math.abs(Math.sin(world.time * (8 + 20 * k)))).strokeCircle(e.x, e.y, bomb.radius);
+  }
+  if (e.def.behavior === 'sprayer' && (e.state === 'windup' || e.state === 'spray')) {
+    // 冷気の届く扇。構えている間は予告、噴いている間は濃く
+    const spray = e.def.spray;
+    const half = (spray.arc * DEG) / 2;
+    const active = e.state === 'spray';
+    g.fillStyle(active ? hex(e.color) : red, active ? 0.22 : 0.14 + 0.16 * (1 - e.t / spray.windup));
+    g.slice(e.x, e.y, spray.range, e.angle - half, e.angle + half, false).fillPath();
+  }
   if (e.def.behavior === 'brawler' && e.state === 'windup') {
     // 殴る範囲の予告。構えが進むほど濃くなる
     const atk = e.def.attack;
@@ -213,6 +248,9 @@ export function drawPlayer(g, world) {
     for (let i = 0; i <= stage; i++) g.fillStyle(color, 1).fillCircle(p.x - 8 + i * 8, p.y - p.r - 20, 2.5);
   }
 
+  // 冷気を浴びて遅くなっている間は、水色の輪
+  if (p.slowT > 0) g.lineStyle(2, hex(ELEMENT_COLORS.cold), 0.8).strokeCircle(p.x, p.y, p.r + 7);
+
   if (world.mode === 'dead') return;
   // 被弾後の無敵中は点滅
   if (p.inv > 0 && p.dashT <= 0 && Math.floor(world.time * 20) % 2 === 0) return;
@@ -332,6 +370,50 @@ const BOSS_TELEGRAPHS = {
   },
 };
 
+// 予告：扇形（冷気ブレス）、自分の周りの円（尻尾なぎ払い）
+BOSS_TELEGRAPHS.cone = (g, b, act, world) => {
+  const def = act.def;
+  const angle = Math.atan2(act.dirY, act.dirX);
+  const half = (def.arc * DEG) / 2;
+  if (act.phase === 'telegraph') {
+    const locked = act.t <= def.lockTime;
+    g.fillStyle(hex(COLORS.red), locked ? 0.34 : 0.14 + 0.12 * Math.abs(Math.sin(world.time * 14)));
+    g.slice(b.x, b.y, def.range, angle - half, angle + half, false).fillPath();
+  } else if (act.phase === 'active') {
+    g.fillStyle(hex(b.color), 0.24).slice(b.x, b.y, def.range, angle - half, angle + half, false).fillPath();
+  }
+};
+BOSS_TELEGRAPHS.slam = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - act.t / act.def.telegraph;
+  g.fillStyle(hex(COLORS.red), 0.12 + 0.2 * k).fillCircle(b.x, b.y, act.def.radius);
+  g.lineStyle(2, hex(COLORS.red), 0.8).strokeCircle(b.x, b.y, act.def.radius);
+  g.lineStyle(2, hex(COLORS.red), 0.6).strokeCircle(b.x, b.y, act.def.radius * k);
+};
+
+// クライオ・ワイバーン：菱形の胴体に翼と尾
+SHAPES.wyvern = (g, b, color, world) => {
+  const r = b.r;
+  const flap = Math.sin(world.time * 6) * r * 0.25;
+  const body = [local(b, r * 1.25, 0), local(b, 0, r * 0.5), local(b, -r * 0.9, 0), local(b, 0, -r * 0.5)];
+  for (const side of [-1, 1]) {
+    const wing = [local(b, r * 0.3, side * r * 0.4), local(b, -r * 0.2, side * (r * 1.7 + flap)), local(b, -r * 0.7, side * r * 0.5)];
+    g.fillStyle(BODY_FILL, 0.8).fillPoints(wing, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(wing, true, true));
+  }
+  g.fillStyle(BODY_FILL, 0.9).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  // 尾
+  const tailA = local(b, -r * 0.9, 0);
+  const tailB = local(b, -r * 1.8, Math.sin(world.time * 4) * r * 0.4);
+  neonStroke(g, color, 3, () => g.lineBetween(tailA.x, tailA.y, tailB.x, tailB.y));
+  // 目
+  for (const side of [-1, 1]) {
+    const eye = local(b, r * 0.7, side * r * 0.16);
+    g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3);
+  }
+};
+
 SHAPES.boar = (g, b, color) => {
   const r = b.r;
   const stunned = b.act?.phase === 'stun';
@@ -370,8 +452,29 @@ export function drawHazards(g, world) {
       const fade = Math.min(1, (h.max - h.r) / 60);
       g.lineStyle(h.width + 10, color, 0.18 * fade).strokeCircle(h.x, h.y, h.r);
       g.lineStyle(h.width * 0.45, color, fade).strokeCircle(h.x, h.y, h.r);
+    } else if (h.type === 'mark') {
+      // 落下地点：外の輪に向かって内側の輪が広がり、重なった瞬間に落ちる
+      const k = 1 - h.t / h.max;
+      g.fillStyle(hex(COLORS.red), 0.1 + 0.2 * k).fillCircle(h.x, h.y, h.r);
+      g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(h.x, h.y, h.r);
+      g.lineStyle(2, hex(h.color), 0.9).strokeCircle(h.x, h.y, h.r * k);
     }
   }
+}
+
+// 凍りついて狭まった部屋：使えなくなった端を氷の色で塗る
+export function drawArena(g, world) {
+  const a = world.arena;
+  if (!a || a.inset <= 0) return;
+  const b = world.bounds;
+  const base = a.base;
+  const ice = hex(ELEMENT_COLORS.cold);
+  g.fillStyle(ice, 0.2);
+  g.fillRect(base.left, base.top, base.right - base.left, a.inset);
+  g.fillRect(base.left, b.bottom, base.right - base.left, a.inset);
+  g.fillRect(base.left, b.top, a.inset, b.bottom - b.top);
+  g.fillRect(b.right, b.top, a.inset, b.bottom - b.top);
+  g.lineStyle(2, ice, 0.9).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
 }
 
 export function drawBossBar(g, world) {

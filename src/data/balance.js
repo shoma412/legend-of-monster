@@ -78,6 +78,7 @@ export const STATUS = {
   slow: { duration: 2, amount: 0.4 }, // 冷却：減速
   freeze: { duration: 1.5 }, // 凍結：動けない
   bossSlowScale: 0.5, // ボスへの減速はこの倍率に弱まる。ボスは凍結・停止しない
+  playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
 };
 
 // 手触りの演出
@@ -95,6 +96,7 @@ export const META = {
 export const ROOMGEN = {
   // 戦闘部屋：波の数と、1波あたりの敵の予算（敵ごとの cost の合計）
   combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 1.5, budgetPerWave: 1 },
+  depthPerArea: 2, // エリアが1つ進むごとに、敵の予算をこの部屋数ぶん先のものとして数える
   elite: { minionBudget: 7 }, // エリートの取り巻きの予算
   supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
   vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ

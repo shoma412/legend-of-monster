@@ -158,6 +158,13 @@ function dropLoot(world, enemy) {
 
 // ---- プレイヤーへのダメージ ----
 
+// 冷気を浴びたときの減速。無敵中（ダッシュ中など）は付かない
+export function slowPlayer(world) {
+  const p = world.player;
+  if (p.inv > 0 || world.mode !== 'play') return;
+  p.slowT = STATUS.playerSlow.duration;
+}
+
 export function hurtPlayer(world, damage) {
   const p = world.player;
   if (p.inv > 0 || world.mode !== 'play') return false;
