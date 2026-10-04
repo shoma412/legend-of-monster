@@ -54,7 +54,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B,N');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B,N,O');
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
@@ -113,6 +113,14 @@ export class BattleScene extends Phaser.Scene {
         skipToBoss(run, this.world);
         this.scene.restart({ run });
       });
+      // 確認用：奥義を使える状態にする（奥義を持たせ、HPを2割にして、使用回数を戻す）
+      this.keys.O.on('down', () => {
+        const p = this.world.player;
+        if (this.menu.isOpen || !p.weapon.ougi || this.world.mode !== 'play') return;
+        if (!p.build.ougi.includes(p.weapon.id)) p.build.ougi.push(p.weapon.id);
+        p.build.ougiUsed = false;
+        p.hp = Math.max(1, Math.floor(p.stats.maxHp * p.weapon.ougi.hpBelow));
+      });
       // 確認用：次のエリアへ飛ぶ
       this.keys.N.on('down', () => {
         if (!hasNextArea(run) || this.menu.isOpen) return;
@@ -140,7 +148,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
-    const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア' : '';
+    const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア　O 奥義' : '';
     const help = this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・拾う　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
