@@ -1,7 +1,7 @@
 // 雑魚敵の動き方の部品。敵の定義（src/data/enemies.js）の behavior で選ぶ。
 import { COMBAT, STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
-import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { updateEliteTrait } from './elite.js';
@@ -31,6 +31,7 @@ export function createEnemy(def, x, y, spawnT, rng, scale = 1) {
     t: 0,
     cd: rng() * 1.2,
     angle: 0, // 構えている向き
+    facing: Math.PI, // 盾を向けている方向（シールド兵）
     seed: rng() * 10,
     dead: false,
   };
@@ -72,6 +73,68 @@ const BEHAVIORS = {
     } else if (e.state === 'recover') {
       e.t -= dt;
       if (e.t <= 0) e.state = 'chase';
+    }
+  },
+
+  // シールド兵：盾をこちらに向けながら近づき、殴る。向きを変えるのは遅いので、回り込める
+  guardian(world, e, dt, d) {
+    const atk = e.def.attack;
+    const p = world.player;
+    const want = Math.atan2(d.dy, d.dx);
+    if (e.state === 'chase') {
+      const diff = angleDiff(want, e.facing);
+      const step = e.def.turnRate * dt;
+      e.facing += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+      if (d.dist > atk.triggerRange) {
+        e.x += (d.dx / d.dist) * e.def.speed * dt;
+        e.y += (d.dy / d.dist) * e.def.speed * dt;
+      } else if (e.cd <= 0 && Math.abs(angleDiff(want, e.facing)) < 0.6) {
+        e.state = 'windup';
+        e.t = atk.windup;
+        e.angle = e.facing;
+      }
+    } else if (e.state === 'windup') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        if (arcHitsCircle(e.x, e.y, e.angle, atk.arc * DEG, atk.range, p.x, p.y, p.r)) hurtPlayer(world, e.def.damage);
+        burst(world, e.x + Math.cos(e.angle) * atk.range * 0.6, e.y + Math.sin(e.angle) * atk.range * 0.6, e.color, 6, 140);
+        e.state = 'recover';
+        e.t = atk.recover;
+        e.swingT = 0.15;
+      }
+    } else if (e.state === 'recover') {
+      e.t -= dt;
+      if (e.t <= 0) e.state = 'chase';
+    }
+  },
+
+  // スナイパー：距離を取り、照準線で狙ってから高威力の一撃を撃つ
+  sniper(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const snipe = e.def.snipe;
+    const p = world.player;
+    if (e.state === 'chase') {
+      const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+      e.x += (d.dx / d.dist) * e.def.speed * want * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * want * dt;
+      if (e.cd <= 0) {
+        e.state = 'aim';
+        e.t = snipe.aim;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      // 最後の少しの間だけ向きを固定する（そこで照準線から外れれば当たらない）
+      if (e.t > snipe.lock) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        const x2 = e.x + Math.cos(e.angle) * snipe.range;
+        const y2 = e.y + Math.sin(e.angle) * snipe.range;
+        if (distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + snipe.width / 2) hurtPlayer(world, e.def.damage);
+        world.fx.beams.push({ x1: e.x, y1: e.y, x2, y2, life: 0.18, max: 0.18, color: e.color, width: snipe.width });
+        addShake(world, 4);
+        e.state = 'chase';
+        e.cd = snipe.interval;
+      }
     }
   },
 

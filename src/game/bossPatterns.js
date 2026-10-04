@@ -4,8 +4,10 @@
 //   d:   { dx, dy, dist } プレイヤーへの向きと距離
 import { FEEL } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
-import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { DATA } from '../data/index.js';
+import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { hurtPlayer, slowPlayer } from './combat.js';
+import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring } from './fx.js';
 
 function aimAt(act, d) {
@@ -187,6 +189,90 @@ PATTERNS.rain = {
       return true;
     }
     return false;
+  },
+};
+
+// 回転するレーザー。予告の線の位置から、プレイヤーのいる側へ向かって回る
+PATTERNS.laser = {
+  start(world, b, act, d) {
+    const def = act.def;
+    act.phase = 'telegraph';
+    act.t = def.telegraph;
+    act.turnDir = world.rng() < 0.5 ? 1 : -1;
+    // プレイヤーの少し手前の角度から始めて、プレイヤーを通り過ぎるように回す
+    act.angle = Math.atan2(d.dy, d.dx) - act.turnDir * def.lead * DEG;
+    act.swept = 0;
+    act.dirX = Math.cos(act.angle);
+    act.dirY = Math.sin(act.angle);
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) act.phase = 'active';
+    } else if (act.phase === 'active') {
+      const step = def.speed * DEG * dt;
+      act.angle += act.turnDir * step;
+      act.swept += step;
+      act.dirX = Math.cos(act.angle);
+      act.dirY = Math.sin(act.angle);
+      const x2 = b.x + act.dirX * def.range;
+      const y2 = b.y + act.dirY * def.range;
+      if (distToSegment(p.x, p.y, b.x, b.y, x2, y2) <= p.r + def.width / 2) hurtPlayer(world, def.damage);
+      if (act.swept >= def.turn * DEG) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 雑魚を呼ぶ
+PATTERNS.summon = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const live = world.enemies.filter((e) => !e.boss && !e.dead).length;
+        const count = Math.max(0, Math.min(def.count, def.max - live));
+        for (let i = 0; i < count; i++) {
+          const a = (i / Math.max(1, count)) * Math.PI * 2 + world.rng() * 0.6;
+          const e = createEnemy(DATA.enemies.get(def.enemy), b.x + Math.cos(a) * (b.r + 50), b.y + Math.sin(a) * (b.r + 50), 0.6, world.rng, world.room.enemyScale ?? 1);
+          clampToBounds(e, world.bounds);
+          world.enemies.push(e);
+        }
+        ring(world, b.x, b.y, b.r + 60, b.color);
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 冷却：しばらく動けない（大きな隙）。phase を 'stun' にするので、体に触れても安全
+PATTERNS.vent = {
+  start(world, b, act) {
+    act.phase = 'stun';
+    act.t = act.def.duration;
+    floatText(world, b.x, b.y - b.r - 14, '冷却中', COLORS.cyan, 20);
+    burst(world, b.x, b.y, COLORS.ink, 30, 220);
+  },
+  update(world, b, dt, act) {
+    act.t -= dt;
+    if (world.rng() < 0.5) burst(world, b.x, b.y, COLORS.ink, 1, 160);
+    return act.t <= 0;
   },
 };
 

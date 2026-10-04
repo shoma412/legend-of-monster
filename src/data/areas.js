@@ -68,4 +68,34 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'tower',
+    code: 'SECTOR 03',
+    name: '企業タワー',
+    theme: 'tower',
+    first: 'combat',
+    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
+    specialRooms: ['supply', 'market', 'vault'],
+    enemies: [
+      { id: 'drone', weight: 2 },
+      { id: 'grunt', weight: 2 },
+      { id: 'turret', weight: 2 },
+      { id: 'bomber', weight: 2 },
+      { id: 'shield', weight: 3 },
+      { id: 'sniper', weight: 2 },
+    ],
+    eliteBases: ['grunt', 'turret', 'shield'],
+    boss: 'overload',
+    final: true, // ここのボスを倒すとクリア
+    comms: {
+      bossIntro: [
+        '依頼主＞ タワーの最深部だ。街の電力も冷却も、全部そいつが握っている。',
+        '依頼主＞ 熱を持ちすぎると、冷却で動きが止まる。そこを叩け。電撃が効く。',
+      ],
+      bossDefeated: [
+        '依頼主＞ ……止まったか。よくやった。',
+        '依頼主＞ 帰ってこい。報酬の話をしよう。',
+      ],
+    },
+  },
 ];

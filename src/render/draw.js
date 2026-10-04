@@ -91,6 +91,34 @@ const SHAPES = {
     neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
     neonStroke(g, color, 4, () => g.lineBetween(e.x + Math.cos(facing) * e.r, e.y + Math.sin(facing) * e.r, e.x + Math.cos(facing) * e.r * 1.9, e.y + Math.sin(facing) * e.r * 1.9));
   },
+  // シールド兵：四角い体と、正面の盾（太い弧）。盾のない背後が弱点
+  shield(g, e, color, world) {
+    const facing = e.state === 'chase' ? e.facing : e.angle;
+    const pts = polygon(e.x, e.y, e.r * 1.25, 4, facing + Math.PI / 4);
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    const half = (e.def.shield.arc * DEG) / 2;
+    const stopped = e.stopT > 0;
+    g.lineStyle(10, stopped ? hex(COLORS.dim) : WHITE, stopped ? 0.2 : 0.18);
+    arcPath(g, e.x, e.y, e.r + 9, facing - half, facing + half);
+    g.lineStyle(4, stopped ? hex(COLORS.dim) : WHITE, stopped ? 0.5 : 1);
+    arcPath(g, e.x, e.y, e.r + 9, facing - half, facing + half);
+  },
+  // スナイパー：細長い菱形。狙っている方向を向く
+  diamond(g, e, color, world) {
+    const p = world.player;
+    const a = e.state === 'aim' ? e.angle : Math.atan2(p.y - e.y, p.x - e.x);
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const pts = [
+      { x: e.x + cos * e.r * 1.7, y: e.y + sin * e.r * 1.7 },
+      { x: e.x - sin * e.r * 0.7, y: e.y + cos * e.r * 0.7 },
+      { x: e.x - cos * e.r * 1.1, y: e.y - sin * e.r * 1.1 },
+      { x: e.x + sin * e.r * 0.7, y: e.y - cos * e.r * 0.7 },
+    ];
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -117,17 +145,24 @@ function drawTelegraph(g, e, world) {
     g.fillStyle(active ? hex(e.color) : red, active ? 0.22 : 0.14 + 0.16 * (1 - e.t / spray.windup));
     g.slice(e.x, e.y, spray.range, e.angle - half, e.angle + half, false).fillPath();
   }
-  if (e.def.behavior === 'brawler' && e.state === 'windup') {
+  if (e.def.attack && e.state === 'windup') {
     // 殴る範囲の予告。構えが進むほど濃くなる
     const atk = e.def.attack;
     const k = 1 - e.t / atk.windup;
     g.fillStyle(red, 0.18 + 0.3 * k);
     g.slice(e.x, e.y, atk.range, e.angle - (atk.arc * DEG) / 2, e.angle + (atk.arc * DEG) / 2, false).fillPath();
   }
-  if (e.def.behavior === 'brawler' && e.swingT > 0) {
+  if (e.def.attack && e.swingT > 0) {
     const atk = e.def.attack;
     g.lineStyle(6, hex(e.color), e.swingT / 0.15);
     arcPath(g, e.x, e.y, atk.range * 0.85, e.angle - (atk.arc * DEG) / 2, e.angle + (atk.arc * DEG) / 2);
+  }
+  if (e.def.behavior === 'sniper' && e.state === 'aim') {
+    // スナイパーの照準線。向きが固定されると太く明るくなる
+    const snipe = e.def.snipe;
+    const locked = e.t <= snipe.lock;
+    g.lineStyle(locked ? 4 : 1.5, red, locked ? 0.95 : 0.45 + 0.25 * Math.sin(world.time * 30));
+    g.lineBetween(e.x, e.y, e.x + Math.cos(e.angle) * snipe.range, e.y + Math.sin(e.angle) * snipe.range);
   }
   if (e.def.behavior === 'gunner' && e.state === 'aim') {
     // 照準線
@@ -449,6 +484,56 @@ BOSS_TELEGRAPHS.slam = (g, b, act) => {
   g.lineStyle(2, hex(COLORS.red), 0.6).strokeCircle(b.x, b.y, act.def.radius * k);
 };
 
+// 予告：回転するレーザー、召喚、冷却
+BOSS_TELEGRAPHS.laser = (g, b, act, world) => {
+  const def = act.def;
+  const x2 = b.x + act.dirX * def.range;
+  const y2 = b.y + act.dirY * def.range;
+  if (act.phase === 'telegraph') {
+    // 細い線と、これから回っていく向きの矢印
+    g.lineStyle(2, hex(COLORS.red), 0.5 + 0.4 * Math.abs(Math.sin(world.time * 18)));
+    g.lineBetween(b.x, b.y, x2, y2);
+    const ahead = act.angle + act.turnDir * 0.35;
+    g.lineStyle(2, hex(COLORS.red), 0.35);
+    g.lineBetween(b.x, b.y, b.x + Math.cos(ahead) * 220, b.y + Math.sin(ahead) * 220);
+  } else if (act.phase === 'active') {
+    const color = hex(b.color);
+    g.lineStyle(def.width + 14, color, 0.2).lineBetween(b.x, b.y, x2, y2);
+    g.lineStyle(def.width, color, 0.95).lineBetween(b.x, b.y, x2, y2);
+    g.lineStyle(def.width * 0.35, WHITE, 0.9).lineBetween(b.x, b.y, x2, y2);
+  }
+};
+BOSS_TELEGRAPHS.summon = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  g.lineStyle(2, hex(COLORS.cyan), 0.5 + 0.4 * Math.sin(world.time * 20)).strokeCircle(b.x, b.y, b.r + 50);
+};
+BOSS_TELEGRAPHS.vent = (g, b, act) => {
+  // 冷却中：残り時間が輪で分かる
+  const k = Math.max(0, act.t / act.def.duration);
+  g.lineStyle(4, hex(COLORS.cyan), 0.9);
+  arcPath(g, b.x, b.y, b.r + 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
+};
+
+// オーバーロード：六角形の外殻と、回る内側の輪、中心の核
+SHAPES.core = (g, b, color, world) => {
+  const r = b.r;
+  const venting = b.act?.phase === 'stun';
+  const c = venting ? hex(COLORS.dim) : color;
+  const outer = polygon(b.x, b.y, r * 1.1, 6, Math.PI / 6);
+  g.fillStyle(BODY_FILL, 0.92).fillPoints(outer, true);
+  neonStroke(g, c, 3, () => g.strokePoints(outer, true, true));
+  const inner = polygon(b.x, b.y, r * 0.68, 3, world.time * (venting ? 0.3 : 1.8));
+  neonStroke(g, c, 2.5, () => g.strokePoints(inner, true, true));
+  const inner2 = polygon(b.x, b.y, r * 0.68, 3, -world.time * (venting ? 0.3 : 1.8) + Math.PI);
+  neonStroke(g, c, 2.5, () => g.strokePoints(inner2, true, true));
+  g.fillStyle(venting ? hex(COLORS.cyan) : hex(COLORS.red), 1).fillCircle(b.x, b.y, 7);
+  // 砲口（向いている方向）
+  if (!venting) {
+    const m = local(b, r * 1.25, 0);
+    g.fillStyle(c, 1).fillCircle(m.x, m.y, 5);
+  }
+};
+
 // クライオ・ワイバーン：菱形の胴体に翼と尾
 SHAPES.wyvern = (g, b, color, world) => {
   const r = b.r;
@@ -576,6 +661,16 @@ export function drawZones(g, world) {
 }
 
 // 連鎖放電などの稲妻。毎フレーム形を変えてバチバチさせる
+// スナイパーの一撃などの、一瞬の光線
+export function drawBeams(g, world) {
+  for (const b of world.fx.beams) {
+    const k = b.life / b.max;
+    const color = hex(b.color);
+    g.lineStyle(b.width + 10, color, 0.25 * k).lineBetween(b.x1, b.y1, b.x2, b.y2);
+    g.lineStyle(b.width * k, WHITE, k).lineBetween(b.x1, b.y1, b.x2, b.y2);
+  }
+}
+
 export function drawBolts(g, world) {
   const color = hex(ELEMENT_COLORS.shock);
   for (const b of world.fx.bolts) {

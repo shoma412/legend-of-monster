@@ -60,6 +60,9 @@ export function updateBoss(world, b, dt) {
     }
   }
   const phase = b.def.phases[b.phaseIndex];
+  // 段階によっては全体が速くなる（オーバーヒートなど）。冷却の隙だけは速くならない
+  const fast = phase.speed ?? 1;
+  if (!(b.act && b.act.def.pattern === 'vent')) dt *= fast;
 
   if (b.act) {
     const pattern = PATTERNS[b.act.def.pattern];

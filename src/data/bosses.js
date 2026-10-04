@@ -7,9 +7,13 @@
 //   cone      : 扇形の予告 → その範囲に噴射し続ける → 硬直。slow: true なら当たると減速
 //   slam      : 自分の周りに円の予告 → その範囲を一度に攻撃 → 硬直
 //   rain      : 落下地点の予告を次々に出し、少し遅れてそこに落ちてくる → 硬直
+//   laser     : 細い線の予告 → 太いレーザーが turn 度ぶん回転する → 硬直
+//   summon    : 予告 → 雑魚を count 体呼ぶ（部屋にいる雑魚が max 体を超えない範囲で）→ 硬直
+//   vent      : duration 秒のあいだ動けない（大きな隙）。その間は体に触れても安全
 // phases: HP の割合で切り替わる行動。上から順に見て、残りHPの割合が hpAbove より大きい最初のものを使う
 //   sequence : attacks の名前を出す順番（最後まで行ったら最初に戻る）
 //   idle     : 攻撃と攻撃の間に歩いて近づく時間（秒）
+//   speed    : この段階の速さの倍率（予告も攻撃も、合間の時間も速くなる）
 //   arena    : この段階に入ると、部屋の端から inset px まで seconds 秒かけて凍りつき、動ける範囲が狭まる
 export const bosses = [
   {
@@ -97,6 +101,43 @@ export const bosses = [
         sequence: ['iciclesHard', 'breath', 'sweep', 'breath'],
         announce: '凍結開始',
         arena: { inset: 90, seconds: 22 },
+      },
+    ],
+  },
+  {
+    id: 'overload',
+    name: 'オーバーロード',
+    alias: '統合管理機構', // 登場時に出す異名
+    shape: 'core',
+    color: 'heat',
+    weakness: 'shock',
+    material: 'overCore',
+    radius: 48,
+    hp: 2900,
+    speed: 34,
+    contactDamage: 30,
+    xp: 300,
+    credits: 150,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // レーザーの回転掃射
+      laser: { pattern: 'laser', telegraph: 0.9, lead: 55, turn: 190, speed: 95, width: 22, range: 1100, damage: 28, recover: 0.7 },
+      // ドローン召喚
+      summon: { pattern: 'summon', telegraph: 0.7, enemy: 'drone', count: 3, max: 6, recover: 0.6 },
+      // 全体衝撃波（部屋の端まで届く輪。ダッシュの無敵ですり抜ける）
+      nova: { pattern: 'shockwave', telegraph: 0.9, damage: 24, ringSpeed: 340, ringMax: 980, ringWidth: 16, recover: 0.8 },
+      // 冷却：数秒の大きな隙
+      vent: { pattern: 'vent', duration: 3.6 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.8 }, sequence: ['laser', 'summon', 'nova'] },
+      // オーバーヒート：攻撃が速くなるが、3回攻撃するたびに冷却の隙ができる
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.1 },
+        speed: 1.4,
+        sequence: ['laser', 'nova', 'laser', 'vent', 'summon', 'nova', 'laser', 'vent'],
+        announce: 'オーバーヒート',
       },
     ],
   },

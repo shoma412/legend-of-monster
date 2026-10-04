@@ -22,6 +22,15 @@ export function arcHitsCircle(ox, oy, angle, arc, range, tx, ty, tr, closeRadius
   return Math.abs(angleDiff(Math.atan2(dy, dx), angle)) <= arc / 2 + margin;
 }
 
+// 点 (px, py) から、線分 (x1, y1)-(x2, y2) までの距離（照準線やレーザーの当たり判定）
+export function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
+  return Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t));
+}
+
 export function circlesOverlap(ax, ay, ar, bx, by, br) {
   return Math.hypot(bx - ax, by - ay) < ar + br;
 }

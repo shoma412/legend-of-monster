@@ -9,6 +9,7 @@ export const achievements = [
   { id: 'first-sortie', name: '初仕事', desc: '初めて出撃した', on: 'sortie' },
   { id: 'boltboar', name: '電線喰らい狩り', desc: 'ボルトボアを倒した', on: 'bossKill', check: 'bossIs', boss: 'boltboar' },
   { id: 'cryowyvern', name: '冷却塔の主狩り', desc: 'クライオ・ワイバーンを倒した', on: 'bossKill', check: 'bossIs', boss: 'cryowyvern' },
+  { id: 'overload', name: '機構停止', desc: 'オーバーロードを倒した', on: 'bossKill', check: 'bossIs', boss: 'overload' },
   { id: 'no-damage-boss', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', name: '系統特化', desc: '同じ系統のインプラントを3つそろえた', on: 'implant', check: 'familyBonus' },

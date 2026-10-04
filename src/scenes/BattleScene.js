@@ -11,7 +11,7 @@ import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  ITEM_SLOT_POS, drawArena, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  ITEM_SLOT_POS, drawArena, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -86,6 +86,7 @@ export class BattleScene extends Phaser.Scene {
       // ランが終わっていたら、リザルトを見てから隠れ家へ帰る
       if (!this.run.outcome) return;
       if (this.overlay.visible) this.scene.start('Hideout');
+      else if (this.run.outcome === 'clear' && this.run.firstClear) this.scene.start('Ending', { lines: this.resultLines() });
       else this.showResult();
     });
     // Esc（または Tab）：ポーズ画面。ステータスや装備の詳細を見られる。隠れ家に戻るのもここから
@@ -286,6 +287,7 @@ export class BattleScene extends Phaser.Scene {
     drawEnemies(g, world);
     drawPlayerShots(g, world);
     drawShots(g, world);
+    drawBeams(g, world);
     drawBolts(g, world);
     drawPlayer(g, world);
     this.hud.clear();
@@ -423,21 +425,27 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  // リザルト：到達した場所、撃破数、持ち帰ったもの
-  showResult() {
+  // リザルトに出す行：到達した場所、撃破数、持ち帰ったもの
+  resultLines() {
     const run = this.run;
-    const dead = run.outcome === 'dead';
-    const color = dead ? COLORS.red : COLORS.green;
     const g = run.gained;
     const names = (ids, registry, key) => (ids.length > 0 ? ids.map((id) => registry.get(id)[key]).join('、') : 'なし');
     const materials = Object.entries(g.materials).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　') || 'なし';
-    const lines = [
+    return [
       `到達　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
       `撃破数　${run.kills}`,
       '',
       `持ち帰ったボス素材　${materials}`,
       `新しいデータ片　${names(g.fragments, DATA.fragments, 'title')}`,
       `解除した実績　${names(g.achievements, DATA.achievements, 'name')}`,
+    ];
+  }
+
+  showResult() {
+    const dead = this.run.outcome === 'dead';
+    const color = dead ? COLORS.red : COLORS.green;
+    const lines = [
+      ...this.resultLines(),
       '',
       dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
       'ENTER：隠れ家へ',

@@ -1,7 +1,7 @@
 // 演出（火花・残像・ダメージ数字・画面揺れ・ヒットストップ）。world.fx に溜めて、描画側が読む。
 
 export function createFx() {
-  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], shake: 0, hitstop: 0 };
+  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], beams: [], shake: 0, hitstop: 0 };
 }
 
 export function burst(world, x, y, color, count, speed = 200) {
@@ -53,6 +53,8 @@ export function updateFx(world, dt) {
   for (const r of fx.rings) r.life -= dt;
   for (const b of fx.bolts) b.life -= dt;
   fx.bolts = fx.bolts.filter((b) => b.life > 0);
+  for (const b of fx.beams) b.life -= dt;
+  fx.beams = fx.beams.filter((b) => b.life > 0);
   fx.particles = fx.particles.filter((p) => p.life > 0);
   fx.texts = fx.texts.filter((t) => t.life > 0);
   fx.ghosts = fx.ghosts.filter((g) => g.life > 0);

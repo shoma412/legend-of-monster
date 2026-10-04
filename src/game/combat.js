@@ -2,6 +2,7 @@
 import { COMBAT, FEEL, ITEMS, LOOT, PLAYER, STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { calcDamage } from '../logic/damage.js';
+import { DEG, angleDiff } from '../logic/geometry.js';
 import { addXp } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
@@ -51,6 +52,17 @@ export function enemySpeedFactor(enemy) {
 
 // プレイヤーの武器による攻撃。(dirX, dirY) は吹き飛ばす向き
 export function hitEnemy(world, enemy, base, dirX, dirY, knockback) {
+  // シールド兵：盾を向けている側からの攻撃は防がれる。止まっている間（凍結・EMP）は防げない
+  const shield = enemy.def.shield;
+  if (shield && enemy.stopT <= 0) {
+    const from = Math.atan2(-dirY, -dirX); // 敵から見た、攻撃が来た方向
+    if (Math.abs(angleDiff(from, enemy.facing)) <= (shield.arc * DEG) / 2) {
+      enemy.hit = 0.06;
+      floatText(world, enemy.x, enemy.y - enemy.r - 6, 'ガード', COLORS.dim, 13);
+      burst(world, enemy.x + Math.cos(enemy.facing) * enemy.r, enemy.y + Math.sin(enemy.facing) * enemy.r, COLORS.ink, 4, 160);
+      return { amount: 0, crit: false, weak: false, blocked: true };
+    }
+  }
   const p = world.player;
   const stats = p.stats;
   const forceCrit = p.forceCrit;
@@ -139,6 +151,14 @@ export function killEnemy(world, enemy) {
   eliteDeath(world, enemy);
   world.events.push({ type: 'kill', enemy: enemy.def.id });
   if (enemy.elite) world.events.push({ type: 'eliteKill', enemy: enemy.baseDef.id });
+  // ボスを倒したら、呼び出されていた雑魚も一緒に止まる
+  if (enemy.boss) {
+    for (const other of world.enemies) {
+      if (other === enemy || other.dead) continue;
+      other.dead = true;
+      burst(world, other.x, other.y, other.color, 10, 200);
+    }
+  }
   if (enemy.boss) world.events.push({ type: 'bossKill', boss: enemy.def.id, noDamage: world.damageTaken === 0 });
   dropLoot(world, enemy);
   fire(world, 'kill', { target: enemy });

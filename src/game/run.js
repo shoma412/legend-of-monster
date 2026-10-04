@@ -8,8 +8,8 @@ import { createBuild } from '../logic/stats.js';
 import { buildRoom } from './rooms.js';
 import { createWorld } from './world.js';
 
-// エリアの順番。エリア3は M8 で足す
-export const AREA_ORDER = ['slum', 'plant'];
+// エリアの順番
+export const AREA_ORDER = ['slum', 'plant', 'tower'];
 
 // ボスを倒したあとに開く「次のエリアへ」の扉の行き先
 export const NEXT_AREA = '@next';
@@ -29,6 +29,7 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     kills: 0,
     started: false,
     startChoice: bonus.startChoice, // 恒久強化「起動プログラム」：最初にインプラントを1つ選べる
+    firstClear: false,
     outcome: null, // 終わり方：dead（死亡）/ areaClear（今あるエリアを最後まで進んだ）/ clear（最後のボスを倒した）
     // このランで持ち帰ったもの（リザルト画面に出す）
     gained: { materials: {}, fragments: [], achievements: [], notes: [] },
@@ -95,7 +96,10 @@ export function handleEvents(run, world) {
     if (event.type === 'bossKill') event.area = area.id;
     notes.push(...processEvent(run.save, run, event));
     // 最後のエリアのボスを倒したらクリア
-    if (event.type === 'bossKill' && area.final) notes.push(...processEvent(run.save, run, { type: 'runClear' }));
+    if (event.type === 'bossKill' && area.final) {
+      run.firstClear = run.save.records.clears === 0; // 初めてのクリアなら、エンディングを出す
+      notes.push(...processEvent(run.save, run, { type: 'runClear' }));
+    }
   }
   return notes;
 }
