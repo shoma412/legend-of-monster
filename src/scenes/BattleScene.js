@@ -11,7 +11,7 @@ import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  ITEM_SLOT_POS, drawArena, drawBolts, drawBossBar, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  ITEM_SLOT_POS, drawArena, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -46,6 +46,8 @@ export class BattleScene extends Phaser.Scene {
     this.floor = this.add.graphics();
     drawFloor(this.floor, this.area.theme);
     this.gfx = this.add.graphics();
+    // 部屋の枠は、戦闘の描画より手前に重ねる（攻撃の予告などが枠の外にはみ出さないように）
+    drawFrame(this.add.graphics(), this.area.theme);
     this.hud = this.add.graphics().setScrollFactor(0);
     this.floatTexts = [];
     this.labelTexts = [];
@@ -149,7 +151,7 @@ export class BattleScene extends Phaser.Scene {
     this.promptText = this.add.text(W / 2, H - 50, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink })
       .setOrigin(0.5).setDepth(7).setVisible(false);
     // 部屋をクリアしたあとの案内。装備を拾えるように、画面は止めない
-    this.clearText = this.add.text(W / 2, 64, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.green, align: 'center', lineSpacing: 6 })
+    this.clearText = this.add.text(W / 2, 140, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.green, align: 'center', lineSpacing: 6 })
       .setOrigin(0.5, 0).setShadow(0, 0, COLORS.green, 10, false, true).setDepth(7).setVisible(false);
 
     this.buildList = createBuildList(this);

@@ -102,9 +102,8 @@ const STATION_ICONS = {
   gate(g, o, world, focused, c) {
     const h = 120;
     const pulse = 0.14 + 0.08 * Math.sin(world.time * 6);
-    g.fillStyle(0x0b0914, 1).fillRect(o.x, o.y - h / 2, ROOM.wall, h);
     g.fillStyle(c, focused ? 0.35 : pulse).fillRect(o.x - 46, o.y - h / 2, 46, h);
-    g.fillStyle(c, 1).fillRect(o.x - 3, o.y - h / 2, 6, h);
+    g.fillStyle(c, 1).fillRect(o.x - 7, o.y - h / 2, 6, h);
     const pts = [{ x: o.x - 84, y: o.y - 9 }, { x: o.x - 66, y: o.y }, { x: o.x - 84, y: o.y + 9 }];
     glowLine(g, c, 2, () => g.strokePoints(pts, false, false));
   },
@@ -140,9 +139,8 @@ const DRAWERS = {
     const h = 96;
     const pulse = 0.14 + 0.08 * Math.sin(world.time * 6);
     // 壁に開いた出口と、そこから漏れる光
-    g.fillStyle(0x0b0914, 1).fillRect(o.x, o.y - h / 2, ROOM.wall, h);
     g.fillStyle(c, focused ? 0.35 : pulse).fillRect(o.x - 46, o.y - h / 2, 46, h);
-    g.fillStyle(c, 1).fillRect(o.x - 3, o.y - h / 2, 6, h);
+    g.fillStyle(c, 1).fillRect(o.x - 7, o.y - h / 2, 6, h);
     ICONS[room.icon](g, o.x - 70, o.y, focused ? 13 : 11, c);
   },
 

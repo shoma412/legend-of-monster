@@ -11,7 +11,7 @@ import { getSave, persist } from '../game/saveStore.js';
 import { createWorld, updateWorld } from '../game/world.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
-import { drawFloor, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
+import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { MenuOverlay, costText } from './menuOverlay.js';
 
@@ -41,6 +41,7 @@ export class HideoutScene extends Phaser.Scene {
 
     drawFloor(this.add.graphics());
     this.gfx = this.add.graphics();
+    this.frame = this.add.graphics();
     this.labelTexts = [];
     this.floatTexts = [];
     try {
@@ -50,6 +51,8 @@ export class HideoutScene extends Phaser.Scene {
     } catch (err) {
       console.warn('bloom unavailable', err);
     }
+
+    drawFrame(this.frame);
 
     const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
     this.add.text(40, 7, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));

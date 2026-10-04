@@ -32,6 +32,18 @@ function arcPath(g, x, y, r, from, to) {
   g.strokePath();
 }
 
+// 部屋の外側の枠（壁）。床の上のもの（敵の攻撃の予告、火花など）より手前に描いて、
+// 部屋からはみ出したぶんが画面上部の表示や枠にかからないようにする
+export function drawFrame(g, theme = 'slum') {
+  const { width: W, height: H } = SCREEN;
+  const wall = ROOM.wall;
+  const top = ROOM.wallTop;
+  const t = AREA_THEMES[theme] ?? AREA_THEMES.slum;
+  g.fillStyle(t.wall, 1);
+  g.fillRect(0, 0, W, top).fillRect(0, H - wall, W, wall).fillRect(0, 0, wall, H).fillRect(W - wall, 0, wall, H);
+  neonStroke(g, hex(t.edge), 2, () => g.strokeRect(wall, top, W - wall * 2, H - wall - top));
+}
+
 // theme: エリアごとの床と壁の色（src/data/theme.js の AREA_THEMES の名前）
 export function drawFloor(g, theme = 'slum') {
   const { width: W, height: H } = SCREEN;
