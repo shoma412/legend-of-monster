@@ -119,28 +119,30 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim };
-    this.add.text(40, 3, 'HP', label);
-    this.hpText = this.add.text(250, 3, '', { ...label, color: COLORS.ink });
+    this.add.text(40, 4, 'HP', label);
+    this.hpText = this.add.text(250, 4, '', { ...label, color: COLORS.ink });
     // 経験値ゲージの左にレベル、右に数字
-    this.levelText = this.add.text(40, 15, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
-    this.xpText = this.add.text(250, 15, '', { ...label, fontSize: '10px' });
-    this.add.text(326, 7, 'DASH', label);
+    this.levelText = this.add.text(40, 17, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
+    this.xpText = this.add.text(250, 17, '', { ...label, fontSize: '10px' });
+    this.add.text(326, 9, 'DASH', label);
     const weapon = this.world.player.weapon;
     // 特殊アクションの名前（長い名前は縮めて、クールダウンの棒に重ならないようにする）
-    this.add.text(510, 6, weapon.special.name, { ...label, fontFamily: FONTS.body }).setOrigin(1, 0);
-    this.kitText = this.add.text(600, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
+    this.add.text(510, 8, weapon.special.name, { ...label, fontFamily: FONTS.body }).setOrigin(1, 0);
+    this.kitText = this.add.text(600, 8, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
     // 消耗品の枠：キーの番号と個数
     this.itemTexts = this.world.player.build.items.map((_, i) => {
       const bx = ITEM_SLOT_POS.x + i * ITEM_SLOT_POS.gap;
       this.add.text(bx + 2, ITEM_SLOT_POS.y, `${i + 1}`, { ...label, fontSize: '10px', color: COLORS.dim }).setDepth(6);
       return this.add.text(bx + ITEM_SLOT_POS.size - 2, ITEM_SLOT_POS.y + ITEM_SLOT_POS.size - 1, '', { ...label, fontSize: '10px', color: COLORS.ink, fontStyle: '700' }).setOrigin(1, 1).setDepth(6);
     });
-    this.creditText = this.add.text(700, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
+    this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・拾う　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
+    const help = this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・拾う　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
+    // 長くて画面からはみ出すときは、収まるように縮める
+    if (help.width > W - 24) help.setScale((W - 24) / help.width);
 
     this.bossName = this.add.text(W / 2, H - 66, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0.5).setVisible(false);
     // 近くのものを調べるときの案内
@@ -192,7 +194,7 @@ export class BattleScene extends Phaser.Scene {
     const { width: W } = SCREEN;
     const color = COLORS[this.roomDef.color];
     const text = `${this.area.code}-${this.run.plan.step + 1} // ${this.area.name} // ${this.roomDef.tag}`;
-    const banner = this.add.text(W / 2, 46, text, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color })
+    const banner = this.add.text(W / 2, ROOM.wallTop + 18, text, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color })
       .setOrigin(0.5).setShadow(0, 0, color, 10, false, true).setDepth(7).setAlpha(0);
     this.tweens.chain({
       targets: banner,
@@ -297,7 +299,7 @@ export class BattleScene extends Phaser.Scene {
     this.levelText.setText(`Lv ${p.build.level}`);
     this.xpText.setText(`${p.build.xp} / ${xpToNext(p.build.level)}`);
     p.build.items.forEach((slot, i) => this.itemTexts[i].setText(slot && slot.count > 1 ? `×${slot.count}` : ''));
-    drawGearIcons(this.hud, world, SCREEN.width - 44, 43, 15);
+    drawGearIcons(this.hud, world, SCREEN.width - 44, ROOM.wallTop + 15, 15);
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
     const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;
@@ -360,7 +362,7 @@ export class BattleScene extends Phaser.Scene {
   drawRoomMap() {
     const plan = this.run.plan;
     const colGap = 22;
-    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 14, colGap, rowGap: 13, icon: 4, line: 1, bg: 0x16122a });
+    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 15.5, colGap, rowGap: 14, icon: 4, line: 1, bg: 0x16122a });
   }
 
   // M キーで出す大きい地図。部屋の中では地図は変わらないので、最初に1回だけ描く

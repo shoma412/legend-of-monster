@@ -34,6 +34,7 @@ export const ENEMY_SCALING = {
 
 export const ROOM = {
   wall: 28, // 壁の厚み（px）
+  wallTop: 31, // 上の壁の厚み（px）。画面上部の表示が入るので、ほかの壁より少し厚い
   spawnWarning: 0.7, // 敵が出る前の予告（秒）
   bossWarning: 2.4, // ボスが出る前の予告（秒）。この間に警告と異名を出す
   waveDelay: 0.9, // 波と波の間（秒）

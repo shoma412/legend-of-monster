@@ -36,14 +36,15 @@ function arcPath(g, x, y, r, from, to) {
 export function drawFloor(g, theme = 'slum') {
   const { width: W, height: H } = SCREEN;
   const wall = ROOM.wall;
+  const top = ROOM.wallTop;
   const t = AREA_THEMES[theme] ?? AREA_THEMES.slum;
   g.fillStyle(t.floor, 1).fillRect(0, 0, W, H);
   g.lineStyle(1, t.grid, 0.1);
   for (let x = wall; x < W; x += 40) g.lineBetween(x, 0, x, H);
-  for (let y = wall; y < H; y += 40) g.lineBetween(0, y, W, y);
+  for (let y = top; y < H; y += 40) g.lineBetween(0, y, W, y);
   g.fillStyle(t.wall, 1);
-  g.fillRect(0, 0, W, wall).fillRect(0, H - wall, W, wall).fillRect(0, 0, wall, H).fillRect(W - wall, 0, wall, H);
-  neonStroke(g, hex(t.edge), 2, () => g.strokeRect(wall, wall, W - wall * 2, H - wall * 2));
+  g.fillRect(0, 0, W, top).fillRect(0, H - wall, W, wall).fillRect(0, 0, wall, H).fillRect(W - wall, 0, wall, H);
+  neonStroke(g, hex(t.edge), 2, () => g.strokeRect(wall, top, W - wall * 2, H - wall - top));
 }
 
 const SHAPES = {
@@ -305,21 +306,21 @@ export function drawFx(g, world) {
 
 export function drawHud(g, world) {
   const p = world.player;
-  const y = 9;
+  const y = 11;
   // HP（上の段）
   const hpX = 62;
   const hpW = 180;
-  g.fillStyle(0x1b1631, 1).fillRect(hpX, 4, hpW, 9);
+  g.fillStyle(0x1b1631, 1).fillRect(hpX, 5, hpW, 9);
   const ratio = p.hp / p.stats.maxHp;
-  g.fillStyle(hex(ratio > 0.3 ? COLORS.green : COLORS.red), 1).fillRect(hpX, 4, hpW * ratio, 9);
-  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(hpX, 4, hpW, 9);
+  g.fillStyle(hex(ratio > 0.3 ? COLORS.green : COLORS.red), 1).fillRect(hpX, 5, hpW * ratio, 9);
+  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(hpX, 5, hpW, 9);
   // 経験値（下の段。左に「Lv」の表記が付く）
   const xpX = 86;
   const xpW = 156;
   const xpRatio = Math.min(1, p.build.xp / xpToNext(p.build.level));
-  g.fillStyle(0x1b1631, 1).fillRect(xpX, 18, xpW, 6);
-  g.fillStyle(hex(COLORS.magenta), 1).fillRect(xpX, 18, xpW * xpRatio, 6);
-  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(xpX, 18, xpW, 6);
+  g.fillStyle(0x1b1631, 1).fillRect(xpX, 20, xpW, 6);
+  g.fillStyle(hex(COLORS.magenta), 1).fillRect(xpX, 20, xpW * xpRatio, 6);
+  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(xpX, 20, xpW, 6);
 
   // ダッシュと特殊攻撃のクールダウン
   const dashFull = p.dashCharges >= p.stats.dashCharges;
@@ -336,7 +337,7 @@ export function drawHud(g, world) {
 }
 
 // 消耗品の枠（画面左上、部屋の中）。位置は ITEM_SLOT_POS
-export const ITEM_SLOT_POS = { x: 40, y: 36, size: 28, gap: 36 };
+export const ITEM_SLOT_POS = { x: 40, y: ROOM.wallTop + 8, size: 28, gap: 36 };
 
 function drawItemSlots(g, world) {
   const p = world.player;

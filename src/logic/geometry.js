@@ -36,6 +36,7 @@ export function clampToBounds(o, bounds) {
   return touched;
 }
 
-export function roomBounds(screen, wall) {
-  return { left: wall, top: wall, right: screen.width - wall, bottom: screen.height - wall };
+// wallTop: 上の壁だけ厚みを変えるとき
+export function roomBounds(screen, wall, wallTop = wall) {
+  return { left: wall, top: wallTop, right: screen.width - wall, bottom: screen.height - wall };
 }

@@ -19,7 +19,7 @@ import { createPlayer, updatePlayer, updatePlayerShots } from './player.js';
 // carry: 前の部屋から引き継ぐもの { hp, build }（省略するとまっさらな状態）
 export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.random, carry = null, room = null } = {}) {
   room ??= { type: 'combat', waves, objects: [], doors: [], clearCredits: 0 };
-  const bounds = roomBounds(SCREEN, ROOM.wall);
+  const bounds = roomBounds(SCREEN, ROOM.wall, ROOM.wallTop);
   const player = createPlayer(weaponId, bounds.left + 90, SCREEN.height / 2, carry);
   return {
     mode: 'play', // play / dead / clear（clear のあとも歩き回って装備を拾える）

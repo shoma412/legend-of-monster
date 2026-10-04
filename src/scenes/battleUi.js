@@ -1,5 +1,5 @@
 // 戦闘画面の上に重ねるパネル（装備の比較、インプラント3択、装備とインプラントの一覧）
-import { LOOT, SCREEN } from '../data/balance.js';
+import { LOOT, ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
@@ -149,8 +149,8 @@ export function createChoicePanel(scene, onChoose) {
 
 export function createBuildList(scene) {
   const x = W - 56; // 右端にスロットのアイコンが入る
-  const gearTexts = LOOT.slots.map((s, i) => scene.add.text(x, 36 + i * 15, '', body(11)).setOrigin(1, 0).setAlpha(0.9).setDepth(6));
-  const implantText = scene.add.text(x, 36 + LOOT.slots.length * 15 + 6, '', body(11, COLORS.dim, { align: 'right', lineSpacing: 2 })).setOrigin(1, 0).setAlpha(0.9).setDepth(6);
+  const gearTexts = LOOT.slots.map((s, i) => scene.add.text(x, ROOM.wallTop + 8 + i * 15, '', body(11)).setOrigin(1, 0).setAlpha(0.9).setDepth(6));
+  const implantText = scene.add.text(x, ROOM.wallTop + 8 + LOOT.slots.length * 15 + 6, '', body(11, COLORS.dim, { align: 'right', lineSpacing: 2 })).setOrigin(1, 0).setAlpha(0.9).setDepth(6);
   let key = '';
   return {
     update(build) {
@@ -175,7 +175,7 @@ const COMM_SPEED = 38; // 1秒に出す文字数
 const COMM_HOLD = 4500; // 出し終わってから消えるまで（ミリ秒）
 
 export function createCommLog(scene) {
-  const text = scene.add.text(40, 76, '', body(13, COLORS.amber, { fontStyle: '700', lineSpacing: 5, wordWrap: { width: 460, useAdvancedWrap: true } }))
+  const text = scene.add.text(40, ROOM.wallTop + 48, '', body(13, COLORS.amber, { fontStyle: '700', lineSpacing: 5, wordWrap: { width: 460, useAdvancedWrap: true } }))
     .setDepth(7).setShadow(0, 0, '#000000', 4, false, true).setVisible(false);
   let full = '';
   let shown = 0;

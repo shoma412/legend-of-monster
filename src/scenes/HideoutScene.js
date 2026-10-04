@@ -52,8 +52,8 @@ export class HideoutScene extends Phaser.Scene {
     }
 
     const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
-    this.add.text(40, 5, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
-    this.materialText = this.add.text(W - 40, 5, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(1, 0);
+    this.add.text(40, 7, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
+    this.materialText = this.add.text(W - 40, 7, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(1, 0);
     this.refreshStations();
     this.add.text(W / 2, H - 14, `WASD 移動　E 調べる・選ぶ　左クリック 攻撃・右クリック 特殊（試し斬り）　Shift ダッシュ　Esc メニュー${import.meta.env.DEV ? '　｜　確認用：U 武器を全解放' : ''}`, body(12, COLORS.dim)).setOrigin(0.5);
     this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5).setDepth(7).setVisible(false);
