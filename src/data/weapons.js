@@ -62,7 +62,7 @@ export const weapons = [
       type: 'guard',
       name: 'ジャストガード',
       hint: '右クリック ジャストガード',
-      window: 0.3, // 構えている時間（秒）。この間に攻撃を受けると成功
+      window: 0.15, // 構えている時間（秒）。この間に攻撃を受けると成功
       moveSlow: 0.3, // 構えている間の移動速度の倍率
       cooldown: 2.5, // 秒
       successCooldown: 0.4, // 成功したときのクールダウン（秒）

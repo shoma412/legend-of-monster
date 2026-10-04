@@ -78,7 +78,7 @@ describe('片手剣', () => {
     expect(world.player.charge).toBe(null);
   });
 
-  it('ジャストガード：右クリックで0.3秒だけ構え、その間に攻撃を受けると無効化して反撃する', () => {
+  it('ジャストガード：右クリックで少しの間だけ構え、その間に攻撃を受けると無効化して反撃する', () => {
     const world = makeWorld('sword');
     const p = world.player;
     const special = p.weapon.special;
