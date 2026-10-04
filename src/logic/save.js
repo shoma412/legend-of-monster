@@ -10,6 +10,7 @@ export function createSave() {
     materials: {}, // { 素材のid: 個数 }
     upgrades: {}, // { 恒久強化のid: 段階 }
     weapons: ['greatsword'], // 解放済みの武器
+    selected: 'greatsword', // 隠れ家で選んでいる武器
     bossKills: {}, // { ボスのid: 倒した回数 }
     fragments: [], // 手に入れたデータ片の id
     achievements: [], // 解除した実績の id
@@ -33,6 +34,7 @@ function normalize(data) {
     materials: { ...base.materials, ...(d.materials ?? {}) },
     upgrades: { ...(d.upgrades ?? {}) },
     weapons: Array.isArray(d.weapons) && d.weapons.length > 0 ? [...new Set(d.weapons)] : base.weapons,
+    selected: typeof d.selected === 'string' ? d.selected : base.selected,
     bossKills: { ...(d.bossKills ?? {}) },
     fragments: Array.isArray(d.fragments) ? [...new Set(d.fragments)] : [],
     achievements: Array.isArray(d.achievements) ? [...new Set(d.achievements)] : [],

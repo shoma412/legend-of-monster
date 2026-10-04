@@ -15,6 +15,7 @@ import {
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
 import { createBuildList, createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
+import { MenuOverlay } from './menuOverlay.js';
 
 const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
 const CHOICE_LOCK = 450; // 3択が出てから選べるようになるまで（ミリ秒）。攻撃の連打で誤って選ばないため
@@ -49,33 +50,50 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,ESC,E,Q,M,ONE,TWO,THREE,B');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B');
     this.dashPressed = false;
     this.attackPressed = false;
     this.choiceShownAt = 0;
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.leftButtonDown() && !this.world.choice) this.attackPressed = true;
+      if (pointer.leftButtonDown() && !this.world.choice && !this.menu.isOpen) this.attackPressed = true;
     });
-    this.keys.E.on('down', () => interact(this.world));
-    this.keys.Q.on('down', () => useKit(this.world));
-    this.keys.M.on('down', () => this.bigMap.setVisible(!this.bigMap.visible));
+    // ポーズ画面が開いている間は、ゲームの操作を受け付けない
+    const playing = () => !this.menu.isOpen;
+    this.keys.E.on('down', () => playing() && interact(this.world));
+    this.keys.Q.on('down', () => playing() && useKit(this.world));
+    this.keys.M.on('down', () => playing() && this.bigMap.setVisible(!this.bigMap.visible));
     ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => this.choose(i)));
     this.keys.ENTER.on('down', () => {
       const world = this.world;
-      if (world.choice) return;
+      if (world.choice || this.menu.isOpen) return;
       // ランが終わっていたら、リザルトを見てから隠れ家へ帰る
       if (!this.run.outcome) return;
       if (this.overlay.visible) this.scene.start('Hideout');
       else this.showResult();
     });
-    // Esc：ランを捨てて隠れ家へ（持ち帰りが確定したものは残る）
-    this.keys.ESC.on('down', () => this.scene.start('Hideout'));
+    // Esc（または Tab）：ポーズ画面。ステータスや装備の詳細を見られる。隠れ家に戻るのもここから
+    this.menu = new MenuOverlay(this, {
+      title: 'PAUSE',
+      tabs: ['status', 'upgrade', 'record', 'fragment', 'achievement'],
+      readOnlyUpgrades: true,
+      actions: [
+        { label: '再開する（Esc）', color: COLORS.green, run: () => this.menu.close() },
+        {
+          label: '隠れ家に戻る',
+          color: COLORS.amber,
+          run: () => this.menu.confirm('今回の進捗はリセットされますが、よろしいですか？\n（装備・レベル・インプラント・クレジットを失います）', () => this.scene.start('Hideout')),
+        },
+      ],
+      context: () => ({ save: this.run.save, player: this.world.player }),
+      // レベルアップの3択が出ているときと、リザルトが出ているときは開かない
+      canOpen: () => !this.world.choice && !this.overlay.visible,
+    });
     // 確認用のキー（開発中の画面だけ。公開版では効かない）：ボス部屋へ飛ぶ
     if (import.meta.env.DEV) {
       this.keys.B.on('down', () => {
-        if (run.plan.current === 'boss') return;
+        if (run.plan.current === 'boss' || this.menu.isOpen) return;
         skipToBoss(run, this.world);
         this.scene.restart({ run });
       });
@@ -91,7 +109,7 @@ export class BattleScene extends Phaser.Scene {
     this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋へ' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc 隠れ家へ帰る${devHelp}`, {
+    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -173,6 +191,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   choose(index) {
+    if (this.menu.isOpen) return;
     if (!this.world.choice || this.time.now - this.choiceShownAt < CHOICE_LOCK) return;
     chooseImplant(this.world, index);
   }
@@ -196,6 +215,11 @@ export class BattleScene extends Phaser.Scene {
 
   update(_time, delta) {
     const world = this.world;
+    // ポーズ画面が開いている間は、ゲームを止める
+    if (this.menu.isOpen) {
+      this.readInput();
+      return;
+    }
     const hadChoice = !!world.choice;
     updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
     if (world.choice && !hadChoice) this.choiceShownAt = this.time.now;
@@ -372,6 +396,7 @@ export class BattleScene extends Phaser.Scene {
       dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
       'ENTER：隠れ家へ',
     ];
+    this.bigMap.setVisible(false);
     this.overlay.setVisible(true).setFillStyle(0x07060d, 0.86);
     this.clearText.setVisible(false);
     this.resultTitle.setText(dead ? 'SIGNAL LOST' : 'MISSION COMPLETE').setColor(color).setShadow(0, 0, color, 16, false, true).setVisible(true);

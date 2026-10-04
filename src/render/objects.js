@@ -61,7 +61,53 @@ function itemColor(item) {
   return hex(RARITY_COLORS[LOOT.rarities[item.rarity].id]);
 }
 
+// 武器ラックに立てかけてある武器の形
+const WEAPON_GLYPHS = {
+  greatsword(g, x, y, c) {
+    glowLine(g, c, 5, () => g.lineBetween(x - 9, y + 16, x + 9, y - 18));
+    glowLine(g, c, 2, () => g.lineBetween(x - 12, y + 6, x - 1, y + 12));
+  },
+  sword(g, x, y, c) {
+    glowLine(g, c, 2.5, () => g.lineBetween(x - 6, y + 14, x + 7, y - 14));
+    glowLine(g, c, 2, () => g.lineBetween(x - 9, y + 6, x, y + 10));
+  },
+  gun(g, x, y, c) {
+    glowLine(g, c, 4, () => g.lineBetween(x - 12, y - 6, x + 13, y - 6));
+    glowLine(g, c, 4, () => g.lineBetween(x - 8, y - 6, x - 11, y + 10));
+  },
+};
+
+// 隠れ家に置いてあるものの見た目
+const STATION_ICONS = {
+  weapon(g, o, world, focused, c) {
+    g.fillStyle(BODY_FILL, 0.9).fillRect(o.x - 24, o.y + 18, 48, 8);
+    g.lineStyle(1.5, c, 0.8).strokeRect(o.x - 24, o.y + 18, 48, 8);
+    if (o.selected) g.lineStyle(2, c, 0.5 + 0.3 * Math.sin(world.time * 5)).strokeCircle(o.x, o.y, 34);
+    (WEAPON_GLYPHS[o.weapon] ?? WEAPON_GLYPHS.sword)(g, o.x, o.y - 2, c);
+  },
+  terminal(g, o, world, focused, c) {
+    g.fillStyle(BODY_FILL, 0.9).fillRect(o.x - 22, o.y - 18, 44, 30);
+    glowLine(g, c, 2, () => g.strokeRect(o.x - 22, o.y - 18, 44, 30));
+    g.lineStyle(2, c, 0.8);
+    for (let i = 0; i < 3; i++) g.lineBetween(o.x - 14, o.y - 10 + i * 7, o.x - 14 + 12 + ((i * 7 + Math.floor(world.time * 2)) % 3) * 6, o.y - 10 + i * 7);
+    g.lineStyle(2, c, 1).lineBetween(o.x, o.y + 12, o.x, o.y + 22).lineBetween(o.x - 12, o.y + 22, o.x + 12, o.y + 22);
+  },
+  gate(g, o, world, focused, c) {
+    const h = 120;
+    const pulse = 0.14 + 0.08 * Math.sin(world.time * 6);
+    g.fillStyle(0x0b0914, 1).fillRect(o.x, o.y - h / 2, ROOM.wall, h);
+    g.fillStyle(c, focused ? 0.35 : pulse).fillRect(o.x - 46, o.y - h / 2, 46, h);
+    g.fillStyle(c, 1).fillRect(o.x - 3, o.y - h / 2, 6, h);
+    const pts = [{ x: o.x - 84, y: o.y - 9 }, { x: o.x - 66, y: o.y }, { x: o.x - 84, y: o.y + 9 }];
+    glowLine(g, c, 2, () => g.strokePoints(pts, false, false));
+  },
+};
+
 const DRAWERS = {
+  station(g, o, world, focused) {
+    STATION_ICONS[o.icon](g, o, world, focused, hex(o.color ?? COLORS.ink));
+  },
+
   // データ片：ゆっくり回る記録チップ
   fragment(g, o, world, focused) {
     const c = hex(COLORS.cyan);
@@ -145,7 +191,11 @@ export function objectLabels(world) {
   const labels = [];
   const credits = world.player.build.credits;
   for (const o of world.objects) {
-    if (o.kind === 'door') {
+    if (o.kind === 'station') {
+      const gate = o.icon === 'gate';
+      labels.push({ x: gate ? o.x - 76 : o.x, y: gate ? o.y - 34 : o.y - 42, text: o.label ?? '', color: o.color ?? COLORS.ink, size: 13 });
+      if (o.sub) labels.push({ x: o.x, y: o.y + 40, text: o.sub, color: o.color ?? COLORS.dim, size: 11 });
+    } else if (o.kind === 'door') {
       const room = DATA.rooms.get(o.type);
       labels.push({ x: o.x - 70, y: o.y - 32, text: room.label, color: COLORS[room.color], size: 13 });
     } else if (o.kind === 'heal') {
@@ -173,6 +223,7 @@ export function focusPrompt(world) {
   const o = world.focusObject;
   if (!o) return null;
   const p = world.player;
+  if (o.kind === 'station') return o.prompt ? { text: o.prompt, color: o.color ?? COLORS.ink } : null;
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };

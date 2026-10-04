@@ -38,6 +38,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     objects: [...room.objects], // 扉・補給端末・闇市の商品・データ金庫の装備
     focusObject: null, // 近くにある、E で調べられるもの
     exit: null, // 扉を選んだら、進む先の部屋（地図の id）が入る
+    request: null, // 隠れ家で、E で調べたもの（武器ラック・端末・出撃ゲート）の id が入る
     countdown: room.countdown ?? 0, // 開始前のカウントダウンの残り（秒）。0 になるまで敵は出ない
     events: [], // 起きた出来事（敵を倒した、装備した、など）。ラン側が読んで、実績やボス素材を処理する
     damageTaken: 0, // この部屋で受けたダメージの合計

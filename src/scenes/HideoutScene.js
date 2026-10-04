@@ -1,310 +1,245 @@
 import * as Phaser from 'phaser';
-import { SCREEN } from '../data/balance.js';
+import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { brief } from '../data/story.js';
 import { COLORS, ELEMENT_COLORS, FONTS, hex } from '../data/theme.js';
 import { weaponUnlocks } from '../data/upgrades.js';
-import { AREA_ORDER } from '../game/run.js';
-import { getSave, persist, resetSave } from '../game/saveStore.js';
-import { buyUpgrade, canAfford, nextUpgradeCost, unlockWeapon, upgradeLevel } from '../logic/meta.js';
+import { recalcStats } from '../game/build.js';
+import { floatText, ring } from '../game/fx.js';
+import { interact } from '../game/objects.js';
+import { getSave, persist } from '../game/saveStore.js';
+import { createWorld, updateWorld } from '../game/world.js';
+import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
+import { createBuild } from '../logic/stats.js';
+import { drawFloor, drawFx, drawPlayer } from '../render/draw.js';
+import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
+import { MenuOverlay, costText } from './menuOverlay.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
-const PANEL = 0x110f1d;
+const MAX_STEP = 1 / 30;
 const LOCKED = '#4a4470';
 
-const TABS = [
-  { id: 'sortie', label: '出撃' },
-  { id: 'upgrade', label: '恒久強化' },
-  { id: 'record', label: '記録' },
-  { id: 'fragment', label: 'データ片' },
-  { id: 'achievement', label: '実績' },
-];
-
-function materialColor(def) {
-  return ELEMENT_COLORS[def.color] ?? COLORS[def.color];
-}
-
-function costText(cost) {
-  return Object.entries(cost).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　');
-}
-
-// 隠れ家（拠点）。出撃、恒久強化、記録、データ片、実績。
+// 隠れ家（拠点）。歩き回れる部屋で、置いてあるものに近づいて E で使う。
+//   武器ラック：出撃する武器を選ぶ（未解放ならボス素材で解放）
+//   強化端末：恒久強化を買う / 記録端末：記録・データ片・実績を見る
+//   出撃ゲート：依頼文を確かめて出撃する
 export class HideoutScene extends Phaser.Scene {
   constructor() {
     super('Hideout');
   }
 
-  init() {
-    this.tab = 0;
-    this.cursor = 0; // タブの中で選んでいる行
-    this.weapon = 'greatsword';
-    this.confirmReset = false;
-  }
-
   create() {
     this.save = getSave();
-    if (!this.save.weapons.includes(this.weapon)) this.weapon = this.save.weapons[0];
+    // 選んでいた武器がまだ使えるか確かめる
+    if (!this.usable(this.save.selected)) this.save.selected = 'greatsword';
 
-    const g = this.add.graphics();
-    g.lineStyle(1, hex(COLORS.line), 0.45);
-    for (let x = 0; x <= W; x += 48) g.lineBetween(x, 0, x, H);
-    for (let y = 0; y <= H; y += 48) g.lineBetween(0, y, W, y);
-    g.lineStyle(2, hex(COLORS.magenta), 0.8).strokeRect(14, 14, W - 28, H - 28);
+    const bonus = permanentBonuses(this.save);
+    const room = { type: 'hideout', waves: [], objects: this.buildStations(), doors: [], clearCredits: 0 };
+    this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
+    this.refreshStations();
+    if (import.meta.env.DEV) window.__world = this.world;
 
-    this.add.text(40, 30, 'HIDEOUT', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '28px', color: COLORS.cyan }).setShadow(0, 0, COLORS.cyan, 12, false, true);
-    this.add.text(170, 40, '// 隠れ家', this.style(14, COLORS.dim));
-    this.add.text(W / 2, H - 28, '1〜5 / A・D：切り替え　W・S：選ぶ　Enter：決定　Esc：タイトルへ', this.style(12, COLORS.dim)).setOrigin(0.5);
+    drawFloor(this.add.graphics());
+    this.gfx = this.add.graphics();
+    this.labelTexts = [];
+    this.floatTexts = [];
+    try {
+      const bloom = this.gfx.enableFilters().filters.internal.addParallelFilters();
+      bloom.top.addBlur(1, 2, 2, 1.4);
+      bloom.blend.blendMode = Phaser.BlendModes.ADD;
+    } catch (err) {
+      console.warn('bloom unavailable', err);
+    }
 
-    this.header = this.add.container(0, 0); // 素材とタブ（買い物で変わるので描き直す）
-    this.content = this.add.container(0, 0);
+    const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
+    this.add.text(40, 5, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
+    this.materialText = this.add.text(W - 40, 5, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(1, 0);
+    this.refreshStations();
+    this.add.text(W / 2, H - 14, 'WASD 移動　E 調べる・選ぶ　左クリック 攻撃（試し斬り）　Shift ダッシュ　Esc メニュー', body(12, COLORS.dim)).setOrigin(0.5);
+    this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5).setDepth(7).setVisible(false);
+
+    // 依頼文（出撃ゲートに近づくと出る）
+    this.briefPanel = this.add.container(W - 330, 60).setDepth(8).setVisible(false);
+    const briefText = this.add.text(14, 38, brief.lines.join('\n'), body(12, COLORS.ink, { lineSpacing: 8, wordWrap: { width: 250, useAdvancedWrap: true } }));
+    this.briefPanel.add([
+      this.add.rectangle(0, 0, 278, briefText.height + 54, 0x110f1d, 0.94).setOrigin(0).setStrokeStyle(1, hex(COLORS.amber)),
+      this.add.text(14, 12, brief.title, body(15, COLORS.amber, { fontStyle: '700' })),
+      briefText,
+    ]);
 
     const kb = this.input.keyboard;
-    kb.on('keydown', (event) => this.onKey(event));
-    this.render();
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,E');
+    this.dashPressed = false;
+    this.attackPressed = false;
+    this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
+    this.keys.E.on('down', () => {
+      if (!this.menu.isOpen) interact(this.world);
+    });
+    this.input.mouse.disableContextMenu();
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.leftButtonDown() && !this.menu.isOpen) this.attackPressed = true;
+    });
+
+    this.menu = new MenuOverlay(this, {
+      title: 'HIDEOUT',
+      tabs: ['upgrade', 'record', 'fragment', 'achievement'],
+      actions: [
+        { label: '閉じる（Esc）', run: () => this.menu.close() },
+        { label: 'タイトルへ戻る', color: COLORS.dim, run: () => this.scene.start('Title') },
+      ],
+      context: () => ({ save: this.save, player: this.world.player }),
+      onBuy: () => {
+        persist();
+        this.applyUpgrades();
+      },
+      onClose: () => this.refreshStations(),
+    });
   }
 
-  style(size, color = COLORS.ink, extra = {}) {
-    return { fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra };
+  usable(weaponId) {
+    return this.save.weapons.includes(weaponId) && DATA.weapons.has(weaponId);
   }
 
-  // 文字を足す。onClick を渡すと押せるようになる
-  text(parent, x, y, str, size, color, extra = {}, onClick = null) {
-    const t = this.add.text(x, y, str, this.style(size, color, extra));
-    if (onClick) t.setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
-    parent.add(t);
-    return t;
+  // 部屋に置くもの。見た目と名前は refreshStations で今の状態に合わせる
+  buildStations() {
+    const stations = weaponUnlocks.map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 240 + i * 150, y: 150, r: 52 }));
+    stations.push({ kind: 'station', id: 'menu:upgrade', icon: 'terminal', color: COLORS.green, label: '強化端末', sub: '恒久強化', prompt: 'E：恒久強化を買う', x: 240, y: 400, r: 52 });
+    stations.push({ kind: 'station', id: 'menu:record', icon: 'terminal', color: COLORS.magenta, label: '記録端末', sub: '記録・データ片・実績', prompt: 'E：記録・データ片・実績を見る', x: 440, y: 400, r: 52 });
+    stations.push({ kind: 'station', id: 'sortie', icon: 'gate', color: COLORS.amber, label: '出撃', x: W - ROOM.wall, y: H / 2, r: 62 });
+    return stations;
   }
 
-  panel(parent, x, y, w, h, stroke = COLORS.line) {
-    const r = this.add.rectangle(x, y, w, h, PANEL, 0.92).setOrigin(0).setStrokeStyle(1, hex(stroke));
-    parent.add(r);
-    return r;
-  }
-
-  onKey(event) {
-    if (event.repeat) return null; // 押しっぱなしで勝手に進まないようにする
-    const code = event.code;
-    const digit = /^Digit([1-5])$/.exec(code);
-    if (digit) return this.setTab(Number(digit[1]) - 1);
-    if (code === 'KeyA' || code === 'ArrowLeft') return this.setTab((this.tab + TABS.length - 1) % TABS.length);
-    if (code === 'KeyD' || code === 'ArrowRight') return this.setTab((this.tab + 1) % TABS.length);
-    if (code === 'KeyW' || code === 'ArrowUp') return this.moveCursor(-1);
-    if (code === 'KeyS' || code === 'ArrowDown') return this.moveCursor(1);
-    if (code === 'Enter' || code === 'KeyE') return this.confirm();
-    if (code === 'Escape') return this.scene.start('Title');
-    return null;
-  }
-
-  setTab(index) {
-    this.tab = index;
-    this.cursor = 0;
-    this.confirmReset = false;
-    this.render();
-  }
-
-  rowCount() {
-    const id = TABS[this.tab].id;
-    if (id === 'sortie') return weaponUnlocks.length;
-    if (id === 'upgrade') return DATA.upgrades.all().length;
-    if (id === 'fragment') return DATA.fragments.all().length;
-    return 0;
-  }
-
-  moveCursor(delta) {
-    const n = this.rowCount();
-    if (n === 0) return;
-    this.cursor = (this.cursor + delta + n) % n;
-    this.render();
-  }
-
-  confirm() {
-    const id = TABS[this.tab].id;
-    if (id === 'sortie') this.sortie();
-    else if (id === 'upgrade') this.buy(DATA.upgrades.all()[this.cursor].id);
-  }
-
-  sortie() {
-    // 選んでいる武器が未解放なら、解放済みの武器で出る
-    const picked = weaponUnlocks[this.cursor]?.weapon;
-    if (this.save.weapons.includes(picked)) this.weapon = picked;
-    this.scene.start('Battle', { weaponId: this.weapon });
-  }
-
-  buy(id) {
-    if (buyUpgrade(this.save, id)) persist();
-    this.render();
-  }
-
-  render() {
-    this.header.removeAll(true);
-    this.content.removeAll(true);
-    this.renderHeader();
-    const id = TABS[this.tab].id;
-    if (id === 'sortie') this.renderSortie();
-    else if (id === 'upgrade') this.renderUpgrades();
-    else if (id === 'record') this.renderRecords();
-    else if (id === 'fragment') this.renderFragments();
-    else this.renderAchievements();
-  }
-
-  renderHeader() {
-    const c = this.header;
-    // 持っているボス素材
-    let x = W - 40;
-    for (const def of [...DATA.materials.all()].reverse()) {
-      const t = this.text(c, x, 38, `${def.name} ×${this.save.materials[def.id] ?? 0}`, 14, materialColor(def), { fontStyle: '700' }).setOrigin(1, 0);
-      x -= t.width + 22;
+  // 武器ラックと出撃ゲートの表示を、今のセーブデータに合わせる
+  refreshStations() {
+    const save = this.save;
+    for (const o of this.world.objects) {
+      if (o.icon === 'weapon') {
+        const def = weaponUnlocks.find((w) => w.weapon === o.weapon);
+        const owned = save.weapons.includes(o.weapon);
+        const ready = def.ready !== false;
+        o.label = def.name;
+        o.selected = save.selected === o.weapon;
+        if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${def.note}（選択中）` });
+        else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${def.note}）` });
+        else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost)}` });
+        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）` });
+      } else if (o.icon === 'gate') {
+        o.prompt = `E：出撃する（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
+      }
     }
-    // タブ
-    TABS.forEach((tab, i) => {
-      const on = i === this.tab;
-      const tx = 40 + i * 150;
-      const r = this.add.rectangle(tx, 78, 140, 30, on ? 0x1b1631 : PANEL, 0.92).setOrigin(0).setStrokeStyle(on ? 2 : 1, hex(on ? COLORS.cyan : COLORS.line));
-      r.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.setTab(i));
-      c.add(r);
-      this.text(c, tx + 70, 93, `${i + 1}  ${tab.label}`, 14, on ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
-    });
+    const parts = DATA.materials.all().map((m) => `${m.name} ×${save.materials[m.id] ?? 0}`);
+    this.materialText?.setText(parts.join('　　'));
   }
 
-  // ---- 出撃：依頼文と武器選択 ----
-  renderSortie() {
-    const c = this.content;
-    this.panel(c, 40, 126, 430, 250);
-    this.text(c, 58, 140, brief.title, 16, COLORS.amber, { fontStyle: '700' });
-    this.text(c, 58, 172, brief.lines.join('\n'), 13, COLORS.ink, { lineSpacing: 10, wordWrap: { width: 396, useAdvancedWrap: true } });
-
-    this.text(c, 490, 126, '武器', 13, COLORS.dim);
-    weaponUnlocks.forEach((w, i) => {
-      const y = 150 + i * 76;
-      const owned = this.save.weapons.includes(w.weapon);
-      const selected = i === this.cursor;
-      const box = this.panel(c, 490, y, 430, 66, selected ? COLORS.cyan : COLORS.line);
-      box.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-        this.cursor = i;
-        if (!owned && unlockWeapon(this.save, w.weapon)) persist();
-        this.render();
-      });
-      this.text(c, 506, y + 10, w.name, 16, owned ? COLORS.ink : LOCKED, { fontStyle: '700' });
-      this.text(c, 506, y + 36, w.note, 12, owned ? COLORS.dim : LOCKED);
-      let status = '使える';
-      let color = COLORS.green;
-      if (!owned) {
-        status = w.ready === false ? `未解放（${costText(w.cost)}）— 準備中` : `未解放（${costText(w.cost)}）クリックで解放`;
-        color = w.ready !== false && canAfford(this.save, w.cost) ? COLORS.amber : LOCKED;
-      }
-      this.text(c, 906, y + 12, status, 12, color).setOrigin(1, 0);
-    });
-
-    const go = this.text(c, W / 2, 440, 'ENTER：出撃', 22, COLORS.amber, { fontFamily: FONTS.display, fontStyle: '700' }, () => this.sortie()).setOrigin(0.5);
-    go.setShadow(0, 0, COLORS.amber, 10, false, true);
+  // 買った恒久強化を、隠れ家の中のキャラにもすぐ反映する（二重ダッシュなどを試せる）
+  applyUpgrades() {
+    const p = this.world.player;
+    p.build.permanent = permanentBonuses(this.save).effects;
+    recalcStats(p);
+    p.hp = p.stats.maxHp;
+    p.dashCharges = p.stats.dashCharges;
   }
 
-  // ---- 恒久強化 ----
-  renderUpgrades() {
-    const c = this.content;
-    this.text(c, 40, 122, 'ボス素材で、死んでも残る強化を買う。行をクリックするか、W・S で選んで Enter', 12, COLORS.dim);
-    DATA.upgrades.all().forEach((def, i) => {
-      const y = 146 + i * 56;
-      const level = upgradeLevel(this.save, def.id);
-      const cost = nextUpgradeCost(this.save, def);
-      const ready = def.ready !== false;
-      const buyable = ready && cost && canAfford(this.save, cost);
-      const selected = i === this.cursor;
-      const box = this.panel(c, 40, y, 880, 48, selected ? COLORS.cyan : COLORS.line);
-      box.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-        this.cursor = i;
-        this.buy(def.id);
-      });
-      this.text(c, 56, y + 6, def.name, 15, ready ? COLORS.ink : LOCKED, { fontStyle: '700' });
-      this.text(c, 56, y + 27, def.desc, 12, ready ? COLORS.dim : LOCKED);
-      // 段階
-      for (let k = 0; k < def.max; k++) {
-        const pip = this.add.rectangle(430 + k * 20, y + 24, 14, 14, k < level ? hex(COLORS.green) : PANEL, 1).setStrokeStyle(1, hex(k < level ? COLORS.green : COLORS.dim));
-        c.add(pip);
-      }
-      let status = '';
-      let color = COLORS.dim;
-      if (!ready) status = '準備中';
-      else if (!cost) [status, color] = ['最大', COLORS.green];
-      else [status, color] = [`${costText(cost)}${buyable ? '　— 買える' : ''}`, buyable ? COLORS.amber : COLORS.red];
-      this.text(c, 904, y + 15, status, 13, color, { fontStyle: '700' }).setOrigin(1, 0);
-    });
-  }
-
-  // ---- 記録 ----
-  renderRecords() {
-    const c = this.content;
-    const r = this.save.records;
-    const best = r.runs > 0 ? `${DATA.areas.get(AREA_ORDER[Math.min(r.bestArea, AREA_ORDER.length - 1)]).code}-${r.bestStep + 1}` : 'なし';
-    const bosses = DATA.bosses.all().map((b) => `${b.name} ×${this.save.bossKills[b.id] ?? 0}`).join('　');
-    const rows = [
-      ['出撃した回数', `${r.runs}`],
-      ['クリアした回数', `${r.clears}`],
-      ['最高到達', best],
-      ['倒した敵の数（累計）', `${r.kills}`],
-      ['ボス撃破', bosses],
-      ['データ片', `${this.save.fragments.length} / ${DATA.fragments.all().length}`],
-      ['実績', `${this.save.achievements.length} / ${DATA.achievements.all().length}`],
-    ];
-    this.panel(c, 40, 126, 880, 40 + rows.length * 36);
-    rows.forEach(([label, value], i) => {
-      this.text(c, 60, 146 + i * 36, label, 14, COLORS.dim);
-      this.text(c, 300, 146 + i * 36, value, 14, COLORS.ink, { fontStyle: '700' });
-    });
-    const label = this.confirmReset ? 'もう一度クリックすると、セーブデータをすべて消す' : 'セーブデータを消す';
-    this.text(c, 40, 452, label, 12, this.confirmReset ? COLORS.red : COLORS.dim, {}, () => {
-      if (this.confirmReset) {
-        this.save = resetSave();
-        this.confirmReset = false;
-      } else {
-        this.confirmReset = true;
-      }
-      this.render();
-    });
-  }
-
-  // ---- データ片 ----
-  renderFragments() {
-    const c = this.content;
-    const list = DATA.fragments.all();
-    this.panel(c, 40, 126, 300, 330);
-    list.forEach((f, i) => {
-      const have = this.save.fragments.includes(f.id);
-      const selected = i === this.cursor;
-      const color = selected ? COLORS.cyan : have ? COLORS.ink : LOCKED;
-      this.text(c, 56, 140 + i * 30, `${selected ? '▶ ' : '　 '}${have ? f.title : '？？？'}`, 14, color, { fontStyle: have ? '700' : '400' }, () => {
-        this.cursor = i;
-        this.render();
-      });
-    });
-    this.panel(c, 356, 126, 564, 330);
-    const f = list[this.cursor];
-    if (!f) return;
-    if (this.save.fragments.includes(f.id)) {
-      this.text(c, 376, 144, f.title, 16, COLORS.cyan, { fontStyle: '700' });
-      this.text(c, 376, 180, f.text, 14, COLORS.ink, { lineSpacing: 10, wordWrap: { width: 524, useAdvancedWrap: true } });
-    } else {
-      const where = f.source === 'boss' ? 'ボスを倒すと手に入る' : 'データ金庫で見つかる';
-      this.text(c, 376, 144, '未回収', 16, LOCKED, { fontStyle: '700' });
-      this.text(c, 376, 180, `${DATA.areas.get(f.area).name}の${where}。`, 14, COLORS.dim);
+  // E で調べたものの処理
+  handleRequest(id) {
+    const world = this.world;
+    const p = world.player;
+    if (id === 'sortie') {
+      this.scene.start('Battle', { weaponId: this.save.selected });
+      return;
     }
+    if (id.startsWith('menu:')) {
+      this.menu.open(id.slice(5));
+      return;
+    }
+    const weaponId = id.slice('weapon:'.length);
+    const def = weaponUnlocks.find((w) => w.weapon === weaponId);
+    if (!this.save.weapons.includes(weaponId)) {
+      if (def.ready === false) {
+        floatText(world, p.x, p.y - 30, '準備中', COLORS.dim, 14);
+        return;
+      }
+      if (!unlockWeapon(this.save, weaponId)) {
+        floatText(world, p.x, p.y - 30, '素材が足りない', COLORS.red, 14);
+        return;
+      }
+      floatText(world, p.x, p.y - 30, `${def.name}を解放した`, COLORS.amber, 14);
+    }
+    if (this.usable(weaponId)) {
+      this.save.selected = weaponId;
+      p.weapon = DATA.weapons.get(weaponId);
+      p.attack = null;
+      p.charge = null;
+      ring(world, p.x, p.y, 44, COLORS.cyan);
+      floatText(world, p.x, p.y - 48, `${def.name}を選んだ`, COLORS.cyan, 14);
+    }
+    persist();
+    this.refreshStations();
   }
 
-  // ---- 実績 ----
-  renderAchievements() {
-    const c = this.content;
-    const list = DATA.achievements.all();
-    this.text(c, 40, 122, `解除 ${this.save.achievements.length} / ${list.length}`, 12, COLORS.dim);
-    list.forEach((def, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = 40 + col * 445;
-      const y = 146 + row * 62;
-      const done = this.save.achievements.includes(def.id);
-      this.panel(c, x, y, 435, 54, done ? COLORS.amber : COLORS.line);
-      this.text(c, x + 14, y + 8, `${done ? '◆' : '◇'} ${def.name}`, 15, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
-      this.text(c, x + 14, y + 31, def.desc, 12, done ? COLORS.ink : LOCKED);
+  readInput() {
+    const k = this.keys;
+    const pointer = this.input.activePointer;
+    const input = {
+      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0),
+      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
+      aimX: pointer.worldX,
+      aimY: pointer.worldY,
+      attack: pointer.leftButtonDown(),
+      attackPressed: this.attackPressed,
+      dashPressed: this.dashPressed,
+    };
+    this.dashPressed = false;
+    this.attackPressed = false;
+    return input;
+  }
+
+  update(_time, delta) {
+    const world = this.world;
+    if (this.menu.isOpen) {
+      this.readInput(); // 開いている間の入力は捨てる
+      return;
+    }
+    updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
+    world.events.length = 0;
+    if (world.request) {
+      const id = world.request;
+      world.request = null;
+      this.handleRequest(id);
+      if (!this.scene.isActive()) return;
+    }
+
+    const g = this.gfx;
+    g.clear();
+    drawObjects(g, world);
+    drawFx(g, world);
+    drawPlayer(g, world);
+    this.syncTexts(this.floatTexts, world.fx.texts, 5);
+    this.syncTexts(this.labelTexts, objectLabels(world), 6);
+
+    const prompt = focusPrompt(world);
+    this.promptText.setVisible(!!prompt);
+    if (prompt) this.promptText.setText(prompt.text).setColor(prompt.color);
+    this.briefPanel.setVisible(world.focusObject?.id === 'sortie');
+  }
+
+  syncTexts(pool, items, depth) {
+    while (pool.length < items.length) {
+      pool.push(this.add.text(0, 0, '', { fontFamily: FONTS.body, fontStyle: '700' }).setOrigin(0.5).setDepth(depth));
+    }
+    pool.forEach((obj, i) => {
+      const t = items[i];
+      if (!t) return obj.setVisible(false);
+      const alpha = t.max ? Math.min(1, (t.life / t.max) * 2) : 1;
+      obj.setVisible(true).setText(t.text).setColor(t.color).setFontSize(t.size).setAlpha(alpha);
+      const half = obj.width / 2 + 32;
+      obj.setPosition(Math.max(half, Math.min(W - half, t.x)), t.y);
     });
   }
+}
+
+// 素材の色（HUD などで使う）
+export function materialColor(def) {
+  return ELEMENT_COLORS[def.color] ?? COLORS[def.color];
 }

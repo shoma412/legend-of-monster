@@ -33,6 +33,11 @@ function say(world, text, color) {
 }
 
 const HANDLERS = {
+  // 隠れ家に置いてあるもの。world.request を見て、画面側が処理する
+  station(world, o) {
+    world.request = o.id;
+  },
+
   // 扉：次の部屋へ。world.exit を見て、画面側が部屋を切り替える
   door(world, o) {
     world.exit = o.target;
