@@ -12,6 +12,8 @@ const CHECKS = {
   allFragments: (def, event, save) => DATA.fragments.ids().every((id) => save.fragments.includes(id)),
   totalKills: (def, event, save) => save.records.kills >= def.count,
   weaponIs: (def, event, save, run) => run.weaponId === def.weapon,
+  levelAtLeast: (def, event) => event.level >= def.level,
+  runsAtLeast: (def, event, save) => save.records.runs >= def.count,
 };
 
 export function hasCheck(name) {

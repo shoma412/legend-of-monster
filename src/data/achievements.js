@@ -3,7 +3,8 @@
 //
 // on    : きっかけになる出来事
 //         sortie（出撃）/ kill（敵を倒した）/ eliteKill / bossKill / implant（インプラントを入れた）/
-//         equip（装備を身につけた）/ fragment（データ片を手に入れた）/ runClear（最後のボスを倒した）
+//         equip（装備を身につけた）/ fragment（データ片を手に入れた）/ runClear（最後のボスを倒した）/
+//         levelup（レベルが上がった）/ guard（ジャストガード成功）/ ougi（奥義を使った）/ buy（闇市で買った）/ item（消耗品を使った）
 // check : 追加の条件の部品の名前（src/logic/achievements.js の CHECKS）。書かなければ、出来事が起きただけで解除
 export const achievements = [
   { id: 'first-sortie', name: '初仕事', desc: '初めて出撃した', on: 'sortie' },
@@ -20,4 +21,11 @@ export const achievements = [
   { id: 'clear-greatsword', name: '大剣使い', desc: '大剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'greatsword' },
   { id: 'clear-sword', name: '片手剣使い', desc: '片手剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'sword' },
   { id: 'clear-gun', name: '銃使い', desc: '銃で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'gun' },
+  { id: 'level-8', name: 'フル改造', desc: '1回のランでレベル8に届いた', on: 'levelup', check: 'levelAtLeast', level: 8 },
+  { id: 'just-guard', name: '見切り', desc: 'ジャストガードを成功させた', on: 'guard' },
+  { id: 'ougi', name: '起死回生', desc: '奥義を使った', on: 'ougi' },
+  { id: 'market', name: '闇市の客', desc: '闇市で買い物をした', on: 'buy' },
+  { id: 'item', name: '道具使い', desc: '消耗品を使った', on: 'item' },
+  { id: 'runs-10', name: '常連', desc: '10回出撃した', on: 'sortie', check: 'runsAtLeast', count: 10 },
+  { id: 'kills-500', name: '五百体処理', desc: '累計で500体倒した', on: 'kill', check: 'totalKills', count: 500 },
 ];

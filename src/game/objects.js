@@ -4,7 +4,7 @@ import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { addImplant, equipFocusLoot, equipItem } from './build.js';
 import { addItem } from './consumables.js';
-import { floatText, ring } from './fx.js';
+import { floatText, ring, sfx } from './fx.js';
 
 // 一番近い「調べられるもの」を探す。落ちている装備は world.focusLoot、それ以外は world.focusObject
 export function updateFocus(world) {
@@ -43,6 +43,7 @@ const HANDLERS = {
   // 扉：次の部屋へ。world.exit を見て、画面側が部屋を切り替える
   door(world, o) {
     world.exit = o.target;
+    sfx(world, 'door');
   },
 
   heal(world, o) {
@@ -51,6 +52,7 @@ const HANDLERS = {
     const amount = Math.round(p.stats.maxHp * ROOMGEN.supply.heal);
     p.hp = Math.min(p.stats.maxHp, p.hp + amount);
     o.used = true;
+    sfx(world, 'heal');
     say(world, `修復 +${amount}`, COLORS.green);
     ring(world, o.x, o.y, 60, COLORS.green);
   },
@@ -60,6 +62,7 @@ const HANDLERS = {
     const g = o.goods;
     if (p.build.credits < g.price) {
       say(world, 'クレジット不足', COLORS.red);
+      sfx(world, 'deny');
       return;
     }
     p.build.credits -= g.price;
@@ -88,14 +91,18 @@ const HANDLERS = {
       return;
     }
     say(world, `${DATA.consumables.get(o.id).name} を拾った`, COLORS.ink);
+    sfx(world, 'pickup');
     world.objects = world.objects.filter((x) => x !== o);
   },
 
   // データ片：拾った時点で持ち帰りが確定する（ラン側がセーブデータに記録する）
   fragment(world, o) {
     world.events.push({ type: 'fragment', id: o.id });
+    sfx(world, 'fragment');
     ring(world, o.x, o.y, 50, COLORS.cyan);
     world.objects = world.objects.filter((x) => x !== o);
+    sfx(world, 'buy');
+    world.events.push({ type: 'buy' });
   },
 
   // データ金庫：1つ取ると残りは消える
@@ -121,6 +128,7 @@ export function useKit(world) {
   const p = world.player;
   if (world.mode === 'dead' || world.choice || p.build.kits <= 0 || p.hp >= p.stats.maxHp) return false;
   p.build.kits--;
+  sfx(world, 'heal');
   p.hp = Math.min(p.stats.maxHp, p.hp + PLAYER.kit.heal);
   say(world, `修復キット +${PLAYER.kit.heal}`, COLORS.green);
   ring(world, p.x, p.y, 40, COLORS.green);

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { brief } from '../data/story.js';
@@ -38,6 +39,9 @@ export class HideoutScene extends Phaser.Scene {
     const room = { type: 'hideout', waves: [], objects: this.buildStations(), doors: [], clearCredits: 0 };
     this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
     if (import.meta.env.DEV) window.__world = this.world;
+    this.cameras.main.fadeIn(200, 7, 6, 13);
+    unlockAudio(this);
+    playBgm('hideout');
 
     drawFloor(this.add.graphics());
     this.gfx = this.add.graphics();
@@ -159,6 +163,7 @@ export class HideoutScene extends Phaser.Scene {
     const world = this.world;
     const p = world.player;
     if (id === 'sortie') {
+      playSe('door');
       this.scene.start('Battle', { weaponId: this.save.selected });
       return;
     }
@@ -171,10 +176,12 @@ export class HideoutScene extends Phaser.Scene {
     if (!this.save.weapons.includes(weaponId)) {
       if (def.ready === false) {
         floatText(world, p.x, p.y - 30, '準備中', COLORS.dim, 14);
+        playSe('deny');
         return;
       }
       if (!unlockWeapon(this.save, weaponId)) {
         floatText(world, p.x, p.y - 30, '素材が足りない', COLORS.red, 14);
+        playSe('deny');
         return;
       }
       floatText(world, p.x, p.y - 30, `${def.name}を解放した`, COLORS.amber, 14);
@@ -188,6 +195,7 @@ export class HideoutScene extends Phaser.Scene {
       p.comboStep = 0;
       ring(world, p.x, p.y, 44, COLORS.cyan);
       floatText(world, p.x, p.y - 48, `${def.name}を選んだ`, COLORS.cyan, 14);
+      playSe('equip');
     }
     persist();
     this.refreshStations();
@@ -220,6 +228,7 @@ export class HideoutScene extends Phaser.Scene {
     }
     updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
     world.events.length = 0;
+    for (const name of world.fx.sounds.splice(0)) playSe(name);
     if (world.request) {
       const id = world.request;
       world.request = null;

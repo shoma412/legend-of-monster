@@ -8,7 +8,7 @@ import { recalcStats } from './build.js';
 import { hitEnemy } from './combat.js';
 import { updateItemEffects } from './consumables.js';
 import { fire } from './effects.js';
-import { addHitstop, addShake, burst, floatText, ghost, ring } from './fx.js';
+import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
 
 // carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
 export function createPlayer(weaponId, x, y, carry = null) {
@@ -101,7 +101,10 @@ export function updatePlayer(world, dt, input) {
 
   if (input.dashPressed) p.dashBuffer = PLAYER.dash.buffer;
   if (input.attackPressed) p.attackBuffer = PLAYER.attackBuffer;
-  if (p.dashBuffer > 0 && p.dashCharges > 0 && p.dashT <= 0) startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
+  if (p.dashBuffer > 0 && p.dashCharges > 0 && p.dashT <= 0) {
+    startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
+    sfx(world, 'dash');
+  }
 
   if (p.dashT > 0) {
     p.dashT -= dt;
@@ -180,6 +183,7 @@ const SPECIALS = {
         const stage = chargeStage(special, p.charge.t);
         if (stage > p.charge.stage) {
           p.charge.stage = stage;
+          sfx(world, 'charge');
           ring(world, p.x, p.y, 30 + stage * 12, stage === special.stages.length - 1 ? COLORS.amber : COLORS.cyan);
         }
       } else {
@@ -284,6 +288,8 @@ function useOugi(world) {
   const p = world.player;
   const ougi = p.weapon.ougi;
   p.build.ougiUsed = true;
+  sfx(world, 'ougi');
+  world.events.push({ type: 'ougi' });
   p.attack = null;
   p.charge = null;
   p.inv = Math.max(p.inv, ougi.invincible);
@@ -341,6 +347,8 @@ export function triggerCounter(world) {
   // 反撃の角度は広角ブレードの影響を受けない（全方位のまま）
   p.attack.arc = c.arc * DEG;
   floatText(world, p.x, p.y - 30, 'JUST GUARD', COLORS.amber, 16);
+  sfx(world, 'guard');
+  world.events.push({ type: 'guard' });
   ring(world, p.x, p.y, c.range, COLORS.amber);
   burst(world, p.x, p.y, COLORS.amber, 16, 260);
   addHitstop(world, FEEL.hitstop.charged);
@@ -369,6 +377,7 @@ function makeAttack(p, def, damage, range, arcDeg, extra) {
 
 function resolveSwing(world, a) {
   const p = world.player;
+  sfx(world, a.heavy ? 'swingHeavy' : 'swing');
   let hits = 0;
   for (const e of world.enemies) {
     if (e.dead || e.spawnT > 0) continue;
@@ -392,6 +401,7 @@ function fireShot(world, angle, shot) {
   const p = world.player;
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
+  sfx(world, 'shoot');
   world.playerShots.push({
     x: p.x + dx * (p.r + 6),
     y: p.y + dy * (p.r + 6),

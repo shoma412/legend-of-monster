@@ -8,7 +8,7 @@ import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
-import { addShake, burst, floatText, ring } from './fx.js';
+import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 function aimAt(act, d) {
   act.dirX = d.dx / d.dist;
@@ -32,6 +32,7 @@ export const PATTERNS = {
         if (act.t <= 0) {
           act.phase = 'active';
           act.t = def.duration;
+          sfx(world, 'bossCharge');
         }
       } else if (act.phase === 'active') {
         b.x += act.dirX * def.speed * dt;
@@ -43,6 +44,7 @@ export const PATTERNS = {
           // 壁に激突。連続突進の途中でもここで止まる
           act.phase = 'stun';
           act.t = def.wallStun;
+          sfx(world, 'explode');
           addShake(world, FEEL.shake.charged);
           burst(world, b.x + act.dirX * b.r, b.y + act.dirY * b.r, b.color, 24, 260);
           floatText(world, b.x, b.y - b.r - 12, 'スタン!', COLORS.amber, 20);
@@ -74,6 +76,7 @@ export const PATTERNS = {
       act.t -= dt;
       if (act.phase === 'telegraph') {
         if (act.t <= 0) {
+          sfx(world, 'explode');
           world.hazards.push({
             type: 'ring', x: b.x, y: b.y, r: b.r, speed: def.ringSpeed, max: def.ringMax, width: def.ringWidth,
             damage: def.damage, color: b.color, done: false,
@@ -147,6 +150,7 @@ PATTERNS.slam = {
         ring(world, b.x, b.y, def.radius, b.color);
         burst(world, b.x, b.y, b.color, 24, 300);
         addShake(world, FEEL.shake.heavy);
+        sfx(world, 'explode');
         act.phase = 'recover';
         act.t = def.recover;
       }
@@ -210,7 +214,10 @@ PATTERNS.laser = {
     const p = world.player;
     act.t -= dt;
     if (act.phase === 'telegraph') {
-      if (act.t <= 0) act.phase = 'active';
+      if (act.t <= 0) {
+        act.phase = 'active';
+        sfx(world, 'laser');
+      }
     } else if (act.phase === 'active') {
       const step = def.speed * DEG * dt;
       act.angle += act.turnDir * step;
@@ -294,6 +301,7 @@ export function updateHazards(world, dt) {
       if (h.t <= 0) {
         if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
         burst(world, h.x, h.y, h.color, 12, 220);
+        sfx(world, 'hit');
         h.dead = true;
       }
     }

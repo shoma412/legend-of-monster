@@ -3,7 +3,7 @@ import { LOOT } from '../data/balance.js';
 import { COLORS, RARITY_COLORS } from '../data/theme.js';
 import { rollImplantChoices } from '../logic/level.js';
 import { computeStats } from '../logic/stats.js';
-import { floatText, ring } from './fx.js';
+import { floatText, ring, sfx } from './fx.js';
 
 // ビルドが変わったらステータスを計算し直す。最大HPが増えたぶんは現在HPにも足す
 export function recalcStats(player) {
@@ -16,6 +16,7 @@ export function recalcStats(player) {
 function announceEquip(world, item) {
   const p = world.player;
   world.events.push({ type: 'equip', rarity: item.rarity });
+  sfx(world, 'equip');
   const color = RARITY_COLORS[LOOT.rarities[item.rarity].id];
   floatText(world, p.x, p.y - 30, `装備：${item.name}`, color, 14);
   ring(world, p.x, p.y, 40, color);
@@ -55,6 +56,7 @@ export function openImplantChoice(world) {
   const options = rollImplantChoices(world.player.build, world.rng);
   if (options.length === 0) return;
   world.choice = { type: 'implant', options };
+  sfx(world, 'levelup');
 }
 
 export function chooseImplant(world, index) {
@@ -73,6 +75,7 @@ export function addImplant(world, def) {
   recalcStats(p);
   if (def.onAcquire === 'fullHeal') p.hp = p.stats.maxHp;
   world.events.push({ type: 'implant', id: def.id });
+  sfx(world, 'implant');
   floatText(world, p.x, p.y - 30, `導入：${def.name}`, COLORS.magenta, 14);
   ring(world, p.x, p.y, 50, COLORS.magenta);
 }

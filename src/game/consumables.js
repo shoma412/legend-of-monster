@@ -3,7 +3,7 @@ import { ITEMS } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyStop, effectDamage } from './combat.js';
-import { addShake, burst, floatText, ring } from './fx.js';
+import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 function itemColor(def) {
   return ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink;
@@ -31,6 +31,7 @@ const USES = {
     ring(world, x, y, def.radius, color);
     burst(world, x, y, color, 24, 300);
     addShake(world, 6);
+    sfx(world, 'explode');
     for (const e of enemiesNear(world, x, y, def.radius)) {
       effectDamage(world, e, def.damage, def.element);
       if (def.stop) applyStop(e, def.stop);
@@ -93,6 +94,8 @@ export function useItem(world, slotIndex, aim = null) {
   slot.count--;
   if (slot.count <= 0) p.build.items[slotIndex] = null;
   floatText(world, p.x, p.y - 30, def.name, itemColor(def), 14);
+  sfx(world, 'item');
+  world.events.push({ type: 'item', id: def.id });
   return true;
 }
 

@@ -1,7 +1,7 @@
 // 演出（火花・残像・ダメージ数字・画面揺れ・ヒットストップ）。world.fx に溜めて、描画側が読む。
 
 export function createFx() {
-  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], beams: [], shake: 0, hitstop: 0 };
+  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], beams: [], sounds: [], shake: 0, hitstop: 0 };
 }
 
 export function burst(world, x, y, color, count, speed = 200) {
@@ -25,6 +25,11 @@ export function ring(world, x, y, radius, color) {
 
 export function floatText(world, x, y, text, color, size = 15) {
   world.fx.texts.push({ x, y, text, color, size, life: 0.8, max: 0.8 });
+}
+
+// 効果音を鳴らす予約。画面側が毎フレーム取り出して鳴らす（名前は src/data/audio.js の SE のキー）
+export function sfx(world, name) {
+  if (world.fx.sounds.length < 12) world.fx.sounds.push(name);
 }
 
 export function addShake(world, amount) {

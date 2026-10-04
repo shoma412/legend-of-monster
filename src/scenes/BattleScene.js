@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
@@ -42,6 +43,12 @@ export class BattleScene extends Phaser.Scene {
     this.world = enterRoom(run);
     this.roomDef = DATA.rooms.get(this.world.room.type);
     if (import.meta.env.DEV) window.__world = this.world;
+    // 部屋に入るたびに、短く暗転から明ける。曲は部屋の種類で決まる
+    this.cameras.main.fadeIn(200, 7, 6, 13);
+    unlockAudio(this);
+    const bossRoom = !!this.world.room.waves[0]?.boss;
+    playBgm(bossRoom ? 'boss' : 'battle');
+    if (bossRoom) playSe('warning');
 
     this.floor = this.add.graphics();
     drawFloor(this.floor, this.area.theme);
@@ -276,8 +283,11 @@ export class BattleScene extends Phaser.Scene {
     const notes = handleEvents(this.run, world);
     if (notes.length > 0) {
       notes.forEach((note) => this.toasts.push(note));
+      if (notes.some((n) => n.kind === 'achievement')) playSe('achievement');
       persist();
     }
+    // ゲームの中で起きた音を鳴らす
+    for (const name of world.fx.sounds.splice(0)) playSe(name);
     this.toasts.update(delta);
 
     // 扉を選んだら次の部屋へ
@@ -361,17 +371,17 @@ export class BattleScene extends Phaser.Scene {
       this.commLog.play(this.area.comms.bossDefeated);
       if (hasNextArea(this.run)) {
         // 次のエリアへの扉が開く
-        this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);
       } else {
         // 今あるエリアを最後まで進んだ
         finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
         persist();
         const note = this.area.final ? '' : '（この先のエリアは準備中）';
-        this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する${note}`).setVisible(true);
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する${note}`).setVisible(true);
       }
     } else if (world.room.waves.length > 0) {
       const bonus = world.room.clearCredits > 0 ? `　+${Math.round(world.room.clearCredits * world.player.stats.creditMul)} c` : '';
-      this.clearText.setText(`区画制圧${bonus}　｜　右の扉を選んで進め`).setVisible(true);
+      this.clearText.setText(`> SECTOR CLEARED // 区画制圧${bonus}　右の扉を選んで進め`).setVisible(true);
       this.tweens.add({ targets: this.clearText, alpha: 0, delay: 3500, duration: 600 });
     }
   }
@@ -414,10 +424,13 @@ export class BattleScene extends Phaser.Scene {
       const step = ROOM.startCountdown.step;
       const n = Math.ceil(left / step);
       const k = (left % step) / step; // 1→0 で1つぶん進む
+      if (n !== this.countShown) playSe('count');
+      this.countShown = n;
       this.countText.setVisible(true).setText(`${n}`).setScale(1 + 0.5 * k).setAlpha(0.35 + 0.65 * k);
       this.countWasOn = true;
     } else if (this.countWasOn) {
       this.countWasOn = false;
+      playSe('go');
       this.countText.setText('GO').setScale(1).setAlpha(1);
       this.tweens.add({ targets: this.countText, alpha: 0, scale: 1.6, duration: 450, onComplete: () => this.countText.setVisible(false) });
     }

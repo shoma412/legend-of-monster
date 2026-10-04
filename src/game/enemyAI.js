@@ -5,7 +5,7 @@ import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSeg
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { updateEliteTrait } from './elite.js';
-import { addShake, burst, ring } from './fx.js';
+import { addShake, burst, ring, sfx } from './fx.js';
 
 // scale: エリアが進んだぶんの、HPと攻撃力の倍率
 export function createEnemy(def, x, y, spawnT, rng, scale = 1) {
@@ -130,6 +130,7 @@ const BEHAVIORS = {
         const x2 = e.x + Math.cos(e.angle) * snipe.range;
         const y2 = e.y + Math.sin(e.angle) * snipe.range;
         if (distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + snipe.width / 2) hurtPlayer(world, e.def.damage);
+        sfx(world, 'snipe');
         world.fx.beams.push({ x1: e.x, y1: e.y, x2, y2, life: 0.18, max: 0.18, color: e.color, width: snipe.width });
         addShake(world, 4);
         e.state = 'chase';
@@ -156,6 +157,7 @@ const BEHAVIORS = {
         ring(world, e.x, e.y, bomb.radius, e.color);
         burst(world, e.x, e.y, e.color, 26, 300);
         addShake(world, 7);
+        sfx(world, 'explode');
         e.dead = true; // 自爆は撃破に数えない（経験値もドロップもなし）
       }
     }
@@ -211,6 +213,7 @@ const BEHAVIORS = {
     } else if (e.state === 'aim') {
       e.t -= dt;
       if (e.t <= 0) {
+        sfx(world, 'enemyShot');
         world.shots.push({
           x: e.x,
           y: e.y,

@@ -2,6 +2,7 @@
 //   タブ：ステータス／恒久強化／記録／データ片／実績（どれを出すかは使う側が選ぶ）
 //   下のボタン：再開、隠れ家に戻る、など（使う側が渡す）
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
+import { isMuted, playSe, toggleMute } from '../audio/audio.js';
 import { LOOT, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
@@ -108,6 +109,7 @@ export class MenuOverlay {
   }
 
   setTab(index) {
+    playSe('select');
     this.tab = index;
     this.cursor = 0;
     this.render();
@@ -123,6 +125,7 @@ export class MenuOverlay {
     const n = this.rowCount();
     if (n === 0) return;
     this.cursor = (this.cursor + delta + n) % n;
+    playSe('select');
     this.render();
   }
 
@@ -133,7 +136,12 @@ export class MenuOverlay {
   buy(id) {
     if (this.options.readOnlyUpgrades) return;
     const { save } = this.options.context();
-    if (buyUpgrade(save, id)) this.options.onBuy?.();
+    if (buyUpgrade(save, id)) {
+      playSe('buy');
+      this.options.onBuy?.();
+    } else {
+      playSe('deny');
+    }
     this.render();
   }
 
@@ -187,10 +195,11 @@ export class MenuOverlay {
     else if (this.tabId === 'fragment') this.renderFragments(save);
     else this.renderAchievements(save);
 
-    // 下のボタン
-    const actions = this.options.actions;
+    // 下のボタン。最後に「音：ON/OFF」が付く
+    const sound = { label: `音：${isMuted() ? 'OFF' : 'ON'}`, color: COLORS.dim, run: () => { toggleMute(); this.render(); } };
+    const actions = [...this.options.actions, sound];
     actions.forEach((action, i) => {
-      const bx = W / 2 + (i - (actions.length - 1) / 2) * 230;
+      const bx = W / 2 + (i - (actions.length - 1) / 2) * 226;
       const color = action.color ?? COLORS.ink;
       this.panel(bx - 105, 470, 210, 34, color, action.run);
       this.text(bx, 487, action.label, 14, color, { fontStyle: '700' }).setOrigin(0.5);
@@ -353,7 +362,7 @@ export class MenuOverlay {
       const have = save.fragments.includes(f.id);
       const selected = i === this.cursor;
       const color = selected ? COLORS.cyan : have ? COLORS.ink : LOCKED;
-      this.text(56, 136 + i * 30, `${selected ? '▶ ' : '　 '}${have ? f.title : '？？？'}`, 14, color, { fontStyle: have ? '700' : '400' }, () => {
+      this.text(56, 132 + i * 26, `${selected ? '▶ ' : '　 '}${have ? f.title : '？？？'}`, 13, color, { fontStyle: have ? '700' : '400' }, () => {
         this.cursor = i;
         this.render();
       });
@@ -376,12 +385,13 @@ export class MenuOverlay {
     const list = DATA.achievements.all();
     this.text(40, 114, `解除 ${save.achievements.length} / ${list.length}`, 12, COLORS.dim);
     list.forEach((def, i) => {
-      const x = 40 + (i % 2) * 445;
-      const y = 134 + Math.floor(i / 2) * 54;
+      // 3列に並べる
+      const x = 40 + (i % 3) * 297;
+      const y = 134 + Math.floor(i / 3) * 47;
       const done = save.achievements.includes(def.id);
-      this.panel(x, y, 435, 48, done ? COLORS.amber : COLORS.line);
-      this.text(x + 14, y + 5, `${done ? '◆' : '◇'} ${def.name}`, 15, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
-      this.text(x + 14, y + 27, def.desc, 12, done ? COLORS.ink : LOCKED);
+      this.panel(x, y, 287, 42, done ? COLORS.amber : COLORS.line);
+      this.text(x + 10, y + 4, `${done ? '◆' : '◇'} ${def.name}`, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
+      this.text(x + 10, y + 24, def.desc, 10, done ? COLORS.ink : LOCKED);
     });
   }
 }

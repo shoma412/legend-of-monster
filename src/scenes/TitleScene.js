@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 
@@ -35,8 +36,14 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(1, 1);
 
     // どのキーでも、クリックでも始まる
-    this.input.keyboard.once('keydown', () => this.scene.start('Hideout'));
-    this.input.once('pointerdown', () => this.scene.start('Hideout'));
+    unlockAudio(this);
+    playBgm('title');
+    const start = () => {
+      playSe('confirm');
+      this.scene.start('Hideout');
+    };
+    this.input.keyboard.once('keydown', start);
+    this.input.once('pointerdown', start);
   }
 
   drawBackdrop(W, H) {

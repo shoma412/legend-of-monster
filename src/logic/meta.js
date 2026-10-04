@@ -67,7 +67,7 @@ function gainFragment(save, run, id, notes) {
   if (!id || save.fragments.includes(id)) return;
   save.fragments.push(id);
   run.gained.fragments.push(id);
-  addNote(run, notes, { kind: 'fragment', text: `データ片：${DATA.fragments.get(id).title}` });
+  addNote(run, notes, { kind: 'fragment', text: `> データ片回収 // ${DATA.fragments.get(id).title}` });
 }
 
 // まだ持っていないデータ片を1つ選ぶ（なければ null）
@@ -91,7 +91,7 @@ export function processEvent(save, run, event) {
     save.bossKills[boss.id] = (save.bossKills[boss.id] ?? 0) + 1;
     save.materials[boss.material] = (save.materials[boss.material] ?? 0) + count;
     run.gained.materials[boss.material] = (run.gained.materials[boss.material] ?? 0) + count;
-    addNote(run, notes, { kind: 'material', text: `${DATA.materials.get(boss.material).name} ×${count}${first ? '（初回撃破）' : ''}` });
+    addNote(run, notes, { kind: 'material', text: `> 素材回収 // ${DATA.materials.get(boss.material).name} ×${count}${first ? '（初回撃破）' : ''}` });
     // そのボスのデータ片
     const fragment = DATA.fragments.all().find((f) => f.source === 'boss' && f.area === event.area);
     if (fragment) {
@@ -110,7 +110,7 @@ export function processEvent(save, run, event) {
 
 function addAchievement(run, notes, def) {
   run.gained.achievements.push(def.id);
-  addNote(run, notes, { kind: 'achievement', text: `実績解除：${def.name}` });
+  addNote(run, notes, { kind: 'achievement', text: `> 実績解除 // ${def.name}` });
 }
 
 // 出撃したとき

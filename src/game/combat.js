@@ -8,7 +8,7 @@ import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
-import { addHitstop, addShake, burst, floatText } from './fx.js';
+import { addHitstop, addShake, burst, floatText, sfx } from './fx.js';
 import { triggerCounter } from './player.js';
 
 // ---- 状態異常 ----
@@ -61,6 +61,7 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
       enemy.hit = 0.06;
       floatText(world, enemy.x, enemy.y - enemy.r - 6, 'ガード', COLORS.dim, 13);
       burst(world, enemy.x + Math.cos(enemy.facing) * enemy.r, enemy.y + Math.sin(enemy.facing) * enemy.r, COLORS.ink, 4, 160);
+      sfx(world, 'block');
       return { amount: 0, crit: false, weak: false, blocked: true };
     }
   }
@@ -94,6 +95,7 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
     enemy.vx += (dirX / len) * kb;
     enemy.vy += (dirY / len) * kb;
   }
+  sfx(world, result.crit ? 'crit' : 'hit');
   const sparkColor = stats.elements.length > 0 ? ELEMENT_COLORS[stats.elements[0]] : enemy.color;
   burst(world, enemy.x, enemy.y, sparkColor, result.crit ? 10 : 5);
   damageEnemy(world, enemy, result.amount, result);
@@ -144,10 +146,13 @@ export function killEnemy(world, enemy) {
   burst(world, enemy.x, enemy.y, enemy.color, enemy.boss ? 90 : 18, enemy.boss ? 400 : 240);
   addShake(world, enemy.boss ? FEEL.shake.bossKill : FEEL.shake.kill);
   if (enemy.boss) addHitstop(world, FEEL.hitstop.bossKill);
+  sfx(world, enemy.boss ? 'bossKill' : 'kill');
 
   const p = world.player;
   if (p.stats.killHeal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.killHeal);
-  world.pendingLevelUps += addXp(p.build, enemy.def.xp ?? 0);
+  const levelUps = addXp(p.build, enemy.def.xp ?? 0);
+  world.pendingLevelUps += levelUps;
+  if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   eliteDeath(world, enemy);
   world.events.push({ type: 'kill', enemy: enemy.def.id });
@@ -204,6 +209,7 @@ export function hurtPlayer(world, damage) {
   world.damageTaken += amount;
   p.inv = PLAYER.hitInvincible;
   addShake(world, FEEL.shake.hurt);
+  sfx(world, p.hp <= 0 ? 'death' : 'hurt');
   floatText(world, p.x, p.y - 22, '-' + amount, COLORS.red, 18);
   burst(world, p.x, p.y, COLORS.red, 12);
   if (p.hp <= 0) {

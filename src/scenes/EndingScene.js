@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { playBgm, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { ending } from '../data/story.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
@@ -18,6 +19,9 @@ export class EndingScene extends Phaser.Scene {
 
   create() {
     const { width: W, height: H } = SCREEN;
+    this.cameras.main.fadeIn(600, 7, 6, 13);
+    unlockAudio(this);
+    playBgm('ending');
     const g = this.add.graphics();
     g.lineStyle(1, hex(COLORS.line), 0.4);
     for (let x = 0; x <= W; x += 48) g.lineBetween(x, 0, x, H);

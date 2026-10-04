@@ -371,3 +371,57 @@ describe('記録', () => {
     expect(r.outcome).toBe('areaClear');
   });
 });
+
+describe('M9 で足した実績', () => {
+  it('実績は21個あり、どれも名前と説明がある', () => {
+    const list = DATA.achievements.all();
+    expect(list).toHaveLength(21);
+    for (const def of list) {
+      expect(def.name, def.id).toBeTruthy();
+      expect(def.desc, def.id).toBeTruthy();
+    }
+  });
+
+  it('出来事が起きると解除される：ジャストガード、奥義、闇市、消耗品', () => {
+    const save = createSave();
+    const r = createRun({ rng: seeded(3), save });
+    for (const [type, id] of [['guard', 'just-guard'], ['ougi', 'ougi'], ['buy', 'market'], ['item', 'item']]) {
+      expect(save.achievements).not.toContain(id);
+      processEvent(save, r, { type });
+      expect(save.achievements).toContain(id);
+    }
+  });
+
+  it('レベル8、10回出撃、累計500体', () => {
+    const save = createSave();
+    const r = createRun({ rng: seeded(3), save });
+    processEvent(save, r, { type: 'levelup', level: 7 });
+    expect(save.achievements).not.toContain('level-8');
+    processEvent(save, r, { type: 'levelup', level: 8 });
+    expect(save.achievements).toContain('level-8');
+
+    for (let i = 0; i < 8; i++) createRun({ rng: seeded(3), save });
+    expect(save.records.runs).toBe(9);
+    expect(save.achievements).not.toContain('runs-10');
+    createRun({ rng: seeded(3), save });
+    expect(save.achievements).toContain('runs-10');
+
+    save.records.kills = 499;
+    processEvent(save, r, { type: 'kill' });
+    expect(save.achievements).toContain('kills-500');
+  });
+
+  it('敵を倒してレベルが上がると、レベルアップの出来事が出る', () => {
+    const save = createSave();
+    const r = createRun({ rng: seeded(3), save });
+    const world = enterRoom(r);
+    world.countdown = 0;
+    while (world.enemies.length === 0) updateWorld(world, DT, idle);
+    const e = world.enemies[0];
+    e.def = { ...e.def, xp: 40 };
+    e.spawnT = 0;
+    hitEnemy(world, e, 99999, 1, 0, 0);
+    expect(world.events.some((ev) => ev.type === 'levelup' && ev.level === 2)).toBe(true);
+    expect(world.fx.sounds).toContain('kill');
+  });
+});
