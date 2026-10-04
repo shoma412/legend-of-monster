@@ -4,7 +4,8 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { chooseImplant } from '../game/build.js';
 import { interact, useKit } from '../game/objects.js';
-import { createRun, currentArea, enterRoom, leaveRoom, skipToBoss } from '../game/run.js';
+import { createRun, currentArea, enterRoom, finishRun, handleEvents, leaveRoom, skipToBoss } from '../game/run.js';
+import { getSave, persist } from '../game/saveStore.js';
 import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
@@ -13,7 +14,7 @@ import {
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
-import { createBuildList, createChoicePanel, createCommLog, createComparePanel } from './battleUi.js';
+import { createBuildList, createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
 
 const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
 const CHOICE_LOCK = 450; // 3択が出てから選べるようになるまで（ミリ秒）。攻撃の連打で誤って選ばないため
@@ -25,9 +26,10 @@ export class BattleScene extends Phaser.Scene {
     super('Battle');
   }
 
-  // run: 続きのラン。省略すると新しいランを始める
+  // run: 続きのラン。省略すると、weaponId の武器で新しいランを始める
   init(data) {
-    this.run = data?.run ?? createRun();
+    this.fresh = !data?.run;
+    this.run = data?.run ?? createRun({ weaponId: data?.weaponId ?? 'greatsword', save: getSave() });
   }
 
   create() {
@@ -63,10 +65,13 @@ export class BattleScene extends Phaser.Scene {
     this.keys.ENTER.on('down', () => {
       const world = this.world;
       if (world.choice) return;
-      // 死んだとき、エリアの最後までクリアしたときは、新しいランを始める
-      if (world.mode === 'dead' || (world.mode === 'clear' && world.boss)) this.scene.restart({});
+      // ランが終わっていたら、リザルトを見てから隠れ家へ帰る
+      if (!this.run.outcome) return;
+      if (this.overlay.visible) this.scene.start('Hideout');
+      else this.showResult();
     });
-    this.keys.ESC.on('down', () => this.scene.start('Title'));
+    // Esc：ランを捨てて隠れ家へ（持ち帰りが確定したものは残る）
+    this.keys.ESC.on('down', () => this.scene.start('Hideout'));
     // 確認用のキー（開発中の画面だけ。公開版では効かない）：ボス部屋へ飛ぶ
     if (import.meta.env.DEV) {
       this.keys.B.on('down', () => {
@@ -86,7 +91,7 @@ export class BattleScene extends Phaser.Scene {
     this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋へ' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc タイトル${devHelp}`, {
+    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃／長押しで溜め斬り　Shift ダッシュ　E 調べる・拾う・進む　Q 修復キット　M 地図　Esc 隠れ家へ帰る${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -102,6 +107,12 @@ export class BattleScene extends Phaser.Scene {
     this.comparePanel = createComparePanel(this);
     this.choicePanel = createChoicePanel(this, (i) => this.choose(i));
     this.commLog = createCommLog(this);
+    this.toasts = createToasts(this);
+    // 出撃した時点で解除された実績など、ラン開始時の通知
+    if (this.fresh) {
+      this.run.gained.notes.forEach((note) => this.toasts.push(note));
+      persist();
+    }
     this.createBigMap();
     this.countText = this.add.text(W / 2, H / 2 - 20, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '110px', color: COLORS.cyan })
       .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 24, false, true).setDepth(9).setVisible(false);
@@ -111,10 +122,11 @@ export class BattleScene extends Phaser.Scene {
     this.bossIntroDone = false;
     this.clearShown = false;
 
-    // 死亡の表示
+    // リザルト（死亡したとき、最後まで進んだとき）
     this.overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.7).setVisible(false).setDepth(10);
     this.resultTitle = this.add.text(W / 2, H / 2 - 40, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '44px' }).setOrigin(0.5).setVisible(false).setDepth(11);
-    this.resultSub = this.add.text(W / 2, H / 2 + 24, '', { fontFamily: FONTS.body, fontSize: '16px', color: COLORS.ink, align: 'center', lineSpacing: 8 }).setOrigin(0.5).setVisible(false).setDepth(11);
+    this.resultTitle.setY(96);
+    this.resultSub = this.add.text(W / 2, 150, '', { fontFamily: FONTS.body, fontSize: '15px', color: COLORS.ink, align: 'center', lineSpacing: 9 }).setOrigin(0.5, 0).setVisible(false).setDepth(11);
   }
 
   // 線画をぼかして重ね、ネオンがにじんで光るように見せる。対応していない環境ではそのまま描く
@@ -188,6 +200,14 @@ export class BattleScene extends Phaser.Scene {
     updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
     if (world.choice && !hadChoice) this.choiceShownAt = this.time.now;
 
+    // ボス素材・データ片・実績。手に入った時点でセーブする
+    const notes = handleEvents(this.run, world);
+    if (notes.length > 0) {
+      notes.forEach((note) => this.toasts.push(note));
+      persist();
+    }
+    this.toasts.update(delta);
+
     // 扉を選んだら次の部屋へ
     if (world.exit) {
       leaveRoom(this.run, world, world.exit);
@@ -237,7 +257,11 @@ export class BattleScene extends Phaser.Scene {
     const shake = reduceMotion ? 0 : world.fx.shake;
     this.cameras.main.setScroll((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
-    if (world.mode === 'dead' && !this.overlay.visible) this.showDeath();
+    if (world.mode === 'dead' && !this.run.outcome) {
+      finishRun(this.run, world, 'dead');
+      persist();
+      this.showResult();
+    }
     if (world.mode === 'clear' && !this.clearShown) this.showClear(boss);
   }
 
@@ -255,7 +279,10 @@ export class BattleScene extends Phaser.Scene {
     const world = this.world;
     if (boss) {
       this.commLog.play(this.area.comms.bossDefeated);
-      this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\nENTER：新しいランを始める（この先のエリアは準備中）`).setVisible(true);
+      // 今あるエリアを最後まで進んだ。この先のエリアができたら、ここで次のエリアへ進む
+      finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
+      persist();
+      this.clearText.setText(`${boss.def.name} 撃破 — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する（この先のエリアは準備中）`).setVisible(true);
     } else if (world.room.waves.length > 0) {
       const bonus = world.room.clearCredits > 0 ? `　+${Math.round(world.room.clearCredits * world.player.stats.creditMul)} c` : '';
       this.clearText.setText(`区画制圧${bonus}　｜　右の扉を選んで進め`).setVisible(true);
@@ -326,9 +353,28 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  showDeath() {
-    this.overlay.setVisible(true);
-    this.resultTitle.setText('SIGNAL LOST').setColor(COLORS.red).setShadow(0, 0, COLORS.red, 16, false, true).setVisible(true);
-    this.resultSub.setText('装備・レベル・インプラントは失われた\nENTER：新しいランを始める　　ESC：タイトルへ').setVisible(true);
+  // リザルト：到達した場所、撃破数、持ち帰ったもの
+  showResult() {
+    const run = this.run;
+    const dead = run.outcome === 'dead';
+    const color = dead ? COLORS.red : COLORS.green;
+    const g = run.gained;
+    const names = (ids, registry, key) => (ids.length > 0 ? ids.map((id) => registry.get(id)[key]).join('、') : 'なし');
+    const materials = Object.entries(g.materials).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　') || 'なし';
+    const lines = [
+      `到達　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
+      `撃破数　${run.kills}`,
+      '',
+      `持ち帰ったボス素材　${materials}`,
+      `新しいデータ片　${names(g.fragments, DATA.fragments, 'title')}`,
+      `解除した実績　${names(g.achievements, DATA.achievements, 'name')}`,
+      '',
+      dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
+      'ENTER：隠れ家へ',
+    ];
+    this.overlay.setVisible(true).setFillStyle(0x07060d, 0.86);
+    this.clearText.setVisible(false);
+    this.resultTitle.setText(dead ? 'SIGNAL LOST' : 'MISSION COMPLETE').setColor(color).setShadow(0, 0, color, 16, false, true).setVisible(true);
+    this.resultSub.setText(lines.join('\n')).setVisible(true);
   }
 }

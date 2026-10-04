@@ -64,6 +64,13 @@ const HANDLERS = {
     world.objects = world.objects.filter((x) => x !== o);
   },
 
+  // データ片：拾った時点で持ち帰りが確定する（ラン側がセーブデータに記録する）
+  fragment(world, o) {
+    world.events.push({ type: 'fragment', id: o.id });
+    ring(world, o.x, o.y, 50, COLORS.cyan);
+    world.objects = world.objects.filter((x) => x !== o);
+  },
+
   // データ金庫：1つ取ると残りは消える
   vault(world, o) {
     equipItem(world, o.item);

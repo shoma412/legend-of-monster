@@ -86,6 +86,11 @@ export const FEEL = {
   shake: { hit: 2.5, heavy: 6, charged: 12, kill: 3, bossKill: 20, hurt: 8, death: 14 },
 };
 
+// 持ち帰り要素
+export const META = {
+  firstKillMaterials: 3, // ボスを初めて倒したときにもらえる素材の数（2回目以降は1個）
+};
+
 // 部屋の中身の抽選
 export const ROOMGEN = {
   // 戦闘部屋：波の数と、1波あたりの敵の予算（敵ごとの cost の合計）

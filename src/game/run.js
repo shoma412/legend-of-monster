@@ -2,6 +2,8 @@
 import { ROOM } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
+import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
+import { createSave } from '../logic/save.js';
 import { createBuild } from '../logic/stats.js';
 import { buildRoom } from './rooms.js';
 import { createWorld } from './world.js';
@@ -9,18 +11,28 @@ import { createWorld } from './world.js';
 // エリアの順番。エリア2・3は M7・M8 で足す
 export const AREA_ORDER = ['slum'];
 
-export function createRun({ weaponId = 'greatsword', rng = Math.random } = {}) {
+// save: セーブデータ（隠れ家の進行状況）。恒久強化がランに乗り、ボス素材・データ片・実績がここに記録される
+export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave() } = {}) {
   const area = DATA.areas.get(AREA_ORDER[0]);
-  return {
+  const bonus = permanentBonuses(save);
+  const run = {
     weaponId,
     rng,
+    save,
     areaIndex: 0,
     plan: createAreaPlan(area, rng), // エリアの地図と、今いる場所
-    build: createBuild(), // 装備・インプラント・レベル・クレジット・修復キット
+    build: createBuild(bonus), // 装備・インプラント・レベル・クレジット・修復キット
     hp: null, // 前の部屋を出たときのHP（null は満タン）
     kills: 0,
     started: false,
+    startChoice: bonus.startChoice, // 恒久強化「起動プログラム」：最初にインプラントを1つ選べる
+    outcome: null, // 終わり方：dead（死亡）/ areaClear（今あるエリアを最後まで進んだ）/ clear（最後のボスを倒した）
+    // このランで持ち帰ったもの（リザルト画面に出す）
+    gained: { materials: {}, fragments: [], achievements: [], notes: [] },
   };
+  startRunRecord(save);
+  processEvent(save, run, { type: 'sortie' });
+  return run;
 }
 
 export function currentArea(run) {
@@ -30,17 +42,22 @@ export function currentArea(run) {
 // 今の部屋の world を作る
 export function enterRoom(run) {
   const area = currentArea(run);
-  const { plan, rng } = run;
-  const room = buildRoom(currentNode(plan).type, { area, step: plan.step, build: run.build, rng }, doorOptions(plan));
+  const { plan, rng, save } = run;
+  const ctx = { area, step: plan.step, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng) };
+  const room = buildRoom(currentNode(plan).type, ctx, doorOptions(plan));
+  const first = !run.started;
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
-  if (!run.started) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
+  if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
   run.started = true;
-  return createWorld({
+  recordProgress(save, run.areaIndex, plan.step);
+  const world = createWorld({
     weaponId: run.weaponId,
     rng,
     room,
     carry: { hp: run.hp, build: run.build },
   });
+  if (first && run.startChoice) world.pendingLevelUps = 1;
+  return world;
 }
 
 // 扉を選んで次の部屋へ。world は出ていく部屋、nextId は進む先（地図の id）
@@ -48,6 +65,27 @@ export function leaveRoom(run, world, nextId) {
   run.hp = world.player.hp;
   run.kills += world.kills;
   advancePlan(run.plan, nextId);
+}
+
+// world で起きた出来事を処理する（ボス素材、データ片、実績、記録）。画面に出す通知を返す
+export function handleEvents(run, world) {
+  const area = currentArea(run);
+  const notes = [];
+  for (const event of world.events.splice(0)) {
+    if (event.type === 'bossKill') event.area = area.id;
+    notes.push(...processEvent(run.save, run, event));
+    // 最後のエリアのボスを倒したらクリア
+    if (event.type === 'bossKill' && area.final) notes.push(...processEvent(run.save, run, { type: 'runClear' }));
+  }
+  return notes;
+}
+
+// ランの終わりを決める（最初に決まったものが残る）。world は最後にいた部屋
+export function finishRun(run, world, outcome) {
+  if (run.outcome) return;
+  run.outcome = outcome;
+  run.kills += world.kills;
+  run.hp = world.player.hp;
 }
 
 // 確認用：途中を飛ばしてボス部屋へ

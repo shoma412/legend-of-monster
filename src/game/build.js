@@ -15,6 +15,7 @@ export function recalcStats(player) {
 
 function announceEquip(world, item) {
   const p = world.player;
+  world.events.push({ type: 'equip', rarity: item.rarity });
   const color = RARITY_COLORS[LOOT.rarities[item.rarity].id];
   floatText(world, p.x, p.y - 30, `装備：${item.name}`, color, 14);
   ring(world, p.x, p.y, 40, color);
@@ -71,6 +72,7 @@ export function addImplant(world, def) {
   p.build.implants[def.id] = (p.build.implants[def.id] ?? 0) + 1;
   recalcStats(p);
   if (def.onAcquire === 'fullHeal') p.hp = p.stats.maxHp;
+  world.events.push({ type: 'implant', id: def.id });
   floatText(world, p.x, p.y - 30, `導入：${def.name}`, COLORS.magenta, 14);
   ring(world, p.x, p.y, 50, COLORS.magenta);
 }

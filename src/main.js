@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { SCREEN } from './data/balance.js';
 import { COLORS, FONTS } from './data/theme.js';
 import { BattleScene } from './scenes/BattleScene.js';
+import { HideoutScene } from './scenes/HideoutScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 
 // Webフォントの読み込みを待ってから起動する（待たないと最初の文字が代替フォントで描かれる）。
@@ -28,6 +29,6 @@ loadFonts().then(() => {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [TitleScene, BattleScene],
+    scene: [TitleScene, HideoutScene, BattleScene],
   });
 });

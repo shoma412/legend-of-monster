@@ -15,6 +15,7 @@ export const bosses = [
     shape: 'boar',
     color: 'shock',
     weakness: 'cold',
+    material: 'boarCore', // 倒すと持ち帰れるボス素材（src/data/story.js の materials）
     radius: 42,
     hp: 1100,
     speed: 70,

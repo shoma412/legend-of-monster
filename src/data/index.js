@@ -10,6 +10,8 @@ import { rooms } from './rooms.js';
 import { upgrades } from './upgrades.js';
 import { areas } from './areas.js';
 import { eliteTraits } from './eliteTraits.js';
+import { achievements } from './achievements.js';
+import { fragments, materials } from './story.js';
 
 export const DATA = {
   enemies: defineRegistry('敵', enemies),
@@ -22,4 +24,7 @@ export const DATA = {
   upgrades: defineRegistry('恒久強化', upgrades),
   areas: defineRegistry('エリア', areas),
   eliteTraits: defineRegistry('エリートの特性', eliteTraits),
+  materials: defineRegistry('ボス素材', materials),
+  fragments: defineRegistry('データ片', fragments),
+  achievements: defineRegistry('実績', achievements),
 };

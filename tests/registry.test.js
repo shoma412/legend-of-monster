@@ -39,8 +39,10 @@ describe('defineRegistry', () => {
 
 describe('DATA', () => {
   it('すべての種類の定義データを読み込める', () => {
-    const kinds = ['enemies', 'bosses', 'weapons', 'gearEffects', 'legendEffects', 'implants', 'rooms', 'upgrades', 'areas', 'eliteTraits'];
-    expect(Object.keys(DATA).sort()).toEqual([...kinds].sort());
+    const kinds = Object.keys(DATA);
+    for (const kind of ['enemies', 'bosses', 'weapons', 'gearEffects', 'legendEffects', 'implants', 'rooms', 'upgrades', 'areas', 'eliteTraits', 'materials', 'fragments', 'achievements']) {
+      expect(kinds).toContain(kind);
+    }
     for (const kind of kinds) expect(Array.isArray(DATA[kind].all())).toBe(true);
   });
 });

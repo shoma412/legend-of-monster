@@ -27,7 +27,9 @@ export function createPlayer(weaponId, x, y, carry = null) {
     charge: null, // 溜め中
     specialCd: 0,
     dashT: 0,
-    dashCd: 0,
+    dashCd: 0, // 次のダッシュが出せるまでの秒数（HUD 用）
+    dashCharges: 1, // 今出せるダッシュの回数
+    dashRecharge: 0, // 次の1回ぶんが溜まるまでの秒数
     dashBuffer: 0,
     attackBuffer: 0,
     dvx: 0,
@@ -39,6 +41,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
   };
   recalcStats(player);
   player.hp = Math.min(player.stats.maxHp, carry?.hp ?? player.stats.maxHp);
+  player.dashCharges = player.stats.dashCharges;
   return player;
 }
 
@@ -48,7 +51,16 @@ export function createPlayer(weaponId, x, y, carry = null) {
 export function updatePlayer(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
-  p.dashCd -= dt;
+  // ダッシュは使った回数ぶん、1回ずつ溜め直す
+  const maxDash = p.stats.dashCharges;
+  if (p.dashCharges < maxDash) {
+    p.dashRecharge -= dt;
+    if (p.dashRecharge <= 0) {
+      p.dashCharges++;
+      p.dashRecharge = p.dashCharges < maxDash ? PLAYER.dash.cooldown : 0;
+    }
+  }
+  p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.inv -= dt;
   p.specialCd -= dt;
   p.dashBuffer -= dt;
@@ -76,7 +88,7 @@ export function updatePlayer(world, dt, input) {
 
   if (input.dashPressed) p.dashBuffer = PLAYER.dash.buffer;
   if (input.attackPressed) p.attackBuffer = PLAYER.attackBuffer;
-  if (p.dashBuffer > 0 && p.dashCd <= 0 && p.dashT <= 0) startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
+  if (p.dashBuffer > 0 && p.dashCharges > 0 && p.dashT <= 0) startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
 
   if (p.dashT > 0) {
     p.dashT -= dt;
@@ -99,7 +111,9 @@ function startDash(p, dx, dy) {
   const d = PLAYER.dash;
   p.dashBuffer = 0;
   p.dashT = d.duration;
-  p.dashCd = d.cooldown;
+  if (p.dashCharges >= p.stats.dashCharges) p.dashRecharge = d.cooldown;
+  p.dashCharges--;
+  p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.sinceDash = 0;
   p.dashState = { hit: new Set(), lastFloor: null };
   p.inv = Math.max(p.inv, d.invincible);

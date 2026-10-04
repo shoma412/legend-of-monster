@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { SCREEN } from '../data/balance.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 
-// タイトル画面。今は何かキーを押すと確認用の戦闘部屋に入る。隠れ家への遷移は M5 でつなぐ。
+// タイトル画面。何かキーを押すと隠れ家へ。
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('Title');
@@ -30,13 +30,13 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5).setShadow(0, 0, COLORS.amber, 10, false, true);
     this.tweens.add({ targets: prompt, alpha: 0.25, duration: 700, yoyo: true, repeat: -1 });
 
-    this.add.text(W - 16, H - 14, `v${__APP_VERSION__} · M1`, {
+    this.add.text(W - 16, H - 14, `v${__APP_VERSION__} `, {
       fontFamily: FONTS.display, fontStyle: '500', fontSize: '12px', color: COLORS.dim,
     }).setOrigin(1, 1);
 
     // どのキーでも、クリックでも始まる
-    this.input.keyboard.once('keydown', () => this.scene.start('Battle'));
-    this.input.once('pointerdown', () => this.scene.start('Battle'));
+    this.input.keyboard.once('keydown', () => this.scene.start('Hideout'));
+    this.input.once('pointerdown', () => this.scene.start('Hideout'));
   }
 
   drawBackdrop(W, H) {

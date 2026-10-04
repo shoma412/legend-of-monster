@@ -25,6 +25,7 @@ export const areas = [
     ],
     eliteBases: ['grunt', 'turret'],
     boss: 'boltboar',
+    final: false, // 最後のエリアなら true（ここのボスを倒すとクリア）
     comms: {
       bossIntro: [
         '依頼主＞ 最深部に大型反応。そいつが今回の標的だ。',

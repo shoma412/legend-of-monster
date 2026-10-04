@@ -237,7 +237,14 @@ export function drawHud(g, world) {
   g.lineStyle(1, hex(COLORS.line), 1).strokeRect(x, y, w, 10);
 
   // ダッシュと特殊攻撃のクールダウン
-  cooldownBar(g, 362, y, 1 - Math.max(0, p.dashCd) / PLAYER.dash.cooldown, hex(COLORS.cyan));
+  const dashFull = p.dashCharges >= p.stats.dashCharges;
+  cooldownBar(g, 362, y, dashFull ? 1 : 1 - Math.max(0, p.dashRecharge) / PLAYER.dash.cooldown, hex(COLORS.cyan));
+  // 二重ダッシュ：残り回数を点で出す
+  if (p.stats.dashCharges > 1) {
+    for (let i = 0; i < p.stats.dashCharges; i++) {
+      g.fillStyle(hex(i < p.dashCharges ? COLORS.cyan : COLORS.line), 1).fillRect(362 + i * 8, y + 13, 6, 3);
+    }
+  }
   cooldownBar(g, 500, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
 
   // 経験値（HPバーの下の細い線）

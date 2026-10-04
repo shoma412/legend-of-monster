@@ -11,7 +11,7 @@ function row(count, spacing, y) {
   return Array.from({ length: count }, (_, i) => ({ x: CX + (i - (count - 1) / 2) * spacing, y }));
 }
 
-// ctx: { area, step, build, rng } → { waves, objects }
+// ctx: { area, step, build, rng, fragment } → { waves, objects }
 const BUILDERS = {
   combat: ({ area, step, rng }) => ({ waves: generateWaves(area, step, rng) }),
   elite: ({ area, step, rng }) => ({ waves: generateEliteWaves(area, step, rng) }),
@@ -28,10 +28,13 @@ const BUILDERS = {
   },
 
   // データ金庫：装備が並び、1つだけ持っていける
-  vault: ({ rng }) => {
+  // fragment: ここで拾えるデータ片の id（まだ持っていないものがあるときだけ）
+  vault: ({ rng, fragment }) => {
     const items = generateVault(rng);
     const spots = row(items.length, 140, CY - 10);
-    return { objects: items.map((item, i) => ({ kind: 'vault', ...spots[i], r: 44, item })) };
+    const objects = items.map((item, i) => ({ kind: 'vault', ...spots[i], r: 44, item }));
+    if (fragment) objects.push({ kind: 'fragment', id: fragment, x: CX, y: CY + 110, r: 44 });
+    return { objects };
   },
 };
 

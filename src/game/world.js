@@ -39,6 +39,8 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     focusObject: null, // 近くにある、E で調べられるもの
     exit: null, // 扉を選んだら、進む先の部屋（地図の id）が入る
     countdown: room.countdown ?? 0, // 開始前のカウントダウンの残り（秒）。0 になるまで敵は出ない
+    events: [], // 起きた出来事（敵を倒した、装備した、など）。ラン側が読んで、実績やボス素材を処理する
+    damageTaken: 0, // この部屋で受けたダメージの合計
     choice: null, // 選択待ち（レベルアップのインプラント3択）。出ている間は戦闘が止まる
     pendingLevelUps: 0,
     waves: room.waves,

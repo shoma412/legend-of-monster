@@ -135,6 +135,9 @@ export function killEnemy(world, enemy) {
   world.pendingLevelUps += addXp(p.build, enemy.def.xp ?? 0);
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   eliteDeath(world, enemy);
+  world.events.push({ type: 'kill', enemy: enemy.def.id });
+  if (enemy.elite) world.events.push({ type: 'eliteKill', enemy: enemy.baseDef.id });
+  if (enemy.boss) world.events.push({ type: 'bossKill', boss: enemy.def.id, noDamage: world.damageTaken === 0 });
   dropLoot(world, enemy);
   fire(world, 'kill', { target: enemy });
 }
@@ -159,6 +162,7 @@ export function hurtPlayer(world, damage) {
   if (p.inv > 0 || world.mode !== 'play') return false;
   const amount = Math.max(1, Math.round(damage * p.stats.damageTaken));
   p.hp = Math.max(0, p.hp - amount);
+  world.damageTaken += amount;
   p.inv = PLAYER.hitInvincible;
   addShake(world, FEEL.shake.hurt);
   floatText(world, p.x, p.y - 22, '-' + amount, COLORS.red, 18);

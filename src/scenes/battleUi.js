@@ -201,3 +201,27 @@ export function createCommLog(scene) {
     },
   };
 }
+
+// ---- 通知（画面左下に積み上がる：実績解除、ボス素材、データ片） ----
+
+const TOAST_LIFE = 5000; // 出ている時間（ミリ秒）
+const TOAST_COLORS = { achievement: COLORS.amber, material: ELEMENT_COLORS.shock, fragment: COLORS.cyan };
+
+export function createToasts(scene) {
+  const items = []; // { text: Text, life }
+  return {
+    push(note) {
+      const color = TOAST_COLORS[note.kind] ?? COLORS.ink;
+      const text = scene.add.text(40, 0, note.text, body(14, color, { fontStyle: '700' })).setDepth(12).setShadow(0, 0, '#000000', 4, false, true);
+      items.push({ text, life: TOAST_LIFE });
+    },
+    update(deltaMs) {
+      for (const item of items) item.life -= deltaMs;
+      while (items.length > 0 && items[0].life <= 0) items.shift().text.destroy();
+      // 新しいものが下。古いものほど上に押し上げられる
+      items.forEach((item, i) => {
+        item.text.setY(H - 62 - (items.length - 1 - i) * 22).setAlpha(Math.min(1, item.life / 500));
+      });
+    },
+  };
+}

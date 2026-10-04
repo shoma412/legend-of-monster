@@ -62,6 +62,17 @@ function itemColor(item) {
 }
 
 const DRAWERS = {
+  // データ片：ゆっくり回る記録チップ
+  fragment(g, o, world, focused) {
+    const c = hex(COLORS.cyan);
+    const a = world.time * 1.5;
+    const r = focused ? 13 : 11;
+    const pts = [0, 1, 2, 3, 4, 5].map((i) => ({ x: o.x + Math.cos(a + (i * Math.PI) / 3) * r, y: o.y + Math.sin(a + (i * Math.PI) / 3) * r }));
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    glowLine(g, c, 2, () => g.strokePoints(pts, true, true));
+    g.fillStyle(c, 1).fillCircle(o.x, o.y, 2.5);
+  },
+
   door(g, o, world, focused) {
     const room = DATA.rooms.get(o.type);
     const c = hex(COLORS[room.color]);
@@ -146,6 +157,8 @@ export function objectLabels(world) {
       labels.push({ x: o.x, y: o.y + 34, text: `${g.price} c`, color: credits >= g.price ? COLORS.amber : COLORS.red, size: 13 });
     } else if (o.kind === 'vault') {
       labels.push({ x: o.x, y: o.y - 36, text: slotName(o.item.slot), color: COLORS.ink, size: 12 });
+    } else if (o.kind === 'fragment') {
+      labels.push({ x: o.x, y: o.y - 28, text: 'データ片', color: COLORS.cyan, size: 12 });
     }
   }
   // エリートは名前（特性つき）を頭の上に出す
@@ -161,6 +174,7 @@ export function focusPrompt(world) {
   if (!o) return null;
   const p = world.player;
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
+  if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'implant') return { text: `E：${o.goods.def.name} を買う（${o.goods.price} c）　${o.goods.def.desc}`, color: COLORS.magenta };

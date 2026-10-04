@@ -6,14 +6,16 @@ import { FEATURES, PLAYER } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
 
-export function createBuild() {
+// bonus: 隠れ家の恒久強化（src/logic/meta.js の permanentBonuses）
+export function createBuild(bonus = null) {
   return {
     level: 1,
     xp: 0,
     gear: { mod: null, armor: null, acc: null }, // スロットごとの装備
     implants: {}, // { インプラントのid: 持っている数 }
     credits: 0,
-    kits: PLAYER.kit.start, // 修復キットの数
+    kits: PLAYER.kit.start + (bonus?.kits ?? 0), // 修復キットの数
+    permanent: bonus?.effects ?? [], // 恒久強化のステータス補正
   };
 }
 
@@ -50,7 +52,7 @@ export function activeFamilyBonuses(build) {
 }
 
 export function collectEffects(build) {
-  const list = [];
+  const list = [...(build.permanent ?? [])];
   for (const item of Object.values(build.gear)) {
     if (item) list.push(...itemEffects(item));
   }
@@ -74,6 +76,7 @@ export function computeStats(build) {
     damageTaken: 1,
     meleeRange: 1,
     meleeArc: 1, // 近接攻撃の角度の倍率
+    dashCharges: 1, // 続けて出せるダッシュの回数
     killHeal: 0,
     creditMul: 1,
     pierce: 0,
