@@ -6,6 +6,7 @@ import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geom
 import { createBuild } from '../logic/stats.js';
 import { recalcStats } from './build.js';
 import { hitEnemy } from './combat.js';
+import { updateItemEffects } from './consumables.js';
 import { fire } from './effects.js';
 import { addHitstop, addShake, burst, floatText, ghost, ring } from './fx.js';
 
@@ -39,6 +40,9 @@ export function createPlayer(weaponId, x, y, carry = null) {
     dvy: 0,
     inv: 0,
     slowT: 0, // 冷気を浴びて遅くなっている残り時間
+    buffs: [], // 消耗品による一時的な強化 { stat, add, t }
+    smokeT: 0, // 煙幕の残り時間
+    smokeRadius: 0,
     sinceDash: Infinity, // 最後にダッシュしてからの秒数
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
     forceCrit: false, // 次の攻撃が必ず会心
@@ -68,6 +72,7 @@ export function updatePlayer(world, dt, input) {
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.inv -= dt;
   p.slowT -= dt;
+  updateItemEffects(world, dt);
   p.specialCd -= dt;
   p.shotCd -= dt;
   p.firingT -= dt;

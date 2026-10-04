@@ -3,6 +3,7 @@ import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { chooseImplant } from '../game/build.js';
+import { useItem } from '../game/consumables.js';
 import { interact, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist } from '../game/saveStore.js';
@@ -10,7 +11,7 @@ import { updateWorld } from '../game/world.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  drawArena, drawBolts, drawBossBar, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  ITEM_SLOT_POS, drawArena, drawBolts, drawBossBar, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -68,7 +69,15 @@ export class BattleScene extends Phaser.Scene {
     this.keys.E.on('down', () => playing() && interact(this.world));
     this.keys.Q.on('down', () => playing() && useKit(this.world));
     this.keys.M.on('down', () => playing() && this.bigMap.setVisible(!this.bigMap.visible));
-    ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => this.choose(i)));
+    // 1・2・3：レベルアップの3択が出ていればその選択、出ていなければ 1・2 で消耗品を使う
+    ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => {
+      if (this.menu.isOpen) return;
+      if (this.world.choice) this.choose(i);
+      else if (i < this.world.player.build.items.length) {
+        const pointer = this.input.activePointer;
+        useItem(this.world, i, { x: pointer.worldX, y: pointer.worldY });
+      }
+    }));
     this.keys.ENTER.on('down', () => {
       const world = this.world;
       if (world.choice || this.menu.isOpen) return;
@@ -110,18 +119,26 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim };
-    this.add.text(40, 7, 'HP', label);
-    this.hpText = this.add.text(250, 7, '', { ...label, color: COLORS.ink });
+    this.add.text(40, 3, 'HP', label);
+    this.hpText = this.add.text(250, 3, '', { ...label, color: COLORS.ink });
+    // 経験値ゲージの左にレベル、右に数字
+    this.levelText = this.add.text(40, 15, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
+    this.xpText = this.add.text(250, 15, '', { ...label, fontSize: '10px' });
     this.add.text(326, 7, 'DASH', label);
     const weapon = this.world.player.weapon;
     // 特殊アクションの名前（長い名前は縮めて、クールダウンの棒に重ならないようにする）
     this.add.text(510, 6, weapon.special.name, { ...label, fontFamily: FONTS.body }).setOrigin(1, 0);
-    this.levelText = this.add.text(592, 7, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
-    this.kitText = this.add.text(696, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
-    this.creditText = this.add.text(782, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
+    this.kitText = this.add.text(600, 6, '', { ...label, fontFamily: FONTS.body, color: COLORS.green });
+    // 消耗品の枠：キーの番号と個数
+    this.itemTexts = this.world.player.build.items.map((_, i) => {
+      const bx = ITEM_SLOT_POS.x + i * ITEM_SLOT_POS.gap;
+      this.add.text(bx + 2, ITEM_SLOT_POS.y, `${i + 1}`, { ...label, fontSize: '10px', color: COLORS.dim }).setDepth(6);
+      return this.add.text(bx + ITEM_SLOT_POS.size - 2, ITEM_SLOT_POS.y + ITEM_SLOT_POS.size - 1, '', { ...label, fontSize: '10px', color: COLORS.ink, fontStyle: '700' }).setOrigin(1, 1).setDepth(6);
+    });
+    this.creditText = this.add.text(700, 7, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア' : '';
-    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる　Q 修復キット　M 地図　Esc ポーズ${devHelp}`, {
+    this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・拾う　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
 
@@ -277,7 +294,10 @@ export class BattleScene extends Phaser.Scene {
     const p = world.player;
     const boss = world.boss;
     this.hpText.setText(`${Math.ceil(p.hp)} / ${p.stats.maxHp}`);
-    this.levelText.setText(`Lv ${p.build.level}　${p.build.xp}/${xpToNext(p.build.level)}`);
+    this.levelText.setText(`Lv ${p.build.level}`);
+    this.xpText.setText(`${p.build.xp} / ${xpToNext(p.build.level)}`);
+    p.build.items.forEach((slot, i) => this.itemTexts[i].setText(slot && slot.count > 1 ? `×${slot.count}` : ''));
+    drawGearIcons(this.hud, world, SCREEN.width - 44, 43, 15);
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
     const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;

@@ -22,6 +22,10 @@ export function statWith(world, stat, target = null) {
   for (const mod of stats.conditional) {
     if (mod.stat === stat && CONDITIONS[mod.when](world, mod, target)) value += mod.add;
   }
+  // 消耗品による一時的な強化
+  for (const buff of world.player.buffs) {
+    if (buff.stat === stat) value += buff.add;
+  }
   return value;
 }
 

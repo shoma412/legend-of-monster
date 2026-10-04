@@ -224,9 +224,9 @@ describe('部屋の中身', () => {
     expect(p.hp).toBe(50);
   });
 
-  it('闇市：装備2つ・修復キット・インプラントが並び、クレジットで買える。足りないと買えない', () => {
+  it('闇市：装備2つ・修復キット・消耗品・インプラントが並び、クレジットで買える。足りないと買えない', () => {
     const goods = generateShop(createBuild(), seeded(6));
-    expect(goods.map((g) => g.type)).toEqual(['gear', 'gear', 'kit', 'implant']);
+    expect(goods.map((g) => g.type)).toEqual(['gear', 'gear', 'kit', 'item', 'implant']);
     expect(goods[0].price).toBe(ECONOMY.prices.gear[goods[0].item.rarity]);
 
     const world = roomWorld('market', { rng: seeded(6) });

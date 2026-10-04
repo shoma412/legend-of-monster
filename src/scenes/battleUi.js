@@ -148,7 +148,7 @@ export function createChoicePanel(scene, onChoose) {
 // ---- 装備とインプラントの一覧（画面右上） ----
 
 export function createBuildList(scene) {
-  const x = W - 38;
+  const x = W - 56; // 右端にスロットのアイコンが入る
   const gearTexts = LOOT.slots.map((s, i) => scene.add.text(x, 36 + i * 15, '', body(11)).setOrigin(1, 0).setAlpha(0.9).setDepth(6));
   const implantText = scene.add.text(x, 36 + LOOT.slots.length * 15 + 6, '', body(11, COLORS.dim, { align: 'right', lineSpacing: 2 })).setOrigin(1, 0).setAlpha(0.9).setDepth(6);
   let key = '';
@@ -175,7 +175,7 @@ const COMM_SPEED = 38; // 1秒に出す文字数
 const COMM_HOLD = 4500; // 出し終わってから消えるまで（ミリ秒）
 
 export function createCommLog(scene) {
-  const text = scene.add.text(40, 36, '', body(13, COLORS.amber, { fontStyle: '700', lineSpacing: 5, wordWrap: { width: 460, useAdvancedWrap: true } }))
+  const text = scene.add.text(40, 76, '', body(13, COLORS.amber, { fontStyle: '700', lineSpacing: 5, wordWrap: { width: 460, useAdvancedWrap: true } }))
     .setDepth(7).setShadow(0, 0, '#000000', 4, false, true).setVisible(false);
   let full = '';
   let shown = 0;

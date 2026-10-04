@@ -240,12 +240,13 @@ export class MenuOverlay {
       ['属性', elements],
       ['クレジット', `${b.credits} c（獲得 ${percent(s.creditMul)}）`],
       ['修復キット', `${b.kits}`],
+      ['消耗品', b.items.filter(Boolean).map((s) => `${DATA.consumables.get(s.id).name}×${s.count}`).join('、') || 'なし'],
     ];
     this.panel(40, 122, 270, 336);
     this.text(54, 130, `${player.weapon.name}`, 14, COLORS.cyan, { fontStyle: '700' });
     rows.forEach(([label, value], i) => {
-      this.text(54, 154 + i * 23, label, 12, COLORS.dim);
-      this.text(296, 154 + i * 23, value, 12, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(54, 154 + i * 21.5, label, 12, COLORS.dim);
+      this.text(296, 154 + i * 21.5, value, value.length > 14 ? 10 : 12, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
     });
 
     // 装備

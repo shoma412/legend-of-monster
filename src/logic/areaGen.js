@@ -1,5 +1,5 @@
 // エリアの部屋の並びと、部屋の中身の抽選。乱数は外から渡すので、テストで結果を固定できる。
-import { ECONOMY, ROOMGEN } from '../data/balance.js';
+import { ECONOMY, ITEMS, ROOMGEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { rollImplantChoices } from './level.js';
 import { makeItem } from './loot.js';
@@ -148,7 +148,7 @@ export function gearPrice(item) {
   return ECONOMY.prices.gear[item.rarity];
 }
 
-// 闇市の品ぞろえ：装備2つ・修復キット・インプラント1つ
+// 闇市の品ぞろえ：装備2つ・修復キット・消耗品1つ・インプラント1つ
 export function generateShop(build, rng) {
   const goods = [];
   for (let i = 0; i < ECONOMY.shop.gearCount; i++) {
@@ -156,6 +156,7 @@ export function generateShop(build, rng) {
     goods.push({ type: 'gear', item, price: gearPrice(item) });
   }
   goods.push({ type: 'kit', price: ECONOMY.prices.kit });
+  goods.push({ type: 'item', id: pick(DATA.consumables.ids(), rng), price: ITEMS.price });
   const [implant] = rollImplantChoices(build, rng, 1);
   if (implant) goods.push({ type: 'implant', def: implant, price: ECONOMY.prices.implant });
   return goods;

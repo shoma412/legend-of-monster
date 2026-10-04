@@ -23,7 +23,7 @@ export const enemies = [
     xp: 6,
     credits: 2, // 倒したときにもらえるクレジット
     cost: 1, // 部屋の敵を選ぶときの重さ（予算から引く）
-    dropChance: 0.16, // 倒したとき装備を落とす確率
+    dropChance: 0.12, // 倒したとき装備を落とす確率
     wobble: 0.6, // ふらつきの強さ
   },
   {
@@ -39,7 +39,7 @@ export const enemies = [
     xp: 12,
     credits: 4,
     cost: 2,
-    dropChance: 0.32,
+    dropChance: 0.24,
     knockbackResist: 0.5, // 吹き飛びにくさ（0〜1）
     attack: { triggerRange: 46, range: 58, arc: 110, windup: 0.45, recover: 0.7 },
   },
@@ -56,7 +56,7 @@ export const enemies = [
     xp: 10,
     credits: 4,
     cost: 2,
-    dropChance: 0.32,
+    dropChance: 0.24,
     keepDistance: { min: 240, max: 360 },
     shot: { interval: 1.9, aim: 0.45, speed: 235, radius: 5, life: 3 },
   },
@@ -73,7 +73,7 @@ export const enemies = [
     xp: 8,
     credits: 3,
     cost: 2,
-    dropChance: 0.16,
+    dropChance: 0.12,
     // triggerRange まで近づくと fuse 秒点滅して爆発する。爆発前に倒せば爆発しない
     bomb: { triggerRange: 62, fuse: 1, radius: 86 },
   },
@@ -90,7 +90,7 @@ export const enemies = [
     xp: 12,
     credits: 4,
     cost: 2,
-    dropChance: 0.32,
+    dropChance: 0.24,
     // triggerRange まで近づくと windup 秒構え、duration 秒のあいだ前方の扇に冷気を噴く
     spray: { triggerRange: 150, range: 175, arc: 46, windup: 0.55, duration: 1.3, recover: 1.4 },
   },

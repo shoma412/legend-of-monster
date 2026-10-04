@@ -2,7 +2,7 @@
 // 装備効果・レジェンド固有効果・インプラント・系統ボーナスはすべて同じ形の「effect」で、
 //   mods（ステータス補正）と triggers（イベントで発動する効果）と element（属性付与）
 // だけでできている。ここではそれを1つにまとめる。
-import { FEATURES, PLAYER } from '../data/balance.js';
+import { FEATURES, ITEMS, PLAYER } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
 
@@ -14,6 +14,7 @@ export function createBuild(bonus = null) {
     gear: { mod: null, armor: null, acc: null }, // スロットごとの装備
     implants: {}, // { インプラントのid: 持っている数 }
     credits: 0,
+    items: Array(ITEMS.slots).fill(null), // 消耗品の枠。{ id, count } か null
     kits: PLAYER.kit.start + (bonus?.kits ?? 0), // 修復キットの数
     permanent: bonus?.effects ?? [], // 恒久強化のステータス補正
   };

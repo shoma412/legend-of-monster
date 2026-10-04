@@ -1,10 +1,11 @@
 // 攻撃を当てる・受ける処理
-import { COMBAT, FEEL, PLAYER, STATUS } from '../data/balance.js';
+import { COMBAT, FEEL, ITEMS, LOOT, PLAYER, STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { calcDamage } from '../logic/damage.js';
 import { addXp } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
+import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
 import { addHitstop, addShake, burst, floatText } from './fx.js';
 import { triggerCounter } from './player.js';
@@ -153,6 +154,10 @@ function dropLoot(world, enemy) {
     }
   } else if (world.rng() < (enemy.def.dropChance ?? 0)) {
     world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng), t: 0 });
+  }
+  // 消耗品。エリートとボスは確定で1つ、雑魚はたまに落とす。装備と同じく、近づいて E で拾う
+  if (drops || world.rng() < ITEMS.dropChance) {
+    world.objects.push({ kind: 'pickup', id: rollConsumable(world.rng), x: enemy.x, y: enemy.y + (drops ? 44 : 26), r: LOOT.pickupRadius });
   }
 }
 

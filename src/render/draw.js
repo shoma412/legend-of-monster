@@ -1,7 +1,9 @@
 // 戦闘画面の描画。world の状態を読んで、毎フレーム Graphics にネオン線画を描き直す。
 import { LOOT, PLAYER, ROOM, SCREEN } from '../data/balance.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { DATA } from '../data/index.js';
 import { xpToNext } from '../logic/level.js';
+import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { DEG } from '../logic/geometry.js';
 
 const BODY_FILL = 0x0a0814;
@@ -248,6 +250,13 @@ export function drawPlayer(g, world) {
     for (let i = 0; i <= stage; i++) g.fillStyle(color, 1).fillCircle(p.x - 8 + i * 8, p.y - p.r - 20, 2.5);
   }
 
+  // 煙幕：まわりに煙の輪
+  if (p.smokeT > 0) {
+    g.fillStyle(hex(COLORS.dim), 0.16).fillCircle(p.x, p.y, p.smokeRadius);
+    g.lineStyle(2, hex(COLORS.ink), 0.3 + 0.2 * Math.sin(world.time * 8)).strokeCircle(p.x, p.y, p.smokeRadius);
+  }
+  // 一時強化が効いている間は、その色の輪
+  if (p.buffs.length > 0) g.lineStyle(2, hex(p.buffs[0].color), 0.5 + 0.3 * Math.sin(world.time * 10)).strokeCircle(p.x, p.y, p.r + 5);
   // 冷気を浴びて遅くなっている間は、水色の輪
   if (p.slowT > 0) g.lineStyle(2, hex(ELEMENT_COLORS.cold), 0.8).strokeCircle(p.x, p.y, p.r + 7);
 
@@ -296,14 +305,21 @@ export function drawFx(g, world) {
 
 export function drawHud(g, world) {
   const p = world.player;
-  const x = 62;
   const y = 9;
-  const w = 180;
-  // HP
-  g.fillStyle(0x1b1631, 1).fillRect(x, y, w, 10);
+  // HP（上の段）
+  const hpX = 62;
+  const hpW = 180;
+  g.fillStyle(0x1b1631, 1).fillRect(hpX, 4, hpW, 9);
   const ratio = p.hp / p.stats.maxHp;
-  g.fillStyle(hex(ratio > 0.3 ? COLORS.green : COLORS.red), 1).fillRect(x, y, w * ratio, 10);
-  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(x, y, w, 10);
+  g.fillStyle(hex(ratio > 0.3 ? COLORS.green : COLORS.red), 1).fillRect(hpX, 4, hpW * ratio, 9);
+  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(hpX, 4, hpW, 9);
+  // 経験値（下の段。左に「Lv」の表記が付く）
+  const xpX = 86;
+  const xpW = 156;
+  const xpRatio = Math.min(1, p.build.xp / xpToNext(p.build.level));
+  g.fillStyle(0x1b1631, 1).fillRect(xpX, 18, xpW, 6);
+  g.fillStyle(hex(COLORS.magenta), 1).fillRect(xpX, 18, xpW * xpRatio, 6);
+  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(xpX, 18, xpW, 6);
 
   // ダッシュと特殊攻撃のクールダウン
   const dashFull = p.dashCharges >= p.stats.dashCharges;
@@ -316,10 +332,39 @@ export function drawHud(g, world) {
   }
   cooldownBar(g, 516, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
 
-  // 経験値（HPバーの下の細い線）
-  const xpRatio = Math.min(1, p.build.xp / xpToNext(p.build.level));
-  g.fillStyle(0x1b1631, 1).fillRect(x, y + 13, w, 3);
-  g.fillStyle(hex(COLORS.magenta), 1).fillRect(x, y + 13, w * xpRatio, 3);
+  drawItemSlots(g, world);
+}
+
+// 消耗品の枠（画面左上、部屋の中）。位置は ITEM_SLOT_POS
+export const ITEM_SLOT_POS = { x: 40, y: 36, size: 28, gap: 36 };
+
+function drawItemSlots(g, world) {
+  const p = world.player;
+  const { x, y, size, gap } = ITEM_SLOT_POS;
+  p.build.items.forEach((slot, i) => {
+    const bx = x + i * gap;
+    g.fillStyle(0x110f1d, 0.85).fillRect(bx, y, size, size);
+    g.lineStyle(1, hex(slot ? COLORS.ink : COLORS.line), slot ? 0.8 : 1).strokeRect(bx, y, size, size);
+    if (slot) {
+      const def = DATA.consumables.get(slot.id);
+      drawItemIcon(g, def.icon, bx + size / 2, y + size / 2 + 1, 8, hex(ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink));
+    }
+  });
+  // 効いている一時強化：残り時間の棒
+  p.buffs.forEach((b, i) => {
+    const by = y + size + 5 + i * 6;
+    g.fillStyle(0x1b1631, 1).fillRect(x, by, 64, 3);
+    g.fillStyle(hex(b.color), 1).fillRect(x, by, 64 * (b.t / b.max), 3);
+  });
+}
+
+// 装備の一覧（画面右上）の横に出す、スロットのアイコン
+export function drawGearIcons(g, world, x, y, lineHeight) {
+  LOOT.slots.forEach((s, i) => {
+    const item = world.player.build.gear[s.id];
+    const color = item ? hex(RARITY_COLORS[LOOT.rarities[item.rarity].id]) : 0x4a4470;
+    drawSlotIcon(g, s.id, x, y + i * lineHeight, 5, color);
+  });
 }
 
 function cooldownBar(g, x, y, ratio, color) {
@@ -502,9 +547,8 @@ export function drawLoot(g, world) {
     const focused = l === world.focusLoot;
     // エピック以上は光の柱で目立たせる
     if (l.item.rarity >= 2) g.fillStyle(color, 0.22).fillRect(l.x - 2, l.y - 64, 4, 64);
-    const pts = polygon(l.x, l.y + bob, focused ? 12 : 10, 4, 0);
-    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
-    neonStroke(g, color, focused ? 3 : 2, () => g.strokePoints(pts, true, true));
+    // スロットごとの形（武器モッド＝刃、防具＝盾、アクセ＝指輪）。色はレア度
+    drawSlotIcon(g, l.item.slot, l.x, l.y + bob, focused ? 13 : 11, color);
     if (focused) g.lineStyle(1, color, 0.5).strokeCircle(l.x, l.y, LOOT.pickupRadius * 0.7);
   }
 }

@@ -1,7 +1,8 @@
 // 部屋に置かれているもの（扉・補給端末・闇市の商品・データ金庫の装備）の描画と、その上に出す文字
 import { LOOT, ROOM } from '../data/balance.js';
 import { DATA } from '../data/index.js';
-import { COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { drawItemIcon, drawSlotIcon } from './icons.js';
 
 const BODY_FILL = 0x0a0814;
 
@@ -110,6 +111,14 @@ const STATION_ICONS = {
 };
 
 const DRAWERS = {
+  // 落ちている消耗品
+  pickup(g, o, world, focused) {
+    const def = DATA.consumables.get(o.id);
+    const c = consumableColor(def);
+    const bob = Math.sin(world.time * 4 + o.x) * 3;
+    drawItemIcon(g, def.icon, o.x, o.y + bob, focused ? 11 : 9, c);
+    if (focused) g.lineStyle(1, c, 0.5).strokeCircle(o.x, o.y, LOOT.pickupRadius * 0.7);
+  },
   station(g, o, world, focused) {
     STATION_ICONS[o.icon](g, o, world, focused, hex(o.color ?? COLORS.ink));
   },
@@ -163,12 +172,17 @@ const DRAWERS = {
   },
 };
 
+export function consumableColor(def) {
+  return hex(ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink);
+}
+
 function drawGoods(g, goods, x, y, focused) {
   if (goods.type === 'gear') {
-    const c = itemColor(goods.item);
-    const pts = diamond(x, y, focused ? 13 : 11);
-    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
-    glowLine(g, c, focused ? 3 : 2, () => g.strokePoints(pts, true, true));
+    // 装備はスロットごとの形（刃・盾・指輪）で、色はレア度
+    drawSlotIcon(g, goods.item.slot, x, y, focused ? 13 : 11, itemColor(goods.item));
+  } else if (goods.type === 'item') {
+    const def = DATA.consumables.get(goods.id);
+    drawItemIcon(g, def.icon, x, y, focused ? 12 : 10, consumableColor(def));
   } else if (goods.type === 'kit') {
     const c = hex(COLORS.green);
     g.fillStyle(BODY_FILL, 0.85).fillRect(x - 10, y - 10, 20, 20);
@@ -208,7 +222,7 @@ export function objectLabels(world) {
       labels.push({ x: o.x, y: o.y - 44, text: o.used ? '補給端末（使用済み）' : '補給端末', color: o.used ? COLORS.dim : COLORS.green, size: 12 });
     } else if (o.kind === 'shop') {
       const g = o.goods;
-      const name = g.type === 'gear' ? slotName(g.item.slot) : g.type === 'kit' ? '修復キット' : g.def.name;
+      const name = g.type === 'gear' ? slotName(g.item.slot) : g.type === 'kit' ? '修復キット' : g.type === 'item' ? DATA.consumables.get(g.id).name : g.def.name;
       labels.push({ x: o.x, y: o.y - 36, text: name, color: COLORS.ink, size: 12 });
       labels.push({ x: o.x, y: o.y + 34, text: `${g.price} c`, color: credits >= g.price ? COLORS.amber : COLORS.red, size: 13 });
     } else if (o.kind === 'vault') {
@@ -232,6 +246,14 @@ export function focusPrompt(world) {
   if (o.kind === 'station') return o.prompt ? { text: o.prompt, color: o.color ?? COLORS.ink } : null;
   if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
+  if (o.kind === 'pickup') {
+    const def = DATA.consumables.get(o.id);
+    return { text: `E：${def.name} を拾う — ${def.desc}`, color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink };
+  }
+  if (o.kind === 'shop' && o.goods.type === 'item') {
+    const def = DATA.consumables.get(o.goods.id);
+    return { text: `E：${def.name} を買う（${o.goods.price} c）　${def.desc}`, color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink };
+  }
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };

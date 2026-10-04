@@ -1,7 +1,9 @@
 // 部屋に置かれているもの（落ちている装備、扉、補給端末、闇市の商品、データ金庫の装備）と、E キーでの操作
 import { LOOT, PLAYER, ROOMGEN } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
+import { DATA } from '../data/index.js';
 import { addImplant, equipFocusLoot, equipItem } from './build.js';
+import { addItem } from './consumables.js';
 import { floatText, ring } from './fx.js';
 
 // 一番近い「調べられるもの」を探す。落ちている装備は world.focusLoot、それ以外は world.focusObject
@@ -66,6 +68,26 @@ const HANDLERS = {
       p.build.kits++;
       say(world, '修復キット +1', COLORS.green);
     } else if (g.type === 'implant') addImplant(world, g.def);
+    else if (g.type === 'item') {
+      if (!addItem(p.build, g.id)) {
+        // 持ち物がいっぱいなら買えない（クレジットを戻す）
+        p.build.credits += g.price;
+        say(world, '持ち物がいっぱい', COLORS.red);
+        return;
+      }
+      say(world, `${DATA.consumables.get(g.id).name} を買った`, COLORS.ink);
+    }
+    world.objects = world.objects.filter((x) => x !== o);
+  },
+
+  // 落ちている消耗品：拾って持ち物に入れる
+  pickup(world, o) {
+    const p = world.player;
+    if (!addItem(p.build, o.id)) {
+      say(world, '持ち物がいっぱい', COLORS.red);
+      return;
+    }
+    say(world, `${DATA.consumables.get(o.id).name} を拾った`, COLORS.ink);
     world.objects = world.objects.filter((x) => x !== o);
   },
 

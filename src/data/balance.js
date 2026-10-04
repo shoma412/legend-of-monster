@@ -72,6 +72,14 @@ export const LOOT = {
   pickupRadius: 36, // この距離まで近づくと比較が出る（px）
 };
 
+// 消耗品（ラン中に拾って使うアイテム）
+export const ITEMS = {
+  slots: 2, // 持てる枠の数（1・2 キー）
+  stack: 3, // 同じ種類を1枠に重ねられる数
+  dropChance: 0.05, // 雑魚が倒されたときに落とす確率（装備のドロップとは別に抽選）
+  price: 25, // 闇市での値段
+};
+
 // 属性の状態異常
 export const STATUS = {
   burn: { duration: 3, dps: 6, tick: 0.5 }, // 熱：継続ダメージ
