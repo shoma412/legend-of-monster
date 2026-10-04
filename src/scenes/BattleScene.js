@@ -155,6 +155,10 @@ export class BattleScene extends Phaser.Scene {
     this.clearText = this.add.text(W / 2, 140, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.green, align: 'center', lineSpacing: 6 })
       .setOrigin(0.5, 0).setShadow(0, 0, COLORS.green, 10, false, true).setDepth(7).setVisible(false);
 
+    // 奥義が使えるときの案内
+    this.ougiText = this.add.text(W / 2, H - 78, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.amber })
+      .setOrigin(0.5).setShadow(0, 0, COLORS.amber, 12, false, true).setDepth(7).setVisible(false);
+    this.tweens.add({ targets: this.ougiText, alpha: 0.4, duration: 350, yoyo: true, repeat: -1 });
     this.buildList = createBuildList(this);
     this.comparePanel = createComparePanel(this);
     this.choicePanel = createChoicePanel(this, (i) => this.choose(i));
@@ -316,6 +320,8 @@ export class BattleScene extends Phaser.Scene {
     this.promptText.setVisible(!!prompt);
     if (prompt) this.promptText.setText(prompt.text).setColor(prompt.color);
 
+    this.ougiText.setVisible(world.ougiReady && !world.choice);
+    if (world.ougiReady) this.ougiText.setText(`右クリック：${p.weapon.ougi.name}（このエリアで1回だけ）`);
     this.updateCountdown();
     this.updateBossPresentation(boss);
     this.commLog.update(delta);

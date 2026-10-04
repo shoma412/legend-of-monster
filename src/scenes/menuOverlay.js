@@ -240,6 +240,7 @@ export class MenuOverlay {
       ['属性', elements],
       ['クレジット', `${b.credits} c（獲得 ${percent(s.creditMul)}）`],
       ['修復キット', `${b.kits}`],
+      ...(b.ougi.includes(player.weapon.id) ? [['奥義', b.ougiUsed ? 'このエリアでは使用済み' : 'HP20%以下で使える']] : []),
       ['消耗品', b.items.filter(Boolean).map((s) => `${DATA.consumables.get(s.id).name}×${s.count}`).join('、') || 'なし'],
     ];
     this.panel(40, 122, 270, 336);

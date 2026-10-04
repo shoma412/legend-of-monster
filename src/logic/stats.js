@@ -17,6 +17,8 @@ export function createBuild(bonus = null) {
     items: Array(ITEMS.slots).fill(null), // 消耗品の枠。{ id, count } か null
     kits: PLAYER.kit.start + (bonus?.kits ?? 0), // 修復キットの数
     permanent: bonus?.effects ?? [], // 恒久強化のステータス補正
+    ougi: bonus?.ougi ?? [], // 奥義が使える武器の id
+    ougiUsed: false, // このエリアで奥義を使ったか（エリアごとに1回）
   };
 }
 

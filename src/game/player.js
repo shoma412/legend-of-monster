@@ -238,6 +238,12 @@ function updateAttack(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
 
+  // 奥義は、振っている途中でも出せる
+  if (input.specialPressed && canUseOugi(world)) {
+    useOugi(world);
+    return;
+  }
+
   if (p.attack) {
     updateSwing(world, dt);
     return;
@@ -262,6 +268,38 @@ function updateAttack(world, dt, input) {
     p.attack = makeAttack(p, def, def.damage, def.range, def.arc, { step });
     p.comboStep = (step + 1) % weapon.combo.length;
   }
+}
+
+// 奥義が今使えるか：その武器の奥義を持っていて、このエリアでまだ使っておらず、残りHPが少ない
+export function canUseOugi(world) {
+  const p = world.player;
+  const ougi = p.weapon.ougi;
+  if (!ougi || world.mode !== 'play') return false;
+  if (!p.build.ougi.includes(p.weapon.id) || p.build.ougiUsed) return false;
+  return p.hp <= p.stats.maxHp * ougi.hpBelow;
+}
+
+// 奥義：自分を中心とした円の衝撃波。盾でも防げない
+function useOugi(world) {
+  const p = world.player;
+  const ougi = p.weapon.ougi;
+  p.build.ougiUsed = true;
+  p.attack = null;
+  p.charge = null;
+  p.inv = Math.max(p.inv, ougi.invincible);
+  for (const e of world.enemies) {
+    if (e.dead || e.spawnT > 0) continue;
+    if (Math.hypot(e.x - p.x, e.y - p.y) > ougi.radius + e.r) continue;
+    hitEnemy(world, e, ougi.damage * ougi.multiplier, e.x - p.x, e.y - p.y, ougi.knockback, { unblockable: true });
+  }
+  // 敵の弾も吹き飛ばす
+  world.shots = world.shots.filter((s) => Math.hypot(s.x - p.x, s.y - p.y) > ougi.radius);
+  world.fx.rings.push({ x: p.x, y: p.y, radius: ougi.radius / 1.5, color: COLORS.amber, life: 0.45, max: 0.45 });
+  ring(world, p.x, p.y, ougi.radius * 0.5, COLORS.ink);
+  burst(world, p.x, p.y, COLORS.amber, 50, 520);
+  floatText(world, p.x, p.y - 36, ougi.name, COLORS.amber, 26);
+  addHitstop(world, FEEL.hitstop.charged * 1.5);
+  addShake(world, FEEL.shake.bossKill);
 }
 
 function chargeStage(special, t) {

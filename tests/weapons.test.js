@@ -219,3 +219,82 @@ describe('大剣（変わっていないこと）', () => {
     expect(p.charge.stage).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('大剣の奥義', () => {
+  // 奥義を買った状態の部屋
+  function ougiWorld() {
+    const world = makeWorld('greatsword');
+    world.player.build.ougi = ['greatsword'];
+    return world;
+  }
+  const ougi = DATA.weapons.get('greatsword').ougi;
+  const right = { ...idle, specialPressed: true };
+
+  it('残りHPが20%以下のときだけ、右クリックで出せる', () => {
+    const world = ougiWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'grunt', 150);
+    p.hp = p.stats.maxHp * 0.21;
+    updateWorld(world, DT, right);
+    expect(e.hp).toBe(e.maxHp);
+    expect(p.build.ougiUsed).toBe(false);
+
+    p.hp = p.stats.maxHp * 0.2;
+    updateWorld(world, DT, right);
+    expect(e.maxHp - e.hp).toBe(ougi.damage * ougi.multiplier); // 120 × 1.75 = 210
+    expect(p.build.ougiUsed).toBe(true);
+  });
+
+  it('自分を中心とした広い円の中の敵すべてに当たる。円の外には当たらない', () => {
+    const world = ougiWorld();
+    const p = world.player;
+    p.x = 480;
+    p.y = 270;
+    const inside = [addEnemy(world, 'grunt', 200), addEnemy(world, 'grunt', -200), addEnemy(world, 'grunt', 0, 200), addEnemy(world, 'grunt', 0, -200)];
+    const outside = addEnemy(world, 'grunt', 320);
+    p.hp = 10;
+    updateWorld(world, DT, right);
+    for (const e of inside) expect(e.hp).toBeLessThan(e.maxHp);
+    expect(outside.hp).toBe(outside.maxHp);
+  });
+
+  it('1つのエリアで1回だけ。次のエリアに進むと、また使える', () => {
+    const world = ougiWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'grunt', 150);
+    p.hp = 10;
+    updateWorld(world, DT, right);
+    const after = e.hp;
+    run(world, 1);
+    e.x = p.x + 150;
+    p.hp = 10;
+    updateWorld(world, DT, right);
+    expect(e.hp).toBe(after); // 2回目は出ない
+  });
+
+  it('恒久強化を買っていないと出せない。ほかの武器でも出せない', () => {
+    const world = makeWorld('greatsword');
+    const e = addEnemy(world, 'grunt', 150);
+    world.player.hp = 10;
+    updateWorld(world, DT, right);
+    expect(e.hp).toBe(e.maxHp);
+
+    const sword = makeWorld('sword');
+    sword.player.build.ougi = ['greatsword'];
+    sword.player.hp = 10;
+    updateWorld(sword, DT, right);
+    expect(sword.player.build.ougiUsed).toBe(false);
+    expect(sword.player.guard).not.toBe(null); // 片手剣の右クリックはジャストガードのまま
+  });
+
+  it('シールド兵の盾でも防げない。使った瞬間は少しだけ無敵', () => {
+    const world = ougiWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'shield', 150);
+    e.facing = Math.PI;
+    p.hp = 10;
+    updateWorld(world, DT, right);
+    expect(e.hp).toBeLessThan(e.maxHp);
+    expect(hurtPlayer(world, 50)).toBe(false);
+  });
+});

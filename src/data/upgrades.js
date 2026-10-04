@@ -7,6 +7,7 @@
 //   mods        : ステータス補正（インプラントや装備と同じ書き方）
 //   kits        : ラン開始時の修復キットの数に足す
 //   startChoice : true なら、ラン開始時にインプラントを1つ選べる
+//   ougi        : その武器の奥義が使えるようになる（武器の id）
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
 export const upgrades = [
   {
@@ -35,10 +36,9 @@ export const upgrades = [
     perLevel: { startChoice: true },
   },
   {
-    id: 'ougi-greatsword', name: '大剣の奥義', desc: '溜め斬りが強化版になる', max: 1,
+    id: 'ougi-greatsword', name: '大剣の奥義', desc: '残りHP20%以下のとき、エリアごとに1回、右クリックで周囲に衝撃波（攻撃力1.75倍）', max: 1,
     costs: [{ overCore: 1 }],
-    perLevel: {},
-    ready: false,
+    perLevel: { ougi: 'greatsword' },
   },
 ];
 

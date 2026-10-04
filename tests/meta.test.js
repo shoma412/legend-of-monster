@@ -5,7 +5,7 @@ import { weaponUnlocks } from '../src/data/upgrades.js';
 import { chooseImplant, equipItem } from '../src/game/build.js';
 import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
 import { interact } from '../src/game/objects.js';
-import { createRun, enterRoom, finishRun, handleEvents, skipToBoss } from '../src/game/run.js';
+import { NEXT_AREA, createRun, enterRoom, finishRun, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { updateWorld } from '../src/game/world.js';
 import { hasCheck } from '../src/logic/achievements.js';
 import { buyUpgrade, nextUpgradeCost, permanentBonuses, pickFragment, processEvent, unlockWeapon } from '../src/logic/meta.js';
@@ -152,12 +152,13 @@ describe('恒久強化', () => {
     expect(save.materials.boarCore).toBe(0);
   });
 
-  it('最大まで上げると、それ以上は買えない。準備中のものは買えない', () => {
+  it('最大まで上げると、それ以上は買えない', () => {
     const save = createSave();
     save.materials = { boarCore: 99, cryoCore: 99, overCore: 99 };
     for (let i = 0; i < 10; i++) buyUpgrade(save, 'frame');
     expect(save.upgrades.frame).toBe(5);
     expect(nextUpgradeCost(save, DATA.upgrades.get('frame'))).toBe(null);
+    expect(buyUpgrade(save, 'ougi-greatsword')).toBe(true);
     expect(buyUpgrade(save, 'ougi-greatsword')).toBe(false);
   });
 
@@ -221,6 +222,18 @@ describe('恒久強化', () => {
     expect(p.dashCharges).toBeGreaterThanOrEqual(1);
     run(world, PLAYER.dash.cooldown);
     expect(p.dashCharges).toBe(2);
+  });
+
+  it('大剣の奥義：買うとランで使えるようになり、次のエリアに進むと使用回数が戻る', () => {
+    const save = createSave();
+    save.materials = { overCore: 1 };
+    expect(buyUpgrade(save, 'ougi-greatsword')).toBe(true);
+    const r = createRun({ rng: seeded(5), save });
+    expect(r.build.ougi).toEqual(['greatsword']);
+    const world = enterRoom(r);
+    r.build.ougiUsed = true;
+    leaveRoom(r, world, NEXT_AREA);
+    expect(r.build.ougiUsed).toBe(false);
   });
 
   it('強化がなければ、ランは素の状態で始まる', () => {

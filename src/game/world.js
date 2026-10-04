@@ -11,7 +11,7 @@ import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
-import { createPlayer, updatePlayer, updatePlayerShots } from './player.js';
+import { canUseOugi, createPlayer, updatePlayer, updatePlayerShots } from './player.js';
 
 // room: 部屋の中身（src/game/rooms.js の buildRoom が作る）{ type, waves, objects, doors, clearCredits }
 //   waves: [{ 敵のid: 数, ... }, ...]。{ boss: ボスのid } はボスを、{ elite: { base, trait } } はエリートを出す
@@ -40,6 +40,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     objects: [...room.objects], // 扉・補給端末・闇市の商品・データ金庫の装備
     focusObject: null, // 近くにある、E で調べられるもの
     exit: null, // 扉を選んだら、進む先の部屋（地図の id）が入る
+    ougiReady: false, // 奥義が今使えるか（表示用）
     request: null, // 隠れ家で、E で調べたもの（武器ラック・端末・出撃ゲート）の id が入る
     countdown: room.countdown ?? 0, // 開始前のカウントダウンの残り（秒）。0 になるまで敵は出ない
     events: [], // 起きた出来事（敵を倒した、装備した、など）。ラン側が読んで、実績やボス素材を処理する
@@ -84,6 +85,7 @@ export function updateWorld(world, dt, input) {
   // クリア後や隠れ家でも、撃った弾は飛ぶ（試し撃ち）
   if (world.mode === 'clear') updatePlayerShots(world, dt);
   for (const l of world.loot) l.t += dt;
+  world.ougiReady = canUseOugi(world); // 表示用
   updateFocus(world);
 }
 

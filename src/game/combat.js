@@ -51,10 +51,11 @@ export function enemySpeedFactor(enemy) {
 // ---- 敵へのダメージ ----
 
 // プレイヤーの武器による攻撃。(dirX, dirY) は吹き飛ばす向き
-export function hitEnemy(world, enemy, base, dirX, dirY, knockback) {
+// options.unblockable: シールド兵の盾を無視する（奥義など）
+export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}) {
   // シールド兵：盾を向けている側からの攻撃は防がれる。止まっている間（凍結・EMP）は防げない
   const shield = enemy.def.shield;
-  if (shield && enemy.stopT <= 0) {
+  if (shield && enemy.stopT <= 0 && !options.unblockable) {
     const from = Math.atan2(-dirY, -dirX); // 敵から見た、攻撃が来た方向
     if (Math.abs(angleDiff(from, enemy.facing)) <= (shield.arc * DEG) / 2) {
       enemy.hit = 0.06;

@@ -298,6 +298,12 @@ export function drawPlayer(g, world) {
     for (let i = 0; i <= stage; i++) g.fillStyle(color, 1).fillCircle(p.x - 8 + i * 8, p.y - p.r - 20, 2.5);
   }
 
+  // 奥義が使えるとき：金色の輪が脈打つ
+  if (world.ougiReady) {
+    const pulse = 4 * Math.sin(world.time * 9);
+    g.lineStyle(2, hex(COLORS.amber), 0.9).strokeCircle(p.x, p.y, p.r + 12 + pulse);
+    g.lineStyle(6, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, p.r + 12 + pulse);
+  }
   // 煙幕：まわりに煙の輪
   if (p.smokeT > 0) {
     g.fillStyle(hex(COLORS.dim), 0.16).fillCircle(p.x, p.y, p.smokeRadius);

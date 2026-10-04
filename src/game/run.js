@@ -83,6 +83,7 @@ export function leaveRoom(run, world, nextId) {
     // 次のエリアへ。新しい地図を作る
     run.areaIndex++;
     run.plan = createAreaPlan(currentArea(run), run.rng);
+    run.build.ougiUsed = false; // 奥義はエリアごとに1回
     return;
   }
   advancePlan(run.plan, nextId);

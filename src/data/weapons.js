@@ -6,6 +6,7 @@
 //   charge : 左クリック長押しで溜めて斬る（大剣）
 //   guard  : 右クリックで少しの間だけ構え、攻撃を受けると無効化して反撃（片手剣）
 //   spread : 右クリックで扇状に同時に撃つ（銃）
+// ougi は奥義（今は大剣だけ）
 // special.hint は画面下の操作説明に出す文
 //
 // combo: 通常攻撃（左クリック）の段。順番に出る
@@ -18,6 +19,9 @@ export const weapons = [
     id: 'greatsword',
     name: '大剣',
     type: 'melee',
+    // 奥義（恒久強化「大剣の奥義」を買うと使える）：残りHPが hpBelow 以下のとき、エリアごとに1回だけ、
+    // 右クリックで自分を中心とした円の衝撃波を出す。威力は damage × multiplier
+    ougi: { name: '奥義', hpBelow: 0.2, damage: 120, multiplier: 1.75, radius: 260, knockback: 900, invincible: 0.6 },
     moveSlow: 0.45, // 振っている間の移動速度の倍率
     comboReset: 0.7, // この秒数攻撃しないと1段目に戻る
     combo: [
