@@ -14,6 +14,8 @@ const CONDITIONS = {
   recentDash: (world, mod) => world.player.sinceDash <= (mod.window ?? 2),
   targetSlowed: (world, mod, target) => !!target && (target.slowT > 0 || target.stopT > 0),
   targetBurning: (world, mod, target) => !!target && target.burnT > 0,
+  standing: (world) => world.player.stillT >= 0.25, // 少しの間、動いていない
+  recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
 };
 
 // 条件つき補正も含めた、今のステータスの値。target は攻撃する相手（相手による条件があるとき）
@@ -123,6 +125,13 @@ const ACTIONS = {
       world.fx.bolts.push({ x1: p.x, y1: p.y, x2: e.x, y2: e.y, life: 0.18, max: 0.18 });
       effectDamage(world, e, t.damage, 'shock');
     }
+  },
+
+  // プレイヤーの周りの敵にダメージ（属性なし）
+  thorns(world, t) {
+    const p = world.player;
+    ring(world, p.x, p.y, t.radius, COLORS.amber);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) effectDamage(world, e, t.damage);
   },
 
   // プレイヤーの周りの敵を燃やす

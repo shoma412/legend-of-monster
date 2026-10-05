@@ -7,6 +7,7 @@ export const materials = [
   { id: 'cryoCore', name: 'クライオコア', color: 'cold' },
   { id: 'overCore', name: 'オーバーコア', color: 'heat' },
   { id: 'serpentCore', name: 'サーペントコア', color: 'green' },
+  { id: 'crabCore', name: 'クラブコア', color: 'amber' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）

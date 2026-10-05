@@ -15,10 +15,13 @@
 //   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
+// shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
+// turnRate: 攻撃の合間に向きを変える速さ（ラジアン/秒）。書かなければ、すぐにプレイヤーのほうを向く
 // phases: HP の割合で切り替わる行動。上から順に見て、残りHPの割合が hpAbove より大きい最初のものを使う
 //   sequence : attacks の名前を出す順番（最後まで行ったら最初に戻る）
 //   idle     : 攻撃と攻撃の間に歩いて近づく時間（秒）
 //   speed    : この段階の速さの倍率（予告も攻撃も、合間の時間も速くなる）
+//   noShield : true なら、この段階では甲羅で防げない
 //   arena    : この段階に入ると、部屋の端から inset px まで seconds 秒かけて凍りつき、動ける範囲が狭まる
 export const bosses = [
   {
@@ -211,6 +214,50 @@ export const bosses = [
         idle: { min: 0.8, max: 1.3 },
         sequence: ['burrowHard', 'spit', 'lunge', 'venomHard', 'burrowHard', 'sludge'],
         announce: '詰まり検知',
+      },
+    ],
+  },
+  {
+    id: 'tankcrab',
+    name: 'タンククラブ',
+    alias: '水門の番', // 登場時に出す異名
+    shape: 'crab',
+    color: 'amber',
+    weakness: 'cold',
+    material: 'crabCore',
+    radius: 46,
+    hp: 5600,
+    speed: 62,
+    contactDamage: 36,
+    xp: 300,
+    credits: 140,
+    drops: { count: 3, rarityBonus: 1 },
+    shield: { arc: 170 }, // 甲羅：正面からの武器の攻撃を防ぐ
+    turnRate: 1.5, // 向きを変えるのは遅いので、背後に回り込める
+    attacks: {
+      // はさみのなぎ払い：正面の広い扇
+      pinch: { pattern: 'cone', telegraph: 0.75, lockTime: 0.3, range: 170, arc: 110, duration: 0.25, damage: 42, recover: 1.1 },
+      // 水圧：横と縦の線が、プレイヤーの場所から交互に走る
+      jets: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 4, spacing: 130, width: 30, delay: 0.85, stagger: 0.25, damage: 34, recover: 1.0 },
+      jetsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 6, spacing: 115, width: 30, delay: 0.8, stagger: 0.2, damage: 34, recover: 0.9 },
+      // 跳びかかり：着地で周りを攻撃し、衝撃波の輪が広がる
+      leap: { pattern: 'leap', telegraph: 0.95, lockTime: 0.3, air: 0.55, radius: 120, damage: 42, ring: { speed: 300, max: 300, width: 14, damage: 24 }, recover: 1.2 },
+      // 泡：全方向に、遅い弾をばらまく
+      bubbles: { pattern: 'barrage', telegraph: 0.7, count: 12, spread: 360, waves: 2, interval: 0.6, rotate: 15, shotSpeed: 150, shotRadius: 9, shotLife: 6, damage: 26, recover: 1.0 },
+      bubblesHard: { pattern: 'barrage', telegraph: 0.6, count: 14, spread: 360, waves: 3, interval: 0.5, rotate: 13, shotSpeed: 170, shotRadius: 9, shotLife: 6, damage: 26, recover: 0.9 },
+      // 横走り：甲羅が割れたあとの突進
+      scuttle: { pattern: 'charge', repeat: 2, repeatTelegraph: 0.45, telegraph: 0.65, lockTime: 0.2, speed: 560, duration: 0.7, damage: 40, recover: 0.8, wallStun: 1.3 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, sequence: ['pinch', 'jets', 'leap', 'pinch', 'bubbles'] },
+      // 甲羅が割れる：防げなくなる代わりに、攻撃が速くなる
+      {
+        hpAbove: 0,
+        idle: { min: 0.8, max: 1.3 },
+        speed: 1.3,
+        noShield: true,
+        sequence: ['leap', 'scuttle', 'jetsHard', 'pinch', 'bubblesHard', 'scuttle'],
+        announce: '甲羅破損',
       },
     ],
   },

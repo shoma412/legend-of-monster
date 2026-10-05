@@ -32,6 +32,10 @@ export const SE = {
   explode: [{ wave: 'noise', freq: [1800, 120], dur: 0.36, vol: 0.3 }, { wave: 'sine', freq: [120, 40], dur: 0.3, vol: 0.24 }],
   bossCharge: [{ wave: 'sawtooth', freq: [80, 220], dur: 0.35, vol: 0.22 }],
   laser: [{ wave: 'sawtooth', freq: [140, 160], dur: 1.2, vol: 0.14 }, { wave: 'square', freq: [1200, 1260], dur: 1.2, vol: 0.05 }],
+  // 線の攻撃が光る一瞬の音（落雷、格子レーザー、水圧）。短く切る
+  zap: [{ wave: 'sawtooth', freq: [900, 180], dur: 0.14, vol: 0.16 }, { wave: 'noise', freq: [5000, 1200], dur: 0.1, vol: 0.12 }],
+  // 蒸気が噴き出す音（配管タレット）。音程のない「シュー」
+  steam: [{ wave: 'noise', freq: [3600, 1600], dur: 1.0, vol: 0.1 }],
   warning: [{ wave: 'square', freq: [440, 440], dur: 0.18, vol: 0.16 }, { wave: 'square', freq: [330, 330], dur: 0.18, vol: 0.16, delay: 0.22 }],
   // 拾う・選ぶ
   equip: [{ wave: 'triangle', freq: [520, 1040], dur: 0.1, vol: 0.18 }],
@@ -73,6 +77,8 @@ export const BGM = {
   // マップ2「排水区」。曲を選ぶまでの仮（マップ1の冷却プラントと同じ曲）
   sewer: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
   bossSewer: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
+  reservoir: { file: 'audio/bgm/maou_loop_bgm_cyber24.ogg', song: 'tower' },
+  bossReservoir: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
 };
 
 // ---- コードで鳴らす曲 ----

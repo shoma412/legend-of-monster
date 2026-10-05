@@ -5,11 +5,12 @@ import { species } from '../src/data/implants.js';
 import { maps } from '../src/data/maps.js';
 import { AREA_THEMES } from '../src/data/theme.js';
 import { PATTERNS } from '../src/game/bossPatterns.js';
-import { hitEnemy } from '../src/game/combat.js';
+import { hitEnemy, hurtPlayer as hurtPlayerFor } from '../src/game/combat.js';
+import { statWith } from '../src/game/effects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { dashCooldown } from '../src/game/player.js';
 import { recalcStats } from '../src/game/build.js';
-import { createRun, enterRoom, handleEvents, skipToBoss } from '../src/game/run.js';
+import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { mapState, recordMapClear } from '../src/logic/maps.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
@@ -90,11 +91,11 @@ describe('マップ2の定義', () => {
     expect(area.enemies.map((x) => x.id)).toEqual(expect.arrayContaining(['roller', 'leech', 'pipegun']));
   });
 
-  it('マップ2では、雑魚がマップ1より強い。出る種族は大蛇', () => {
+  it('マップ2では、雑魚がマップ1より強い。出る種族は、マップ2のボスの種族（大蛇・大蟹）', () => {
     const r = createRun({ rng: seeded(4), mapId: 'map2' });
-    expect(r.build.species).toEqual(['serpent']);
+    expect(r.build.species).toEqual(['serpent', 'crab']);
     expect(enterRoom(r).room.enemyScale).toBeCloseTo(maps[1].enemyScale);
-    expect(mapSpecies(maps[1])).toEqual(['serpent']);
+    expect(mapSpecies(maps[1])).toEqual(['serpent', 'crab']);
     expect(species.serpent.boss).toBe('pipeserpent');
   });
 
@@ -103,23 +104,34 @@ describe('マップ2の定義', () => {
     save.bossKills.boltboar = 1;
     expect(carryOptions(save, maps[1])).toEqual(['boar']);
     const r = createRun({ rng: seeded(4), mapId: 'map2', carry: 'boar' });
-    expect([...r.build.species].sort()).toEqual(['boar', 'serpent']);
+    expect([...r.build.species].sort()).toEqual(['boar', 'crab', 'serpent']);
     save.bossKills.pipeserpent = 1;
     expect(carryOptions(save, maps[0])).toEqual(['serpent']);
   });
 
-  it('パイプサーペントを倒すと、サーペントコアが手に入り、マップ2が完了になる', () => {
+  it('パイプサーペントを倒すとサーペントコア、次のエリアでタンククラブを倒すとクラブコアが手に入り、マップ2が完了になる', () => {
     const save = createSave();
     recordMapClear(save, 'map1', 1); // マップ2は、マップ1を完了すると選べる
     const r = createRun({ rng: seeded(7), save, mapId: 'map2' });
-    skipToBoss(r, enterRoom(r));
-    const world = enterRoom(r);
-    while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
-    world.player.inv = Infinity;
-    hitEnemy(world, world.boss, 99999999, 1, 0, 0);
-    handleEvents(r, world);
+    const killBoss = () => {
+      skipToBoss(r, enterRoom(r));
+      const world = enterRoom(r);
+      while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+      world.player.inv = Infinity;
+      // 甲羅のあるボスにも通るよう、防げない攻撃で倒す
+      hitEnemy(world, world.boss, 99999999, 1, 0, 0, { unblockable: true });
+      handleEvents(r, world);
+      return world;
+    };
+    const first = killBoss();
     expect(save.materials.serpentCore).toBeGreaterThan(0);
     expect(save.achievements).toContain('pipeserpent');
+    expect(mapState(save, maps[1])).toBe('open'); // まだ先がある
+    leaveRoom(r, first, NEXT_AREA);
+    expect(currentArea(r).id).toBe('reservoir');
+    killBoss();
+    expect(save.materials.crabCore).toBeGreaterThan(0);
+    expect(save.achievements).toContain('tankcrab');
     expect(mapState(save, maps[1])).toBe('done');
   });
 });
@@ -347,5 +359,207 @@ describe('減速の重ねがけ', () => {
     world.player.hp = 50;
     hitEnemy(world, e, 1, 1, 0, 0);
     expect(e.slowT).toBeCloseTo(STATUS.slow.duration * 3);
+  });
+});
+
+// ===== エリア2：貯水槽（汚泥のかたまり、密漁者、タンククラブ、種族「大蟹」） =====
+
+function crabWorld() {
+  const world = createWorld({ waves: [{ boss: 'tankcrab' }], rng: () => 0.5 });
+  while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  world.boss.idleT = Infinity;
+  return world;
+}
+
+describe('貯水槽の定義', () => {
+  it('色・背景・敵・ボス・素材がそろっている', () => {
+    const area = DATA.areas.get('reservoir');
+    expect(AREA_THEMES[area.theme]).toBeDefined();
+    expect(hasBackdrop(area.theme)).toBe(true);
+    for (const e of [...area.enemies.map((x) => x.id), ...area.eliteBases]) expect(DATA.enemies.has(e), e).toBe(true);
+    const boss = DATA.bosses.get(area.boss);
+    expect(boss.id).toBe('tankcrab');
+    expect(MATERIAL_ICONS[boss.material]).toBeDefined();
+    expect(area.enemies.map((x) => x.id)).toEqual(expect.arrayContaining(['sludge', 'poacher']));
+    // 分かれたあとの小さい個体は、部屋の敵としては選ばれない
+    for (const a of DATA.areas.all()) expect(a.enemies.map((x) => x.id)).not.toContain('sludgelet');
+  });
+});
+
+describe('汚泥のかたまり', () => {
+  it('倒すと、小さい2体に分かれる。分かれたほうは、もう分かれない', () => {
+    const world = makeWorld();
+    const e = addEnemy(world, 'sludge', 200);
+    hitEnemy(world, e, 99999, 1, 0, 0);
+    const kids = world.enemies.filter((x) => !x.dead && x.def.id === 'sludgelet');
+    expect(kids).toHaveLength(2);
+    for (const k of kids) hitEnemy(world, k, 99999, 1, 0, 0);
+    updateWorld(world, DT, idle);
+    expect(world.enemies.filter((x) => !x.dead)).toHaveLength(0);
+  });
+});
+
+describe('密漁者', () => {
+  it('照準線を出してから銛を投げ、当たるとダメージを受けて手元まで引き寄せられる', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'poacher', 300);
+    expect(runUntil(world, () => e.state === 'aim', 3)).toBe(true);
+    expect(p.hp).toBe(PLAYER.maxHp);
+    expect(runUntil(world, () => p.hp < PLAYER.maxHp, 3)).toBe(true);
+    expect(p.hp).toBe(PLAYER.maxHp - e.def.damage);
+    expect(p.pull).not.toBeNull();
+    const before = Math.hypot(e.x - p.x, e.y - p.y);
+    run(world, e.def.harpoon.pull + 0.05);
+    const after = Math.hypot(e.x - p.x, e.y - p.y);
+    expect(after).toBeLessThan(before - 100);
+    expect(after).toBeLessThan(e.def.harpoon.pullTo + 40);
+    expect(p.pull).toBeNull();
+  });
+
+  it('向きが固定されたあとに線から離れれば、当たらない。ダッシュすれば、引き寄せを振り切れる', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const e = addEnemy(world, 'poacher', 300);
+    runUntil(world, () => e.state === 'aim' && e.t <= e.def.harpoon.lock, 4);
+    p.y += 100;
+    runUntil(world, () => e.state === 'chase' && e.cd > 0, 3);
+    expect(p.hp).toBe(PLAYER.maxHp);
+
+    const world2 = makeWorld();
+    const p2 = world2.player;
+    addEnemy(world2, 'poacher', 300);
+    runUntil(world2, () => !!p2.pull, 6);
+    updateWorld(world2, DT, { ...idle, mx: -1, dashPressed: true });
+    updateWorld(world2, DT, { ...idle, mx: -1 });
+    expect(p2.pull).toBeNull();
+  });
+});
+
+describe('タンククラブ：甲羅', () => {
+  it('正面からの攻撃は防がれ、背後からの攻撃は通る', () => {
+    const world = crabWorld();
+    const b = world.boss;
+    const hp = b.hp;
+    updateWorld(world, DT, idle);
+    // ボスはプレイヤー（左）を向いている。左から右への攻撃は正面から当たる
+    expect(hitEnemy(world, b, 100, 1, 0, 0).blocked).toBe(true);
+    expect(b.hp).toBe(hp);
+    // 右から左への攻撃は、背後から当たる
+    expect(hitEnemy(world, b, 100, -1, 0, 0).blocked).toBeFalsy();
+    expect(b.hp).toBeLessThan(hp);
+  });
+
+  it('攻撃のあとの隙（硬直中）は、甲羅が開いて正面からも通る', () => {
+    const world = crabWorld();
+    const b = world.boss;
+    world.player.inv = Infinity;
+    b.act = { name: 'pinch', def: b.def.attacks.pinch, phase: '', t: 0 };
+    PATTERNS.cone.start(world, b, b.act, { dx: -1, dy: 0, dist: 1 });
+    expect(runUntil(world, () => b.act?.phase === 'recover')).toBe(true);
+    updateWorld(world, DT, idle);
+    expect(b.shieldOpen).toBe(true);
+    expect(hitEnemy(world, b, 100, 1, 0, 0).blocked).toBeFalsy();
+  });
+
+  it('向きを変えるのは遅い（すぐには振り向かない）', () => {
+    const world = crabWorld();
+    const b = world.boss;
+    const p = world.player;
+    world.player.inv = Infinity;
+    updateWorld(world, DT, idle);
+    const before = b.angle;
+    // プレイヤーが背後へ回り込む
+    p.x = b.x + 200;
+    p.y = b.y;
+    updateWorld(world, DT, idle);
+    expect(Math.abs(b.angle - before)).toBeLessThan(0.1);
+  });
+
+  it('HPが半分を切ると甲羅が割れ、正面からも通るようになる', () => {
+    const world = crabWorld();
+    const b = world.boss;
+    world.player.inv = Infinity;
+    b.hp = b.maxHp * 0.4;
+    for (let t = 0; t < 0.5; t += DT) updateWorld(world, DT, idle);
+    expect(b.phaseIndex).toBe(1);
+    expect(b.shieldOpen).toBe(true);
+    expect(hitEnemy(world, b, 100, 1, 0, 0).blocked).toBeFalsy();
+  });
+});
+
+describe('種族「大蟹」', () => {
+  const take = (world, damage = 100) => {
+    const p = world.player;
+    p.inv = 0;
+    const before = p.hp;
+    p.hp = before; // そのまま
+    world.player.stats.maxHp = Math.max(world.player.stats.maxHp, 1000);
+    p.hp = 1000;
+    hurtPlayerFor(world, damage);
+    return 1000 - p.hp;
+  };
+
+  it('甲殻：被ダメージが減る。種族ボーナス（2種類）でさらに減る', () => {
+    expect(take(makeWorld())).toBe(100);
+    expect(take(makeWorld(['carapace']))).toBe(92);
+    expect(take(makeWorld(['carapace', 'bigclaw']))).toBe(82);
+  });
+
+  it('踏ん張り：立ち止まっている間だけ、被ダメージが減る', () => {
+    const still = makeWorld(['brace']);
+    run(still, 0.5);
+    expect(take(still)).toBe(85);
+    const moving = makeWorld(['brace']);
+    run(moving, 0.5, { ...idle, mx: 1 });
+    expect(take(moving)).toBe(100);
+  });
+
+  it('反撃：被弾後2秒間、攻撃力が上がる', () => {
+    const world = makeWorld(['riposte']);
+    expect(statWith(world, 'attackMul')).toBeCloseTo(1);
+    take(world, 5);
+    expect(statWith(world, 'attackMul')).toBeCloseTo(1.3);
+    world.player.inv = Infinity;
+    run(world, 2.2);
+    expect(statWith(world, 'attackMul')).toBeCloseTo(1);
+  });
+
+  it('とげ甲羅：被弾したとき、周囲の敵にダメージ', () => {
+    const world = makeWorld(['thornshell']);
+    const near = addEnemy(world, 'grunt', 60);
+    const far = addEnemy(world, 'grunt', 400);
+    take(world, 5);
+    expect(near.hp).toBeLessThan(near.maxHp);
+    expect(far.hp).toBe(far.maxHp);
+  });
+
+  it('大ばさみ：会心ダメージが上がる。種族ボーナス（3種類）：被弾後の無敵時間が伸びる', () => {
+    expect(makeWorld(['bigclaw']).player.stats.critMul).toBeCloseTo(PLAYER.critMultiplier + 0.3);
+    const normal = makeWorld();
+    take(normal, 5);
+    expect(normal.player.inv).toBeCloseTo(PLAYER.hitInvincible);
+    const three = makeWorld(['carapace', 'bigclaw', 'riposte']);
+    take(three, 5);
+    expect(three.player.inv).toBeCloseTo(PLAYER.hitInvincible + 0.4);
+  });
+
+  it('被ダメージの軽減は、重ねても下限より小さくならない', () => {
+    const world = makeWorld(['carapace', 'brace', 'bigclaw']);
+    // ありえないほど強化しても、下限で止まる
+    world.player.build.implants.carapace = 30;
+    world.player.build.implants.brace = 30;
+    recalcStats(world.player);
+    run(world, 0.5);
+    expect(take(world)).toBe(Math.round(100 * PLAYER.minDamageTaken));
+  });
+
+  it('恒久強化「装甲板」：クラブコアで買え、被ダメージが1段ごとに 3% 減る', () => {
+    const save = createSave();
+    save.materials.crabCore = 2;
+    expect(buyUpgrade(save, 'armorplate')).toBe(true);
+    expect(buyUpgrade(save, 'armorplate')).toBe(true);
+    const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
+    expect(world.player.stats.damageTaken).toBeCloseTo(0.94);
   });
 });

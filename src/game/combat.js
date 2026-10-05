@@ -1,5 +1,6 @@
 // 攻撃を当てる・受ける処理
 import { COMBAT, FEEL, ITEMS, LOOT, PLAYER, STATUS } from '../data/balance.js';
+import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { calcDamage } from '../logic/damage.js';
 import { DEG, angleDiff } from '../logic/geometry.js';
@@ -8,6 +9,7 @@ import { makeItem } from '../logic/loot.js';
 import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
+import { createEnemy } from './enemyAI.js';
 import { addHitstop, addShake, burst, floatText, sfx } from './fx.js';
 import { triggerCounter } from './player.js';
 
@@ -56,7 +58,7 @@ export function enemySpeedFactor(enemy) {
 export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}) {
   // シールド兵：盾を向けている側からの攻撃は防がれる。止まっている間（凍結・EMP）は防げない
   const shield = enemy.def.shield;
-  if (shield && enemy.stopT <= 0 && !options.unblockable) {
+  if (shield && enemy.stopT <= 0 && !enemy.shieldOpen && !options.unblockable) {
     const from = Math.atan2(-dirY, -dirX); // 敵から見た、攻撃が来た方向
     if (Math.abs(angleDiff(from, enemy.facing)) <= (shield.arc * DEG) / 2) {
       enemy.hit = 0.06;
@@ -163,6 +165,7 @@ export function killEnemy(world, enemy) {
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   eliteDeath(world, enemy);
+  splitOnDeath(world, enemy);
   world.events.push({ type: 'kill', enemy: enemy.def.id });
   if (enemy.elite) world.events.push({ type: 'eliteKill', enemy: enemy.baseDef.id });
   // ボスを倒したら、呼び出されていた雑魚も一緒に止まる
@@ -176,6 +179,20 @@ export function killEnemy(world, enemy) {
   if (enemy.boss) world.events.push({ type: 'bossKill', boss: enemy.def.id, noDamage: world.damageTaken === 0 });
   dropLoot(world, enemy);
   fire(world, 'kill', { target: enemy });
+}
+
+// 倒すと分かれる敵（定義の split）。分かれた先は、エリアと周回の倍率がかかった強さで出る
+function splitOnDeath(world, enemy) {
+  const split = enemy.def.split;
+  if (!split) return;
+  const def = DATA.enemies.get(split.into);
+  for (let i = 0; i < split.count; i++) {
+    const a = (i / split.count) * Math.PI * 2 + world.rng() * 0.6;
+    const child = createEnemy(def, enemy.x + Math.cos(a) * enemy.r * 0.6, enemy.y + Math.sin(a) * enemy.r * 0.6, 0.3, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
+    child.vx = Math.cos(a) * 220;
+    child.vy = Math.sin(a) * 220;
+    world.enemies.push(child);
+  }
 }
 
 function dropLoot(world, enemy) {
@@ -215,10 +232,13 @@ export function hurtPlayer(world, damage) {
     return true;
   }
   // 周が進むと、受けるダメージが増える
-  const amount = Math.max(1, Math.round(damage * p.stats.damageTaken * (world.room.damageScale ?? 1)));
+  // 被ダメージの軽減は、条件つきのもの（立ち止まっている間、など）も合わせて、下限まで
+  const taken = Math.max(PLAYER.minDamageTaken, statWith(world, 'damageTaken'));
+  const amount = Math.max(1, Math.round(damage * taken * (world.room.damageScale ?? 1)));
   p.hp = Math.max(0, p.hp - amount);
   world.damageTaken += amount;
-  p.inv = PLAYER.hitInvincible;
+  p.inv = PLAYER.hitInvincible + (p.stats.hurtInvincible ?? 0);
+  p.sinceHurt = 0;
   addShake(world, FEEL.shake.hurt);
   sfx(world, p.hp <= 0 ? 'death' : 'hurt');
   floatText(world, p.x, p.y - 22, '-' + amount, COLORS.red, 18);

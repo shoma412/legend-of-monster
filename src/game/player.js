@@ -44,6 +44,9 @@ export function createPlayer(weaponId, x, y, carry = null) {
     smokeT: 0, // 煙幕の残り時間
     smokeRadius: 0,
     sinceDash: Infinity, // 最後にダッシュしてからの秒数
+    sinceHurt: Infinity, // 最後に被弾してからの秒数
+    stillT: 0, // 立ち止まっている秒数
+    pull: null, // 引き寄せられている最中（密漁者の銛）{ vx, vy, t }
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
     forceCrit: false, // 次の攻撃が必ず会心
   };
@@ -79,6 +82,7 @@ export function updatePlayer(world, dt, input) {
   p.dashBuffer -= dt;
   p.attackBuffer -= dt;
   p.sinceDash += dt;
+  p.sinceHurt += dt;
   if (!p.attack) p.comboTimer -= dt;
 
   let mx = input.mx;
@@ -104,6 +108,19 @@ export function updatePlayer(world, dt, input) {
   if (p.dashBuffer > 0 && p.dashCharges > 0 && p.dashT <= 0) {
     startDash(p, ml > 0 ? mx : p.fx, ml > 0 ? my : p.fy);
     sfx(world, 'dash');
+  }
+
+  // 立ち止まっている時間（種族「大蟹」の踏ん張り）
+  p.stillT = ml > 0 || p.dashT > 0 || p.pull ? 0 : p.stillT + dt;
+  // 銛で引き寄せられている間は、その向きに動かされる。ダッシュで振り切れる
+  if (p.pull) {
+    if (p.dashT > 0) p.pull = null;
+    else {
+      p.x += p.pull.vx * dt;
+      p.y += p.pull.vy * dt;
+      p.pull.t -= dt;
+      if (p.pull.t <= 0) p.pull = null;
+    }
   }
 
   if (p.dashT > 0) {

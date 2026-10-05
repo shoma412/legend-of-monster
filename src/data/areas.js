@@ -139,4 +139,36 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'reservoir',
+    code: 'DRAIN 02',
+    name: '貯水槽',
+    theme: 'tank',
+    // 曲は、マップ2の曲を選ぶまでの仮
+    bgm: 'reservoir',
+    bossBgm: 'bossReservoir',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'sludge', weight: 3 },
+      { id: 'poacher', weight: 2 },
+      { id: 'roller', weight: 2 },
+      { id: 'leech', weight: 3 },
+      { id: 'pipegun', weight: 2 },
+    ],
+    eliteBases: ['sludge', 'poacher', 'roller'],
+    boss: 'tankcrab',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 水門の前に、大型反応。甲羅を背負っている。',
+        '@noise＞ 正面からは通らない。攻撃のあとの隙か、背中を狙え。冷却が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ 水門が開いた。……もう、ためる水はないのに。',
+        '@noise＞ コアを回収しろ。残りは、いちばん下の浄水プラントだ。',
+      ],
+    },
+  },
 ];

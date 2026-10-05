@@ -13,6 +13,7 @@ export const achievements = [
   { id: 'cryowyvern', icon: 'skull', color: 'cold', name: '冷却塔の主狩り', desc: 'クライオ・ワイバーンを倒した', on: 'bossKill', check: 'bossIs', boss: 'cryowyvern' },
   { id: 'overload', icon: 'skull', color: 'heat', name: '機構停止', desc: 'オーバーロードを倒した', on: 'bossKill', check: 'bossIs', boss: 'overload' },
   { id: 'pipeserpent', icon: 'skull', color: 'green', name: '配管呑み狩り', desc: 'パイプサーペントを倒した', on: 'bossKill', check: 'bossIs', boss: 'pipeserpent' },
+  { id: 'tankcrab', icon: 'skull', color: 'amber', name: '水門の番狩り', desc: 'タンククラブを倒した', on: 'bossKill', check: 'bossIs', boss: 'tankcrab' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },

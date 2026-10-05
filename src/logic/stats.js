@@ -139,6 +139,7 @@ export function computeStats(build) {
     burnMul: 1,
     slowMul: 1, // 敵にかける減速の時間の倍率
     dashHaste: 0, // ダッシュの回復が速くなる割合（0.15 = 15% 速い）
+    hurtInvincible: 0, // 被弾後の無敵時間に足す秒数
     comboBonus: 0, // 同じ敵に続けて当てるたびに上がるダメージの割合
     comboMax: COMBO.max, // その重なる回数の上限
     freezeChance: 0,

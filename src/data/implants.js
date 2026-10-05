@@ -8,7 +8,8 @@
 //
 // effect が返す形は、装備効果・レジェンド固有効果と共通で、2種類の書き方だけを使う
 //   mods     : ステータス補正。{ stat, add, when } … when を書くと条件を満たす間だけ効く
-//              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）
+//              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
+//                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
 //              do: 発動する効果の部品の名前（src/game/effects.js の ACTIONS）
@@ -125,6 +126,32 @@ export const implants = [
     desc: (k) => `敵を倒すと、次の攻撃が必ず会心${k > 1 ? `。会心ダメージ +${pct((k - 1) * 0.5)}` : ''}`,
     effect: (k) => ({ triggers: [{ on: 'kill', do: 'guaranteeNextCrit' }], mods: [{ stat: 'critMul', add: (k - 1) * 0.5 }] }),
   },
+  // ---- 大蟹（タンククラブ由来・守って返す） ----
+  {
+    id: 'carapace', species: 'crab', name: '甲殻',
+    desc: (k) => `被ダメージ −${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.08 * k }] }),
+  },
+  {
+    id: 'thornshell', species: 'crab', name: 'とげ甲羅',
+    desc: (k) => `被弾したとき、周囲の敵に${num(34 * k)}ダメージ`,
+    effect: (k) => ({ triggers: [{ on: 'hurt', do: 'thorns', radius: 120, damage: 34 * k }] }),
+  },
+  {
+    id: 'brace', species: 'crab', name: '踏ん張り',
+    desc: (k) => `立ち止まっている間、被ダメージ −${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.15 * k, when: 'standing' }] }),
+  },
+  {
+    id: 'riposte', species: 'crab', name: '反撃',
+    desc: (k) => `被弾後2秒間、攻撃力 +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.3 * k, when: 'recentHurt', window: 2 }] }),
+  },
+  {
+    id: 'bigclaw', species: 'crab', name: '大ばさみ',
+    desc: (k) => `会心ダメージ +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'critMul', add: 0.3 * k }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -201,6 +228,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '攻撃速度 +10%', effect: { mods: [{ stat: 'attackSpeed', add: 0.1 }] } },
       { need: 3, desc: '連続ヒットの上限 +3', effect: { mods: [{ stat: 'comboMax', add: 3 }] } },
+    ],
+  },
+  crab: {
+    name: '大蟹', color: 'amber', boss: 'tankcrab',
+    bonuses: [
+      { need: 2, desc: '被ダメージ −10%', effect: { mods: [{ stat: 'damageTaken', add: -0.1 }] } },
+      { need: 3, desc: '被弾後の無敵時間 +0.4秒', effect: { mods: [{ stat: 'hurtInvincible', add: 0.4 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },

@@ -560,7 +560,7 @@ export function updateHazards(world, dt) {
           const dy = Math.sin(h.angle) * ROOM.barLength;
           if (distToSegment(p.x, p.y, h.x - dx, h.y - dy, h.x + dx, h.y + dy) <= p.r + h.width / 2) hurtPlayer(world, h.damage);
           h.flash = BAR_FLASH;
-          sfx(world, 'laser');
+          sfx(world, 'zap');
           addShake(world, FEEL.shake.hit);
         }
       }

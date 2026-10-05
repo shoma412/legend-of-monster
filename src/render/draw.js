@@ -171,6 +171,33 @@ const SHAPES = {
       g.fillStyle(color, 0.8).fillRect(e.x + Math.cos(b) * (e.r + 3) - 1.5, e.y + Math.sin(b) * (e.r + 3) - 1.5, 3, 3);
     }
   },
+  // 汚泥のかたまり：ゆらゆら形の変わる丸
+  blob(g, e, color, world) {
+    const pts = [];
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI * 2) / 12;
+      const r = e.r * (1.05 + 0.16 * Math.sin(world.time * 5 + e.seed + i * 1.7));
+      pts.push({ x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r });
+    }
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    g.fillStyle(color, 0.7).fillCircle(e.x - e.r * 0.25, e.y - e.r * 0.2, Math.max(1.5, e.r * 0.14));
+    g.fillStyle(color, 0.5).fillCircle(e.x + e.r * 0.3, e.y + e.r * 0.15, Math.max(1.5, e.r * 0.1));
+  },
+  // 密漁者：人の形（四角い体）と、構えた銛
+  poacher(g, e, color, world) {
+    const p = world.player;
+    const a = e.state === 'aim' ? e.angle : Math.atan2(p.y - e.y, p.x - e.x);
+    const pts = polygon(e.x, e.y, e.r * 1.3, 4, a + Math.PI / 4);
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    // 銛（先がかぎになっている）
+    const tip = { x: e.x + cos * e.r * 2.1, y: e.y + sin * e.r * 2.1 };
+    neonStroke(g, color, 2, () => g.lineBetween(e.x - cos * e.r * 0.4, e.y - sin * e.r * 0.4, tip.x, tip.y));
+    g.lineStyle(2, color, 1).lineBetween(tip.x, tip.y, tip.x - cos * 6 - sin * 5, tip.y - sin * 6 + cos * 5).lineBetween(tip.x, tip.y, tip.x - cos * 6 + sin * 5, tip.y - sin * 6 - cos * 5);
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -237,9 +264,16 @@ function drawTelegraph(g, e, world) {
     } else {
       const c = hex(e.color);
       g.lineStyle(steam.width + 10, c, 0.14).lineBetween(e.x, e.y, x2, y2);
-      g.lineStyle(steam.width, c, 0.4 + 0.15 * Math.sin(world.time * 40)).lineBetween(e.x, e.y, x2, y2);
-      g.lineStyle(steam.width * 0.3, WHITE, 0.6).lineBetween(e.x, e.y, x2, y2);
+      g.lineStyle(steam.width, c, 0.28 + 0.1 * Math.sin(world.time * 40)).lineBetween(e.x, e.y, x2, y2);
+      g.lineStyle(steam.width * 0.25, WHITE, 0.3).lineBetween(e.x, e.y, x2, y2);
     }
+  }
+  if (e.def.behavior === 'harpooner' && e.state === 'aim') {
+    // 銛の照準線。向きが固定されると太く明るくなる
+    const harpoon = e.def.harpoon;
+    const locked = e.t <= harpoon.lock;
+    g.lineStyle(locked ? 4 : 1.5, red, locked ? 0.95 : 0.45 + 0.25 * Math.sin(world.time * 30));
+    g.lineBetween(e.x, e.y, e.x + Math.cos(e.angle) * harpoon.range, e.y + Math.sin(e.angle) * harpoon.range);
   }
   if (e.def.behavior === 'gunner' && e.state === 'aim') {
     // 照準線
@@ -732,6 +766,56 @@ SHAPES.serpent = (g, b, color) => {
     for (const side of [-1, 1]) {
       const eye = local(b, r * 0.35, side * r * 0.5);
       g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5 * scale);
+    }
+  }
+};
+
+// タンククラブ：横に広い胴、背負ったタンク、左右のはさみ、正面の甲羅（太い弧。開いている間は暗い）
+SHAPES.crab = (g, b, color, world) => {
+  const r = b.r;
+  const at = (forward, side) => local(b, forward, side);
+  // 脚（左右に3本ずつ）
+  for (const side of [-1, 1]) {
+    for (let i = -1; i <= 1; i++) {
+      const from = at(i * r * 0.45, side * r * 0.9);
+      const swing = Math.sin(world.time * 8 + i * 1.5) * r * 0.08;
+      const to = at(i * r * 0.6 + swing, side * r * 1.5);
+      g.lineStyle(3, color, 0.8).lineBetween(from.x, from.y, to.x, to.y);
+    }
+  }
+  // 胴（横に広い）
+  const body = rotatedEllipse(b.x, b.y, r * 0.85, r * 1.15, b.angle);
+  g.fillStyle(BODY_FILL, 0.92).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  // 背負ったタンク（後ろ寄りの丸と、帯）
+  const tank = at(-r * 0.25, 0);
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(tank.x, tank.y, r * 0.62);
+  neonStroke(g, color, 2.5, () => g.strokeCircle(tank.x, tank.y, r * 0.62));
+  g.lineStyle(1.5, color, 0.6).strokeCircle(tank.x, tank.y, r * 0.38);
+  // はさみ
+  for (const side of [-1, 1]) {
+    const arm = at(r * 0.7, side * r * 0.75);
+    const claw = at(r * 1.35, side * r * 0.6);
+    neonStroke(g, color, 4, () => g.lineBetween(arm.x, arm.y, claw.x, claw.y));
+    const tipA = at(r * 1.75, side * r * 0.8);
+    const tipB = at(r * 1.75, side * r * 0.35);
+    neonStroke(g, color, 3, () => g.lineBetween(claw.x, claw.y, tipA.x, tipA.y).lineBetween(claw.x, claw.y, tipB.x, tipB.y));
+  }
+  // 目
+  for (const side of [-1, 1]) {
+    const eye = at(r * 0.72, side * r * 0.25);
+    g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
+  }
+  // 甲羅：正面の弧。防いでいる間は白く、開いている間・割れたあとは暗い
+  if (b.def.shield) {
+    const half = (b.def.shield.arc * DEG) / 2;
+    const open = b.shieldOpen;
+    const broken = b.def.phases[b.phaseIndex]?.noShield;
+    if (!broken) {
+      g.lineStyle(12, open ? hex(COLORS.dim) : WHITE, open ? 0.15 : 0.2);
+      arcPath(g, b.x, b.y, r + 14, b.angle - half, b.angle + half);
+      g.lineStyle(5, open ? hex(COLORS.dim) : WHITE, open ? 0.45 : 1);
+      arcPath(g, b.x, b.y, r + 14, b.angle - half, b.angle + half);
     }
   }
 };

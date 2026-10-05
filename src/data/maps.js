@@ -10,8 +10,8 @@
 // 最終的に7つにする。マップ2〜7は、枠だけ先に置いてある。
 export const maps = [
   { id: 'map1', code: 'MAP 01', name: '中枢区', areas: ['slum', 'plant', 'tower'] },
-  // 排水区：作っている途中（今はエリア1の下水道まで）。enemyScale は、雑魚のHPと攻撃力にかかるマップごとの倍率
-  { id: 'map2', code: 'MAP 02', name: '排水区', areas: ['sewer'], enemyScale: 1.5 },
+  // 排水区：作っている途中（今はエリア2の貯水槽まで）。enemyScale は、雑魚のHPと攻撃力にかかるマップごとの倍率
+  { id: 'map2', code: 'MAP 02', name: '排水区', areas: ['sewer', 'reservoir'], enemyScale: 1.5 },
   { id: 'map3', code: 'MAP 03', name: '？？？', areas: [], ready: false },
   { id: 'map4', code: 'MAP 04', name: '？？？', areas: [], ready: false },
   { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },

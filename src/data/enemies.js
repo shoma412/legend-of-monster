@@ -12,6 +12,8 @@
 //   roller  : 狙いをつけてから、まっすぐ転がってくる。通ったあとに汚水の床（踏むと減速）が残る
 //   leech   : 飛びついて張り付き、HP を吸い続ける。ダッシュで振り払える
 //   steamer : 動かない。予告の帯を出してから、蒸気を一直線に噴き続ける
+//   harpooner : 距離を取り、照準線を出してから銛を投げる。当たると引き寄せられる
+// split: { into, count } を書くと、倒したときにその敵に分かれる
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
 // hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
 export const enemies = [
@@ -191,5 +193,58 @@ export const enemies = [
     knockbackResist: 1,
     // aim 秒かけて狙い（最後の lock 秒は向きを固定）、duration 秒のあいだ幅 width の蒸気を噴き続ける
     steam: { interval: 2.2, aim: 1.0, lock: 0.3, duration: 1.3, tick: 0.3, range: 1100, width: 26 },
+  },
+  {
+    id: 'sludge',
+    name: '汚泥のかたまり',
+    behavior: 'swarm',
+    shape: 'blob',
+    color: 'green',
+    radius: 19,
+    hp: 96,
+    speed: 58,
+    damage: 15,
+    xp: 12,
+    credits: 4,
+    cost: 3,
+    dropChance: 0.24,
+    knockbackResist: 0.5,
+    wobble: 0.15,
+    split: { into: 'sludgelet', count: 2 }, // 倒すと、小さい2体に分かれる
+  },
+  {
+    // 汚泥のかたまりが分かれたもの。部屋の敵としては選ばれない
+    id: 'sludgelet',
+    name: '汚泥のしずく',
+    behavior: 'swarm',
+    shape: 'blob',
+    color: 'green',
+    radius: 10,
+    hp: 26,
+    speed: 135,
+    damage: 9,
+    xp: 3,
+    credits: 1,
+    cost: 99,
+    dropChance: 0,
+    wobble: 0.7,
+  },
+  {
+    id: 'poacher',
+    name: '密漁者',
+    behavior: 'harpooner',
+    shape: 'poacher',
+    color: 'amber',
+    radius: 14,
+    hp: 54,
+    speed: 78,
+    damage: 12,
+    xp: 13,
+    credits: 5,
+    cost: 3,
+    dropChance: 0.24,
+    keepDistance: { min: 220, max: 340 },
+    // aim 秒かけて狙い（最後の lock 秒は向きを固定）、銛を投げる。当たると pull 秒かけて、手元の pullTo の距離まで引き寄せる
+    harpoon: { interval: 3.0, aim: 0.95, lock: 0.3, range: 420, width: 10, pull: 0.32, pullTo: 70 },
   },
 ];

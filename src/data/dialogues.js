@@ -71,6 +71,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-tankcrab',
+    trigger: { at: 'bossIntro', boss: 'tankcrab' },
+    lines: [
+      { who: 'jin', text: 'タンクが……歩いてる。' },
+      { who: 'noise', text: '水門の保守機だ。壊れたタンクを捨てられず、背負って甲羅にした。' },
+      { who: 'jin', text: '正面は通らないな。攻撃のあとか、背中だ。' },
+    ],
+  },
+  {
+    id: 'return-tankcrab',
+    trigger: { at: 'hideout', bossKilled: 'tankcrab' },
+    lines: [
+      { who: 'hal', text: 'その甲羅、タンクの鉄板じゃない。厚さ、何センチあるの。' },
+      { who: 'jin', text: '守ってたんだ。もう水の入っていない水門を、ずっと。' },
+      { who: 'noise', text: '……下に、もう一つある。水をきれいにするはずだった場所だ。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [

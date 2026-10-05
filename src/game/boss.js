@@ -1,6 +1,6 @@
 // ボスの進行。定義（src/data/bosses.js）の phases と sequence に従って、攻撃パターンの部品を順に実行する。
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
-import { circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { angleDiff, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { PATTERNS } from './bossPatterns.js';
 import { hurtPlayer } from './combat.js';
 import { addShake, burst, floatText } from './fx.js';
@@ -77,8 +77,17 @@ export function updateBoss(world, b, dt) {
       b.angle = Math.atan2(b.act.dirY, b.act.dirX);
     }
   } else {
-    // 攻撃の合間は歩いて近づく
-    if (!b.hidden) b.angle = Math.atan2(dy, dx);
+    // 攻撃の合間は歩いて近づく。向きを変えるのが遅いボス（甲羅持ち）は、少しずつ向き直る
+    if (!b.hidden) {
+      const want = Math.atan2(dy, dx);
+      if (b.def.turnRate) {
+        const diff = angleDiff(want, b.angle);
+        const step = b.def.turnRate * dt;
+        b.angle += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+      } else {
+        b.angle = want;
+      }
+    }
     if (d.dist > b.r + p.r + 24) {
       b.x += (dx / d.dist) * b.def.speed * dt;
       b.y += (dy / d.dist) * b.def.speed * dt;
@@ -90,6 +99,13 @@ export function updateBoss(world, b, dt) {
       b.act = { name, def: b.def.attacks[name], phase: '', t: 0 };
       PATTERNS[b.act.def.pattern].start(world, b, b.act, d);
     }
+  }
+
+  // 甲羅：向いている方向が正面。硬直中（recover・stun）と、甲羅が割れた段階では、開いていて防げない
+  if (b.def.shield) {
+    b.facing = b.angle;
+    const resting = b.act?.phase === 'recover' || b.act?.phase === 'stun';
+    b.shieldOpen = resting || !!phase.noShield;
   }
 
   if (b.hidden) return; // 潜っている間は、部屋の中にいない

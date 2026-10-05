@@ -302,7 +302,7 @@ const BEHAVIORS = {
         e.state = 'steam';
         e.t = steam.duration;
         e.tickT = 0;
-        sfx(world, 'laser');
+        sfx(world, 'steam');
       }
     } else if (e.state === 'steam') {
       e.t -= dt;
@@ -320,6 +320,40 @@ const BEHAVIORS = {
       if (e.t <= 0) {
         e.state = 'chase';
         e.cd = steam.interval;
+      }
+    }
+  },
+
+  // 密漁者：距離を取り、照準線を出してから銛を投げる。当たると、手元まで引き寄せられる
+  harpooner(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const harpoon = e.def.harpoon;
+    const p = world.player;
+    if (e.state === 'chase') {
+      const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+      e.x += (d.dx / d.dist) * e.def.speed * want * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * want * dt;
+      if (e.cd <= 0 && d.dist <= harpoon.range) {
+        e.state = 'aim';
+        e.t = harpoon.aim;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      if (e.t > harpoon.lock) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        const x2 = e.x + Math.cos(e.angle) * harpoon.range;
+        const y2 = e.y + Math.sin(e.angle) * harpoon.range;
+        const hit = distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + harpoon.width / 2 && hurtPlayer(world, e.def.damage);
+        sfx(world, 'snipe');
+        world.fx.beams.push({ x1: e.x, y1: e.y, x2: hit ? p.x : x2, y2: hit ? p.y : y2, life: hit ? harpoon.pull + 0.1 : 0.15, max: hit ? harpoon.pull + 0.1 : 0.15, color: e.color, width: 3 });
+        if (hit && world.mode === 'play') {
+          // 手元の少し前まで、一定の時間で引き寄せる
+          const travel = Math.max(0, d.dist - harpoon.pullTo);
+          p.pull = { vx: (-d.dx / d.dist) * (travel / harpoon.pull), vy: (-d.dy / d.dist) * (travel / harpoon.pull), t: harpoon.pull };
+        }
+        e.state = 'chase';
+        e.cd = harpoon.interval;
       }
     }
   },

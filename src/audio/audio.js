@@ -150,7 +150,8 @@ async function startBgmFile(def) {
     gain.connect(bgmBus);
     source.start();
     bgmSource = source;
-  } catch {
+  } catch (err) {
+    console.warn('BGM のファイルを読み込めなかったので、コードの曲で代わりにする:', def.file, err);
     // 読み込めなかったら、コードの曲で代わりにする
     if (request === bgmRequest && def.song) bgmSong = startSong(ctx, bgmBus, noiseBuffer, def.song);
   }

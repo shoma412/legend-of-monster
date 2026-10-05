@@ -45,6 +45,11 @@ export const upgrades = [
     costs: [{ serpentCore: 1 }, { serpentCore: 1 }, { serpentCore: 1 }],
     perLevel: { mods: [{ stat: 'dashHaste', add: 0.1 }] },
   },
+  {
+    id: 'armorplate', name: '装甲板', desc: '被ダメージ −3%', max: 3,
+    costs: [{ crabCore: 1 }, { crabCore: 1 }, { crabCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.03 }] },
+  },
 ];
 
 // 武器の解放
