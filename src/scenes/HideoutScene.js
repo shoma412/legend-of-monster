@@ -15,12 +15,11 @@ import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
-import { drawMaterialIcon } from '../render/metaIcons.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView } from '../render/view.js';
 import { createDialogueBox } from './dialogueBox.js';
 import { createMapSelect } from './mapSelect.js';
-import { MenuOverlay, costText } from './menuOverlay.js';
+import { MenuOverlay, costText, ownedText } from './menuOverlay.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -65,11 +64,9 @@ export class HideoutScene extends Phaser.Scene {
     }
 
     drawFrame(this.frame, 'hideout');
-    this.materialGfx = this.add.graphics();
 
     const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
     this.add.text(40, 7, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
-    this.materialText = this.add.text(W - 40, 7, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(1, 0);
     this.refreshStations();
     this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5).setDepth(7).setVisible(false);
 
@@ -180,7 +177,8 @@ export class HideoutScene extends Phaser.Scene {
     return stations;
   }
 
-  // 武器ラックと出撃ゲートの表示を、今のセーブデータに合わせる
+  // 武器ラックと出撃ゲートの表示を、今のセーブデータに合わせる。
+  // 持っているボス素材は、強化端末（恒久強化の画面）と記録端末で見る
   refreshStations() {
     const save = this.save;
     for (const o of this.world.objects) {
@@ -193,24 +191,10 @@ export class HideoutScene extends Phaser.Scene {
         if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${def.note}（選択中）` });
         else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${def.note}）` });
         else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost)}` });
-        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）` });
+        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）　${ownedText(save, def.cost)}` });
       } else if (o.icon === 'gate') {
         o.prompt = `E：出撃先を選ぶ（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }
-    }
-    // 持っているボス素材（アイコンつき）。右から順に並べる
-    this.materialText.setText('');
-    this.materialLabels?.forEach((t) => t.destroy());
-    this.materialLabels = [];
-    const mg = this.materialGfx;
-    mg.clear();
-    let mx = W - 40;
-    for (const m of [...DATA.materials.all()].reverse()) {
-      const color = materialColor(m);
-      const t = this.add.text(mx, 8, `${m.name} ×${save.materials[m.id] ?? 0}`, { fontFamily: FONTS.body, fontSize: '13px', fontStyle: '700', color }).setOrigin(1, 0);
-      this.materialLabels.push(t);
-      drawMaterialIcon(mg, m.id, mx - t.width - 12, 16, 7, hex(color));
-      mx -= t.width + 38;
     }
   }
 

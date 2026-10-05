@@ -35,6 +35,11 @@ export function materialColor(def) {
   return ELEMENT_COLORS[def.color] ?? COLORS[def.color];
 }
 
+// その費用に使う素材を、いくつ持っているか（例：所持 ボアコア ×1）
+export function ownedText(save, cost) {
+  return `所持 ${Object.keys(cost).map((id) => `${DATA.materials.get(id).name} ×${save.materials[id] ?? 0}`).join('　')}`;
+}
+
 export function costText(cost) {
   return Object.entries(cost).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　');
 }
@@ -245,15 +250,6 @@ export class MenuOverlay {
     this.root.add(dim);
 
     this.text(40, 28, this.options.title, 26, COLORS.cyan, { fontFamily: FONTS.display, fontStyle: '700' }).setShadow(0, 0, COLORS.cyan, 12, false, true);
-    // 持っているボス素材（アイコンつき）
-    const g = this.graphics();
-    let x = W - 40;
-    for (const def of [...DATA.materials.all()].reverse()) {
-      const color = materialColor(def);
-      const t = this.text(x, 38, `${def.name} ×${save.materials[def.id] ?? 0}`, 13, color, { fontStyle: '700' }).setOrigin(1, 0);
-      drawMaterialIcon(g, def.id, x - t.width - 12, 47, 7, hex(color));
-      x -= t.width + 38;
-    }
     // タブ（数が多いときは幅を詰める）
     const tabs = this.options.tabs;
     const gap = 6;
@@ -457,15 +453,52 @@ export class MenuOverlay {
     this.text(W / 2, 440, '白い枠＝今いる部屋　明るい線＝進める道　暗い部屋＝もう行けない', 12, COLORS.dim).setOrigin(0.5);
   }
 
+  // 持っているボス素材を、アイコンつきで横に並べる（持っていないものは出さない）。幅に入りきらなければ折り返す。
+  // 返り値は、使った高さ
+  renderMaterials(save, x, y, width, maxLines = 2) {
+    const g = this.graphics();
+    const owned = DATA.materials.all().filter((def) => (save.materials[def.id] ?? 0) > 0);
+    const label = this.text(x, y, 'ボス素材', 12, COLORS.dim, { fontStyle: '700' });
+    if (owned.length === 0) {
+      this.text(x + label.width + 14, y, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED);
+      return 20;
+    }
+    let cx = x + label.width + 14;
+    let line = 0;
+    let shown = 0;
+    for (const def of owned) {
+      const color = materialColor(def);
+      const t = this.text(0, 0, `${def.name} ×${save.materials[def.id]}`, 12, color, { fontStyle: '700' });
+      const w = 18 + t.width + 18;
+      if (cx + w > x + width) {
+        line++;
+        cx = x + label.width + 14;
+      }
+      if (line >= maxLines) {
+        t.setText(`ほか ${owned.length - shown} 種類`).setColor(COLORS.dim).setPosition(x + width - 4, y + (maxLines - 1) * 20).setOrigin(1, 0);
+        break;
+      }
+      drawMaterialIcon(g, def.id, cx + 7, y + 8, 6, hex(color));
+      t.setPosition(cx + 18, y);
+      cx += w;
+      shown++;
+    }
+    return (Math.min(line, maxLines - 1) + 1) * 20;
+  }
+
   // ---- 恒久強化 ----
   renderUpgrades(save) {
     const readOnly = this.options.readOnlyUpgrades;
     this.text(40, 114, readOnly ? '買った恒久強化（買うのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を買う。行をクリックするか、W・S で選んで Enter', 12, COLORS.dim);
-    const upgradeRows = 6; // 一度に出す行の数（下のボタンに重ならない範囲）
-    const first = this.window(DATA.upgrades.all().length, upgradeRows, { x: 926, y: 134, h: upgradeRows * 54 - 8 });
+    // 持っているボス素材（ここで使うので、ここに出す）
+    this.panel(40, 132, 880, 48);
+    this.renderMaterials(save, 54, 138, 852);
+    const upgradeRows = 5; // 一度に出す行の数（下のボタンに重ならない範囲）
+    const top = 190;
+    const first = this.window(DATA.upgrades.all().length, upgradeRows, { x: 926, y: top, h: upgradeRows * 54 - 8 });
     DATA.upgrades.all().forEach((def, i) => {
       if (i < first || i >= first + upgradeRows) return;
-      const y = 134 + (i - first) * 54;
+      const y = top + (i - first) * 54;
       const level = upgradeLevel(save, def.id);
       const cost = nextUpgradeCost(save, def);
       const ready = def.ready !== false;
@@ -505,11 +538,16 @@ export class MenuOverlay {
       ['データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`],
       ['実績', `${save.achievements.length} / ${DATA.achievements.all().length}`],
     ];
-    this.panel(40, 122, 880, 40 + rows.length * 36);
-    rows.forEach(([label, value], i) => {
-      this.text(60, 142 + i * 36, label, 14, COLORS.dim);
-      this.text(300, 142 + i * 36, value, 14, COLORS.ink, { fontStyle: '700' });
-    });
+    this.panel(40, 122, 880, 336);
+    // 長い行（ボス撃破など）は折り返すので、行の高さに合わせて下へ送る
+    let y = 136;
+    for (const [label, value] of rows) {
+      this.text(60, y, label, 14, COLORS.dim);
+      const t = this.text(300, y, value, 14, COLORS.ink, { fontStyle: '700', lineSpacing: 4, wordWrap: { width: 600, useAdvancedWrap: true } });
+      y += Math.max(30, t.height + 12);
+    }
+    // 持っているボス素材
+    this.renderMaterials(save, 60, y + 6, 840, 3);
   }
 
   // ---- データ片 ----

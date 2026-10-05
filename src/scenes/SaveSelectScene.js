@@ -2,10 +2,9 @@ import * as Phaser from 'phaser';
 import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
-import { COLORS, ELEMENT_COLORS, FONTS, hex } from '../data/theme.js';
+import { COLORS, FONTS, hex } from '../data/theme.js';
 import { AREA_ORDER } from '../game/run.js';
 import { eraseSlot, getSlots, selectSlot } from '../game/saveStore.js';
-import { drawMaterialIcon } from '../render/metaIcons.js';
 import { setupView } from '../render/view.js';
 
 const W = SCREEN.width;
@@ -137,13 +136,10 @@ export class SaveSelectScene extends Phaser.Scene {
         this.text(x + 18, y + 52 + k * 24, label, 13, COLORS.dim);
         this.text(x + CARD_W - 18, y + 52 + k * 24, value, 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
       });
-      // 持っているボス素材
-      DATA.materials.all().forEach((def, k) => {
-        const mx = x + 30 + k * 82;
-        const color = ELEMENT_COLORS[def.color] ?? COLORS[def.color];
-        drawMaterialIcon(g, def.id, mx, y + 192, 9, hex(color));
-        this.text(mx + 16, y + 184, `×${save.materials[def.id] ?? 0}`, 13, color, { fontStyle: '700' });
-      });
+      // 持っているボス素材（種類が増えていくので、数だけ出す）
+      const counts = Object.values(save.materials).filter((n) => n > 0);
+      this.text(x + 18, y + 52 + rows.length * 24, 'ボス素材', 13, COLORS.dim);
+      this.text(x + CARD_W - 18, y + 52 + rows.length * 24, counts.length > 0 ? `${counts.length} 種類・${counts.reduce((a, b) => a + b, 0)} 個` : 'なし', 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
       this.button(x + 18, y + CARD_H - 54, CARD_W - 110, 36, 'つづきから', COLORS.green, () => this.start(slot));
       this.button(x + CARD_W - 82, y + CARD_H - 54, 64, 36, '消す', COLORS.dim, () => {
         this.confirmDelete = slot;
