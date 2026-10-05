@@ -15,7 +15,7 @@ import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyUpgrade, canAfford, nextUpgradeCost, upgradeLevel } from '../logic/meta.js';
 import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
-import { activeFamilyBonuses } from '../logic/stats.js';
+import { activeFamilyBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
@@ -329,11 +329,11 @@ export class MenuOverlay {
       const def = DATA.implants.get(id);
       const fam = families[def.family];
       const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
-      this.text(638, iy, `${def.name}${n > 1 ? ` ×${n}` : ''}`, 12, color, { fontStyle: '700' });
+      this.text(638, iy, `${def.name}　Lv${n}`, 12, color, { fontStyle: '700' });
       if (compact) {
         iy += 17;
       } else {
-        const desc = this.text(638, iy + 15, def.desc, 10, COLORS.dim, { wordWrap: { width: 270, useAdvancedWrap: true } });
+        const desc = this.text(638, iy + 15, implantDesc(def, n), 10, COLORS.dim, { wordWrap: { width: 270, useAdvancedWrap: true } });
         iy += 20 + desc.height;
       }
     }

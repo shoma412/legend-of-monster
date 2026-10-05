@@ -20,9 +20,9 @@ export function addXp(build, amount) {
   return ups;
 }
 
-// レベルアップ時の選択肢。重ねがけできないものは、持っていたら出さない
+// レベルアップ時の選択肢。持っているものは「強化」として出る。レベルが上限のものは出さない
 export function rollImplantChoices(build, rng, count = LEVEL.choices) {
-  const pool = DATA.implants.all().filter((d) => isAvailable(d) && (d.stack || !build.implants[d.id]));
+  const pool = DATA.implants.all().filter((d) => isAvailable(d) && (build.implants[d.id] ?? 0) < LEVEL.implantMax);
   const choices = [];
   while (choices.length < count && pool.length > 0) {
     const i = Math.min(pool.length - 1, Math.floor(rng() * pool.length));

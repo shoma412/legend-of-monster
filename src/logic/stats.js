@@ -2,7 +2,7 @@
 // 装備効果・レジェンド固有効果・インプラント・系統ボーナスはすべて同じ形の「effect」で、
 //   mods（ステータス補正）と triggers（イベントで発動する効果）と element（属性付与）
 // だけでできている。ここではそれを1つにまとめる。
-import { FEATURES, ITEMS, PLAYER } from '../data/balance.js';
+import { FEATURES, ITEMS, LEVEL, PLAYER } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
 
@@ -13,7 +13,7 @@ export function createBuild(bonus = null) {
     xp: 0,
     gear: { mod: null, armor: null, acc: null }, // スロットごとの装備
     bag: [], // バッグにしまってある装備（ポーズ画面で付け替えられる）
-    implants: {}, // { インプラントのid: 持っている数 }
+    implants: {}, // { インプラントのid: レベル }
     credits: 0,
     items: Array(ITEMS.slots).fill(null), // 消耗品の枠。{ id, count } か null
     kits: PLAYER.kit.start + (bonus?.kits ?? 0), // 修復キットの数
@@ -21,6 +21,25 @@ export function createBuild(bonus = null) {
     ougi: bonus?.ougi ?? [], // 奥義が使える武器の id
     ougiUsed: false, // このエリアで奥義を使ったか（エリアごとに1回）
   };
+}
+
+// インプラントの強さの倍率。Lv1 で 1、Lv が1上がるごとに implantGrowth ずつ増える
+export function implantScale(level) {
+  return 1 + (Math.max(1, level) - 1) * LEVEL.implantGrowth;
+}
+
+// そのレベルでのインプラントの効果と、説明文
+export function implantEffect(def, level = 1) {
+  return def.effect(implantScale(level));
+}
+
+export function implantDesc(def, level = 1) {
+  return def.desc(implantScale(level));
+}
+
+// もう1つ手に入れたときのレベル（上限まで）
+export function nextImplantLevel(build, id) {
+  return Math.min(LEVEL.implantMax, (build.implants[id] ?? 0) + 1);
 }
 
 export function isAvailable(def) {
@@ -39,12 +58,12 @@ export function itemEffects(item) {
   return list;
 }
 
-// 系統ごとの所持数
+// 系統ごとの、持っている種類の数（レベルは数えない）
 export function familyCounts(build) {
   const counts = {};
-  for (const [id, n] of Object.entries(build.implants)) {
+  for (const id of Object.keys(build.implants)) {
     const family = DATA.implants.get(id).family;
-    counts[family] = (counts[family] ?? 0) + n;
+    counts[family] = (counts[family] ?? 0) + 1;
   }
   return counts;
 }
@@ -61,8 +80,7 @@ export function collectEffects(build) {
     if (item) list.push(...itemEffects(item));
   }
   for (const [id, n] of Object.entries(build.implants)) {
-    const def = DATA.implants.get(id);
-    for (let i = 0; i < n; i++) list.push(def.effect);
+    list.push(implantEffect(DATA.implants.get(id), n));
   }
   for (const f of activeFamilyBonuses(build)) list.push(families[f].bonus.effect);
   return list;

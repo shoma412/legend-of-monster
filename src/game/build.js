@@ -2,7 +2,7 @@
 import { BAG, LOOT } from '../data/balance.js';
 import { COLORS, RARITY_COLORS } from '../data/theme.js';
 import { rollImplantChoices } from '../logic/level.js';
-import { computeStats } from '../logic/stats.js';
+import { computeStats, nextImplantLevel } from '../logic/stats.js';
 import { floatText, ring, sfx } from './fx.js';
 
 // ビルドが変わったらステータスを計算し直す。最大HPが増えたぶんは現在HPにも足す
@@ -138,14 +138,15 @@ export function chooseImplant(world, index) {
   return true;
 }
 
-// インプラントを1つ入れる（レベルアップの3択、闇市）
+// インプラントを1つ入れる（レベルアップの3択、闇市、遭遇）。持っているものなら、レベルが1つ上がる
 export function addImplant(world, def) {
   const p = world.player;
-  p.build.implants[def.id] = (p.build.implants[def.id] ?? 0) + 1;
+  const level = nextImplantLevel(p.build, def.id);
+  p.build.implants[def.id] = level;
   recalcStats(p);
   if (def.onAcquire === 'fullHeal') p.hp = p.stats.maxHp;
   world.events.push({ type: 'implant', id: def.id });
   sfx(world, 'implant');
-  floatText(world, p.x, p.y - 30, `導入：${def.name}`, COLORS.magenta, 14);
+  floatText(world, p.x, p.y - 30, level > 1 ? `強化：${def.name} Lv${level}` : `導入：${def.name}`, COLORS.magenta, 14);
   ring(world, p.x, p.y, 50, COLORS.magenta);
 }

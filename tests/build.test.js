@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { LOOT, PLAYER, STATUS } from '../src/data/balance.js';
+import { LEVEL, LOOT, PLAYER, STATUS } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { families } from '../src/data/implants.js';
-import { chooseImplant, discardFromBag, equipFocusLoot, equipFromBag, equipItem, recalcStats, stashFocusLoot, unequipToBag } from '../src/game/build.js';
+import { addImplant, chooseImplant, discardFromBag, equipFocusLoot, equipFromBag, equipItem, recalcStats, stashFocusLoot, unequipToBag } from '../src/game/build.js';
 import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
 import { hasAction, hasCondition, statWith } from '../src/game/effects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { addXp, rollImplantChoices, xpToNext } from '../src/logic/level.js';
 import { describeItem, makeItem, rollRarity } from '../src/logic/loot.js';
-import { computeStats, createBuild } from '../src/logic/stats.js';
+import { computeStats, createBuild, implantDesc, implantEffect } from '../src/logic/stats.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -46,7 +46,7 @@ function addEnemy(world, id, dx, dy = 0) {
 
 describe('定義データのつじつま', () => {
   const effects = [
-    ...DATA.implants.all().map((d) => [d.id, d.effect]),
+    ...DATA.implants.all().map((d) => [d.id, d.effect(1)]),
     ...DATA.legendEffects.all().map((d) => [d.id, d.effect]),
     ...Object.entries(families).filter(([, f]) => f.bonus).map(([id, f]) => [`${id}系統`, f.bonus.effect]),
   ];
@@ -204,24 +204,79 @@ describe('レベルアップとインプラント', () => {
     expect(p.x).toBeGreaterThan(x);
   });
 
-  it('重ねがけできないインプラントは、持っていると選択肢に出ない', () => {
+  it('持っているインプラントは強化として選択肢に出る。レベルが上限のものは出ない', () => {
     const build = createBuild();
-    build.implants.chain = 1;
+    build.implants.chain = LEVEL.implantMax;
     build.implants.overclock = 1;
     const ids = rollImplantChoices(build, seeded(9), 99).map((d) => d.id);
     expect(ids).not.toContain('chain');
     expect(ids).toContain('overclock');
   });
 
-  it('オーバークロックは重ねがけできる。装甲プレートは最大HP+25で全回復', () => {
-    const world = makeWorld(['overclock', 'overclock']);
+  it('同じインプラントをもう一度入れると、レベルが上がって効果が少し伸びる（1レベルごとに最初の値の2割）', () => {
+    const world = makeWorld();
     const p = world.player;
-    expect(p.stats.attackMul).toBeCloseTo(1.4);
+    const def = DATA.implants.get('overclock');
+    addImplant(world, def);
+    expect(p.build.implants.overclock).toBe(1);
+    expect(p.stats.attackMul).toBeCloseTo(1.2);
+    addImplant(world, def);
+    expect(p.build.implants.overclock).toBe(2);
+    expect(p.stats.attackMul).toBeCloseTo(1.24);
+    // 上限より上には上がらない
+    for (let i = 0; i < 10; i++) addImplant(world, def);
+    expect(p.build.implants.overclock).toBe(LEVEL.implantMax);
+    expect(p.stats.attackMul).toBeCloseTo(1 + 0.2 * (1 + (LEVEL.implantMax - 1) * LEVEL.implantGrowth));
+  });
+
+  it('説明文は、レベルに合わせた数値になる', () => {
+    const def = DATA.implants.get('overclock');
+    expect(implantDesc(def, 1)).toBe('攻撃力 +20%');
+    expect(implantDesc(def, 2)).toBe('攻撃力 +24%');
+    expect(implantDesc(def, 5)).toBe('攻撃力 +36%');
+    expect(implantDesc(DATA.implants.get('chain'), 3)).toContain('25ダメージ');
+    // どのインプラントも、どのレベルでも説明と効果が作れる
+    for (const d of DATA.implants.all()) {
+      for (let lv = 1; lv <= LEVEL.implantMax; lv++) {
+        expect(implantDesc(d, lv).length, d.id).toBeGreaterThan(0);
+        const effect = implantEffect(d, lv);
+        for (const mod of effect.mods ?? []) expect(Number.isFinite(mod.add), d.id).toBe(true);
+      }
+    }
+  });
+
+  it('伸ばさないと決めた数値は、レベルが上がっても変わらない（貫通数、強欲の被ダメージ）', () => {
+    const pierce = (lv) => implantEffect(DATA.implants.get('blade'), lv).mods.find((m) => m.stat === 'pierce').add;
+    expect(pierce(1)).toBe(1);
+    expect(pierce(5)).toBe(1);
+    const taken = (lv) => implantEffect(DATA.implants.get('greed'), lv).mods.find((m) => m.stat === 'damageTaken').add;
+    expect(taken(5)).toBe(taken(1));
+  });
+
+  it('属性を付けるインプラントは、強化すると追加の効果が付く（焼却弾は継続ダメージ、冷却コアは凍結）', () => {
+    expect(makeWorld(['incendiary']).player.stats.burnMul).toBeCloseTo(1);
+    expect(makeWorld(['incendiary', 'incendiary']).player.stats.burnMul).toBeCloseTo(1.2);
+    expect(makeWorld(['coolant']).player.stats.freezeChance).toBe(0);
+    expect(makeWorld(['coolant', 'coolant', 'coolant']).player.stats.freezeChance).toBeCloseTo(0.1);
+  });
+
+  it('系統ボーナスは種類の数で数える（同じものを強化しても増えない）', () => {
+    expect(makeWorld(['chain', 'chain', 'chain']).player.stats.chainBonus).toBe(0);
+    expect(makeWorld(['chain', 'chain', 'overcurrent', 'shockdash']).player.stats.chainBonus).toBe(2);
+  });
+
+  it('装甲プレートは最大HP+25で全回復。強化すると +30', () => {
+    const world = makeWorld();
+    const p = world.player;
     p.hp = 10;
     world.choice = { type: 'implant', options: [DATA.implants.get('plating')] };
     chooseImplant(world, 0);
     expect(p.stats.maxHp).toBe(125);
     expect(p.hp).toBe(125);
+    p.hp = 10;
+    addImplant(world, DATA.implants.get('plating'));
+    expect(p.stats.maxHp).toBe(130);
+    expect(p.hp).toBe(130);
   });
 
   it('同じ系統を3つ持つと系統ボーナスが発動する', () => {
@@ -345,7 +400,7 @@ describe('インプラントの効果', () => {
     expect(world.player.hp).toBe(52);
   });
 
-  it('広角ブレード：近接攻撃の角度+50%（重ねがけ可、360度が上限）', () => {
+  it('広角ブレード：近接攻撃の角度+50%（強化で少しずつ広がる。360度が上限）', () => {
     const p = makeWorld().player;
     const angles = (world) => {
       updateWorld(world, DT, { ...idle, attackPressed: true });
@@ -355,8 +410,8 @@ describe('インプラントの効果', () => {
     expect(p.weapon.combo[0].arc).toBe(45);
     expect(angles(makeWorld())).toBe(45);
     expect(angles(makeWorld(['wideblade']))).toBe(68);
-    expect(angles(makeWorld(['wideblade', 'wideblade']))).toBe(90);
-    expect(angles(makeWorld(Array(20).fill('wideblade')))).toBe(360);
+    expect(angles(makeWorld(['wideblade', 'wideblade']))).toBe(72);
+    expect(angles(makeWorld(Array(100).fill('wideblade')))).toBe(360); // ありえないほど強化しても、一周まで
   });
 
   it('拡張ブレード：近接範囲+25%', () => {

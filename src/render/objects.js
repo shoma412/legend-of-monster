@@ -2,6 +2,7 @@
 import { LOOT, ROOM } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { implantDesc, nextImplantLevel } from '../logic/stats.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 
 const BODY_FILL = 0x0a0814;
@@ -339,7 +340,14 @@ export function focusPrompt(world) {
   if (o.kind === 'npc') return o.used ? null : { text: 'E：話しかける', color: COLORS[o.color] ?? COLORS.ink };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };
-  if (o.kind === 'shop' && o.goods.type === 'implant') return { text: `E：${o.goods.def.name} を買う（${o.goods.price} c）　${o.goods.def.desc}`, color: COLORS.magenta };
+  if (o.kind === 'shop' && o.goods.type === 'implant') {
+    // 持っているインプラントなら、買うと強化になる
+    const def = o.goods.def;
+    const owned = p.build.implants[def.id] ?? 0;
+    const level = nextImplantLevel(p.build, def.id);
+    const head = owned > 0 ? `${def.name} を Lv${level} に強化する` : `${def.name} を買う`;
+    return { text: `E：${head}（${o.goods.price} c）　${implantDesc(def, level)}`, color: COLORS.magenta };
+  }
   return null;
 }
 

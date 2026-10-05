@@ -4,7 +4,8 @@ import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { describeItem } from '../logic/loot.js';
-import { activeFamilyBonuses, familyCounts } from '../logic/stats.js';
+import { LEVEL } from '../data/balance.js';
+import { activeFamilyBonuses, familyCounts, implantDesc } from '../logic/stats.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -129,17 +130,20 @@ export function createChoicePanel(scene, onChoose) {
         const color = familyColor(def.family);
         card.bg.setStrokeStyle(2, hex(color));
         card.family.setText(fam.name).setColor(color);
-        card.name.setText(def.name);
-        card.desc.setText(def.desc);
-        const notes = [];
+        // 持っているものは「強化」。説明は、選んだあとのレベルでの効果を出す
         const owned = build.implants[def.id] ?? 0;
-        if (owned > 0) notes.push(`所持 ×${owned}（重ねがけ）`);
-        if (fam.bonus) {
+        card.name.setText(owned > 0 ? `${def.name}　Lv${owned + 1}` : def.name);
+        card.desc.setText(implantDesc(def, owned + 1));
+        const notes = [];
+        if (owned > 0) notes.push(`強化：Lv${owned} → Lv${owned + 1}${owned + 1 >= LEVEL.implantMax ? '（最大）' : ''}`, `今の効果：${implantDesc(def, owned)}`);
+        // 系統の数は、新しい種類を取ったときだけ増える
+        const bonusNow = owned === 0 && fam.bonus && (counts[def.family] ?? 0) + 1 === fam.bonus.need;
+        if (owned === 0 && fam.bonus) {
           const have = counts[def.family] ?? 0;
           notes.push(`${fam.name}系統 ${have}→${have + 1} / ${fam.bonus.need}`);
-          if (have + 1 === fam.bonus.need) notes.push(`系統ボーナス発動：${fam.bonus.desc}`);
+          if (bonusNow) notes.push(`系統ボーナス発動：${fam.bonus.desc}`);
         }
-        card.note.setText(notes.join('\n')).setColor(notes.length > 2 || (fam.bonus && (counts[def.family] ?? 0) + 1 === fam.bonus.need) ? COLORS.amber : COLORS.dim);
+        card.note.setText(notes.join('\n')).setColor(bonusNow ? COLORS.amber : owned > 0 ? COLORS.green : COLORS.dim);
       });
       c.setVisible(true);
     },
@@ -163,7 +167,7 @@ export function createBuildList(scene) {
         const item = build.gear[s.id];
         gearTexts[i].setText(item ? `${s.name}：${item.name}` : `${s.name}：なし`).setColor(item ? rarityColor(item) : '#4a4470');
       });
-      const lines = Object.entries(build.implants).map(([id, n]) => DATA.implants.get(id).name + (n > 1 ? ` ×${n}` : ''));
+      const lines = Object.entries(build.implants).map(([id, n]) => DATA.implants.get(id).name + (n > 1 ? ` Lv${n}` : ''));
       for (const f of activeFamilyBonuses(build)) lines.push(`◆ ${families[f].name}系統：${families[f].bonus.desc}`);
       implantText.setText(lines.join('\n'));
     },
