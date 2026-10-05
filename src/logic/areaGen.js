@@ -28,13 +28,16 @@ function shuffle(list, rng) {
 }
 
 // エリアの地図を作る。左から右へ進み、線（next）でつながった部屋にだけ進める。
-//   列0：最初の部屋 / 途中の列：上下2部屋ずつ / 最後の列：ボス
+//   列0：最初の部屋 / 途中の列：上下2部屋ずつ / ボスの1つ前：必ず補給（1部屋）/ 最後の列：ボス
+//   長さ（最初の部屋からボスまでに通る部屋の数）は、エリアの定義の map.length の範囲で毎回変わる
 //   nodes: { id: { id, col, row, type, next: [id, ...] } }  row は 0=上, 1=下（1部屋だけの列は 0.5）
 //   current: 今いる部屋の id / visited: 通ってきた部屋の id / step: 何部屋目か（0から）
 export function createAreaPlan(area, rng) {
   const gen = area.map;
   const lanes = 2;
-  const count = gen.columns * lanes;
+  const length = gen.length.min + Math.floor(rng() * (gen.length.max - gen.length.min + 1));
+  const columns = length - 3; // 途中の列の数（最初の部屋・ボス前の補給・ボスを除く）
+  const count = columns * lanes;
 
   // 途中の部屋の中身：エリート、特殊部屋（別々の種類）、残りは戦闘
   const elites = gen.elites.min + Math.floor(rng() * (gen.elites.max - gen.elites.min + 1));
@@ -42,11 +45,11 @@ export function createAreaPlan(area, rng) {
   const types = [...Array(elites).fill('elite'), ...specials];
   while (types.length < count) types.push('combat');
 
-  // 同じ列の上下が同じ種類にならない並びを探す
+  // 同じ列の上下が、同じ種類のエリート・特殊部屋にならない並びを探す（戦闘どうしが並ぶのはよい）
   let placed = shuffle(types, rng);
   for (let tries = 0; tries < 100; tries++) {
     let ok = true;
-    for (let c = 0; c < gen.columns; c++) if (placed[c * lanes] === placed[c * lanes + 1]) ok = false;
+    for (let c = 0; c < columns; c++) if (placed[c * lanes] === placed[c * lanes + 1] && placed[c * lanes] !== 'combat') ok = false;
     if (ok) break;
     placed = shuffle(types, rng);
   }
@@ -54,18 +57,21 @@ export function createAreaPlan(area, rng) {
   const nodes = {};
   const add = (id, col, row, type) => { nodes[id] = { id, col, row, type, next: [] }; };
   add('start', 0, 0.5, area.first);
-  for (let c = 0; c < gen.columns; c++) {
+  for (let c = 0; c < columns; c++) {
     for (let r = 0; r < lanes; r++) add(`${c + 1}-${r}`, c + 1, r, placed[c * lanes + r]);
   }
-  add('boss', gen.columns + 1, 0.5, 'boss');
+  // ボスの1つ前は、どの道を通っても同じ部屋（補給）に集まる
+  add('rest', columns + 1, 0.5, gen.preBoss);
+  add('boss', columns + 2, 0.5, 'boss');
+  nodes.rest.next = ['boss'];
 
   // 線を引く：まっすぐ進む線は必ずあり、ときどき斜めの線が足される
   nodes.start.next = ['1-0', '1-1'];
-  for (let c = 1; c <= gen.columns; c++) {
+  for (let c = 1; c <= columns; c++) {
     for (let r = 0; r < lanes; r++) {
       const node = nodes[`${c}-${r}`];
-      if (c === gen.columns) {
-        node.next = ['boss'];
+      if (c === columns) {
+        node.next = ['rest'];
         continue;
       }
       node.next = [`${c + 1}-${r}`];
@@ -74,7 +80,7 @@ export function createAreaPlan(area, rng) {
     }
   }
 
-  return { areaId: area.id, nodes, current: 'start', visited: ['start'], step: 0, columns: gen.columns + 2 };
+  return { areaId: area.id, nodes, current: 'start', visited: ['start'], step: 0, columns: length };
 }
 
 export function currentNode(plan) {
@@ -141,7 +147,7 @@ export function generateWaves(area, step, rng) {
 // エリート部屋：強化個体1体＋取り巻き
 export function generateEliteWaves(area, step, rng) {
   const elite = { base: pick(area.eliteBases, rng), trait: pick(DATA.eliteTraits.ids(), rng) };
-  return [{ ...fillWave(area, ROOMGEN.elite.minionBudget + step, rng), elite }];
+  return [{ ...fillWave(area, Math.round(ROOMGEN.elite.minionBudget + step * ROOMGEN.elite.minionPerStep), rng), elite }];
 }
 
 export function gearPrice(item) {

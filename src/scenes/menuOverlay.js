@@ -393,7 +393,8 @@ export class MenuOverlay {
     const area = DATA.areas.get(AREA_ORDER[run.areaIndex]);
     this.panel(40, 122, 880, 336);
     this.text(W / 2, 140, `${area.code} // ${area.name} — MAP`, 15, AREA_THEMES[area.theme].edge, { fontStyle: '700' }).setOrigin(0.5);
-    const layout = { x: W / 2 - ((plan.columns - 1) * 150) / 2, y: 290, colGap: 150, rowGap: 130, icon: 14, line: 2, bg: PANEL };
+    const colGap = Math.min(150, 780 / (plan.columns - 1));
+    const layout = { x: W / 2 - ((plan.columns - 1) * colGap) / 2, y: 290, colGap, rowGap: 130, icon: 14, line: 2, bg: PANEL };
     drawAreaMap(this.graphics(), plan, layout);
     for (const node of Object.values(plan.nodes)) {
       const pos = nodePosition(node, layout);

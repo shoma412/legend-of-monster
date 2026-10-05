@@ -399,7 +399,7 @@ describe('記録', () => {
     const world = bossRoom(r);
     killBoss(r, world);
     finishRun(r, world, 'areaClear');
-    expect(save.records).toMatchObject({ runs: 1, kills: 1, bestArea: 0, bestStep: 4 });
+    expect(save.records).toMatchObject({ runs: 1, kills: 1, bestArea: 0, bestStep: r.plan.columns - 1 });
     expect(r.outcome).toBe('areaClear');
     expect(r.kills).toBe(1);
     finishRun(r, world, 'dead'); // 終わり方は最初に決まったものが残る

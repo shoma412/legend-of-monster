@@ -68,25 +68,37 @@ describe('エリアの地図', () => {
   const SPECIAL = ['supply', 'market', 'vault', 'encounter'];
   const spread = (n) => seeded((n * 2654435761) % 4294967296); // 連番の種だと最初の乱数が似るので散らす
 
-  it('最初の部屋・途中の3列（上下2部屋）・ボスでできている', () => {
+  it('最初の部屋・途中の列（上下2部屋）・ボス前の補給・ボスでできていて、長さは 8〜10 部屋', () => {
+    const lengths = new Set();
     for (let n = 1; n <= 200; n++) {
       const plan = createAreaPlan(area, spread(n));
       const nodes = Object.values(plan.nodes);
-      expect(nodes).toHaveLength(8);
+      const length = plan.columns;
+      lengths.add(length);
+      expect(length).toBeGreaterThanOrEqual(8);
+      expect(length).toBeLessThanOrEqual(10);
+      const cols = length - 3; // 途中の列
+      expect(nodes).toHaveLength(cols * 2 + 3);
       expect(plan.nodes.start).toMatchObject({ col: 0, type: 'combat' });
-      expect(plan.nodes.boss).toMatchObject({ col: 4, type: 'boss' });
-      const middle = nodes.filter((x) => x.col >= 1 && x.col <= 3).map((x) => x.type);
-      // 途中の6部屋：エリート1つ以上、特殊部屋2つ（別の種類）、残りは戦闘
+      // ボスの1つ前は、必ず補給
+      expect(plan.nodes.rest).toMatchObject({ col: length - 2, type: 'supply', next: ['boss'] });
+      expect(plan.nodes.boss).toMatchObject({ col: length - 1, type: 'boss' });
+      const middle = nodes.filter((x) => x.col >= 1 && x.col <= cols).map((x) => x.type);
+      // 途中の部屋：エリート2〜3、特殊部屋3つ（別の種類）、残りは戦闘
       const elites = middle.filter((t) => t === 'elite').length;
-      expect(elites).toBeGreaterThanOrEqual(1);
-      expect(elites).toBeLessThanOrEqual(2);
+      expect(elites).toBeGreaterThanOrEqual(2);
+      expect(elites).toBeLessThanOrEqual(3);
       const specials = middle.filter((t) => SPECIAL.includes(t));
-      expect(specials).toHaveLength(2);
-      expect(new Set(specials).size).toBe(2);
-      expect(middle.filter((t) => t === 'combat')).toHaveLength(6 - elites - 2);
-      // 同じ列の上下は違う種類
-      for (let c = 1; c <= 3; c++) expect(plan.nodes[`${c}-0`].type).not.toBe(plan.nodes[`${c}-1`].type);
+      expect(specials).toHaveLength(3);
+      expect(new Set(specials).size).toBe(3);
+      expect(middle.filter((t) => t === 'combat')).toHaveLength(cols * 2 - elites - 3);
+      // 同じ列の上下に、エリートどうし・同じ特殊部屋どうしは並ばない（戦闘どうしは並ぶことがある）
+      for (let c = 1; c <= cols; c++) {
+        const [a, b] = [plan.nodes[`${c}-0`].type, plan.nodes[`${c}-1`].type];
+        if (a !== 'combat') expect(a).not.toBe(b);
+      }
     }
+    expect([...lengths].sort()).toEqual([10, 8, 9]);
   });
 
   it('どの部屋からも次の列の1〜2部屋へ進め、どの部屋にも入ってくる道がある', () => {
@@ -105,7 +117,7 @@ describe('エリアの地図', () => {
           incoming.add(id);
         }
       }
-      expect(incoming.size).toBe(7); // 最初の部屋以外すべて
+      expect(incoming.size).toBe(Object.keys(plan.nodes).length - 1); // 最初の部屋以外すべて
     }
   });
 
@@ -114,7 +126,7 @@ describe('エリアの地図', () => {
     const rng = spread(n);
     const plan = createAreaPlan(area, rng);
     const path = [plan.nodes[plan.current].type];
-    for (let guard = 0; guard < 10; guard++) {
+    for (let guard = 0; guard < 20; guard++) {
       const doors = doorOptions(plan);
       if (doors.length === 0) break;
       const door = doors[Math.floor(rng() * doors.length)];
@@ -124,23 +136,25 @@ describe('エリアの地図', () => {
     return path;
   }
 
-  it('どの道でも5部屋で、最初は戦闘、最後はボス。道によって中身が変わる', () => {
+  it('どの道でも 8〜10 部屋で、最初は戦闘、ボスの前は補給、最後はボス。道によって中身が変わる', () => {
     const paths = new Set();
     for (let n = 1; n <= 300; n++) {
       const path = walk(n);
-      expect(path).toHaveLength(5);
+      expect(path.length).toBeGreaterThanOrEqual(8);
+      expect(path.length).toBeLessThanOrEqual(10);
       expect(path[0]).toBe('combat');
-      expect(path[4]).toBe('boss');
+      expect(path[path.length - 2]).toBe('supply');
+      expect(path[path.length - 1]).toBe('boss');
       paths.add(path.join('>'));
     }
     expect(paths.size).toBeGreaterThan(20);
-    // エリート2連戦の道も、エリートなしの道もありうる
-    expect([...paths].some((p) => p.split('elite').length - 1 === 2)).toBe(true);
+    // エリートと何度も戦う道も、エリートなしの道もありうる
+    expect([...paths].some((p) => p.split('elite').length - 1 >= 2)).toBe(true);
     expect([...paths].some((p) => !p.includes('elite'))).toBe(true);
   });
 
   it('線でつながっていない部屋には進めない。進むと、行けなくなった部屋が分かる', () => {
-    const plan = createAreaPlan(area, () => 0.99); // 斜めの線が1本も引かれない地図
+    const plan = createAreaPlan(area, () => 0.99); // 斜めの線が1本も引かれない地図（長さは最大の10部屋）
     expect(doorOptions(plan).map((d) => d.id)).toEqual(['1-0', '1-1']);
     expect(nodeState(plan, 'start')).toBe('current');
     expect(nodeState(plan, '1-0')).toBe('next');
@@ -153,7 +167,7 @@ describe('エリアの地図', () => {
     expect(nodeState(plan, '1-1')).toBe('off');
     expect(nodeState(plan, '3-1')).toBe('off');
     expect(nodeState(plan, 'boss')).toBe('ahead');
-    expect([...reachableNodes(plan)].sort()).toEqual(['2-0', '3-0', 'boss']);
+    expect([...reachableNodes(plan)].sort()).toEqual(['2-0', '3-0', '4-0', '5-0', '6-0', '7-0', 'boss', 'rest']);
   });
 });
 

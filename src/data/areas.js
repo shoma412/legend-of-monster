@@ -5,7 +5,7 @@
 // theme       : 床と壁の色（src/data/theme.js の AREA_THEMES）と、背景の模様（src/render/backdrop.js）
 // bgm / bossBgm : このエリアの曲と、ボス戦の曲（src/data/audio.js の BGM のキー）
 // first       : 最初に入る部屋の種類
-// map         : 地図の作り方。columns 途中の列の数（各列は上下2部屋）/ elites エリート部屋の数 /
+// map         : 地図の作り方。length 最初の部屋からボスまでに通る部屋の数（毎回この範囲で変わる）/ preBoss ボスの1つ前に必ず置く部屋 / elites エリート部屋の数 /
 //               specials 特殊部屋の数（別々の種類が入る）/ crossChance 斜めの線が引かれる確率
 // specialRooms: 特殊部屋の候補
 // enemies     : 出る雑魚と出やすさ（weight）
@@ -21,7 +21,7 @@ export const areas = [
     bgm: 'slum',
     bossBgm: 'bossSlum',
     first: 'combat',
-    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 5 },
@@ -50,7 +50,7 @@ export const areas = [
     bgm: 'plant',
     bossBgm: 'bossPlant',
     first: 'combat',
-    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 3 },
@@ -81,7 +81,7 @@ export const areas = [
     bgm: 'tower',
     bossBgm: 'bossTower',
     first: 'combat',
-    map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 2 },

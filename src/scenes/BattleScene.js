@@ -431,8 +431,8 @@ export class BattleScene extends Phaser.Scene {
   // エリアの地図（右上）。線でつながった部屋にだけ進める。白い枠が今いる部屋
   drawRoomMap() {
     const plan = this.run.plan;
-    const colGap = 22;
-    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 15.5, colGap, rowGap: 14, icon: 4, line: 1, bg: 0x16122a });
+    const colGap = 16;
+    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 15.5, colGap, rowGap: 14, icon: 3.5, line: 1, bg: 0x16122a });
   }
 
   // M キーで出す大きい地図。部屋の中では地図は変わらないので、最初に1回だけ描く
@@ -440,9 +440,10 @@ export class BattleScene extends Phaser.Scene {
     const { width: W, height: H } = SCREEN;
     const plan = this.run.plan;
     const bg = 0x110f1d;
-    const layout = { x: W / 2 - ((plan.columns - 1) * 120) / 2, y: H / 2 + 6, colGap: 120, rowGap: 120, icon: 13, line: 2, bg };
+    const colGap = Math.min(120, 780 / (plan.columns - 1));
+    const layout = { x: W / 2 - ((plan.columns - 1) * colGap) / 2, y: H / 2 + 6, colGap, rowGap: 120, icon: 13, line: 2, bg };
     const c = this.add.container(0, 0).setDepth(15).setVisible(false);
-    const panel = this.add.rectangle(W / 2, H / 2, 660, 330, bg, 0.96).setStrokeStyle(1, hex(COLORS.cyan));
+    const panel = this.add.rectangle(W / 2, H / 2, 890, 330, bg, 0.96).setStrokeStyle(1, hex(COLORS.cyan));
     const g = this.add.graphics();
     drawAreaMap(g, plan, layout);
     const title = this.add.text(W / 2, H / 2 - 146, `${this.area.code} // ${this.area.name} — MAP`, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color: COLORS.cyan }).setOrigin(0.5);

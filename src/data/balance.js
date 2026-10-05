@@ -109,9 +109,10 @@ export const META = {
 // 部屋の中身の抽選
 export const ROOMGEN = {
   // 戦闘部屋：波の数と、1波あたりの敵の予算（敵ごとの cost の合計）
-  combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 1.5, budgetPerWave: 1 },
-  depthPerArea: 2, // エリアが1つ進むごとに、敵の予算をこの部屋数ぶん先のものとして数える
-  elite: { minionBudget: 7 }, // エリートの取り巻きの予算
+  // budgetPerStep は、1エリア 8〜10 部屋の長さに合わせてある（エリアの終わりで、予算がおよそ +4）
+  combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 0.6, budgetPerWave: 1 },
+  depthPerArea: 5, // エリアが1つ進むごとに、敵の予算をこの部屋数ぶん先のものとして数える
+  elite: { minionBudget: 7, minionPerStep: 0.4 }, // エリートの取り巻きの予算と、1部屋進むごとの増え方
   supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
   vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ
   // 遭遇部屋
@@ -120,7 +121,7 @@ export const ROOMGEN = {
     gearRarityBonus: 2, // 流れの商人：もらえる装備のレア度の底上げ
     salvageCredits: 40, // 壊れかけの保守機：部品を抜いたときのクレジット
     lootRarityBonus: 1, // 倒れた回収屋：拾える装備のレア度の底上げ
-    ambushSteps: 3, // 倒れた回収屋：次の戦闘部屋を、この部屋数ぶん奥のものとして敵を増やす
+    ambushSteps: 7, // 倒れた回収屋：次の戦闘部屋を、この部屋数ぶん奥のものとして敵を増やす
     restHeal: 0.2, // 倒れた回収屋：休んだときの回復（最大HPに対する割合）
   },
 };
