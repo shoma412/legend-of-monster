@@ -20,6 +20,27 @@ export function saveSettings() {
   return storeSettings(storage(), getSettings());
 }
 
+// フルスクリーンにできる環境か（アプリに埋め込まれた画面などでは、できないことがある）
+export function canFullscreen() {
+  return typeof document !== 'undefined' && document.fullscreenEnabled === true;
+}
+
+export function isFullscreen() {
+  return typeof document !== 'undefined' && !!document.fullscreenElement;
+}
+
+// フルスクリーンを切り替える。ゲームの入れ物（#game）ごと画面いっぱいにする。できなかったら false
+export async function toggleFullscreen() {
+  if (!canFullscreen()) return false;
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.getElementById('game').requestFullscreen();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // 表示の大きさを反映する。ゲームの入れ物（#game）の大きさを決めると、Phaser がその中いっぱいに合わせる
 export function applyDisplaySize(game) {
   const size = DISPLAY_SIZES.find((d) => d.id === getSettings().displaySize) ?? DISPLAY_SIZES[0];

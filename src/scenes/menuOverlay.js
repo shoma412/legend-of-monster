@@ -9,7 +9,7 @@ import { families } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
 import { AREA_ORDER } from '../game/run.js';
-import { applyDisplaySize, getSettings, saveSettings } from '../game/settingsStore.js';
+import { applyDisplaySize, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
@@ -575,10 +575,18 @@ export class MenuOverlay {
     });
     this.text(540, 331, '「高」は線や文字がくっきりするが、動作が重くなることがある', 11, COLORS.dim);
     this.text(64, 364, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
-    this.button(220, 360, 148, 26, game.scale.isFullscreen ? '解除する' : '切り替える', COLORS.dim, () => {
-      game.scale.toggleFullscreen();
-      this.scene.time.delayedCall(200, () => this.isOpen && this.render());
-    });
+    if (canFullscreen()) {
+      this.button(220, 360, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
+        toggleFullscreen().then((ok) => {
+          if (!ok) playSe('deny');
+          this.scene.time.delayedCall(200, () => this.isOpen && this.render());
+        });
+      });
+    } else {
+      // アプリに埋め込まれた画面などでは、フルスクリーンにできない
+      this.button(220, 360, 148, 26, '使えない', LOCKED, () => playSe('deny'));
+      this.text(380, 365, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
+    }
     this.text(64, 414, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
   }
 }

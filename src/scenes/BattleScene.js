@@ -158,12 +158,6 @@ export class BattleScene extends Phaser.Scene {
     });
     this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
-    const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア　O 奥義' : '';
-    const help = this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・付ける　F バッグへ　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
-      fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
-    }).setOrigin(0.5);
-    // 長くて画面からはみ出すときは、収まるように縮める
-    if (help.width > W - 24) help.setScale((W - 24) / help.width);
 
     this.bossName = this.add.text(W / 2, H - 66, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0.5).setVisible(false);
     // 近くのものを調べるときの案内

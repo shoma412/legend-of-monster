@@ -93,4 +93,9 @@ export function renderControls(menu, weapon) {
     menu.text(x + 20, y, group.name, 12, group.color, { fontStyle: '700' });
     menu.text(x + 110, y, group.text, 12, COLORS.ink);
   });
+
+  // 確認用のキー（開発中の画面だけ。公開版では出ないし、効かない）
+  if (import.meta.env.DEV) {
+    menu.text(60, 443, '確認用（開発中の画面だけ）：戦闘中に B ボス部屋へ／N 次のエリアへ／O 奥義を使える状態に　隠れ家で U 武器を全解放', 10, COLORS.dim);
+  }
 }
