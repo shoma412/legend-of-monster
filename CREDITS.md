@@ -42,6 +42,12 @@ BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている�
 | maou_loop_bgm_neorock65.ogg | ボス2 クライオ・ワイバーン | ネオロック65 | https://maou.audio/bgm_neorock65/ | 2026-10-05 |
 | maou_loop_bgm_cyber39.ogg | ボス3 オーバーロード | サイバー39 | https://maou.audio/bgm_cyber39/ | 2026-10-05 |
 | maou_loop_bgm_cyber17.ogg | エンディング | サイバー17 | https://maou.audio/bgm_cyber17/ | 2026-10-05 |
+| maou_loop_bgm_cyber42.ogg | マップ2 エリア1 下水道 | サイバー42 | https://maou.audio/bgm_cyber42/ | 2026-10-06 |
+| maou_loop_bgm_cyber18.ogg | マップ2 エリア2 貯水槽 | サイバー18 | https://maou.audio/bgm_cyber18/ | 2026-10-06 |
+| maou_loop_bgm_cyber08.ogg | マップ2 エリア3 浄水プラント | サイバー08 | https://maou.audio/bgm_cyber08/ | 2026-10-06 |
+| maou_loop_bgm_neorock82.ogg | マップ2 ボス1 パイプサーペント | ネオロック82 | https://maou.audio/bgm_neorock82/ | 2026-10-06 |
+| maou_loop_bgm_neorock62.ogg | マップ2 ボス2 タンククラブ | ネオロック62 | https://maou.audio/bgm_neorock62/ | 2026-10-06 |
+| maou_loop_bgm_neorock59.ogg | マップ2 ボス3 スラッジハイドラ | ネオロック59 | https://maou.audio/bgm_neorock59/ | 2026-10-06 |
 
 曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。
 

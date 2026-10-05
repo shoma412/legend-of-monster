@@ -112,7 +112,6 @@ export const areas = [
     code: 'DRAIN 01',
     name: '下水道',
     theme: 'sewer',
-    // 曲は、マップ2の曲を選ぶまでの仮（src/data/audio.js で、マップ1の曲のファイルを指している）
     bgm: 'sewer',
     bossBgm: 'bossSewer',
     first: 'combat',
@@ -144,7 +143,6 @@ export const areas = [
     code: 'DRAIN 02',
     name: '貯水槽',
     theme: 'tank',
-    // 曲は、マップ2の曲を選ぶまでの仮
     bgm: 'reservoir',
     bossBgm: 'bossReservoir',
     first: 'combat',
@@ -176,7 +174,6 @@ export const areas = [
     code: 'DRAIN 03',
     name: '浄水プラント',
     theme: 'filter',
-    // 曲は、マップ2の曲を選ぶまでの仮
     bgm: 'purifier',
     bossBgm: 'bossPurifier',
     first: 'combat',

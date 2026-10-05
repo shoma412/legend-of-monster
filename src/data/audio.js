@@ -74,13 +74,13 @@ export const BGM = {
   bossPlant: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
   bossTower: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
   ending: { file: 'audio/bgm/maou_loop_bgm_cyber17.ogg', song: 'ending' },
-  // マップ2「排水区」。曲を選ぶまでの仮（マップ1の冷却プラントと同じ曲）
-  sewer: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
-  bossSewer: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
-  reservoir: { file: 'audio/bgm/maou_loop_bgm_cyber24.ogg', song: 'tower' },
-  bossReservoir: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
-  purifier: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossPurifier: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  // マップ2「排水区」。song は、ファイルを読み込めなかったときに代わりに鳴らすコードの曲（マップ1のものを借りている）
+  sewer: { file: 'audio/bgm/maou_loop_bgm_cyber42.ogg', song: 'plant' },
+  bossSewer: { file: 'audio/bgm/maou_loop_bgm_neorock82.ogg', song: 'bossPlant' },
+  reservoir: { file: 'audio/bgm/maou_loop_bgm_cyber18.ogg', song: 'tower' },
+  bossReservoir: { file: 'audio/bgm/maou_loop_bgm_neorock62.ogg', song: 'bossTower' },
+  purifier: { file: 'audio/bgm/maou_loop_bgm_cyber08.ogg', song: 'slum' },
+  bossPurifier: { file: 'audio/bgm/maou_loop_bgm_neorock59.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----
