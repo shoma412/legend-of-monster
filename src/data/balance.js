@@ -39,7 +39,7 @@ export const ROOM = {
   bossWarning: 2.4, // ボスが出る前の予告（秒）。この間に警告と異名を出す
   waveDelay: 0.9, // 波と波の間（秒）
   spawnMinDistance: 200, // プレイヤーからこれ以上離れた場所に出す（px）
-  doorSpacing: 170, // 扉が2つのときの間隔（px）
+  doorSpacing: 150, // 扉が2つ以上のときの間隔（px）
   startCountdown: { count: 3, step: 0.7 }, // ランの最初の部屋のカウントダウン（3, 2, 1）と、1つあたりの秒数
 };
 

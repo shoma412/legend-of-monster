@@ -6,7 +6,8 @@
 // bgm / bossBgm : このエリアの曲と、ボス戦の曲（src/data/audio.js の BGM のキー）
 // first       : 最初に入る部屋の種類
 // map         : 地図の作り方。length 最初の部屋からボスまでに通る部屋の数（毎回この範囲で変わる）/ preBoss ボスの1つ前に必ず置く部屋 / elites エリート部屋の数 /
-//               specials 特殊部屋の数（別々の種類が入る）/ crossChance 斜めの線が引かれる確率
+//               lanes 途中の1列に並ぶ部屋の数（列ごとにこの範囲で変わる。これが扉の選択肢の数になる）/
+//               specials 特殊部屋の数（別々の種類が入る）/ crossChance 次の列が3部屋のとき、3部屋すべてへ進める確率
 // specialRooms: 特殊部屋の候補
 // enemies     : 出る雑魚と出やすさ（weight）
 // eliteBases  : エリートになる雑魚
@@ -21,7 +22,7 @@ export const areas = [
     bgm: 'slum',
     bossBgm: 'bossSlum',
     first: 'combat',
-    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 5 },
@@ -50,7 +51,7 @@ export const areas = [
     bgm: 'plant',
     bossBgm: 'bossPlant',
     first: 'combat',
-    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 3 },
@@ -81,7 +82,7 @@ export const areas = [
     bgm: 'tower',
     bossBgm: 'bossTower',
     first: 'combat',
-    map: { length: { min: 8, max: 10 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.5 },
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
     specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 2 },

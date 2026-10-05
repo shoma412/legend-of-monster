@@ -352,7 +352,6 @@ export class BattleScene extends Phaser.Scene {
     this.hud.clear();
     drawHud(this.hud, world);
     drawBossBar(this.hud, world);
-    this.drawRoomMap();
     this.syncTexts(this.floatTexts, world.fx.texts, 5);
     this.syncTexts(this.labelTexts, objectLabels(world), 6);
 
@@ -426,13 +425,6 @@ export class BattleScene extends Phaser.Scene {
       this.clearText.setText(`> SECTOR CLEARED // 区画制圧${bonus}　右の扉を選んで進め`).setVisible(true);
       this.tweens.add({ targets: this.clearText, alpha: 0, delay: 3500, duration: 600 });
     }
-  }
-
-  // エリアの地図（右上）。線でつながった部屋にだけ進める。白い枠が今いる部屋
-  drawRoomMap() {
-    const plan = this.run.plan;
-    const colGap = 16;
-    drawAreaMap(this.hud, plan, { x: SCREEN.width - 44 - (plan.columns - 1) * colGap, y: 15.5, colGap, rowGap: 14, icon: 3.5, line: 1, bg: 0x16122a });
   }
 
   // M キーで出す大きい地図。部屋の中では地図は変わらないので、最初に1回だけ描く

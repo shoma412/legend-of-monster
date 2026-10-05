@@ -28,16 +28,21 @@ function shuffle(list, rng) {
 }
 
 // エリアの地図を作る。左から右へ進み、線（next）でつながった部屋にだけ進める。
-//   列0：最初の部屋 / 途中の列：上下2部屋ずつ / ボスの1つ前：必ず補給（1部屋）/ 最後の列：ボス
+//   列0：最初の部屋 / 途中の列：2〜3部屋ずつ / ボスの1つ前：必ず補給（1部屋）/ 最後の列：ボス
 //   長さ（最初の部屋からボスまでに通る部屋の数）は、エリアの定義の map.length の範囲で毎回変わる
-//   nodes: { id: { id, col, row, type, next: [id, ...] } }  row は 0=上, 1=下（1部屋だけの列は 0.5）
+//   どの部屋からも、次の列の2〜3部屋へ進める（次の列が補給・ボスのときは1部屋）
+//   nodes: { id: { id, col, row, type, next: [id, ...] } }  row は 0=上 〜 1=下（1部屋だけの列は 0.5）
 //   current: 今いる部屋の id / visited: 通ってきた部屋の id / step: 何部屋目か（0から）
+const LANE_ROWS = { 2: [0.25, 0.75], 3: [0, 0.5, 1] };
+
 export function createAreaPlan(area, rng) {
   const gen = area.map;
-  const lanes = 2;
   const length = gen.length.min + Math.floor(rng() * (gen.length.max - gen.length.min + 1));
   const columns = length - 3; // 途中の列の数（最初の部屋・ボス前の補給・ボスを除く）
-  const count = columns * lanes;
+  // 列ごとの部屋の数（2〜3）
+  const lanes = Array.from({ length: columns }, () => gen.lanes.min + Math.floor(rng() * (gen.lanes.max - gen.lanes.min + 1)));
+  const count = lanes.reduce((a, b) => a + b, 0);
+  const offsets = lanes.map((_, c) => lanes.slice(0, c).reduce((a, b) => a + b, 0));
 
   // 途中の部屋の中身：エリート、特殊部屋（別々の種類）、残りは戦闘
   const elites = gen.elites.min + Math.floor(rng() * (gen.elites.max - gen.elites.min + 1));
@@ -45,39 +50,47 @@ export function createAreaPlan(area, rng) {
   const types = [...Array(elites).fill('elite'), ...specials];
   while (types.length < count) types.push('combat');
 
-  // 同じ列の上下が、同じ種類のエリート・特殊部屋にならない並びを探す（戦闘どうしが並ぶのはよい）
+  // 同じ列に、同じ種類のエリート・特殊部屋が並ばない並びを探す（戦闘どうしが並ぶのはよい）
+  const columnOk = (placed, c) => {
+    const col = placed.slice(offsets[c], offsets[c] + lanes[c]).filter((t) => t !== 'combat');
+    return new Set(col).size === col.length;
+  };
   let placed = shuffle(types, rng);
   for (let tries = 0; tries < 100; tries++) {
-    let ok = true;
-    for (let c = 0; c < columns; c++) if (placed[c * lanes] === placed[c * lanes + 1] && placed[c * lanes] !== 'combat') ok = false;
-    if (ok) break;
+    if (lanes.every((_, c) => columnOk(placed, c))) break;
     placed = shuffle(types, rng);
   }
 
   const nodes = {};
   const add = (id, col, row, type) => { nodes[id] = { id, col, row, type, next: [] }; };
+  const ids = (c) => Array.from({ length: lanes[c - 1] }, (_, r) => `${c}-${r}`); // c は 1 から
   add('start', 0, 0.5, area.first);
   for (let c = 0; c < columns; c++) {
-    for (let r = 0; r < lanes; r++) add(`${c + 1}-${r}`, c + 1, r, placed[c * lanes + r]);
+    for (let r = 0; r < lanes[c]; r++) add(`${c + 1}-${r}`, c + 1, LANE_ROWS[lanes[c]][r], placed[offsets[c] + r]);
   }
   // ボスの1つ前は、どの道を通っても同じ部屋（補給）に集まる
   add('rest', columns + 1, 0.5, gen.preBoss);
   add('boss', columns + 2, 0.5, 'boss');
   nodes.rest.next = ['boss'];
 
-  // 線を引く：まっすぐ進む線は必ずあり、ときどき斜めの線が足される
-  nodes.start.next = ['1-0', '1-1'];
+  // 線を引く。最初の部屋からは、次の列のすべての部屋へ進める
+  nodes.start.next = ids(1);
   for (let c = 1; c <= columns; c++) {
-    for (let r = 0; r < lanes; r++) {
-      const node = nodes[`${c}-${r}`];
-      if (c === columns) {
-        node.next = ['rest'];
-        continue;
-      }
-      node.next = [`${c + 1}-${r}`];
-      if (rng() < gen.crossChance) node.next.push(`${c + 1}-${1 - r}`);
-      node.next.sort(); // 上の部屋が先（扉も上から並ぶ）
+    const here = ids(c);
+    if (c === columns) {
+      for (const id of here) nodes[id].next = ['rest'];
+      continue;
     }
+    const there = ids(c + 1);
+    here.forEach((id, r) => {
+      let next;
+      if (there.length === 2) next = [0, 1];
+      else if (here.length === 2) next = r === 0 ? [0, 1] : [1, 2]; // 上の部屋は上寄り、下の部屋は下寄りへ
+      else next = r === 0 ? [0, 1] : r === 2 ? [1, 2] : rng() < 0.5 ? [0, 1] : [1, 2];
+      // ときどき、3部屋すべてへ進める
+      if (there.length === 3 && rng() < gen.crossChance) next = [0, 1, 2];
+      nodes[id].next = next.map((i) => there[i]); // 上の部屋が先（扉も上から並ぶ）
+    });
   }
 
   return { areaId: area.id, nodes, current: 'start', visited: ['start'], step: 0, columns: length };
