@@ -28,6 +28,13 @@ export class TitleScene extends Phaser.Scene {
       fontFamily: FONTS.display, fontStyle: '500', fontSize: '15px', color: COLORS.dim,
     }).setOrigin(0.5).setLetterSpacing(4);
 
+    // 公開版（体験版）だけに出す表示。開発中の画面には出ない
+    if (!import.meta.env.DEV) {
+      this.add.text(W / 2, H * 0.3 + 128, '― 体験版 ―', {
+        fontFamily: FONTS.body, fontSize: '20px', color: COLORS.amber,
+      }).setOrigin(0.5).setShadow(0, 0, COLORS.amber, 8, false, true);
+    }
+
     const prompt = this.add.text(W / 2, H * 0.68, 'PRESS ANY KEY', {
       fontFamily: FONTS.display, fontStyle: '700', fontSize: '22px', color: COLORS.amber,
     }).setOrigin(0.5).setShadow(0, 0, COLORS.amber, 10, false, true);
