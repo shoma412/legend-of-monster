@@ -17,7 +17,11 @@ const fileCache = {};
 
 let bgmKey = null; // 今鳴らしている場面
 let bgmSong = null; // コードで鳴らしている曲
-let bgmElement = null; // ファイルで鳴らしている曲
+let bgmLoading = false; // ファイルの曲を読み込んでいる最中
+let bgmSource = null; // ファイルで鳴らしている曲
+let bgmRequest = 0; // 曲の切り替えの通し番号（読み込み中に別の曲へ切り替わったら、古いほうは鳴らさない）
+const bgmBuffers = new Map(); // 読み込んで音に直した曲（直近のぶんだけ持つ）
+const BGM_BUFFER_KEEP = 3;
 
 // 設定の音量を、鳴らしている音に反映する（設定画面で変えるたびに呼ぶ）
 export function applyVolume() {
@@ -27,7 +31,6 @@ export function applyVolume() {
     seBus.gain.value = s.volume.se;
     bgmBus.gain.value = s.volume.bgm;
   }
-  if (bgmElement) bgmElement.volume = s.muted ? 0 : s.volume.master * s.volume.bgm;
 }
 
 // ブラウザは、何か操作されるまで音を鳴らせない。最初のキーやクリックでここが呼ばれる
@@ -110,21 +113,60 @@ export function playSe(name) {
 function stopBgm() {
   bgmSong?.stop();
   bgmSong = null;
-  bgmElement?.pause();
-  bgmElement = null;
+  bgmRequest += 1;
+  bgmLoading = false;
+  try {
+    bgmSource?.stop();
+  } catch {
+    // すでに止まっている
+  }
+  bgmSource?.disconnect();
+  bgmSource = null;
+}
+
+// 曲のファイルを読み込んで、鳴らせる形に直す。つなぎ目なくループさせるために Web Audio で鳴らす
+async function loadBgmBuffer(path) {
+  if (bgmBuffers.has(path)) return bgmBuffers.get(path);
+  const response = await fetch(`${import.meta.env.BASE_URL}${path}`);
+  if (!response.ok) throw new Error(`BGM を読み込めない: ${path}`);
+  const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+  bgmBuffers.set(path, buffer);
+  // 直した曲はメモリを大きく使うので、古いものから捨てる
+  while (bgmBuffers.size > BGM_BUFFER_KEEP) bgmBuffers.delete(bgmBuffers.keys().next().value);
+  return buffer;
+}
+
+async function startBgmFile(def) {
+  const request = bgmRequest;
+  try {
+    const buffer = await loadBgmBuffer(def.file);
+    if (request !== bgmRequest) return; // 読み込み中に別の曲へ切り替わった
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(bgmBus);
+    source.start();
+    bgmSource = source;
+  } catch {
+    // 読み込めなかったら、コードの曲で代わりにする
+    if (request === bgmRequest && def.song) bgmSong = startSong(ctx, bgmBus, noiseBuffer, def.song);
+  }
 }
 
 // 場面の曲に切り替える。同じ曲が鳴っていれば何もしない
 export function playBgm(key) {
-  if (bgmKey === key && (bgmSong || bgmElement)) return;
+  if (bgmKey === key && (bgmSong || bgmSource || bgmLoading)) return;
   bgmKey = key;
   if (!ensureContext()) return;
   stopBgm();
   const def = BGM[key];
   if (!def) return;
   if (def.file) {
-    bgmElement = playFile(def.file, true, 0);
-    applyVolume();
+    bgmLoading = true;
+    const request = bgmRequest;
+    startBgmFile(def).finally(() => {
+      if (request === bgmRequest) bgmLoading = false;
+    });
   } else {
     bgmSong = startSong(ctx, bgmBus, noiseBuffer, def.song);
   }
@@ -134,7 +176,7 @@ export function playBgm(key) {
 export function unlockAudio(scene) {
   const start = () => {
     if (!ensureContext()) return;
-    if (bgmKey && !bgmSong && !bgmElement) {
+    if (bgmKey && !bgmSong && !bgmSource && !bgmLoading) {
       const key = bgmKey;
       bgmKey = null;
       playBgm(key);

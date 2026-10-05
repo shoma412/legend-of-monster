@@ -36,6 +36,10 @@ export class TitleScene extends Phaser.Scene {
     this.add.text(W - 16, H - 14, `v${__APP_VERSION__} `, {
       fontFamily: FONTS.display, fontStyle: '500', fontSize: '12px', color: COLORS.dim,
     }).setOrigin(1, 1);
+    // BGM の出典（魔王魂の利用条件で、表記が必要）
+    this.add.text(16, H - 14, '音楽：魔王魂', {
+      fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
+    }).setOrigin(0, 1);
 
     // どのキーでも、クリックでも始まる
     unlockAudio(this);

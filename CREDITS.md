@@ -23,16 +23,27 @@
 
 ## BGM
 
-外部の音声素材・AI生成の音声素材は使っていない。
-今鳴っているのは、コードで合成した曲（`src/data/audio.js` の `SONGS`。和音・ベース・メロディ・ドラムの並びをデータとして書いたもの）。
+**音楽：魔王魂**（https://maou.audio/ ）
 
-音楽生成AI（Suno など）で作った曲に差し替えるときは、ファイルを `public/audio/bgm/` に置き、`src/data/audio.js` の `BGM` の `file` に場所を書く。そのうえで、下の表に記録する。
+BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている。AI生成の曲ではない。
 
-| ファイル名 | 使う場面 | ツール名 | プラン | 作った日 | プロンプト |
-|---|---|---|---|---|---|
-| （まだなし） | | | | | |
+- ライセンス：クリエイティブ・コモンズ 表示 4.0 国際（CC BY 4.0）。利用規約：https://maou.audio/rule/ （2026-10-05 に確認）
+- 条件：クレジット表記が必須（タイトル画面に「音楽：魔王魂」と表示している）。加工は可。自作の曲として公開しない
+- ファイルは `public/audio/bgm/` に置き、`src/data/audio.js` の `BGM` の `file` で場面に割り当てている。加工はしていない（配布されているループ用の ogg ファイルそのまま）
 
-注意：Suno の無料プランで作った曲は個人的・非商用の利用に限られる。販売や収益化をすることになったら、有料プランで作り直すか、別の曲に差し替える。
+| ファイル名 | 使う場面 | 曲名 | 出典 | 入手日 |
+|---|---|---|---|---|
+| maou_loop_bgm_cyber33.ogg | タイトル | サイバー33 | https://maou.audio/bgm_cyber33/ | 2026-10-05 |
+| maou_loop_bgm_cyber34.ogg | 隠れ家 | サイバー34 | https://maou.audio/bgm_cyber34/ | 2026-10-05 |
+| maou_loop_bgm_cyber38.ogg | エリア1 下層スラム | サイバー38 | https://maou.audio/bgm_cyber38/ | 2026-10-05 |
+| maou_loop_bgm_cyber19.ogg | エリア2 冷却プラント | サイバー19 | https://maou.audio/bgm_cyber19/ | 2026-10-05 |
+| maou_loop_bgm_cyber24.ogg | エリア3 企業タワー | サイバー24 | https://maou.audio/bgm_cyber24/ | 2026-10-05 |
+| maou_loop_bgm_neorock80.ogg | ボス1 ボルトボア | ネオロック80 | https://maou.audio/bgm_neorock80/ | 2026-10-05 |
+| maou_loop_bgm_neorock65.ogg | ボス2 クライオ・ワイバーン | ネオロック65 | https://maou.audio/bgm_neorock65/ | 2026-10-05 |
+| maou_loop_bgm_cyber39.ogg | ボス3 オーバーロード | サイバー39 | https://maou.audio/bgm_cyber39/ | 2026-10-05 |
+| maou_loop_bgm_cyber17.ogg | エンディング | サイバー17 | https://maou.audio/bgm_cyber17/ | 2026-10-05 |
+
+曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。
 
 ## 文章
 

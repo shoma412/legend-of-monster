@@ -53,19 +53,20 @@ export const SE = {
 
 // ---- BGM ----
 // 場面ごとの曲。file を書くと、そのファイル（public/ からの場所）をループ再生する。
-// file が null の間は、song の名前の曲（下の SONGS）をコードで鳴らす。
-// Suno などで作った曲に差し替えるときは、ここの file を書き換えるだけでよい。
+// file が null のとき、またはファイルを読み込めなかったときは、song の名前の曲（下の SONGS）をコードで鳴らす。
+// 曲を差し替えるときは、ここの file を書き換えるだけでよい。
+// 今のファイルは、すべて「魔王魂」のループ用の曲（出典とライセンスは CREDITS.md）。
 // エリアごとの曲とボス戦の曲は、エリアの定義（src/data/areas.js の bgm / bossBgm）からこのキーで選ぶ。
 export const BGM = {
-  title: { file: null, song: 'title' },
-  hideout: { file: null, song: 'hideout' },
-  slum: { file: null, song: 'slum' },
-  plant: { file: null, song: 'plant' },
-  tower: { file: null, song: 'tower' },
-  bossSlum: { file: null, song: 'bossSlum' },
-  bossPlant: { file: null, song: 'bossPlant' },
-  bossTower: { file: null, song: 'bossTower' },
-  ending: { file: null, song: 'ending' },
+  title: { file: 'audio/bgm/maou_loop_bgm_cyber33.ogg', song: 'title' },
+  hideout: { file: 'audio/bgm/maou_loop_bgm_cyber34.ogg', song: 'hideout' },
+  slum: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  plant: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
+  tower: { file: 'audio/bgm/maou_loop_bgm_cyber24.ogg', song: 'tower' },
+  bossSlum: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  bossPlant: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
+  bossTower: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
+  ending: { file: 'audio/bgm/maou_loop_bgm_cyber17.ogg', song: 'ending' },
 };
 
 // ---- コードで鳴らす曲 ----

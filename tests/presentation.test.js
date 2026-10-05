@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { compileSong } from '../src/audio/music.js';
 import { ARP, BASS, BGM, DRUMS, SE, SONGS } from '../src/data/audio.js';
@@ -28,6 +29,12 @@ describe('背景', () => {
 });
 
 describe('BGM', () => {
+  it('ファイルの曲は、public/ に実際に置いてある', () => {
+    for (const [key, def] of Object.entries(BGM)) {
+      if (def.file) expect(existsSync(`public/${def.file}`), `${key}: ${def.file}`).toBe(true);
+    }
+  });
+
   it('エリアごとに、道中の曲とボス戦の曲がある（エリアどうしで別の曲）', () => {
     const used = new Set();
     for (const area of DATA.areas.all()) {
