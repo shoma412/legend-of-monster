@@ -16,6 +16,7 @@ import { fragments, materials } from './story.js';
 import { characters } from './characters.js';
 import { dialogues } from './dialogues.js';
 import { encounters } from './encounters.js';
+import { maps } from './maps.js';
 
 export const DATA = {
   enemies: defineRegistry('敵', enemies),
@@ -35,4 +36,5 @@ export const DATA = {
   characters: defineRegistry('人物', characters),
   dialogues: defineRegistry('会話', dialogues),
   encounters: defineRegistry('遭遇', encounters),
+  maps: defineRegistry('マップ', maps),
 };

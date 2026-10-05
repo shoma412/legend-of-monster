@@ -32,6 +32,19 @@ export const ENEMY_SCALING = {
   perArea: 1.6, // エリアが1つ進むごとの HP・攻撃力の倍率
 };
 
+// 周回（すべてのマップを完了すると、次の周に進める。周が1つ進むごとに敵が強くなる）
+export const CYCLE = {
+  hpPerCycle: 0.15, // 敵の HP の増え方（1周ごと）
+  damagePerCycle: 0.08, // 受けるダメージの増え方（1周ごと）
+  stepsPerCycle: 1, // 敵の量：1周ごとに、この部屋数ぶん奥のものとして数える
+  materialEvery: 2, // この周数ごとに、ボス素材が +1 個
+  rarityPerCycle: 0.1, // 落ちる装備のレア度が1段上がる確率（1周ごと）
+  eliteTwoTraitsFrom: 3, // この周から、エリートに特性が2つ付く
+  bossHardFrom: 5, // この周から、ボスが最初から後半の行動で始まる
+  supplyHalfFrom: 7, // この周から、補給部屋の回復量が減る
+  supplyScale: 0.5, // そのときの回復量の倍率
+};
+
 export const ROOM = {
   wall: 28, // 壁の厚み（px）
   wallTop: 31, // 上の壁の厚み（px）。画面上部の表示が入るので、ほかの壁より少し厚い

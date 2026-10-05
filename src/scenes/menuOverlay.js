@@ -390,7 +390,7 @@ export class MenuOverlay {
   renderMap(run) {
     if (!run) return;
     const plan = run.plan;
-    const area = DATA.areas.get(AREA_ORDER[run.areaIndex]);
+    const area = DATA.areas.get(run.map.areas[run.areaIndex]);
     this.panel(40, 122, 880, 336);
     this.text(W / 2, 140, `${area.code} // ${area.name} — MAP`, 15, AREA_THEMES[area.theme].edge, { fontStyle: '700' }).setOrigin(0.5);
     const colGap = Math.min(150, 780 / (plan.columns - 1));

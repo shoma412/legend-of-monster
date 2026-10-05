@@ -169,23 +169,24 @@ export function spawnWave(world, wave) {
   const b = world.bounds;
   const margin = 30;
   const scale = world.room.enemyScale ?? 1; // エリアが進んだぶんの、雑魚のHPと攻撃力の倍率
+  const hpScale = world.room.hpScale ?? 1; // 周回による、HPの倍率
   if (wave.boss) {
     const def = DATA.bosses.get(wave.boss);
-    world.boss = createBoss(def, b.right - 200, (b.top + b.bottom) / 2, ROOM.bossWarning);
+    world.boss = createBoss(def, b.right - 200, (b.top + b.bottom) / 2, ROOM.bossWarning, { hpScale, hard: world.room.bossHard });
     world.enemies.push(world.boss);
     return;
   }
   if (wave.elite) {
     const { x, y } = randomSpot(world, 60);
-    const e = createEnemy(DATA.enemies.get(wave.elite.base), x, y, ROOM.spawnWarning + 0.4, world.rng, scale);
-    world.enemies.push(makeElite(e, wave.elite.trait));
+    const e = createEnemy(DATA.enemies.get(wave.elite.base), x, y, ROOM.spawnWarning + 0.4, world.rng, scale, hpScale);
+    world.enemies.push(makeElite(e, wave.elite.traits ?? wave.elite.trait));
   }
   for (const [id, count] of Object.entries(wave)) {
     if (id === 'elite') continue;
     const def = DATA.enemies.get(id);
     for (let i = 0; i < count; i++) {
       const { x, y } = randomSpot(world, margin);
-      world.enemies.push(createEnemy(def, x, y, ROOM.spawnWarning + world.rng() * 0.3, world.rng, scale));
+      world.enemies.push(createEnemy(def, x, y, ROOM.spawnWarning + world.rng() * 0.3, world.rng, scale, hpScale));
     }
   }
 }

@@ -2,26 +2,33 @@
 import { ENEMY_SCALING, ROOM, ROOMGEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
+import { cycleMods, recordMapClear } from '../logic/maps.js';
 import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
 import { createBuild } from '../logic/stats.js';
 import { buildRoom } from './rooms.js';
 import { createWorld } from './world.js';
 
-// エリアの順番
-export const AREA_ORDER = ['slum', 'plant', 'tower'];
+// マップ1のエリアの順番（記録の「最高到達」の表示に使う。ランが進むエリアは、選んだマップの areas）
+export const AREA_ORDER = DATA.maps.get('map1').areas;
 
 // ボスを倒したあとに開く「次のエリアへ」の扉の行き先
 export const NEXT_AREA = '@next';
 
 // save: セーブデータ（隠れ家の進行状況）。恒久強化がランに乗り、ボス素材・データ片・実績がここに記録される
-export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave() } = {}) {
-  const area = DATA.areas.get(AREA_ORDER[0]);
+//   mapId: 進むマップ / cycle: 何周目か（周が進むほど敵が強い）
+export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave(), mapId = 'map1', cycle = 1 } = {}) {
+  const map = DATA.maps.get(mapId);
+  const area = DATA.areas.get(map.areas[0]);
   const bonus = permanentBonuses(save);
   const run = {
     weaponId,
     rng,
     save,
+    map,
+    cycle,
+    mods: cycleMods(cycle), // この周での、敵の強さなどの変化
+    ending: false, // このランで、7つすべてのマップを初めて完了した（エンディングを出す）
     areaIndex: 0,
     plan: createAreaPlan(area, rng), // エリアの地図と、今いる場所
     build: createBuild(bonus), // 装備・インプラント・レベル・クレジット・修復キット
@@ -30,8 +37,7 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     started: false,
     visualSeed: Math.floor(Math.random() * 1e9), // 背景の模様を決める数（見た目だけに使う）
     startChoice: bonus.startChoice, // 恒久強化「起動プログラム」：最初にインプラントを1つ選べる
-    firstClear: false,
-    outcome: null, // 終わり方：dead（死亡）/ areaClear（今あるエリアを最後まで進んだ）/ clear（最後のボスを倒した）
+    outcome: null, // 終わり方：dead（死亡）/ clear（マップの最後のボスを倒した）
     // このランで持ち帰ったもの（リザルト画面に出す）
     gained: { materials: {}, fragments: [], achievements: [], notes: [] },
   };
@@ -41,11 +47,11 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
 }
 
 export function currentArea(run) {
-  return DATA.areas.get(AREA_ORDER[run.areaIndex]);
+  return DATA.areas.get(run.map.areas[run.areaIndex]);
 }
 
 export function hasNextArea(run) {
-  return run.areaIndex + 1 < AREA_ORDER.length;
+  return run.areaIndex + 1 < run.map.areas.length;
 }
 
 // 今の部屋の world を作る
@@ -53,8 +59,9 @@ export function enterRoom(run) {
   const area = currentArea(run);
   const { plan, rng, save } = run;
   // 奥のエリアほど、敵の数が増える（部屋数ぶん先に進んだものとして数える）
-  const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea;
-  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng) };
+  // 周が進むと、さらに敵が増え、エリートの特性も増える
+  const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea + run.mods.stepBonus;
+  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits };
   const type = currentNode(plan).type;
   // 遭遇部屋で装備を拾ったあと：次の戦闘部屋は、敵が増える
   if (run.build.ambush && (type === 'combat' || type === 'elite')) {
@@ -67,6 +74,12 @@ export function enterRoom(run) {
   const room = buildRoom(type, ctx, doors);
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex;
+  // 周回による変化（敵の HP、受けるダメージ、装備のレア度、ボスの行動、補給の回復量）
+  room.hpScale = run.mods.hpScale;
+  room.damageScale = run.mods.damageScale;
+  room.rarityChance = run.mods.rarityChance;
+  room.bossHard = run.mods.bossHard;
+  room.healScale = run.mods.healScale;
   const first = !run.started;
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
   if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
@@ -96,17 +109,30 @@ export function leaveRoom(run, world, nextId) {
   advancePlan(run.plan, nextId);
 }
 
+function note(run, text) {
+  const n = { kind: 'achievement', text };
+  run.gained.notes.push(n);
+  return n;
+}
+
 // world で起きた出来事を処理する（ボス素材、データ片、実績、記録）。画面に出す通知を返す
 export function handleEvents(run, world) {
   const area = currentArea(run);
   const notes = [];
   for (const event of world.events.splice(0)) {
-    if (event.type === 'bossKill') event.area = area.id;
+    if (event.type === 'bossKill') {
+      event.area = area.id;
+      event.materialBonus = run.mods.materialBonus;
+    }
     notes.push(...processEvent(run.save, run, event));
-    // 最後のエリアのボスを倒したらクリア
-    if (event.type === 'bossKill' && area.final) {
-      run.firstClear = run.save.records.clears === 0; // 初めてのクリアなら、エンディングを出す
+    // マップの最後のエリアのボスを倒したら、そのマップは完了
+    if (event.type === 'bossKill' && !hasNextArea(run)) {
       notes.push(...processEvent(run.save, run, { type: 'runClear' }));
+      const result = recordMapClear(run.save, run.map.id, run.cycle);
+      run.ending = result.ending; // 7つすべてを初めて完了したら、エンディングを出す
+      notes.push(...processEvent(run.save, run, { type: 'mapClear', map: run.map.id, cycle: run.cycle }));
+      if (result.firstClear) notes.push(note(run, `> マップ完了 // ${run.map.code} ${run.map.name}`));
+      if (result.nextCycle) notes.push(note(run, `> ${result.nextCycle}周目が選べるようになった`));
     }
   }
   return notes;

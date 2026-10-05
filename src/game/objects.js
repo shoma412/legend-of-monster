@@ -49,7 +49,7 @@ const HANDLERS = {
   heal(world, o) {
     if (o.used) return;
     const p = world.player;
-    const amount = Math.round(p.stats.maxHp * ROOMGEN.supply.heal);
+    const amount = Math.round(p.stats.maxHp * ROOMGEN.supply.heal * (world.room.healScale ?? 1));
     p.hp = Math.min(p.stats.maxHp, p.hp + amount);
     o.used = true;
     sfx(world, 'heal');

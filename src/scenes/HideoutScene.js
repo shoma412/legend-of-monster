@@ -19,6 +19,7 @@ import { drawMaterialIcon } from '../render/metaIcons.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView } from '../render/view.js';
 import { createDialogueBox } from './dialogueBox.js';
+import { createMapSelect } from './mapSelect.js';
 import { MenuOverlay, costText } from './menuOverlay.js';
 
 const W = SCREEN.width;
@@ -96,11 +97,11 @@ export class HideoutScene extends Phaser.Scene {
     }
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.keys.E.on('down', () => {
-      if (!this.menu.isOpen && !this.dialogue.blocking) interact(this.world);
+      if (!this.menu.isOpen && !this.dialogue.blocking && !this.mapSelect.blocking) interact(this.world);
     });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (this.menu.isOpen || this.dialogue.blocking) return;
+      if (this.menu.isOpen || this.dialogue.blocking || this.mapSelect.blocking) return;
       if (pointer.leftButtonDown()) this.attackPressed = true;
       if (pointer.rightButtonDown()) this.specialPressed = true;
     });
@@ -118,7 +119,7 @@ export class HideoutScene extends Phaser.Scene {
         },
       ],
       context: () => ({ save: this.save, player: this.world.player }),
-      canOpen: () => !this.dialogue.blocking,
+      canOpen: () => !this.dialogue.blocking && !this.mapSelect.blocking,
       onBuy: () => {
         persist();
         this.applyUpgrades();
@@ -128,6 +129,18 @@ export class HideoutScene extends Phaser.Scene {
 
     this.dialogue = createDialogueBox(this);
     this.talkCount = {};
+    // マップを選ぶ画面（出撃ゲートを調べると開く）
+    this.mapSelect = createMapSelect(this, {
+      save: () => this.save,
+      onChange: () => persist(),
+      onStart: (mapId, cycle) => {
+        // 初めての出撃の前には、会話を挟む
+        this.playPending('sortie', () => {
+          playSe('door');
+          this.scene.start('Battle', { weaponId: this.save.selected, mapId, cycle });
+        });
+      },
+    });
 
     // このセーブデータで初めて隠れ家に来たときは、操作説明を出す
     if (!this.save.tutorialSeen) {
@@ -182,7 +195,7 @@ export class HideoutScene extends Phaser.Scene {
         else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost)}` });
         else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）` });
       } else if (o.icon === 'gate') {
-        o.prompt = `E：出撃する（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
+        o.prompt = `E：出撃先を選ぶ（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }
     }
     // 持っているボス素材（アイコンつき）。右から順に並べる
@@ -215,11 +228,7 @@ export class HideoutScene extends Phaser.Scene {
     const world = this.world;
     const p = world.player;
     if (id === 'sortie') {
-      // 初めての出撃の前には、会話を挟む
-      this.playPending('sortie', () => {
-        playSe('door');
-        this.scene.start('Battle', { weaponId: this.save.selected });
-      });
+      this.mapSelect.open();
       return;
     }
     if (id.startsWith('talk:')) {
@@ -291,7 +300,7 @@ export class HideoutScene extends Phaser.Scene {
     }
     // 会話中は、ゲームを止める（画面は描き続ける）
     this.dialogue.update(seconds * 1000);
-    if (this.dialogue.isOpen) this.readInput();
+    if (this.dialogue.isOpen || this.mapSelect.isOpen) this.readInput();
     else advanceWorld(world, seconds, this.readInput());
     world.events.length = 0;
     for (const name of world.fx.sounds.splice(0)) playSe(name);
@@ -314,7 +323,7 @@ export class HideoutScene extends Phaser.Scene {
     const prompt = focusPrompt(world);
     this.promptText.setVisible(!!prompt);
     if (prompt) this.promptText.setText(prompt.text).setColor(prompt.color);
-    this.briefPanel.setVisible(world.focusObject?.id === 'sortie');
+    this.briefPanel.setVisible(world.focusObject?.id === 'sortie' && !this.mapSelect.isOpen);
   }
 
   syncTexts(pool, items, depth) {

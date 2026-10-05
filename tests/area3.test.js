@@ -279,14 +279,20 @@ describe('クリア', () => {
     expect(save.achievements).toEqual(expect.arrayContaining(['overload', 'clear-sword']));
     expect(save.achievements).not.toContain('clear-greatsword');
     expect(save.fragments).toContain('ov-core');
-    expect(r.firstClear).toBe(true);
+    // マップ1が完了になり、2周目が選べるようになる。エンディングは7つすべてを完了するまで出ない
+    expect(save.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });
+    expect(save.cycle).toBe(2);
+    expect(save.achievements).toContain('map1');
+    expect(r.ending).toBe(false);
   });
 
-  it('エンディングは初めてのクリアのときだけ', () => {
+  it('同じ周をもう一度クリアしても、次の周は増えない（クリア回数だけ増える）', () => {
     const save = createSave();
-    expect(clearRun(save).firstClear).toBe(true);
-    expect(clearRun(save).firstClear).toBe(false);
+    clearRun(save);
+    clearRun(save);
     expect(save.records.clears).toBe(2);
+    expect(save.maps.map1).toEqual({ clears: 2, clearedCycle: 1 });
+    expect(save.cycle).toBe(2);
   });
 
   it('エリア3の雑魚は、HPと攻撃力が 1.6×1.6 倍', () => {

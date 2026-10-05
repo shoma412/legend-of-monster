@@ -172,14 +172,16 @@ export function killEnemy(world, enemy) {
 
 function dropLoot(world, enemy) {
   const drops = enemy.def.drops;
+  // 周が進むと、ときどきレア度が1段上がる
+  const lucky = () => (world.rng() < (world.room.rarityChance ?? 0) ? 1 : 0);
   if (drops) {
     // ボスなどの確定ドロップ
     for (let i = 0; i < drops.count; i++) {
       const offset = (i - (drops.count - 1) / 2) * 44;
-      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: drops.rarityBonus ?? 0, minRarity: drops.minRarity ?? 0 }), t: 0 });
+      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: (drops.rarityBonus ?? 0) + lucky(), minRarity: drops.minRarity ?? 0 }), t: 0 });
     }
   } else if (world.rng() < (enemy.def.dropChance ?? 0)) {
-    world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng), t: 0 });
+    world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng, { rarityBonus: lucky() }), t: 0 });
   }
   // 消耗品。エリートとボスは確定で1つ、雑魚はたまに落とす。装備と同じく、近づいて E で拾う
   if (drops || world.rng() < ITEMS.dropChance) {
@@ -204,7 +206,8 @@ export function hurtPlayer(world, damage) {
     triggerCounter(world);
     return true;
   }
-  const amount = Math.max(1, Math.round(damage * p.stats.damageTaken));
+  // 周が進むと、受けるダメージが増える
+  const amount = Math.max(1, Math.round(damage * p.stats.damageTaken * (world.room.damageScale ?? 1)));
   p.hp = Math.max(0, p.hp - amount);
   world.damageTaken += amount;
   p.inv = PLAYER.hitInvincible;

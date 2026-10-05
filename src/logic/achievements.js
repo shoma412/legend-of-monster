@@ -14,6 +14,8 @@ const CHECKS = {
   weaponIs: (def, event, save, run) => run.weaponId === def.weapon,
   levelAtLeast: (def, event) => event.level >= def.level,
   runsAtLeast: (def, event, save) => save.records.runs >= def.count,
+  mapIs: (def, event) => event.map === def.map,
+  cycleAtLeast: (def, event) => event.cycle >= def.cycle,
 };
 
 export function hasCheck(name) {

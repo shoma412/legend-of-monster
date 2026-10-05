@@ -165,8 +165,10 @@ export function generateWaves(area, step, rng) {
 }
 
 // エリート部屋：強化個体1体＋取り巻き
-export function generateEliteWaves(area, step, rng) {
-  const elite = { base: pick(area.eliteBases, rng), trait: pick(DATA.eliteTraits.ids(), rng) };
+// traitCount: 特性の数（周が進むと2つになる）
+export function generateEliteWaves(area, step, rng, traitCount = 1) {
+  const traits = shuffle(DATA.eliteTraits.ids(), rng).slice(0, traitCount);
+  const elite = { base: pick(area.eliteBases, rng), trait: traits[0], traits };
   return [{ ...fillWave(area, Math.round(ROOMGEN.elite.minionBudget + step * ROOMGEN.elite.minionPerStep), rng), elite }];
 }
 

@@ -77,7 +77,7 @@ export function pickFragment(save, areaId, source, rng) {
 }
 
 // world から出てきた出来事を1つ処理する。save と run.gained を書き換え、画面に出す通知を返す
-//   出来事：{ type: 'sortie' | 'kill' | 'eliteKill' | 'bossKill' | 'implant' | 'equip' | 'fragment' | 'runClear', ... }
+//   出来事：{ type: 'sortie' | 'kill' | 'eliteKill' | 'bossKill' | 'implant' | 'equip' | 'fragment' | 'runClear' | 'mapClear', ... }
 export function processEvent(save, run, event) {
   const notes = [];
 
@@ -87,7 +87,8 @@ export function processEvent(save, run, event) {
     // ボス素材はボスを倒した時点で確定する。初回撃破だけ多くもらえる
     const boss = DATA.bosses.get(event.boss);
     const first = !save.bossKills[boss.id];
-    const count = first ? META.firstKillMaterials : 1;
+    // 周が進んでいると、もらえる数が増える
+    const count = (first ? META.firstKillMaterials : 1) + (event.materialBonus ?? 0);
     save.bossKills[boss.id] = (save.bossKills[boss.id] ?? 0) + 1;
     save.materials[boss.material] = (save.materials[boss.material] ?? 0) + count;
     run.gained.materials[boss.material] = (run.gained.materials[boss.material] ?? 0) + count;

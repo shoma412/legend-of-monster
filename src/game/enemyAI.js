@@ -8,8 +8,9 @@ import { updateEliteTrait } from './elite.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
 // scale: エリアが進んだぶんの、HPと攻撃力の倍率
-export function createEnemy(def, x, y, spawnT, rng, scale = 1) {
-  if (scale !== 1) def = { ...def, hp: Math.round(def.hp * scale), damage: Math.round(def.damage * scale) };
+// scale: エリアが進んだぶんの、HP と攻撃力の倍率 / hpScale: 周回による、HP だけの倍率
+export function createEnemy(def, x, y, spawnT, rng, scale = 1, hpScale = 1) {
+  if (scale !== 1 || hpScale !== 1) def = { ...def, hp: Math.round(def.hp * scale * hpScale), damage: Math.round(def.damage * scale) };
   return {
     def,
     x,

@@ -37,10 +37,10 @@ export class BattleScene extends Phaser.Scene {
     super('Battle');
   }
 
-  // run: 続きのラン。省略すると、weaponId の武器で新しいランを始める
+  // run: 続きのラン。省略すると、weaponId の武器で、mapId のマップの cycle 周目を新しく始める
   init(data) {
     this.fresh = !data?.run;
-    this.run = data?.run ?? createRun({ weaponId: data?.weaponId ?? 'greatsword', save: getSave() });
+    this.run = data?.run ?? createRun({ weaponId: data?.weaponId ?? 'greatsword', save: getSave(), mapId: data?.mapId ?? 'map1', cycle: data?.cycle ?? 1 });
   }
 
   create() {
@@ -243,7 +243,8 @@ export class BattleScene extends Phaser.Scene {
   showSectorBanner() {
     const { width: W } = SCREEN;
     const color = COLORS[this.roomDef.color];
-    const text = `${this.area.code}-${this.run.plan.step + 1} // ${this.area.name} // ${this.roomDef.tag}`;
+    const lap = this.run.cycle > 1 ? `${this.run.cycle}周目 // ` : '';
+    const text = `${lap}${this.area.code}-${this.run.plan.step + 1} // ${this.area.name} // ${this.roomDef.tag}`;
     const banner = this.add.text(W / 2, ROOM.wallTop + 18, text, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color })
       .setOrigin(0.5).setShadow(0, 0, color, 10, false, true).setDepth(7).setAlpha(0);
     this.tweens.chain({
@@ -415,11 +416,10 @@ export class BattleScene extends Phaser.Scene {
         // 次のエリアへの扉が開く
         this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);
       } else {
-        // 今あるエリアを最後まで進んだ
-        finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
+        // マップの最後のボスを倒した
+        finishRun(this.run, world, 'clear');
         persist();
-        const note = this.area.final ? '' : '（この先のエリアは準備中）';
-        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\n装備を見終わったら、下のボタンか Enter で帰還する${note}`).setVisible(true);
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.run.map.code} 完了\n装備を見終わったら、下のボタンか Enter で帰還する`).setVisible(true);
         this.returnButton.setVisible(true);
       }
     } else if (world.room.waves.length > 0) {
@@ -489,6 +489,12 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  // マップ名と、2周目以降なら周の数（例：MAP 01 中枢区・2周目）
+  mapLabel() {
+    const run = this.run;
+    return `${run.map.code} ${run.map.name}${run.cycle > 1 ? `・${run.cycle}周目` : ''}`;
+  }
+
   // リザルトに出す行：到達した場所、撃破数、持ち帰ったもの
   resultLines() {
     const run = this.run;
@@ -496,7 +502,7 @@ export class BattleScene extends Phaser.Scene {
     const names = (ids, registry, key) => (ids.length > 0 ? ids.map((id) => registry.get(id)[key]).join('、') : 'なし');
     const materials = Object.entries(g.materials).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　') || 'なし';
     return [
-      `到達　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
+      `到達　${this.mapLabel()}　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
       `撃破数　${run.kills}`,
       '',
       `持ち帰ったボス素材　${materials}`,
@@ -505,10 +511,11 @@ export class BattleScene extends Phaser.Scene {
     ];
   }
 
-  // 最後まで進んだあと、リザルト（初めてのクリアならエンディング）へ進む
+  // 最後まで進んだあと、リザルト（またはエンディング）へ進む
   goToResult() {
     if (!this.run.outcome || this.result.visible || this.world.choice || this.menu.isOpen) return;
-    if (this.run.outcome === 'clear' && this.run.firstClear) this.scene.start('Ending', { lines: this.resultLines() });
+    // エンディングは、7つすべてのマップを初めて完了したときだけ
+    if (this.run.outcome === 'clear' && this.run.ending) this.scene.start('Ending', { lines: this.resultLines() });
     else this.showResult();
   }
 
@@ -522,7 +529,7 @@ export class BattleScene extends Phaser.Scene {
     this.result.show({
       title: dead ? 'SIGNAL LOST' : 'MISSION COMPLETE',
       color: dead ? COLORS.red : COLORS.green,
-      reach: `${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
+      reach: `${this.mapLabel()}　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
       kills: run.kills,
       gained: run.gained,
       note: dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',

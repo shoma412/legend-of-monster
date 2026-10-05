@@ -11,10 +11,10 @@ function row(count, spacing, y) {
   return Array.from({ length: count }, (_, i) => ({ x: CX + (i - (count - 1) / 2) * spacing, y }));
 }
 
-// ctx: { area, step, build, rng, fragment } → { waves, objects }
+// ctx: { area, step, build, rng, fragment, eliteTraits } → { waves, objects }
 const BUILDERS = {
   combat: ({ area, step, rng }) => ({ waves: generateWaves(area, step, rng) }),
-  elite: ({ area, step, rng }) => ({ waves: generateEliteWaves(area, step, rng) }),
+  elite: ({ area, step, rng, eliteTraits }) => ({ waves: generateEliteWaves(area, step, rng, eliteTraits ?? 1) }),
   boss: ({ area }) => ({ waves: [{ boss: area.boss }] }),
   none: () => ({}),
 

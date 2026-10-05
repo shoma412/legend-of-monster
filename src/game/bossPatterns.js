@@ -255,7 +255,7 @@ PATTERNS.summon = {
         const count = Math.max(0, Math.min(def.count, def.max - live));
         for (let i = 0; i < count; i++) {
           const a = (i / Math.max(1, count)) * Math.PI * 2 + world.rng() * 0.6;
-          const e = createEnemy(DATA.enemies.get(def.enemy), b.x + Math.cos(a) * (b.r + 50), b.y + Math.sin(a) * (b.r + 50), 0.6, world.rng, world.room.enemyScale ?? 1);
+          const e = createEnemy(DATA.enemies.get(def.enemy), b.x + Math.cos(a) * (b.r + 50), b.y + Math.sin(a) * (b.r + 50), 0.6, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
           clampToBounds(e, world.bounds);
           world.enemies.push(e);
         }

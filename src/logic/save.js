@@ -1,7 +1,7 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -23,6 +23,11 @@ export function createSave() {
     records: { runs: 0, clears: 0, kills: 0, bestArea: 0, bestStep: 0 },
     tutorialSeen: false, // 最初の操作説明を見たか
     seenDialogues: [], // 自動で出る会話のうち、もう見たものの id（版2で追加）
+    // ここから版3で追加（マップと周回）
+    maps: {}, // { マップのid: { clears: クリアした回数, clearedCycle: クリアした最高の周 } }
+    cycle: 1, // 選べる最高の周
+    selectedMap: 'map1', // マップを選ぶ画面で、最後に選んでいたマップ
+    selectedCycle: 1, // 同じく、最後に選んでいた周
   };
 }
 
@@ -33,6 +38,15 @@ function migrate(data) {
   if (data.version === 1) {
     data.seenDialogues = [];
     data.version = 2;
+  }
+  // 版2 → 版3：マップと周回を足す。オーバーロードを倒したことがあれば、マップ1は完了済みにする（2周目が選べる）
+  if (data.version === 2) {
+    const cleared = (data.bossKills?.overload ?? 0) > 0;
+    data.maps = cleared ? { map1: { clears: Math.max(1, data.records?.clears ?? 1), clearedCycle: 1 } } : {};
+    data.cycle = cleared ? 2 : 1;
+    data.selectedMap = 'map1';
+    data.selectedCycle = 1;
+    data.version = 3;
   }
   return data;
 }
@@ -54,6 +68,10 @@ function normalize(data) {
     records: { ...base.records, ...(d.records ?? {}) },
     tutorialSeen: d.tutorialSeen === true,
     seenDialogues: Array.isArray(d.seenDialogues) ? [...new Set(d.seenDialogues)] : [],
+    maps: Object.fromEntries(Object.entries(d.maps ?? {}).map(([id, m]) => [id, { clears: m?.clears ?? 0, clearedCycle: m?.clearedCycle ?? 0 }])),
+    cycle: Number.isInteger(d.cycle) && d.cycle >= 1 ? d.cycle : 1,
+    selectedMap: typeof d.selectedMap === 'string' ? d.selectedMap : base.selectedMap,
+    selectedCycle: Number.isInteger(d.selectedCycle) && d.selectedCycle >= 1 ? d.selectedCycle : 1,
   };
 }
 

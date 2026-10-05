@@ -5,15 +5,18 @@ import { PATTERNS } from './bossPatterns.js';
 import { hurtPlayer } from './combat.js';
 import { addShake, burst, floatText } from './fx.js';
 
-export function createBoss(def, x, y, spawnT) {
+// options: { hpScale: HP の倍率（周回）, hard: true なら最初から後半の行動で始まる（周回） }
+export function createBoss(def, x, y, spawnT, { hpScale = 1, hard = false } = {}) {
+  const hp = Math.round(def.hp * hpScale);
   return {
     def,
     boss: true,
     x,
     y,
     r: def.radius,
-    hp: def.hp,
-    maxHp: def.hp,
+    hp,
+    maxHp: hp,
+    minPhase: hard ? def.phases.length - 1 : 0, // これより前の段階には戻らない
     color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink,
     vx: 0,
     vy: 0,
@@ -35,7 +38,7 @@ export function createBoss(def, x, y, spawnT) {
 function currentPhaseIndex(b) {
   const ratio = b.hp / b.maxHp;
   const i = b.def.phases.findIndex((ph) => ratio > ph.hpAbove);
-  return i < 0 ? b.def.phases.length - 1 : i;
+  return Math.max(b.minPhase ?? 0, i < 0 ? b.def.phases.length - 1 : i);
 }
 
 export function updateBoss(world, b, dt) {

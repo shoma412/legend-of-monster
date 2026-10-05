@@ -60,15 +60,17 @@ export const TRAIT_PARTS = {
   },
 };
 
-// 雑魚をエリートに変える
-export function makeElite(e, traitId) {
-  const trait = DATA.eliteTraits.get(traitId);
+// 雑魚をエリートに変える。traitIds は特性の id（1つ、または並び）
+export function makeElite(e, traitIds) {
+  const traits = [traitIds].flat().map((id) => DATA.eliteTraits.get(id));
+  const trait = traits[0];
   const base = e.def;
-  e.elite = trait;
+  e.elite = trait; // 1つ目の特性（エリートかどうかの目印にも使う）
+  e.traits = traits;
   e.baseDef = base;
   e.def = {
     ...base,
-    name: `${base.name}［${trait.name}］`,
+    name: `${base.name}［${traits.map((t) => t.name).join('・')}］`,
     damage: Math.round(base.damage * ELITE.damageMul),
     xp: base.xp * ELITE.xpMul,
     credits: base.credits * ELITE.creditMul,
@@ -79,16 +81,16 @@ export function makeElite(e, traitId) {
   e.noStagger = ELITE.noStagger;
   e.hp = e.maxHp = base.hp * ELITE.hpMul;
   e.r *= ELITE.sizeMul;
-  TRAIT_PARTS[trait.part].onCreate?.(e, trait);
+  for (const t of traits) TRAIT_PARTS[t.part].onCreate?.(e, t);
   return e;
 }
 
 export function updateEliteTrait(world, e, dt) {
-  if (e.elite) TRAIT_PARTS[e.elite.part].onUpdate?.(world, e, dt, e.elite);
+  for (const t of e.traits ?? []) TRAIT_PARTS[t.part].onUpdate?.(world, e, dt, t);
 }
 
 export function eliteDeath(world, e) {
-  if (e.elite) TRAIT_PARTS[e.elite.part].onDeath?.(world, e, e.elite);
+  for (const t of e.traits ?? []) TRAIT_PARTS[t.part].onDeath?.(world, e, t);
 }
 
 export function hasTraitPart(name) {

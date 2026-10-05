@@ -1,5 +1,5 @@
 // 部屋に置かれているもの（扉・補給端末・闇市の商品・データ金庫の装備）の描画と、その上に出す文字
-import { LOOT, ROOM } from '../data/balance.js';
+import { LOOT, ROOM, ROOMGEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
 import { implantDesc, nextImplantLevel } from '../logic/stats.js';
@@ -338,7 +338,7 @@ export function focusPrompt(world) {
   }
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'npc') return o.used ? null : { text: 'E：話しかける', color: COLORS[o.color] ?? COLORS.ink };
-  if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };
+  if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: `E：修復する（最大HPの${Math.round(ROOMGEN.supply.heal * (world.room.healScale ?? 1) * 100)}%回復）`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'implant') {
     // 持っているインプラントなら、買うと強化になる

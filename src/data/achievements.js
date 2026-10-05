@@ -4,7 +4,7 @@
 // on    : きっかけになる出来事
 //         sortie（出撃）/ kill（敵を倒した）/ eliteKill / bossKill / implant（インプラントを入れた）/
 //         equip（装備を身につけた）/ fragment（データ片を手に入れた）/ runClear（最後のボスを倒した）/
-//         levelup（レベルが上がった）/ guard（ジャストガード成功）/ ougi（奥義を使った）/ buy（闇市で買った）/ item（消耗品を使った）
+//         mapClear（マップを完了した）/ levelup（レベルが上がった）/ guard（ジャストガード成功）/ ougi（奥義を使った）/ buy（闇市で買った）/ item（消耗品を使った）
 // icon  : 見た目（src/render/metaIcons.js の ACHIEVEMENT_ICONS）。color を書くと、解除したときの色が変わる（書かなければ金色）
 // check : 追加の条件の部品の名前（src/logic/achievements.js の CHECKS）。書かなければ、出来事が起きただけで解除
 export const achievements = [
@@ -29,4 +29,7 @@ export const achievements = [
   { id: 'item', icon: 'grenade', name: '道具使い', desc: '消耗品を使った', on: 'item' },
   { id: 'runs-10', icon: 'repeat', name: '常連', desc: '10回出撃した', on: 'sortie', check: 'runsAtLeast', count: 10 },
   { id: 'kills-500', icon: 'tally', name: '五百体処理', desc: '累計で500体倒した', on: 'kill', check: 'totalKills', count: 500 },
+  { id: 'map1', icon: 'flag', color: 'green', name: '中枢区停止', desc: 'マップ1を完了した', on: 'mapClear', check: 'mapIs', map: 'map1' },
+  { id: 'cycle-3', icon: 'repeat', color: 'red', name: '異物認定', desc: '3周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 3 },
+  { id: 'cycle-5', icon: 'crown', color: 'red', name: '修繕不能', desc: '5周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 5 },
 ];
