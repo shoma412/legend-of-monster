@@ -8,7 +8,8 @@ import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist } from '../game/saveStore.js';
-import { updateWorld } from '../game/world.js';
+import { advanceWorld } from '../game/world.js';
+import { createClock } from '../logic/clock.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
@@ -22,11 +23,12 @@ import { createBuildList, createChoicePanel, createCommLog, createComparePanel, 
 import { createResultPanel } from './resultPanel.js';
 import { MenuOverlay } from './menuOverlay.js';
 
-const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
 const CHOICE_LOCK = 450; // 3択が出てから選べるようになるまで（ミリ秒）。攻撃の連打で誤って選ばないため
 const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // 戦闘画面。1部屋ごとに作り直し、ラン（src/game/run.js）が部屋をまたいで進行を持つ。
+const MAX_FRAME = 0.1; // 画面が大きく止まったあとでも、1コマでこれ以上は進めない（秒）
+
 export class BattleScene extends Phaser.Scene {
   constructor() {
     super('Battle');
@@ -47,6 +49,7 @@ export class BattleScene extends Phaser.Scene {
     if (import.meta.env.DEV) window.__world = this.world;
     // 部屋に入るたびに、短く暗転から明ける。曲はエリアごとに違い、ボス部屋ではボス戦の曲になる
     setupView(this);
+    this.clock = createClock();
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);
     const bossRoom = !!this.world.room.waves[0]?.boss;
@@ -267,15 +270,17 @@ export class BattleScene extends Phaser.Scene {
     return input;
   }
 
-  update(_time, delta) {
+  update(time) {
     const world = this.world;
+    const seconds = Math.min(this.clock.tick(time), MAX_FRAME);
+    const delta = seconds * 1000;
     // ポーズ画面が開いている間は、ゲームを止める
     if (this.menu.isOpen) {
       this.readInput();
       return;
     }
     const hadChoice = !!world.choice;
-    updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
+    advanceWorld(world, seconds, this.readInput());
     if (world.choice && !hadChoice) this.choiceShownAt = this.time.now;
 
     // ボス素材・データ片・実績。手に入った時点でセーブする

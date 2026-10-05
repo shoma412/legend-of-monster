@@ -55,6 +55,25 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
   };
 }
 
+// 画面1コマぶんの時間（秒）だけゲームを進める。
+// フレームレートが低くて1コマが長いときは、細かく分けて進める。こうしないと、
+// 1コマで進める時間の上限に引っかかって、フレームレートが低いほどゲームが遅くなる。
+const STEP = 1 / 60; // 1回で進める長さの目安
+const MAX_ADVANCE = 0.1; // 処理が大きく止まったあとでも、1コマでこれ以上は進めない
+
+export function advanceWorld(world, seconds, input) {
+  const total = Math.min(Math.max(seconds, 0), MAX_ADVANCE);
+  const steps = Math.max(1, Math.ceil(total / STEP - 0.05));
+  const dt = total / steps;
+  // 「押した瞬間」の入力は、最初の1回だけに渡す（2回ぶん攻撃やダッシュが出ないように）
+  const held = { ...input, attackPressed: false, specialPressed: false, dashPressed: false };
+  for (let i = 0; i < steps; i += 1) {
+    updateWorld(world, dt, i === 0 ? input : held);
+    // 部屋を出る・隠れ家の端末を開くなど、画面側の処理が必要になったらそこで止める
+    if (world.exit || world.request) break;
+  }
+}
+
 export function updateWorld(world, dt, input) {
   world.time += dt;
   updateFx(world, dt);

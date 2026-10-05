@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createClock } from '../src/logic/clock.js';
 import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, SETTINGS_KEY, createSettings, loadSettings, normalizeSettings, stepVolume, storeSettings } from '../src/logic/settings.js';
 
 function fakeStorage() {
@@ -46,5 +47,20 @@ describe('設定', () => {
     // フレームレートは 制限なし（0）／30／60／120。最初は制限なし
     expect(FRAME_RATES.map((r) => r.id)).toEqual([0, 30, 60, 120]);
     expect(createSettings().frameRate).toBe(0);
+  });
+});
+
+describe('経過時間の時計', () => {
+  it('前のコマからの秒数を返す。最初の1回は 0', () => {
+    const clock = createClock();
+    expect(clock.tick(1000)).toBe(0);
+    expect(clock.tick(1016)).toBeCloseTo(0.016, 6);
+    expect(clock.tick(1516)).toBeCloseTo(0.5, 6);
+  });
+
+  it('時刻が戻っても、負の時間にはならない', () => {
+    const clock = createClock();
+    clock.tick(1000);
+    expect(clock.tick(900)).toBe(0);
   });
 });

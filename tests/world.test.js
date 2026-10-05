@@ -3,7 +3,7 @@ import { PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { hurtPlayer } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
-import { createWorld, updateWorld } from '../src/game/world.js';
+import { advanceWorld, createWorld, updateWorld } from '../src/game/world.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -25,6 +25,39 @@ function addEnemy(world, id, dx, dy = 0) {
   world.enemies.push(e);
   return e;
 }
+
+describe('フレームレートが違っても、ゲームの速さは同じ', () => {
+  // 1秒を、決まったコマ数に分けて進める
+  function playOneSecond(fps) {
+    const world = makeWorld();
+    const startX = world.player.x;
+    for (let i = 0; i < fps; i += 1) advanceWorld(world, 1 / fps, { ...idle, mx: 1 });
+    return { time: world.time, moved: world.player.x - startX };
+  }
+
+  it('30・60・120・144 のどれでも、1秒で同じだけ時間が進み、同じ距離を歩く', () => {
+    const base = playOneSecond(60);
+    for (const fps of [30, 120, 144]) {
+      const r = playOneSecond(fps);
+      expect(r.time).toBeCloseTo(base.time, 5);
+      expect(r.moved).toBeCloseTo(base.moved, 3);
+    }
+    expect(base.time).toBeCloseTo(1, 5);
+  });
+
+  it('長い1コマを分けて進めても、ダッシュは1回ぶんしか出ない', () => {
+    const world = makeWorld();
+    const before = world.player.dashCharges;
+    advanceWorld(world, 1 / 20, { ...idle, mx: 1, dashPressed: true });
+    expect(before - world.player.dashCharges).toBe(1);
+  });
+
+  it('大きく止まったあとは、進める時間に上限がかかる', () => {
+    const world = makeWorld();
+    advanceWorld(world, 5, idle);
+    expect(world.time).toBeCloseTo(0.1, 5);
+  });
+});
 
 describe('移動とダッシュ', () => {
   it('1秒で移動速度ぶん進む', () => {

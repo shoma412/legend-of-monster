@@ -9,7 +9,8 @@ import { recalcStats } from '../game/build.js';
 import { floatText, ring } from '../game/fx.js';
 import { interact } from '../game/objects.js';
 import { currentSlot, getSave, persist } from '../game/saveStore.js';
-import { createWorld, updateWorld } from '../game/world.js';
+import { advanceWorld, createWorld } from '../game/world.js';
+import { createClock } from '../logic/clock.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
@@ -20,7 +21,6 @@ import { MenuOverlay, costText } from './menuOverlay.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
-const MAX_STEP = 1 / 30;
 const LOCKED = '#4a4470';
 
 // 隠れ家（拠点）。歩き回れる部屋で、置いてあるものに近づいて E で使う。
@@ -42,6 +42,7 @@ export class HideoutScene extends Phaser.Scene {
     this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
     if (import.meta.env.DEV) window.__world = this.world;
     setupView(this);
+    this.clock = createClock();
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);
     playBgm('hideout');
@@ -247,13 +248,14 @@ export class HideoutScene extends Phaser.Scene {
     return input;
   }
 
-  update(_time, delta) {
+  update(time) {
     const world = this.world;
+    const seconds = this.clock.tick(time);
     if (this.menu.isOpen) {
       this.readInput(); // 開いている間の入力は捨てる
       return;
     }
-    updateWorld(world, Math.min(delta / 1000, MAX_STEP), this.readInput());
+    advanceWorld(world, seconds, this.readInput());
     world.events.length = 0;
     for (const name of world.fx.sounds.splice(0)) playSe(name);
     if (world.request) {
