@@ -10,6 +10,9 @@ import { hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
+export const BAR_LENGTH = 1400; // 線の攻撃の、中心から片側への長さ（部屋の端まで届く）
+const BAR_FLASH = 0.16; // 線が光っている時間（秒）
+
 function aimAt(act, d) {
   act.dirX = d.dx / d.dist;
   act.dirY = d.dy / d.dist;
@@ -283,6 +286,178 @@ PATTERNS.vent = {
   },
 };
 
+// 弾をばらまく。spread が 360 なら全方向、それより小さければプレイヤーの方向へ扇形に撃つ
+//   waves 回に分けて撃ち、1回ごとに rotate 度ずつ向きがずれる（うずまきになる）。track: true なら毎回プレイヤーを狙い直す
+PATTERNS.barrage = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.left = act.def.waves ?? 1;
+    act.next = 0;
+    aimAt(act, d);
+    act.base = Math.atan2(act.dirY, act.dirX);
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t > (def.lockTime ?? 0)) {
+        aimAt(act, d);
+        act.base = Math.atan2(act.dirY, act.dirX);
+      }
+      if (act.t <= 0) act.phase = 'active';
+    } else if (act.phase === 'active') {
+      act.next -= dt;
+      if (act.next <= 0 && act.left > 0) {
+        act.next = def.interval ?? 0.3;
+        act.left--;
+        if (def.track) act.base = Math.atan2(d.dy, d.dx);
+        const full = def.spread >= 360;
+        for (let i = 0; i < def.count; i++) {
+          const offset = full ? (i * 360) / def.count : def.count > 1 ? (i / (def.count - 1) - 0.5) * def.spread : 0;
+          const a = act.base + offset * DEG;
+          world.shots.push({
+            x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r,
+            vx: Math.cos(a) * def.shotSpeed, vy: Math.sin(a) * def.shotSpeed,
+            r: def.shotRadius, damage: def.damage, life: def.shotLife ?? 4, slow: !!def.slow, color: b.color,
+          });
+        }
+        act.base += (def.rotate ?? 0) * DEG;
+        sfx(world, 'enemyShot');
+        burst(world, b.x, b.y, b.color, 8, 200);
+      }
+      if (act.left <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 跳びかかり。プレイヤーのいる場所に着地点の予告を出し、跳んで、着地で周りを攻撃する
+//   ring を書くと、着地と同時に衝撃波の輪も広がる
+PATTERNS.leap = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.tx = world.player.x;
+    act.ty = world.player.y;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      // 予告中は着地点がプレイヤーを追う。最後の少しの間だけ固定する
+      if (act.t > def.lockTime) {
+        act.tx = p.x;
+        act.ty = p.y;
+      }
+      if (act.t <= 0) {
+        act.phase = 'air';
+        act.t = def.air;
+        act.sx = b.x;
+        act.sy = b.y;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'air') {
+      const k = 1 - Math.max(0, act.t) / def.air;
+      b.x = act.sx + (act.tx - act.sx) * k;
+      b.y = act.sy + (act.ty - act.sy) * k;
+      act.height = Math.sin(k * Math.PI); // 描画用：跳んでいる高さ（0〜1）
+      if (act.t <= 0) {
+        act.height = 0;
+        if (circlesOverlap(b.x, b.y, def.radius, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+        if (def.ring) {
+          world.hazards.push({ type: 'ring', x: b.x, y: b.y, r: def.radius, speed: def.ring.speed, max: def.ring.max, width: def.ring.width, damage: def.ring.damage, color: b.color, done: false });
+        }
+        ring(world, b.x, b.y, def.radius, b.color);
+        burst(world, b.x, b.y, b.color, 30, 320);
+        addShake(world, FEEL.shake.charged);
+        sfx(world, 'explode');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 部屋を横切る線の攻撃を、何本か続けて出す（落雷の列、格子レーザー）。線は予告のあと、一瞬だけ光って当たる
+//   orient: aim（ボスからプレイヤーへの向きに平行）/ horizontal / vertical / cross（横と縦を交互に）
+//   1本目はプレイヤーのいる場所を通り、残りは spacing ずつずれる。stagger 秒ずつ遅れて順に光る
+PATTERNS.lines = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const aim = Math.atan2(d.dy, d.dx);
+        for (let i = 0; i < def.count; i++) {
+          const angle = def.orient === 'aim' ? aim : def.orient === 'vertical' ? Math.PI / 2 : def.orient === 'cross' && i % 2 === 1 ? Math.PI / 2 : 0;
+          // 0, +1, -1, +2, -2 … の順に、プレイヤーのいる場所から離れていく
+          const step = def.orient === 'cross' ? Math.floor(i / 2) : i;
+          const offset = (step % 2 === 1 ? 1 : -1) * Math.ceil(step / 2) * def.spacing;
+          const delay = def.delay + i * (def.stagger ?? 0);
+          world.hazards.push({
+            type: 'bar', x: p.x - Math.sin(angle) * offset, y: p.y + Math.cos(angle) * offset, angle,
+            width: def.width, t: delay, max: delay, damage: def.damage, color: b.color, flash: 0,
+          });
+        }
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// その場に残る危険な床を置く（霜だまり、過熱した床）。置かれてから arm 秒後に効き始め、life 秒残る
+//   1つ目はプレイヤーの足元、残りはその周り（spread の範囲）。slow: true なら踏むと減速する
+PATTERNS.pools = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (let i = 0; i < def.count; i++) {
+          const a = world.rng() * Math.PI * 2;
+          const r = i === 0 ? 0 : def.radius + world.rng() * def.spread;
+          const spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: 0 };
+          clampToBounds(spot, world.bounds);
+          world.hazards.push({
+            type: 'pool', x: spot.x, y: spot.y, r: def.radius, arm: def.arm, armMax: def.arm, life: def.life,
+            tick: def.tick, acc: def.tick, damage: def.damage, slow: !!def.slow, color: b.color,
+          });
+        }
+        sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -303,6 +478,38 @@ export function updateHazards(world, dt) {
         burst(world, h.x, h.y, h.color, 12, 220);
         sfx(world, 'hit');
         h.dead = true;
+      }
+    } else if (h.type === 'bar') {
+      // 部屋を横切る線。予告の時間が来たら一瞬だけ光り、そのとき線の上にいると当たる
+      if (h.flash > 0) {
+        h.flash -= dt;
+        if (h.flash <= 0) h.dead = true;
+      } else {
+        h.t -= dt;
+        if (h.t <= 0) {
+          const dx = Math.cos(h.angle) * BAR_LENGTH;
+          const dy = Math.sin(h.angle) * BAR_LENGTH;
+          if (distToSegment(p.x, p.y, h.x - dx, h.y - dy, h.x + dx, h.y + dy) <= p.r + h.width / 2) hurtPlayer(world, h.damage);
+          h.flash = BAR_FLASH;
+          sfx(world, 'laser');
+          addShake(world, FEEL.shake.hit);
+        }
+      }
+    } else if (h.type === 'pool') {
+      // その場に残る床。効き始めてからは、中にいる間 tick 秒ごとに当たる
+      if (h.arm > 0) {
+        h.arm -= dt;
+      } else {
+        h.life -= dt;
+        h.acc += dt;
+        if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) {
+          if (h.slow) slowPlayer(world);
+          if (h.acc >= h.tick) {
+            h.acc = 0;
+            hurtPlayer(world, h.damage);
+          }
+        }
+        if (h.life <= 0) h.dead = true;
       }
     }
   }

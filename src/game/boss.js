@@ -89,6 +89,7 @@ export function updateBoss(world, b, dt) {
   }
 
   clampToBounds(b, world.bounds);
-  // 体に触れるとダメージ。スタン中は安全
-  if (b.act?.phase !== 'stun' && circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, b.def.contactDamage);
+  // 体に触れるとダメージ。スタン中は安全。跳んでいる間も当たらない
+  const untouchable = b.act?.phase === 'stun' || b.act?.phase === 'air'; // スタン中と、跳んでいる間
+  if (!untouchable && circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, b.def.contactDamage);
 }

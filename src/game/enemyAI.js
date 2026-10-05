@@ -317,6 +317,8 @@ export function updateShots(world, dt) {
     if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) s.life = 0;
     if (s.life > 0 && circlesOverlap(s.x, s.y, s.r, p.x, p.y, p.r)) {
       // 無敵中（ダッシュ中など）はすり抜ける
+      // 減速つきの弾（氷の破片）は、当たると動きも鈍る。減速は、ダメージの無敵時間が付く前にかける
+      if (s.slow) slowPlayer(world);
       if (hurtPlayer(world, s.damage)) s.life = 0;
     }
   }

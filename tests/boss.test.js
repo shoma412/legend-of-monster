@@ -44,7 +44,7 @@ describe('ボスの定義', () => {
 });
 
 describe('ボルトボア', () => {
-  it('前半は 突進→突進→踏みつけ の順に攻撃する', () => {
+  it('前半は、定義に書いた順番どおりに攻撃する', () => {
     const world = bossWorld();
     const b = world.boss;
     world.player.inv = Infinity; // 行動順だけを見る
@@ -55,7 +55,8 @@ describe('ボルトボア', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    expect(seen).toEqual(['charge', 'charge', 'stomp', 'charge']);
+    const seq = DATA.bosses.get('boltboar').phases[0].sequence;
+    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
   });
 
   it('突進は予告の間は動かず、予告のあとに当たるとダメージ', () => {
@@ -94,7 +95,7 @@ describe('ボルトボア', () => {
     const world = bossWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = 2; // 次が踏みつけ
+    b.seqIndex = DATA.bosses.get('boltboar').phases[0].sequence.indexOf('stomp'); // 次が踏みつけ
     p.x = b.x - 200;
     p.y = b.y;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
@@ -106,7 +107,7 @@ describe('ボルトボア', () => {
     expect(p.hp).toBe(hp - def.attacks.stomp.damage);
 
     // もう一度。今度は輪が届く間ずっと無敵
-    b.seqIndex = 2;
+    b.seqIndex = DATA.bosses.get('boltboar').phases[0].sequence.indexOf('stomp');
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
     b.idleT = 99;

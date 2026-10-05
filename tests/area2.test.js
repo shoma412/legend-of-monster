@@ -203,7 +203,7 @@ describe('フロストスプレイヤー', () => {
 describe('クライオ・ワイバーン', () => {
   const def = DATA.bosses.get('cryowyvern');
 
-  it('前半は 冷気ブレス→氷柱の雨→尻尾なぎ払い の順に攻撃する', () => {
+  it('前半は、定義に書いた順番どおりに攻撃する', () => {
     const world = wyvernWorld();
     const b = world.boss;
     world.player.inv = Infinity;
@@ -214,7 +214,8 @@ describe('クライオ・ワイバーン', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    expect(seen).toEqual(['breath', 'icicles', 'sweep', 'breath']);
+    const seq = DATA.bosses.get('cryowyvern').phases[0].sequence;
+    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
   });
 
   it('冷気ブレス：予告のあと、扇の中にいるとダメージと減速。扇の外なら当たらない', () => {
@@ -244,7 +245,7 @@ describe('クライオ・ワイバーン', () => {
       const world = wyvernWorld();
       const b = world.boss;
       const p = world.player;
-      b.seqIndex = 2;
+      b.seqIndex = DATA.bosses.get('cryowyvern').phases[0].sequence.indexOf('sweep');
       b.idleT = 0;
       expect(runUntil(world, () => b.act?.name === 'sweep')).toBe(true);
       b.x = 480;
@@ -260,7 +261,7 @@ describe('クライオ・ワイバーン', () => {
     const world = wyvernWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = 1;
+    b.seqIndex = DATA.bosses.get('cryowyvern').phases[0].sequence.indexOf('icicles');
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.some((h) => h.type === 'mark'))).toBe(true);
     const mark = world.hazards.find((h) => h.type === 'mark');

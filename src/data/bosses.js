@@ -10,6 +10,10 @@
 //   laser     : 細い線の予告 → 太いレーザーが turn 度ぶん回転する → 硬直
 //   summon    : 予告 → 雑魚を count 体呼ぶ（部屋にいる雑魚が max 体を超えない範囲で）→ 硬直
 //   vent      : duration 秒のあいだ動けない（大きな隙）。その間は体に触れても安全
+//   barrage   : 予告 → 弾をばらまく。spread 360 で全方向、それより小さいとプレイヤーへ扇形。waves 回、rotate 度ずつずらして撃つ
+//   leap      : プレイヤーの場所に着地点の予告 → 跳ぶ → 着地で周りを攻撃。ring を書くと衝撃波の輪も出る
+//   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
+//   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
 // phases: HP の割合で切り替わる行動。上から順に見て、残りHPの割合が hpAbove より大きい最初のものを使う
 //   sequence : attacks の名前を出す順番（最後まで行ったら最初に戻る）
 //   idle     : 攻撃と攻撃の間に歩いて近づく時間（秒）
@@ -63,10 +67,23 @@ export const bosses = [
         ringWidth: 14,
         recover: 0.9,
       },
+      // 放電弾：全方向に火花を飛ばす
+      sparks: { pattern: 'barrage', telegraph: 0.7, count: 10, spread: 360, waves: 1, shotSpeed: 230, shotRadius: 7, damage: 22, recover: 0.7 },
+      sparksHard: { pattern: 'barrage', telegraph: 0.6, count: 10, spread: 360, waves: 3, interval: 0.45, rotate: 18, shotSpeed: 250, shotRadius: 7, damage: 22, recover: 0.8 },
+      // 落雷の列：プレイヤーの場所から順に、突進の向きと平行な雷が落ちる
+      thunder: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 3, spacing: 110, width: 34, delay: 0.8, stagger: 0.25, damage: 30, recover: 0.8 },
+      thunderHard: { pattern: 'lines', telegraph: 0.5, orient: 'aim', count: 5, spacing: 95, width: 34, delay: 0.7, stagger: 0.2, damage: 30, recover: 0.8 },
+      // 跳びかかり：着地で周りを攻撃し、衝撃波の輪が広がる
+      leap: { pattern: 'leap', telegraph: 0.9, lockTime: 0.3, air: 0.5, radius: 105, damage: 38, ring: { speed: 300, max: 260, width: 14, damage: 22 }, recover: 0.9 },
     },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.3, max: 2.2 }, sequence: ['charge', 'charge', 'stomp'] },
-      { hpAbove: 0, idle: { min: 1.0, max: 1.6 }, sequence: ['doubleCharge', 'stomp', 'doubleCharge', 'doubleCharge', 'stomp'], announce: '暴走' },
+      { hpAbove: 0.5, idle: { min: 1.3, max: 2.2 }, sequence: ['charge', 'sparks', 'charge', 'stomp', 'thunder'] },
+      {
+        hpAbove: 0,
+        idle: { min: 1.0, max: 1.6 },
+        sequence: ['doubleCharge', 'leap', 'sparksHard', 'doubleCharge', 'thunderHard', 'stomp', 'leap'],
+        announce: '暴走',
+      },
     ],
   },
   {
@@ -92,13 +109,19 @@ export const bosses = [
       // 氷柱の雨
       icicles: { pattern: 'rain', telegraph: 0.4, count: 7, interval: 0.28, delay: 0.85, radius: 36, spread: 60, damage: 29, recover: 0.7 },
       iciclesHard: { pattern: 'rain', telegraph: 0.3, count: 11, interval: 0.2, delay: 0.8, radius: 36, spread: 80, damage: 29, recover: 0.6 },
+      // 滑空：部屋を一直線に飛び抜ける。壁に当たると、少しだけ隙ができる
+      dive: { pattern: 'charge', telegraph: 0.75, lockTime: 0.25, speed: 680, duration: 0.8, damage: 34, recover: 0.6, wallStun: 0.8 },
+      // 氷の破片：プレイヤーへ扇形に3回撃つ。当たると減速
+      shards: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 50, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shotRadius: 7, damage: 22, slow: true, recover: 0.7 },
+      // 霜だまり：踏むと減速してダメージを受ける床が、しばらく残る
+      frost: { pattern: 'pools', telegraph: 0.6, count: 4, radius: 56, spread: 130, arm: 0.9, life: 6, tick: 0.6, damage: 14, slow: true, recover: 0.6 },
     },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, sequence: ['breath', 'icicles', 'sweep'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, sequence: ['breath', 'shards', 'icicles', 'sweep', 'dive'] },
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.4 },
-        sequence: ['iciclesHard', 'breath', 'sweep', 'breath'],
+        sequence: ['iciclesHard', 'dive', 'breath', 'frost', 'sweep', 'shards', 'breath'],
         announce: '凍結開始',
         arena: { inset: 90, seconds: 22 },
       },
@@ -128,15 +151,21 @@ export const bosses = [
       nova: { pattern: 'shockwave', telegraph: 0.9, damage: 29, ringSpeed: 340, ringMax: 980, ringWidth: 16, recover: 0.8 },
       // 冷却：数秒の大きな隙
       vent: { pattern: 'vent', duration: 3.6 },
+      // 格子レーザー：横と縦の線が、プレイヤーの場所から順に交互に光る
+      grid: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 120, width: 30, delay: 0.85, stagger: 0.22, damage: 34, recover: 0.7 },
+      // うずまき弾：全方向の弾を、少しずつ向きをずらして撃ち続ける
+      spiral: { pattern: 'barrage', telegraph: 0.7, count: 8, spread: 360, waves: 6, interval: 0.28, rotate: 13, shotSpeed: 210, shotRadius: 7, damage: 26, recover: 0.8 },
+      // 過熱床：踏むとダメージを受ける床が、しばらく残る
+      scorch: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 60, spread: 150, arm: 1.0, life: 7, tick: 0.5, damage: 18, recover: 0.6 },
     },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.8 }, sequence: ['laser', 'summon', 'nova'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.8 }, sequence: ['laser', 'summon', 'spiral', 'nova', 'grid'] },
       // オーバーヒート：攻撃が速くなるが、3回攻撃するたびに冷却の隙ができる
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.1 },
         speed: 1.4,
-        sequence: ['laser', 'nova', 'laser', 'vent', 'summon', 'nova', 'laser', 'vent'],
+        sequence: ['laser', 'nova', 'grid', 'vent', 'summon', 'spiral', 'laser', 'vent', 'scorch', 'nova', 'grid', 'vent'],
         announce: 'オーバーヒート',
       },
     ],

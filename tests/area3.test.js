@@ -146,7 +146,7 @@ describe('スナイパー', () => {
 });
 
 describe('オーバーロード', () => {
-  it('前半は レーザー→ドローン召喚→全体衝撃波 の順に攻撃する', () => {
+  it('前半は、定義に書いた順番どおりに攻撃する', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
@@ -157,7 +157,8 @@ describe('オーバーロード', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    expect(seen).toEqual(['laser', 'summon', 'nova', 'laser']);
+    const seq = DATA.bosses.get('overload').phases[0].sequence;
+    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
   });
 
   it('レーザー：予告の線が出てから回り始め、当たるとダメージ。予告の間は当たらない', () => {
@@ -180,13 +181,13 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
-    b.seqIndex = 1;
+    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
     b.idleT = 0;
     expect(runUntil(world, () => world.enemies.length > 1)).toBe(true);
     expect(world.enemies.filter((e) => !e.boss)).toHaveLength(def.attacks.summon.count);
     for (let i = 0; i < 6; i++) {
       b.act = null;
-      b.seqIndex = 1;
+      b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
       b.idleT = 0;
       runUntil(world, () => b.act?.name === 'summon' && b.act.phase === 'recover', 5);
     }
@@ -197,7 +198,7 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = 2;
+    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('nova');
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
     b.idleT = 99;
@@ -240,7 +241,7 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
-    b.seqIndex = 1;
+    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
     b.idleT = 0;
     runUntil(world, () => world.enemies.length > 1);
     run(world, 1);

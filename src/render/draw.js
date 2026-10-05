@@ -251,8 +251,8 @@ export function drawPlayerShots(g, world) {
 }
 
 export function drawShots(g, world) {
-  const color = hex(COLORS.amber);
   for (const s of world.shots) {
+    const color = hex(s.color ?? COLORS.amber); // ボスの弾はボスの色
     g.fillStyle(color, 0.2).fillCircle(s.x, s.y, s.r + 4);
     g.fillStyle(color, 1).fillCircle(s.x, s.y, s.r);
   }
@@ -517,6 +517,39 @@ BOSS_TELEGRAPHS.summon = (g, b, act, world) => {
   if (act.phase !== 'telegraph') return;
   g.lineStyle(2, hex(COLORS.cyan), 0.5 + 0.4 * Math.sin(world.time * 20)).strokeCircle(b.x, b.y, b.r + 50);
 };
+// 予告：弾のばらまき（撃つ向きの線）、跳びかかり（着地点）、線の攻撃・残る床（ボスの周りの合図）
+BOSS_TELEGRAPHS.barrage = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const alpha = 0.3 + 0.3 * Math.abs(Math.sin(world.time * 16));
+  g.lineStyle(2, hex(COLORS.red), alpha);
+  const full = def.spread >= 360;
+  for (let i = 0; i < def.count; i++) {
+    const offset = full ? (i * 360) / def.count : def.count > 1 ? (i / (def.count - 1) - 0.5) * def.spread : 0;
+    const a = act.base + offset * DEG;
+    g.lineBetween(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r, b.x + Math.cos(a) * (b.r + 150), b.y + Math.sin(a) * (b.r + 150));
+  }
+};
+BOSS_TELEGRAPHS.leap = (g, b, act, world) => {
+  if (act.phase !== 'telegraph' && act.phase !== 'air') return;
+  const def = act.def;
+  const locked = act.phase === 'air' || act.t <= def.lockTime;
+  g.fillStyle(hex(COLORS.red), locked ? 0.3 : 0.12 + 0.1 * Math.abs(Math.sin(world.time * 14))).fillCircle(act.tx, act.ty, def.radius);
+  g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(act.tx, act.ty, def.radius);
+  if (act.phase === 'air') g.lineStyle(2, hex(COLORS.red), 0.7).strokeCircle(act.tx, act.ty, def.radius * (1 - Math.max(0, act.t) / def.air));
+};
+BOSS_TELEGRAPHS.lines = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - act.t / act.def.telegraph;
+  g.lineStyle(3, hex(COLORS.red), 0.4 + 0.5 * Math.abs(Math.sin(world.time * 20)));
+  g.lineBetween(b.x - b.r - 26 * k, b.y - b.r - 26 * k, b.x + b.r + 26 * k, b.y + b.r + 26 * k);
+  g.lineBetween(b.x - b.r - 26 * k, b.y + b.r + 26 * k, b.x + b.r + 26 * k, b.y - b.r - 26 * k);
+};
+BOSS_TELEGRAPHS.pools = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - act.t / act.def.telegraph;
+  g.lineStyle(3, hex(b.color), 0.4 + 0.5 * Math.abs(Math.sin(world.time * 18))).strokeCircle(b.x, b.y, b.r + 10 + 26 * k);
+};
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -611,6 +644,34 @@ export function drawHazards(g, world) {
       g.fillStyle(hex(COLORS.red), 0.1 + 0.2 * k).fillCircle(h.x, h.y, h.r);
       g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(h.x, h.y, h.r);
       g.lineStyle(2, hex(h.color), 0.9).strokeCircle(h.x, h.y, h.r * k);
+    } else if (h.type === 'bar') {
+      const dx = Math.cos(h.angle) * BAR_LENGTH;
+      const dy = Math.sin(h.angle) * BAR_LENGTH;
+      if (h.flash > 0) {
+        // 光った瞬間
+        const color = hex(h.color);
+        g.lineStyle(h.width + 14, color, 0.25).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        g.lineStyle(h.width, color, 0.95).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        g.lineStyle(h.width * 0.35, WHITE, 0.9).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+      } else {
+        // 予告：当たる幅の帯が、時間とともに濃くなる
+        const k = 1 - h.t / h.max;
+        g.lineStyle(h.width, hex(COLORS.red), 0.08 + 0.22 * k).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        g.lineStyle(1.5, hex(COLORS.red), 0.5 + 0.4 * k).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+      }
+    } else if (h.type === 'pool') {
+      const color = hex(h.color);
+      if (h.arm > 0) {
+        // 効き始める前：輪が広がっていく
+        const k = 1 - h.arm / h.armMax;
+        g.fillStyle(hex(COLORS.red), 0.08 + 0.12 * k).fillCircle(h.x, h.y, h.r);
+        g.lineStyle(2, hex(COLORS.red), 0.8).strokeCircle(h.x, h.y, h.r);
+        g.lineStyle(2, color, 0.9).strokeCircle(h.x, h.y, h.r * k);
+      } else {
+        const fade = Math.min(1, h.life / 0.6);
+        g.fillStyle(color, 0.22 * fade).fillCircle(h.x, h.y, h.r);
+        g.lineStyle(2, color, 0.8 * fade).strokeCircle(h.x, h.y, h.r * (0.9 + 0.1 * Math.sin(world.time * 8 + h.x)));
+      }
     }
   }
 }
