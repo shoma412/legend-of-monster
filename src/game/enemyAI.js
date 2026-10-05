@@ -200,6 +200,130 @@ const BEHAVIORS = {
     }
   },
 
+  // 清掃ローラー：狙いをつけてから、まっすぐ転がる。通ったあとに汚水の床を残す
+  roller(world, e, dt, d) {
+    const roll = e.def.roll;
+    const p = world.player;
+    if (e.state === 'chase') {
+      if (d.dist > roll.triggerRange) {
+        e.x += (d.dx / d.dist) * e.def.speed * dt;
+        e.y += (d.dy / d.dist) * e.def.speed * dt;
+      } else if (e.cd <= 0) {
+        e.state = 'windup';
+        e.t = roll.windup;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'windup') {
+      e.t -= dt;
+      // 最後の少しの間だけ向きを固定する
+      if (e.t > 0.2) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        e.state = 'roll';
+        e.t = roll.duration;
+        e.trailAcc = 0;
+        e.hitPlayer = false;
+      }
+    } else if (e.state === 'roll') {
+      e.t -= dt;
+      const step = roll.speed * dt;
+      e.x += Math.cos(e.angle) * step;
+      e.y += Math.sin(e.angle) * step;
+      e.trailAcc += step;
+      if (e.trailAcc >= roll.trail) {
+        e.trailAcc = 0;
+        world.hazards.push({ type: 'pool', x: e.x, y: e.y, r: roll.poolRadius, arm: 0.25, armMax: 0.25, life: roll.poolLife, tick: 1, acc: 0, damage: 0, slow: true, color: e.color });
+      }
+      if (!e.hitPlayer && circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r) && hurtPlayer(world, e.def.damage)) e.hitPlayer = true;
+      const hitWall = e.x <= world.bounds.left + e.r || e.x >= world.bounds.right - e.r || e.y <= world.bounds.top + e.r || e.y >= world.bounds.bottom - e.r;
+      if (e.t <= 0 || hitWall) {
+        e.state = 'chase';
+        e.cd = roll.recover;
+      }
+    }
+  },
+
+  // ヒルドローン：ふらつきながら飛びつき、張り付いて HP を吸う。ダッシュで振り払える
+  leech(world, e, dt, d) {
+    const latch = e.def.latch;
+    const p = world.player;
+    if (e.state === 'latched') {
+      // ダッシュされたら振り払われて、しばらく動けない
+      if (p.dashT > 0) {
+        e.state = 'stunned';
+        e.t = latch.stun;
+        e.vx = -p.dvx * 0.35;
+        e.vy = -p.dvy * 0.35;
+        return;
+      }
+      e.x = p.x + Math.cos(e.latchAngle) * (p.r + e.r * 0.5);
+      e.y = p.y + Math.sin(e.latchAngle) * (p.r + e.r * 0.5);
+      e.t -= dt;
+      if (e.t <= 0) {
+        e.t = latch.tick;
+        // 吸われるダメージは、無敵時間を付けずに少しずつ入る（ほかの攻撃と重なる）
+        if (p.inv <= 0 && world.mode === 'play') {
+          const amount = Math.max(1, Math.round(e.def.damage * (world.room.damageScale ?? 1)));
+          p.hp = Math.max(1, p.hp - amount);
+          world.damageTaken += amount;
+          e.hp = Math.min(e.maxHp, e.hp + amount);
+          world.fx.texts.push({ x: p.x, y: p.y - 22, text: `-${amount}`, color: e.color, size: 13, life: 0.5, max: 0.5, vy: -30 });
+        }
+      }
+    } else if (e.state === 'stunned') {
+      e.t -= dt;
+      if (e.t <= 0) e.state = 'chase';
+    } else {
+      const wob = Math.sin(world.time * 6 + e.seed) * (e.def.wobble ?? 0);
+      e.x += (d.dx / d.dist - (d.dy / d.dist) * wob) * e.def.speed * dt;
+      e.y += (d.dy / d.dist + (d.dx / d.dist) * wob) * e.def.speed * dt;
+      // 触れたら張り付く（ダッシュ中は張り付けない）
+      if (p.dashT <= 0 && circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r)) {
+        e.state = 'latched';
+        e.t = latch.tick;
+        e.latchAngle = Math.atan2(e.y - p.y, e.x - p.x);
+      }
+    }
+  },
+
+  // 配管タレット：動かない。狙いをつけてから、蒸気を一直線に噴き続ける
+  steamer(world, e, dt, d) {
+    const steam = e.def.steam;
+    const p = world.player;
+    if (e.state === 'chase') {
+      if (e.cd <= 0) {
+        e.state = 'aim';
+        e.t = steam.aim;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      if (e.t > steam.lock) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        e.state = 'steam';
+        e.t = steam.duration;
+        e.tickT = 0;
+        sfx(world, 'laser');
+      }
+    } else if (e.state === 'steam') {
+      e.t -= dt;
+      e.tickT -= dt;
+      const x2 = e.x + Math.cos(e.angle) * steam.range;
+      const y2 = e.y + Math.sin(e.angle) * steam.range;
+      if (e.tickT <= 0 && distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + steam.width / 2) {
+        if (hurtPlayer(world, e.def.damage)) e.tickT = steam.tick;
+      }
+      if (world.rng() < 0.8) {
+        const v = 520;
+        const off = (world.rng() - 0.5) * 0.12;
+        world.fx.particles.push({ x: e.x + Math.cos(e.angle) * e.r, y: e.y + Math.sin(e.angle) * e.r, vx: Math.cos(e.angle + off) * v, vy: Math.sin(e.angle + off) * v, life: 0.5, max: 0.5, color: e.color, size: 3 });
+      }
+      if (e.t <= 0) {
+        e.state = 'chase';
+        e.cd = steam.interval;
+      }
+    }
+  },
+
   gunner(world, e, dt, d) {
     const keep = e.def.keepDistance;
     const shot = e.def.shot;
@@ -274,15 +398,17 @@ export function updateEnemies(world, dt) {
       const dy = p.y - e.y;
       BEHAVIORS[e.def.behavior](world, e, edt, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
     }
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    if (e.state !== 'latched') {
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+    }
     e.vx *= damp;
     e.vy *= damp;
     clampToBounds(e, world.bounds);
   }
 
   // 敵同士が重ならないように押し合う
-  const live = world.enemies.filter((e) => !e.dead && e.spawnT <= 0);
+  const live = world.enemies.filter((e) => !e.dead && e.spawnT <= 0 && e.state !== 'latched' && !e.hidden);
   for (let i = 0; i < live.length; i++) {
     for (let j = i + 1; j < live.length; j++) {
       const a = live[i];

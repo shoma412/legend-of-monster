@@ -66,7 +66,7 @@ export function updatePlayer(world, dt, input) {
     p.dashRecharge -= dt;
     if (p.dashRecharge <= 0) {
       p.dashCharges++;
-      p.dashRecharge = p.dashCharges < maxDash ? PLAYER.dash.cooldown : 0;
+      p.dashRecharge = p.dashCharges < maxDash ? dashCooldown(p) : 0;
     }
   }
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
@@ -125,11 +125,16 @@ export function updatePlayer(world, dt, input) {
   clampToBounds(p, world.bounds);
 }
 
+// ダッシュが1回ぶん溜まるまでの時間。インプラントや恒久強化で短くなる（短くなるのは6割まで）
+export function dashCooldown(p) {
+  return PLAYER.dash.cooldown * (1 - Math.min(0.6, p.stats.dashHaste ?? 0));
+}
+
 function startDash(p, dx, dy) {
   const d = PLAYER.dash;
   p.dashBuffer = 0;
   p.dashT = d.duration;
-  if (p.dashCharges >= p.stats.dashCharges) p.dashRecharge = d.cooldown;
+  if (p.dashCharges >= p.stats.dashCharges) p.dashRecharge = dashCooldown(p);
   p.dashCharges--;
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.sinceDash = 0;

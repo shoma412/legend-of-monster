@@ -53,6 +53,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-pipeserpent',
+    trigger: { at: 'bossIntro', boss: 'pipeserpent' },
+    lines: [
+      { who: 'jin', text: '壁の中で、何か動いてる。配管が……脈を打ってるのか。' },
+      { who: 'noise', text: '下水の清掃機だ。詰まりを直すうちに、配管と見分けがつかなくなった。' },
+      { who: 'jin', mood: 'angry', text: '潜ったな。足元に気をつける。' },
+    ],
+  },
+  {
+    id: 'return-pipeserpent',
+    trigger: { at: 'hideout', bossKilled: 'pipeserpent' },
+    lines: [
+      { who: 'hal', text: 'うっ……におう。先にシャワー。話はそれから。' },
+      { who: 'jin', text: 'あの蛇、最後まで配管の詰まりを探してた。俺のことも、詰まりだと思ってたらしい。' },
+      { who: 'hal', text: '……掃除してただけ、か。コアは預かるね。関節まわりに使えそう。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [

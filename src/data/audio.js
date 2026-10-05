@@ -70,6 +70,9 @@ export const BGM = {
   bossPlant: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
   bossTower: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
   ending: { file: 'audio/bgm/maou_loop_bgm_cyber17.ogg', song: 'ending' },
+  // マップ2「排水区」。曲を選ぶまでの仮（マップ1の冷却プラントと同じ曲）
+  sewer: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
+  bossSewer: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
 };
 
 // ---- コードで鳴らす曲 ----

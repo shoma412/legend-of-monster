@@ -70,9 +70,16 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   const stats = p.stats;
   const forceCrit = p.forceCrit;
   p.forceCrit = false;
+  // 連続ヒット（種族「大蛇」）：同じ敵に続けて当てるたびに、ダメージが上がる。別の敵に当てるとやり直し
+  if (p.comboTarget !== enemy) {
+    p.comboTarget = enemy;
+    p.comboHits = 0;
+  }
+  const comboMul = stats.comboBonus * Math.min(p.comboHits, stats.comboMax);
+  p.comboHits++;
   const result = calcDamage({
     base,
-    attackMul: statWith(world, 'attackMul', enemy),
+    attackMul: statWith(world, 'attackMul', enemy) + comboMul,
     critChance: forceCrit ? 1 : statWith(world, 'critChance', enemy),
     critMul: stats.critMul,
     elements: stats.elements,

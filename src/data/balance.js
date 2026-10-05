@@ -22,6 +22,9 @@ export const PLAYER = {
   minDamageTaken: 0.3, // 被ダメージ軽減を重ねても、これより小さい倍率にはならない
 };
 
+// 連続ヒット（種族「大蛇」）：同じ敵に続けて当てるたびにダメージが上がる。その重なる回数の上限
+export const COMBO = { max: 5 };
+
 export const COMBAT = {
   weaknessMultiplier: 1.5, // 弱点属性の倍率
   stagger: 0.18, // 攻撃を当てた敵がひるむ時間（秒）

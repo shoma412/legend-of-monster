@@ -122,6 +122,55 @@ const SHAPES = {
     g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
     neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
   },
+  // 清掃ローラー：横に長い胴と、前のブラシ。転がっている間は線が流れる
+  roller(g, e, color, world) {
+    const p = world.player;
+    const a = e.state === 'chase' ? Math.atan2(p.y - e.y, p.x - e.x) : e.angle;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const w = e.r * 0.8;
+    const l = e.r * 1.25;
+    const pts = [
+      { x: e.x + cos * w - sin * l, y: e.y + sin * w + cos * l },
+      { x: e.x + cos * w + sin * l, y: e.y + sin * w - cos * l },
+      { x: e.x - cos * w + sin * l, y: e.y - sin * w - cos * l },
+      { x: e.x - cos * w - sin * l, y: e.y - sin * w + cos * l },
+    ];
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    // ブラシ（前側の太い線）
+    neonStroke(g, color, 5, () => g.lineBetween(pts[0].x + cos * 4, pts[0].y + sin * 4, pts[1].x + cos * 4, pts[1].y + sin * 4));
+    if (e.state === 'roll') {
+      const k = (world.time * 14) % 1;
+      const mx = e.x + cos * w * (1 - 2 * k);
+      const my = e.y + sin * w * (1 - 2 * k);
+      g.lineStyle(1.5, color, 0.8).lineBetween(mx - sin * l, my + cos * l, mx + sin * l, my - cos * l);
+    }
+  },
+  // ヒルドローン：小さな楕円と、口の輪。張り付いている間は脈打つ
+  leech(g, e, color, world) {
+    const p = world.player;
+    const a = e.state === 'latched' ? e.latchAngle + Math.PI : Math.atan2(p.y - e.y, p.x - e.x);
+    const pulse = e.state === 'latched' ? 1 + 0.25 * Math.sin(world.time * 18) : 1;
+    const body = rotatedEllipse(e.x, e.y, e.r * 1.5 * pulse, e.r * 0.9 * pulse, a, 14);
+    g.fillStyle(BODY_FILL, 0.85).fillPoints(body, true);
+    neonStroke(g, e.state === 'stunned' ? hex(COLORS.dim) : color, 2, () => g.strokePoints(body, true, true));
+    g.lineStyle(1.5, color, 1).strokeCircle(e.x + Math.cos(a) * e.r, e.y + Math.sin(a) * e.r, 2.5);
+  },
+  // 配管タレット：丸い継ぎ手と、太い噴射口
+  pipe(g, e, color, world) {
+    const p = world.player;
+    const a = e.state === 'chase' ? Math.atan2(p.y - e.y, p.x - e.x) : e.angle;
+    g.fillStyle(BODY_FILL, 0.85).fillCircle(e.x, e.y, e.r);
+    neonStroke(g, color, 2.5, () => g.strokeCircle(e.x, e.y, e.r));
+    g.lineStyle(1.5, color, 0.7).strokeCircle(e.x, e.y, e.r * 0.5);
+    neonStroke(g, color, 7, () => g.lineBetween(e.x + Math.cos(a) * e.r * 0.6, e.y + Math.sin(a) * e.r * 0.6, e.x + Math.cos(a) * e.r * 1.7, e.y + Math.sin(a) * e.r * 1.7));
+    // 床に固定するボルト
+    for (let i = 0; i < 4; i++) {
+      const b = (i * Math.PI) / 2 + Math.PI / 4;
+      g.fillStyle(color, 0.8).fillRect(e.x + Math.cos(b) * (e.r + 3) - 1.5, e.y + Math.sin(b) * (e.r + 3) - 1.5, 3, 3);
+    }
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -166,6 +215,31 @@ function drawTelegraph(g, e, world) {
     const locked = e.t <= snipe.lock;
     g.lineStyle(locked ? 4 : 1.5, red, locked ? 0.95 : 0.45 + 0.25 * Math.sin(world.time * 30));
     g.lineBetween(e.x, e.y, e.x + Math.cos(e.angle) * snipe.range, e.y + Math.sin(e.angle) * snipe.range);
+  }
+  if (e.def.behavior === 'roller' && e.state === 'windup') {
+    // 転がる道の予告
+    const roll = e.def.roll;
+    const len = roll.speed * roll.duration;
+    const k = 1 - e.t / roll.windup;
+    g.lineStyle(e.r * 2, red, 0.1 + 0.22 * k);
+    g.lineBetween(e.x, e.y, e.x + Math.cos(e.angle) * len, e.y + Math.sin(e.angle) * len);
+  }
+  if (e.def.behavior === 'steamer' && (e.state === 'aim' || e.state === 'steam')) {
+    // 蒸気の帯。狙っている間は予告（向きが固定されると濃くなる）、噴いている間は敵の色
+    const steam = e.def.steam;
+    const x2 = e.x + Math.cos(e.angle) * steam.range;
+    const y2 = e.y + Math.sin(e.angle) * steam.range;
+    if (e.state === 'aim') {
+      const locked = e.t <= steam.lock;
+      g.lineStyle(steam.width, red, locked ? 0.3 : 0.08 + 0.1 * Math.abs(Math.sin(world.time * 16)));
+      g.lineBetween(e.x, e.y, x2, y2);
+      g.lineStyle(1.5, red, locked ? 0.95 : 0.5).lineBetween(e.x, e.y, x2, y2);
+    } else {
+      const c = hex(e.color);
+      g.lineStyle(steam.width + 10, c, 0.14).lineBetween(e.x, e.y, x2, y2);
+      g.lineStyle(steam.width, c, 0.4 + 0.15 * Math.sin(world.time * 40)).lineBetween(e.x, e.y, x2, y2);
+      g.lineStyle(steam.width * 0.3, WHITE, 0.6).lineBetween(e.x, e.y, x2, y2);
+    }
   }
   if (e.def.behavior === 'gunner' && e.state === 'aim') {
     // 照準線
@@ -550,6 +624,21 @@ BOSS_TELEGRAPHS.pools = (g, b, act, world) => {
   const k = 1 - act.t / act.def.telegraph;
   g.lineStyle(3, hex(b.color), 0.4 + 0.5 * Math.abs(Math.sin(world.time * 18))).strokeCircle(b.x, b.y, b.r + 10 + 26 * k);
 };
+// 予告：潜行（潜っている間、飛び出す場所の円。向きが固定されると濃くなる）
+BOSS_TELEGRAPHS.burrow = (g, b, act, world) => {
+  if (act.phase !== 'under') return;
+  const def = act.def;
+  const locked = act.t <= def.lockTime;
+  const k = 1 - Math.max(0, act.t) / def.under;
+  g.fillStyle(hex(COLORS.red), locked ? 0.32 : 0.1 + 0.1 * Math.abs(Math.sin(world.time * 14))).fillCircle(act.tx, act.ty, def.radius);
+  g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(act.tx, act.ty, def.radius);
+  g.lineStyle(2, hex(b.color), 0.9).strokeCircle(act.tx, act.ty, def.radius * k);
+  // 地面の下を動いているしるし（ひび）
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.26 + world.time * 0.8;
+    g.lineStyle(2, hex(b.color), 0.5).lineBetween(act.tx + Math.cos(a) * 8, act.ty + Math.sin(a) * 8, act.tx + Math.cos(a) * def.radius * 0.6, act.ty + Math.sin(a + 0.3) * def.radius * 0.6);
+  }
+};
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -597,6 +686,53 @@ SHAPES.wyvern = (g, b, color, world) => {
   for (const side of [-1, 1]) {
     const eye = local(b, r * 0.7, side * r * 0.16);
     g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3);
+  }
+};
+
+// パイプサーペント：頭と、あとをついてくる胴の節（配管の継ぎ目）。潜っていくときは小さくなる
+SHAPES.serpent = (g, b, color) => {
+  if (b.hidden) {
+    b.trail = null;
+    return;
+  }
+  const diving = b.act?.def.pattern === 'burrow' && b.act.phase === 'dive';
+  const sink = diving ? b.act.sink ?? 0 : 0;
+  const scale = 1 - 0.7 * sink;
+  const r = b.r * scale;
+  // 頭の通ったあとを覚えておき、等間隔に節を並べる（見た目だけ）
+  const trail = (b.trail ??= []);
+  const last = trail[0];
+  if (!last || Math.hypot(last.x - b.x, last.y - b.y) > 6) trail.unshift({ x: b.x, y: b.y });
+  if (last && Math.hypot(last.x - b.x, last.y - b.y) > 200) trail.length = 1; // 潜って離れた場所に出たとき
+  if (trail.length > 60) trail.length = 60;
+  const segments = 7;
+  for (let i = segments; i >= 1; i--) {
+    const at = trail[Math.min(trail.length - 1, i * 6)];
+    if (!at) continue;
+    const sr = r * (0.82 - i * 0.07);
+    g.fillStyle(BODY_FILL, 0.9).fillCircle(at.x, at.y, sr);
+    neonStroke(g, color, 2.5, () => g.strokeCircle(at.x, at.y, sr));
+    g.lineStyle(1.5, color, 0.5).strokeCircle(at.x, at.y, sr * 0.55);
+  }
+  // 頭
+  const head = rotatedEllipse(b.x, b.y, r * 1.15, r * 0.9, b.angle);
+  g.fillStyle(BODY_FILL, 0.92).fillPoints(head, true);
+  neonStroke(g, color, 3, () => g.strokePoints(head, true, true));
+  // 口（配管の開いた口）と牙
+  const mouthA = local({ ...b, r }, r * 0.95, -r * 0.45);
+  const mouthB = local({ ...b, r }, r * 0.95, r * 0.45);
+  neonStroke(g, color, 4, () => g.lineBetween(mouthA.x, mouthA.y, mouthB.x, mouthB.y));
+  for (const side of [-1, 1]) {
+    const from = local(b, r * 0.95, side * r * 0.3);
+    const to = local(b, r * 1.45, side * r * 0.15);
+    neonStroke(g, color, 2.5, () => g.lineBetween(from.x, from.y, to.x, to.y));
+  }
+  // 目。壁に当たって止まっている間は消える
+  if (b.act?.phase !== 'stun') {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.35, side * r * 0.5);
+      g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5 * scale);
+    }
   }
 };
 

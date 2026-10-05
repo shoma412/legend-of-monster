@@ -14,6 +14,7 @@
 //   leap      : プレイヤーの場所に着地点の予告 → 跳ぶ → 着地で周りを攻撃。ring を書くと衝撃波の輪も出る
 //   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
+//   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // phases: HP の割合で切り替わる行動。上から順に見て、残りHPの割合が hpAbove より大きい最初のものを使う
 //   sequence : attacks の名前を出す順番（最後まで行ったら最初に戻る）
 //   idle     : 攻撃と攻撃の間に歩いて近づく時間（秒）
@@ -167,6 +168,49 @@ export const bosses = [
         speed: 1.4,
         sequence: ['laser', 'nova', 'grid', 'vent', 'summon', 'spiral', 'laser', 'vent', 'scorch', 'nova', 'grid', 'vent'],
         announce: 'オーバーヒート',
+      },
+    ],
+  },
+  // ---- ここからマップ2「排水区」 ----
+  {
+    id: 'pipeserpent',
+    name: 'パイプサーペント',
+    alias: '配管呑み', // 登場時に出す異名
+    shape: 'serpent',
+    color: 'green',
+    weakness: 'shock',
+    material: 'serpentCore',
+    radius: 34,
+    hp: 4600,
+    speed: 88,
+    contactDamage: 34,
+    xp: 240,
+    credits: 110,
+    drops: { count: 3, rarityBonus: 1 },
+    attacks: {
+      // 部屋を横切る突進。壁に当たると少し隙ができる
+      lunge: { pattern: 'charge', telegraph: 0.75, lockTime: 0.25, speed: 640, duration: 0.85, damage: 40, recover: 0.6, wallStun: 1.2 },
+      // 汚水の噴射（当たると減速）
+      spit: { pattern: 'cone', telegraph: 0.8, lockTime: 0.3, range: 360, arc: 50, duration: 1.0, damage: 28, slow: true, recover: 0.7 },
+      // 毒液の弾：プレイヤーへ扇形に撃つ
+      venom: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 7, spread: 70, waves: 2, interval: 0.45, track: true, shotSpeed: 270, shotRadius: 7, damage: 26, recover: 0.7 },
+      venomHard: { pattern: 'barrage', telegraph: 0.5, lockTime: 0.15, count: 9, spread: 90, waves: 3, interval: 0.4, track: true, shotSpeed: 290, shotRadius: 7, damage: 26, recover: 0.7 },
+      // 潜行：配管に潜って姿を消し、プレイヤーの足元から飛び出す
+      burrow: { pattern: 'burrow', dive: 0.5, under: 1.3, lockTime: 0.45, radius: 92, damage: 38, repeat: 1, recover: 1.0 },
+      burrowHard: {
+        pattern: 'burrow', dive: 0.4, under: 1.1, lockTime: 0.4, radius: 92, damage: 38, repeat: 2, recover: 1.0,
+        pool: { radius: 70, arm: 0.2, life: 6, tick: 0.5, damage: 16, slow: true },
+      },
+      // 汚水の床をばらまく
+      sludge: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 54, spread: 150, arm: 0.9, life: 6, tick: 0.5, damage: 16, slow: true, recover: 0.6 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.1, max: 1.8 }, sequence: ['lunge', 'spit', 'burrow', 'venom', 'lunge'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.8, max: 1.3 },
+        sequence: ['burrowHard', 'spit', 'lunge', 'venomHard', 'burrowHard', 'sludge'],
+        announce: '詰まり検知',
       },
     ],
   },

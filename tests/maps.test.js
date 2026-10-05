@@ -41,9 +41,11 @@ function clearMap(save, cycle = 1) {
 }
 
 describe('マップの定義', () => {
-  it('マップは7つ。マップ1は、今の3エリアを順に進む', () => {
+  it('マップは7つ。マップ1は、今の3エリアを順に進む。マップ2は排水区', () => {
     expect(maps).toHaveLength(7);
     expect(maps[0]).toMatchObject({ id: 'map1', areas: ['slum', 'plant', 'tower'] });
+    expect(maps[1]).toMatchObject({ id: 'map2', name: '排水区' });
+    expect(maps[1].areas[0]).toBe('sewer');
     for (const map of maps) {
       for (const id of map.areas) expect(DATA.areas.has(id), `${map.id}: ${id}`).toBe(true);
       if (map.ready !== false) expect(map.areas.length).toBeGreaterThan(0);
@@ -63,29 +65,25 @@ describe('マップの定義', () => {
 });
 
 describe('マップの解放と完了', () => {
-  it('最初はマップ1だけ選べる。ほかは準備中', () => {
+  it('最初はマップ1だけ選べる。マップ2は未解放、マップ3以降は準備中', () => {
     const save = createSave();
     expect(mapState(save, maps[0])).toBe('open');
     expect(canSortie(save, maps[0])).toBe(true);
-    for (const map of maps.slice(1)) {
+    expect(mapState(save, maps[1])).toBe('locked');
+    expect(canSortie(save, maps[1])).toBe(false);
+    for (const map of maps.slice(2)) {
       expect(mapState(save, map)).toBe('notReady');
       expect(canSortie(save, map)).toBe(false);
     }
   });
 
-  it('前のマップを完了していないと、次のマップは選べない（中身ができていても）', () => {
+  it('マップ1を完了すると、マップ2が選べるようになる', () => {
     const save = createSave();
-    const next = { ...maps[1], ready: true };
-    // 判定は並び順で見るので、仮に中身ができたものとして確かめる
-    const original = maps[1];
-    maps[1] = next;
-    try {
-      expect(mapState(save, next)).toBe('locked');
-      recordMapClear(save, 'map1', 1);
-      expect(mapState(save, next)).toBe('open');
-    } finally {
-      maps[1] = original;
-    }
+    recordMapClear(save, 'map1', 1);
+    expect(mapState(save, maps[1])).toBe('open');
+    expect(canSortie(save, maps[1])).toBe(true);
+    recordMapClear(save, 'map2', 1);
+    expect(mapState(save, maps[1])).toBe('done');
   });
 
   it('マップの最後のボスを倒すと完了になり、通知が出る', () => {
@@ -95,7 +93,9 @@ describe('マップの解放と完了', () => {
     expect(save.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });
     const texts = notes.map((n) => n.text);
     expect(texts.some((t) => t.includes('マップ完了'))).toBe(true);
-    expect(texts.some((t) => t.includes('2周目が選べるようになった'))).toBe(true);
+    // 次の周は、今あるマップをすべて完了するまで選べない
+    expect(texts.some((t) => t.includes('周目が選べるようになった'))).toBe(false);
+    expect(save.cycle).toBe(1);
     // リザルトにも残る
     expect(run.gained.notes.some((n) => n.text.includes('マップ完了'))).toBe(true);
   });
@@ -126,11 +126,15 @@ describe('周回', () => {
     const save = createSave();
     expect(save.cycle).toBe(1);
     expect(canSortieCycle(save, maps[0], 2)).toBe(false);
-    expect(recordMapClear(save, 'map1', 1).nextCycle).toBe(2);
+    // マップ1だけでは、まだ進めない。マップ2も完了すると、2周目が選べる
+    expect(recordMapClear(save, 'map1', 1).nextCycle).toBeNull();
+    expect(save.cycle).toBe(1);
+    expect(recordMapClear(save, 'map2', 1).nextCycle).toBe(2);
     expect(canSortieCycle(save, maps[0], 2)).toBe(true);
     expect(recordMapClear(save, 'map1', 1).nextCycle).toBeNull();
     expect(save.cycle).toBe(2);
-    expect(recordMapClear(save, 'map1', 2).nextCycle).toBe(3);
+    expect(recordMapClear(save, 'map1', 2).nextCycle).toBeNull();
+    expect(recordMapClear(save, 'map2', 2).nextCycle).toBe(3);
     expect(save.maps.map1).toEqual({ clears: 3, clearedCycle: 2 });
     // 前の周も選べる
     expect(canSortieCycle(save, maps[0], 1)).toBe(true);
@@ -288,6 +292,7 @@ describe('セーブデータ（マップと周回）', () => {
   it('マップの記録と周は、保存して読み直しても残る', () => {
     const save = createSave();
     recordMapClear(save, 'map1', 1);
+    recordMapClear(save, 'map2', 1);
     save.selectedCycle = 2;
     const loaded = loadSlot(fakeStorage({ [slotKey(2)]: JSON.stringify(save) }), 2);
     expect(loaded.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });

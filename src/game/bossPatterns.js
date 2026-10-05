@@ -457,6 +457,76 @@ PATTERNS.pools = {
   },
 };
 
+// 潜行：潜って姿を消し、予告の円から飛び出して周りを攻撃する。
+//   潜っている間は b.hidden が true で、攻撃が当たらない（画面の外に退避させる）。
+//   着地点はプレイヤーを追い、最後の lockTime 秒だけ固定される。repeat 回くり返す
+const HIDE_X = -9000;
+
+PATTERNS.burrow = {
+  start(world, b, act) {
+    act.phase = 'dive';
+    act.t = act.def.dive;
+    act.remaining = act.def.repeat ?? 1;
+    act.tx = b.x;
+    act.ty = b.y;
+    sfx(world, 'bossCharge');
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'dive') {
+      // 潜っていく（まだ攻撃は当たる）
+      act.sink = 1 - Math.max(0, act.t) / def.dive; // 描画用：0〜1
+      if (act.t <= 0) {
+        burst(world, b.x, b.y, b.color, 24, 240);
+        act.phase = 'under';
+        act.t = def.under;
+        b.hidden = true;
+        b.x = HIDE_X;
+        act.tx = p.x;
+        act.ty = p.y;
+      }
+    } else if (act.phase === 'under') {
+      if (act.t > def.lockTime) {
+        act.tx = p.x;
+        act.ty = p.y;
+      }
+      if (act.t <= 0) {
+        // 飛び出す
+        b.hidden = false;
+        b.x = act.tx;
+        b.y = act.ty;
+        act.sink = 0;
+        if (circlesOverlap(b.x, b.y, def.radius, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+        if (def.pool) {
+          world.hazards.push({
+            type: 'pool', x: b.x, y: b.y, r: def.pool.radius, arm: def.pool.arm, armMax: def.pool.arm, life: def.pool.life,
+            tick: def.pool.tick, acc: def.pool.tick, damage: def.pool.damage, slow: !!def.pool.slow, color: b.color,
+          });
+        }
+        ring(world, b.x, b.y, def.radius, b.color);
+        burst(world, b.x, b.y, b.color, 30, 320);
+        addShake(world, FEEL.shake.charged);
+        sfx(world, 'explode');
+        act.remaining--;
+        act.phase = 'emerge';
+        act.t = act.remaining > 0 ? 0.45 : def.recover;
+      }
+    } else if (act.t <= 0) {
+      // 飛び出したあとの隙。まだ回数が残っていれば、もう一度潜る
+      if (act.remaining > 0) {
+        act.phase = 'dive';
+        act.t = def.dive;
+        sfx(world, 'bossCharge');
+      } else {
+        return true;
+      }
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -503,7 +573,7 @@ export function updateHazards(world, dt) {
         h.acc += dt;
         if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) {
           if (h.slow) slowPlayer(world);
-          if (h.acc >= h.tick) {
+          if (h.damage > 0 && h.acc >= h.tick) {
             h.acc = 0;
             hurtPlayer(world, h.damage);
           }

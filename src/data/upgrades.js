@@ -40,6 +40,11 @@ export const upgrades = [
     costs: [{ overCore: 1 }],
     perLevel: { ougi: 'greatsword' },
   },
+  {
+    id: 'joints', name: '関節強化', desc: 'ダッシュの回復が 10% 速くなる', max: 3,
+    costs: [{ serpentCore: 1 }, { serpentCore: 1 }, { serpentCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.1 }] },
+  },
 ];
 
 // 武器の解放

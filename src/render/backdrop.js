@@ -239,6 +239,54 @@ const THEMES = {
       block(g, x - 8, a.top + 36, 76, 20, color, 0.03);
     }
   },
+  // 下水道：濡れた床、流れる汚水の溝、壁ぎわの配管、鉄格子、苔
+  sewer(g, rng, a) {
+    speckles(g, rng, a, 300, [0x0d1d18, 0x12281f, 0x091511, 0x16332a], 0.7);
+    // 汚水の溝（横に2本。水面がところどころ光る）
+    for (const k of [0.3, 0.72]) {
+      const y = a.top + a.h * k + (rng() - 0.5) * 30;
+      block(g, a.left, y - 10, a.w, 20, 0x04100c, 0.75);
+      block(g, a.left, y - 12, a.w, PX, 0x1f4a3a, 0.5);
+      block(g, a.left, y + 8, a.w, PX, 0x1f4a3a, 0.5);
+      for (let x = a.left + rng() * 40; x < a.right - 30; x += 40 + rng() * 70) block(g, x, y - 2 + (rng() < 0.5 ? -4 : 4), 12 + rng() * 22, PX, 0x5dffa0, 0.14);
+    }
+    // 床の鉄格子（排水口）
+    for (let i = 0; i < 3; i++) {
+      const cx = a.left + 90 + rng() * (a.w - 180);
+      const cy = a.top + 70 + rng() * (a.h - 140);
+      block(g, cx - 22, cy - 14, 44, 28, 0x030806, 0.8);
+      for (let x = cx - 18; x <= cx + 14; x += 8) block(g, x, cy - 14, PX, 28, 0x24483a, 0.7);
+      block(g, cx - 22, cy - 14, 44, PX, 0x24483a, 0.7);
+      block(g, cx - 22, cy + 10, 44, PX, 0x24483a, 0.7);
+    }
+    // 壁ぎわの配管（上の壁に沿って走り、ところどころ継ぎ手がある）
+    for (const y of [a.top + 8, a.top + 22]) {
+      block(g, a.left, y, a.w, 8, 0x16332a, 0.75);
+      block(g, a.left, y, a.w, PX / 2, 0x3fae7a, 0.25);
+      for (let x = a.left + 40 + rng() * 60; x < a.right - 20; x += 110 + rng() * 80) block(g, x, y - 2, 12, 12, 0x24483a, 0.9);
+    }
+    // 配管からの水もれ
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 60 + rng() * (a.w - 120);
+      const len = 30 + rng() * 60;
+      block(g, x, a.top + 30, PX, len, 0x5dffa0, 0.1);
+      blob(g, x + 2, a.top + 32 + len, 14, 5, 0x5dffa0, 0.08);
+    }
+    // 苔（部屋のすみ）
+    for (let i = 0; i < 14; i++) {
+      const left = rng() < 0.5;
+      const x = left ? a.left + rng() * 70 : a.right - 20 - rng() * 70;
+      const y = a.top + 40 + rng() * (a.h - 60);
+      block(g, x, y, 8 + rng() * 14, PX, 0x2f7a4a, 0.35);
+    }
+    // 下の壁の太い配管の口
+    for (let i = 0; i < 2; i++) {
+      const x = a.left + 140 + rng() * (a.w - 280);
+      blob(g, x, a.bottom - 6, 26, 14, 0x030806, 0.9);
+      blob(g, x, a.bottom - 6, 20, 9, 0x0d1d18, 0.9);
+      block(g, x - 26, a.bottom - 22, 52, PX, 0x24483a, 0.8);
+    }
+  },
 };
 
 // 部屋の内側（壁の内側）に、エリアの背景を描く

@@ -2,7 +2,7 @@
 // 装備効果・レジェンド固有効果・インプラント・種族ボーナスはすべて同じ形の「effect」で、
 //   mods（ステータス補正）と triggers（イベントで発動する効果）と element（属性付与）
 // だけでできている。ここではそれを1つにまとめる。
-import { FEATURES, ITEMS, LEVEL, PLAYER } from '../data/balance.js';
+import { COMBO, FEATURES, ITEMS, LEVEL, PLAYER } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { species } from '../data/implants.js';
 
@@ -138,6 +138,9 @@ export function computeStats(build) {
     chainBonus: 0,
     burnMul: 1,
     slowMul: 1, // 敵にかける減速の時間の倍率
+    dashHaste: 0, // ダッシュの回復が速くなる割合（0.15 = 15% 速い）
+    comboBonus: 0, // 同じ敵に続けて当てるたびに上がるダメージの割合
+    comboMax: COMBO.max, // その重なる回数の上限
     freezeChance: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）

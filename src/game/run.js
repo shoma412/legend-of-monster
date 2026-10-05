@@ -75,7 +75,7 @@ export function enterRoom(run) {
   if (plan.current === 'boss' && hasNextArea(run)) doors = [{ id: NEXT_AREA, type: 'descend' }];
   const room = buildRoom(type, ctx, doors);
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
-  room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex;
+  room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex * (run.map.enemyScale ?? 1);
   // 周回による変化（敵の HP、受けるダメージ、装備のレア度、ボスの行動、補給の回復量）
   room.hpScale = run.mods.hpScale;
   room.damageScale = run.mods.damageScale;

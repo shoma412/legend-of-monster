@@ -17,6 +17,7 @@ export function createBoss(def, x, y, spawnT, { hpScale = 1, hard = false } = {}
     hp,
     maxHp: hp,
     minPhase: hard ? def.phases.length - 1 : 0, // これより前の段階には戻らない
+    hidden: false, // 潜っている間 true（攻撃が当たらず、体に触れても当たらない）
     color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink,
     vx: 0,
     vy: 0,
@@ -77,7 +78,7 @@ export function updateBoss(world, b, dt) {
     }
   } else {
     // 攻撃の合間は歩いて近づく
-    b.angle = Math.atan2(dy, dx);
+    if (!b.hidden) b.angle = Math.atan2(dy, dx);
     if (d.dist > b.r + p.r + 24) {
       b.x += (dx / d.dist) * b.def.speed * dt;
       b.y += (dy / d.dist) * b.def.speed * dt;
@@ -91,6 +92,7 @@ export function updateBoss(world, b, dt) {
     }
   }
 
+  if (b.hidden) return; // 潜っている間は、部屋の中にいない
   clampToBounds(b, world.bounds);
   // 体に触れるとダメージ。スタン中は安全。跳んでいる間も当たらない
   const untouchable = b.act?.phase === 'stun' || b.act?.phase === 'air'; // スタン中と、跳んでいる間

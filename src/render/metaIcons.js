@@ -47,6 +47,18 @@ export const MATERIAL_ICONS = {
     g.lineStyle(1.5, c, 1).strokeCircle(x, y, s * 0.5);
     g.fillStyle(c, 1).fillCircle(x, y, s * 0.22);
   },
+  // サーペントコア：とぐろ
+  serpentCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    const pts = [];
+    for (let i = 0; i <= 14; i++) {
+      const a = i * 0.75;
+      const r = s * (0.12 + 0.045 * i);
+      pts.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r });
+    }
+    g.strokePoints(pts, false, false);
+  },
 };
 
 export function drawMaterialIcon(g, id, x, y, s, c) {

@@ -99,6 +99,32 @@ export const implants = [
     desc: (k) => `減速中の敵へのダメージ +${pct(0.2 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.2 * k, when: 'targetSlowed' }] }),
   },
+  // ---- 大蛇（パイプサーペント由来・連続で当てる） ----
+  {
+    id: 'coil', species: 'serpent', name: '締め上げ',
+    desc: (k) => `同じ敵に続けて当てるたびに、ダメージ +${pct(0.06 * k)}（5回まで重なる）`,
+    effect: (k) => ({ mods: [{ stat: 'comboBonus', add: 0.06 * k }] }),
+  },
+  {
+    id: 'twinfang', species: 'serpent', name: '連牙',
+    desc: (k) => `攻撃速度 +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.12 * k }] }),
+  },
+  {
+    id: 'ambush', species: 'serpent', name: '奇襲',
+    desc: (k) => `ダッシュ後1秒間、会心率 +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'critChance', add: 0.3 * k, when: 'recentDash', window: 1 }] }),
+  },
+  {
+    id: 'slither', species: 'serpent', name: 'すり抜け',
+    desc: (k) => `ダッシュの回復が ${pct(0.15 * k)} 速くなる`,
+    effect: (k) => ({ mods: [{ stat: 'dashHaste', add: 0.15 * k }] }),
+  },
+  {
+    id: 'swallow', species: 'serpent', name: '丸呑み',
+    desc: (k) => `敵を倒すと、次の攻撃が必ず会心${k > 1 ? `。会心ダメージ +${pct((k - 1) * 0.5)}` : ''}`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'guaranteeNextCrit' }], mods: [{ stat: 'critMul', add: (k - 1) * 0.5 }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -168,6 +194,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '継続ダメージ +50%', effect: { mods: [{ stat: 'burnMul', add: 0.5 }] } },
       { need: 3, desc: '継続ダメージ さらに +100%', effect: { mods: [{ stat: 'burnMul', add: 1 }] } },
+    ],
+  },
+  serpent: {
+    name: '大蛇', color: 'green', boss: 'pipeserpent',
+    bonuses: [
+      { need: 2, desc: '攻撃速度 +10%', effect: { mods: [{ stat: 'attackSpeed', add: 0.1 }] } },
+      { need: 3, desc: '連続ヒットの上限 +3', effect: { mods: [{ stat: 'comboMax', add: 3 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },

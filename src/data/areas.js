@@ -106,4 +106,37 @@ export const areas = [
       ],
     },
   },
+  // ---- ここからマップ2「排水区」 ----
+  {
+    id: 'sewer',
+    code: 'DRAIN 01',
+    name: '下水道',
+    theme: 'sewer',
+    // 曲は、マップ2の曲を選ぶまでの仮（src/data/audio.js で、マップ1の曲のファイルを指している）
+    bgm: 'sewer',
+    bossBgm: 'bossSewer',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'roller', weight: 3 },
+      { id: 'leech', weight: 4 },
+      { id: 'pipegun', weight: 2 },
+      { id: 'drone', weight: 2 },
+      { id: 'grunt', weight: 2 },
+    ],
+    eliteBases: ['roller', 'grunt', 'pipegun'],
+    boss: 'pipeserpent',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ その先が、下水の幹線だ。配管そのものが、標的だ。',
+        '@noise＞ 潜っている間は手が出せない。飛び出したところを叩け。電撃が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ 流れが止まった。……静かだな。',
+        '@noise＞ コアを回収しろ。この下には、まだ貯水槽がある。',
+      ],
+    },
+  },
 ];

@@ -9,6 +9,9 @@
 //   sprayer : 近づいて、構えてから前方に冷気を噴射する。当たると減速
 //   guardian: 盾を構えてゆっくり近づき、殴る。正面からの攻撃は盾で防ぐ（向きを変えるのは遅い）
 //   sniper  : 遠くから照準線を出し、少し後に高威力の一撃を撃つ
+//   roller  : 狙いをつけてから、まっすぐ転がってくる。通ったあとに汚水の床（踏むと減速）が残る
+//   leech   : 飛びついて張り付き、HP を吸い続ける。ダッシュで振り払える
+//   steamer : 動かない。予告の帯を出してから、蒸気を一直線に噴き続ける
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
 // hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
 export const enemies = [
@@ -132,5 +135,61 @@ export const enemies = [
     keepDistance: { min: 300, max: 460 },
     // aim 秒かけて狙い（赤い照準線）、最後の lock 秒は向きを固定してから撃つ
     snipe: { interval: 2.8, aim: 1.3, lock: 0.35, range: 1100, width: 8 },
+  },
+  // ---- ここからマップ2「排水区」 ----
+  {
+    id: 'roller',
+    name: '清掃ローラー',
+    behavior: 'roller',
+    shape: 'roller',
+    color: 'green',
+    radius: 15,
+    hp: 58,
+    speed: 60,
+    damage: 15,
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    knockbackResist: 0.4,
+    // triggerRange まで近づくと windup 秒狙い、speed の速さで duration 秒まっすぐ転がる。
+    // 通ったあとに、trail の間隔で汚水の床（半径 poolRadius、poolLife 秒残る。踏むと減速）を残す
+    roll: { triggerRange: 300, windup: 0.6, speed: 430, duration: 0.85, recover: 1.1, trail: 46, poolRadius: 24, poolLife: 4 },
+  },
+  {
+    id: 'leech',
+    name: 'ヒルドローン',
+    behavior: 'leech',
+    shape: 'leech',
+    color: 'magenta',
+    radius: 8,
+    hp: 22,
+    speed: 150,
+    damage: 3, // 張り付いている間、tick 秒ごとに吸う量
+    xp: 6,
+    credits: 2,
+    cost: 1,
+    dropChance: 0.12,
+    wobble: 0.8,
+    // 張り付くと tick 秒ごとに HP を吸う。ダッシュすると振り払われ、stun 秒動けなくなる
+    latch: { tick: 0.5, stun: 1.2 },
+  },
+  {
+    id: 'pipegun',
+    name: '配管タレット',
+    behavior: 'steamer',
+    shape: 'pipe',
+    color: 'ice',
+    radius: 14,
+    hp: 52,
+    speed: 0,
+    damage: 7, // 蒸気が当たるたびのダメージ
+    xp: 11,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    knockbackResist: 1,
+    // aim 秒かけて狙い（最後の lock 秒は向きを固定）、duration 秒のあいだ幅 width の蒸気を噴き続ける
+    steam: { interval: 2.2, aim: 1.0, lock: 0.3, duration: 1.3, tick: 0.3, range: 1100, width: 26 },
   },
 ];
