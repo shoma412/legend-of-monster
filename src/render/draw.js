@@ -645,8 +645,8 @@ export function drawHazards(g, world) {
       g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(h.x, h.y, h.r);
       g.lineStyle(2, hex(h.color), 0.9).strokeCircle(h.x, h.y, h.r * k);
     } else if (h.type === 'bar') {
-      const dx = Math.cos(h.angle) * BAR_LENGTH;
-      const dy = Math.sin(h.angle) * BAR_LENGTH;
+      const dx = Math.cos(h.angle) * ROOM.barLength;
+      const dy = Math.sin(h.angle) * ROOM.barLength;
       if (h.flash > 0) {
         // 光った瞬間
         const color = hex(h.color);

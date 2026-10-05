@@ -89,20 +89,21 @@ describe('エリアの地図', () => {
         widths.add(rooms.length);
         expect(rooms.length).toBeGreaterThanOrEqual(2);
         expect(rooms.length).toBeLessThanOrEqual(3);
-        // 同じ列に、エリートどうし・同じ特殊部屋どうしは並ばない（戦闘どうしは並ぶことがある）
-        const marked = rooms.filter((t) => t !== 'combat');
-        expect(new Set(marked).size).toBe(marked.length);
+        // 同じ列で隣り合う部屋は、必ず違う種類（戦闘どうしも並ばない）
+        const inColumn = column(plan, c).sort((x, y) => x.row - y.row).map((x) => x.type);
+        for (let r = 1; r < inColumn.length; r++) expect(inColumn[r]).not.toBe(inColumn[r - 1]);
         middle.push(...rooms);
       }
       expect(Object.keys(plan.nodes)).toHaveLength(middle.length + 3);
-      // 途中の部屋：エリート2〜3、特殊部屋3つ（別の種類）、残りは戦闘
+      // 途中の部屋：エリート2〜3、特殊部屋3つ以上（3種類以上）、残りは戦闘。どの列にも戦闘でない部屋がある
       const elites = middle.filter((t) => t === 'elite').length;
       expect(elites).toBeGreaterThanOrEqual(2);
       expect(elites).toBeLessThanOrEqual(3);
       const specials = middle.filter((t) => SPECIAL.includes(t));
-      expect(specials).toHaveLength(3);
-      expect(new Set(specials).size).toBe(3);
-      expect(middle.filter((t) => t === 'combat')).toHaveLength(middle.length - elites - 3);
+      expect(specials.length).toBeGreaterThanOrEqual(3);
+      expect(new Set(specials).size).toBeGreaterThanOrEqual(3);
+      expect(elites + specials.length).toBeGreaterThanOrEqual(cols);
+      expect(middle.filter((t) => t === 'combat')).toHaveLength(middle.length - elites - specials.length);
     }
     expect([...lengths].sort()).toEqual([10, 8, 9]);
     expect([...widths].sort()).toEqual([2, 3]);
@@ -133,6 +134,17 @@ describe('エリアの地図', () => {
       expect(incoming.size).toBe(Object.keys(plan.nodes).length - 1); // 最初の部屋以外すべて
     }
     expect([...choices].sort()).toEqual([2, 3]);
+  });
+
+  it('扉の選択肢が、全部同じ種類になることはない', () => {
+    for (let n = 1; n <= 300; n++) {
+      const plan = createAreaPlan(area, spread(n));
+      for (const node of Object.values(plan.nodes)) {
+        if (node.next.length < 2) continue;
+        const types = new Set(node.next.map((id) => plan.nodes[id].type));
+        expect(types.size, `${n}: ${node.id}`).toBeGreaterThanOrEqual(2);
+      }
+    }
   });
 
   // 扉をランダムに選んで最後まで進み、通った部屋の種類を返す

@@ -2,7 +2,7 @@
 // ボスの定義（src/data/bosses.js）の attacks で、数値を変えて組み合わせる。
 //   act: { def, phase, t, ... } 実行中の攻撃の状態
 //   d:   { dx, dy, dist } プレイヤーへの向きと距離
-import { FEEL } from '../data/balance.js';
+import { FEEL, ROOM } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
@@ -10,7 +10,6 @@ import { hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
-export const BAR_LENGTH = 1400; // 線の攻撃の、中心から片側への長さ（部屋の端まで届く）
 const BAR_FLASH = 0.16; // 線が光っている時間（秒）
 
 function aimAt(act, d) {
@@ -487,8 +486,8 @@ export function updateHazards(world, dt) {
       } else {
         h.t -= dt;
         if (h.t <= 0) {
-          const dx = Math.cos(h.angle) * BAR_LENGTH;
-          const dy = Math.sin(h.angle) * BAR_LENGTH;
+          const dx = Math.cos(h.angle) * ROOM.barLength;
+          const dy = Math.sin(h.angle) * ROOM.barLength;
           if (distToSegment(p.x, p.y, h.x - dx, h.y - dy, h.x + dx, h.y + dy) <= p.r + h.width / 2) hurtPlayer(world, h.damage);
           h.flash = BAR_FLASH;
           sfx(world, 'laser');

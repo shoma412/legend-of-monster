@@ -41,25 +41,32 @@ export function createAreaPlan(area, rng) {
   const columns = length - 3; // 途中の列の数（最初の部屋・ボス前の補給・ボスを除く）
   // 列ごとの部屋の数（2〜3）
   const lanes = Array.from({ length: columns }, () => gen.lanes.min + Math.floor(rng() * (gen.lanes.max - gen.lanes.min + 1)));
-  const count = lanes.reduce((a, b) => a + b, 0);
   const offsets = lanes.map((_, c) => lanes.slice(0, c).reduce((a, b) => a + b, 0));
 
-  // 途中の部屋の中身：エリート、特殊部屋（別々の種類）、残りは戦闘
+  // 途中の部屋の中身：エリート、特殊部屋、残りは戦闘。
+  // 扉の選択肢が全部同じ種類にならないように、同じ列で隣り合う部屋は必ず違う種類にする
+  // （扉は、次の列の隣り合った2〜3部屋へ開くので、これで必ず2種類以上になる）。
   const elites = gen.elites.min + Math.floor(rng() * (gen.elites.max - gen.elites.min + 1));
-  const specials = shuffle(area.specialRooms, rng).slice(0, gen.specials);
-  const types = [...Array(elites).fill('elite'), ...specials];
-  while (types.length < count) types.push('combat');
+  const marked = shuffle([...Array(elites).fill('elite'), ...shuffle(area.specialRooms, rng).slice(0, gen.specials)], rng);
+  // どの列にも「戦闘でない部屋」が1つは要る。足りないぶんは、特殊部屋を足す（同じ種類が2つ出ることがある）
+  while (marked.length < columns) marked.push(pick(area.specialRooms, rng));
 
-  // 同じ列に、同じ種類のエリート・特殊部屋が並ばない並びを探す（戦闘どうしが並ぶのはよい）
-  const columnOk = (placed, c) => {
-    const col = placed.slice(offsets[c], offsets[c] + lanes[c]).filter((t) => t !== 'combat');
-    return new Set(col).size === col.length;
-  };
-  let placed = shuffle(types, rng);
-  for (let tries = 0; tries < 100; tries++) {
-    if (lanes.every((_, c) => columnOk(placed, c))) break;
-    placed = shuffle(types, rng);
+  // まず、列ごとに1つずつ置く（3部屋の列は真ん中、2部屋の列はどちらか）
+  const grid = lanes.map((n) => Array(n).fill('combat'));
+  for (let c = 0; c < columns; c++) grid[c][lanes[c] === 3 ? 1 : Math.floor(rng() * 2)] = marked[c];
+  // 残りは、空いている場所（戦闘の部屋）に置く。同じ列の隣が同じ種類になる場所は避ける
+  for (const type of marked.slice(columns)) {
+    const free = [];
+    for (let c = 0; c < columns; c++) {
+      for (let r = 0; r < lanes[c]; r++) {
+        if (grid[c][r] === 'combat' && grid[c][r - 1] !== type && grid[c][r + 1] !== type) free.push([c, r]);
+      }
+    }
+    if (free.length === 0) continue;
+    const [c, r] = pick(free, rng);
+    grid[c][r] = type;
   }
+  const placed = grid.flat();
 
   const nodes = {};
   const add = (id, col, row, type) => { nodes[id] = { id, col, row, type, next: [] }; };
