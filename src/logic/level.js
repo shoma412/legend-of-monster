@@ -1,7 +1,7 @@
 // 経験値とレベル、インプラントの選択肢の抽選
 import { LEVEL } from '../data/balance.js';
 import { DATA } from '../data/index.js';
-import { isAvailable } from './stats.js';
+import { inRunPool, isAvailable } from './stats.js';
 
 // そのレベルから次のレベルに上がるのに必要な経験値
 export function xpToNext(level) {
@@ -20,9 +20,10 @@ export function addXp(build, amount) {
   return ups;
 }
 
-// レベルアップ時の選択肢。持っているものは「強化」として出る。レベルが上限のものは出さない
+// レベルアップ時の選択肢。持っているものは「強化」として出る。レベルが上限のものは出さない。
+// 出るのは、汎用と、このランに出る種族（そのマップの種族＋持ち込み）の部品だけ
 export function rollImplantChoices(build, rng, count = LEVEL.choices) {
-  const pool = DATA.implants.all().filter((d) => isAvailable(d) && (build.implants[d.id] ?? 0) < LEVEL.implantMax);
+  const pool = DATA.implants.all().filter((d) => isAvailable(d) && inRunPool(build, d) && (build.implants[d.id] ?? 0) < LEVEL.implantMax);
   const choices = [];
   while (choices.length < count && pool.length > 0) {
     const i = Math.min(pool.length - 1, Math.floor(rng() * pool.length));

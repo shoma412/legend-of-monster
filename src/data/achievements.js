@@ -14,7 +14,7 @@ export const achievements = [
   { id: 'overload', icon: 'skull', color: 'heat', name: '機構停止', desc: 'オーバーロードを倒した', on: 'bossKill', check: 'bossIs', boss: 'overload' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
-  { id: 'family', icon: 'chip', name: '系統特化', desc: '同じ系統のインプラントを3つそろえた', on: 'implant', check: 'familyBonus' },
+  { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },
   { id: 'legend', icon: 'crown', name: '伝説の一品', desc: 'レジェンド装備を身につけた', on: 'equip', check: 'rarityAtLeast', rarity: 3 },
   { id: 'fragment-first', icon: 'doc', name: '記録の断片', desc: 'データ片を初めて手に入れた', on: 'fragment', check: 'fragmentCount', count: 1 },
   { id: 'fragment-all', icon: 'docs', name: '全記録回収', desc: 'データ片をすべて集めた', on: 'fragment', check: 'allFragments' },

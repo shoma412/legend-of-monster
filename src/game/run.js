@@ -5,7 +5,7 @@ import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/
 import { cycleMods, recordMapClear } from '../logic/maps.js';
 import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
-import { createBuild } from '../logic/stats.js';
+import { createBuild, runSpecies } from '../logic/stats.js';
 import { buildRoom } from './rooms.js';
 import { createWorld } from './world.js';
 
@@ -16,8 +16,8 @@ export const AREA_ORDER = DATA.maps.get('map1').areas;
 export const NEXT_AREA = '@next';
 
 // save: セーブデータ（隠れ家の進行状況）。恒久強化がランに乗り、ボス素材・データ片・実績がここに記録される
-//   mapId: 進むマップ / cycle: 何周目か（周が進むほど敵が強い）
-export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave(), mapId = 'map1', cycle = 1 } = {}) {
+//   mapId: 進むマップ / cycle: 何周目か（周が進むほど敵が強い）/ carry: 持ち込みの種族の id（なければ null）
+export function createRun({ weaponId = 'greatsword', rng = Math.random, save = createSave(), mapId = 'map1', cycle = 1, carry = null } = {}) {
   const map = DATA.maps.get(mapId);
   const area = DATA.areas.get(map.areas[0]);
   const bonus = permanentBonuses(save);
@@ -41,6 +41,8 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     // このランで持ち帰ったもの（リザルト画面に出す）
     gained: { materials: {}, fragments: [], achievements: [], notes: [] },
   };
+  // このランで選択肢に出る種族：そのマップのボスの種族と、持ち込みの種族
+  run.build.species = runSpecies(map, carry);
   startRunRecord(save);
   processEvent(save, run, { type: 'sortie' });
   return run;

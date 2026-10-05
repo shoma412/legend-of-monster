@@ -1,9 +1,9 @@
 // 戦闘画面の上に重ねるパネル（装備の比較、インプラント3択、装備とインプラントの一覧）
 import { LEVEL, LOOT, ROOM, SCREEN } from '../data/balance.js';
-import { families } from '../data/implants.js';
+import { species } from '../data/implants.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { describeItem } from '../logic/loot.js';
-import { familyCounts, implantDesc } from '../logic/stats.js';
+import { bonusAt, implantDesc, speciesCounts } from '../logic/stats.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -13,8 +13,8 @@ export function rarityColor(item) {
   return RARITY_COLORS[LOOT.rarities[item.rarity].id];
 }
 
-function familyColor(family) {
-  const c = families[family].color;
+function speciesColor(id) {
+  const c = species[id].color;
   return ELEMENT_COLORS[c] ?? COLORS[c];
 }
 
@@ -119,27 +119,27 @@ export function createChoicePanel(scene, onChoose) {
       if (choice === shown) return;
       shown = choice;
       title.setText(`LEVEL UP　Lv ${build.level}`);
-      const counts = familyCounts(build);
+      const counts = speciesCounts(build);
       cards.forEach((card, i) => {
         const def = choice.options[i];
         card.parts.forEach((p) => p.setVisible(!!def));
         if (!def) return;
-        const fam = families[def.family];
-        const color = familyColor(def.family);
+        const sp = species[def.species];
+        const color = speciesColor(def.species);
         card.bg.setStrokeStyle(2, hex(color));
-        card.family.setText(fam.name).setColor(color);
+        card.family.setText(sp.name).setColor(color);
         // 持っているものは「強化」。説明は、選んだあとのレベルでの効果を出す
         const owned = build.implants[def.id] ?? 0;
         card.name.setText(owned > 0 ? `${def.name}　Lv${owned + 1}` : def.name);
         card.desc.setText(implantDesc(def, owned + 1));
         const notes = [];
         if (owned > 0) notes.push(`強化：Lv${owned} → Lv${owned + 1}${owned + 1 >= LEVEL.implantMax ? '（最大）' : ''}`, `今の効果：${implantDesc(def, owned)}`);
-        // 系統の数は、新しい種類を取ったときだけ増える
-        const bonusNow = owned === 0 && fam.bonus && (counts[def.family] ?? 0) + 1 === fam.bonus.need;
-        if (owned === 0 && fam.bonus) {
-          const have = counts[def.family] ?? 0;
-          notes.push(`${fam.name}系統 ${have}→${have + 1} / ${fam.bonus.need}`);
-          if (bonusNow) notes.push(`系統ボーナス発動：${fam.bonus.desc}`);
+        // 種族の数は、新しい種類を取ったときだけ増える。2種類・3種類でボーナスが発動する
+        const have = counts[def.species] ?? 0;
+        const bonusNow = owned === 0 ? bonusAt(def.species, have + 1) : null;
+        if (owned === 0 && sp.bonuses.length > 0) {
+          notes.push(`${sp.name}の部品 ${have}→${have + 1}種類`);
+          if (bonusNow) notes.push(`種族ボーナス発動：${bonusNow.desc}`);
         }
         card.note.setText(notes.join('\n')).setColor(bonusNow ? COLORS.amber : owned > 0 ? COLORS.green : COLORS.dim);
       });

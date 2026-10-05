@@ -1,7 +1,7 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -28,6 +28,7 @@ export function createSave() {
     cycle: 1, // 選べる最高の周
     selectedMap: 'map1', // マップを選ぶ画面で、最後に選んでいたマップ
     selectedCycle: 1, // 同じく、最後に選んでいた周
+    carrySpecies: null, // 持ち込みの種族の id（版4で追加。選んでいなければ null）
   };
 }
 
@@ -47,6 +48,11 @@ function migrate(data) {
     data.selectedMap = 'map1';
     data.selectedCycle = 1;
     data.version = 3;
+  }
+  // 版3 → 版4：持ち込みの種族を足す
+  if (data.version === 3) {
+    data.carrySpecies = null;
+    data.version = 4;
   }
   return data;
 }
@@ -72,6 +78,7 @@ function normalize(data) {
     cycle: Number.isInteger(d.cycle) && d.cycle >= 1 ? d.cycle : 1,
     selectedMap: typeof d.selectedMap === 'string' ? d.selectedMap : base.selectedMap,
     selectedCycle: Number.isInteger(d.selectedCycle) && d.selectedCycle >= 1 ? d.selectedCycle : 1,
+    carrySpecies: typeof d.carrySpecies === 'string' ? d.carrySpecies : null,
   };
 }
 

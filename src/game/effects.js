@@ -1,10 +1,10 @@
-// 効果の仕組み。装備効果・レジェンド固有効果・インプラント・系統ボーナスを同じやり方で処理する。
+// 効果の仕組み。装備効果・レジェンド固有効果・インプラント・種族ボーナスを同じやり方で処理する。
 //   条件つきのステータス補正 … CONDITIONS
 //   イベントで発動する効果   … ACTIONS
 // 新しい効果を足すときは、ここに部品を1つ足して、データ（src/data/）から名前で呼ぶ。
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
-import { applySlow, applyStop, effectDamage } from './combat.js';
+import { applyBurn, applySlow, applyStop, effectDamage } from './combat.js';
 import { burst, ring } from './fx.js';
 
 // 条件つき補正（mods の when）
@@ -13,6 +13,7 @@ const CONDITIONS = {
   hpFull: (world) => world.player.hp >= world.player.stats.maxHp,
   recentDash: (world, mod) => world.player.sinceDash <= (mod.window ?? 2),
   targetSlowed: (world, mod, target) => !!target && (target.slowT > 0 || target.stopT > 0),
+  targetBurning: (world, mod, target) => !!target && target.burnT > 0,
 };
 
 // 条件つき補正も含めた、今のステータスの値。target は攻撃する相手（相手による条件があるとき）
@@ -93,7 +94,7 @@ const ACTIONS = {
     const from = ctx.target;
     ring(world, from.x, from.y, t.radius, ELEMENT_COLORS.cold);
     for (const e of enemiesNear(world, from.x, from.y, t.radius, from)) {
-      applySlow(e);
+      applySlow(e, world.player.stats.slowMul);
       applyStop(e, STATUS.freeze.duration);
     }
   },
@@ -111,7 +112,30 @@ const ACTIONS = {
   slowNearby(world, t) {
     const p = world.player;
     ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.cold);
-    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applySlow(e);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applySlow(e, world.player.stats.slowMul);
+  },
+
+  // プレイヤーの周りの敵に電撃
+  shockNearby(world, t) {
+    const p = world.player;
+    ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.shock);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) {
+      world.fx.bolts.push({ x1: p.x, y1: p.y, x2: e.x, y2: e.y, life: 0.18, max: 0.18 });
+      effectDamage(world, e, t.damage, 'shock');
+    }
+  },
+
+  // プレイヤーの周りの敵を燃やす
+  burnNearby(world, t) {
+    const p = world.player;
+    ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.heat);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e);
+  },
+
+  // ダッシュで通り抜けた敵を減速させる
+  dashSlow(world, t) {
+    const p = world.player;
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applySlow(e, world.player.stats.slowMul);
   },
 };
 

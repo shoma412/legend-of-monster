@@ -1,12 +1,13 @@
 // 実績の判定。定義（src/data/achievements.js）の check で、下の部品を選ぶ。
 import { DATA } from '../data/index.js';
-import { activeFamilyBonuses } from './stats.js';
+import { activeSpeciesBonuses } from './stats.js';
 
 // 追加の条件の部品。(実績の定義, 出来事, セーブデータ, ラン) → 満たしていれば true
 const CHECKS = {
   bossIs: (def, event) => event.boss === def.boss,
   noDamage: (def, event) => event.noDamage === true,
-  familyBonus: (def, event, save, run) => activeFamilyBonuses(run.build).length > 0,
+  // 同じ種族の部品を3種類そろえた
+  familyBonus: (def, event, save, run) => activeSpeciesBonuses(run.build).some((b) => b.need >= 3),
   rarityAtLeast: (def, event) => event.rarity >= def.rarity,
   fragmentCount: (def, event, save) => save.fragments.length >= def.count,
   allFragments: (def, event, save) => DATA.fragments.ids().every((id) => save.fragments.includes(id)),

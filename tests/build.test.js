@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LEVEL, LOOT, PLAYER, STATUS } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
-import { families } from '../src/data/implants.js';
+import { species } from '../src/data/implants.js';
+import { maps } from '../src/data/maps.js';
 import { addImplant, chooseImplant, discardFromBag, equipFocusLoot, equipFromBag, equipItem, recalcStats, stashFocusLoot, unequipToBag } from '../src/game/build.js';
 import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
 import { hasAction, hasCondition, statWith } from '../src/game/effects.js';
@@ -9,7 +10,9 @@ import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { addXp, rollImplantChoices, xpToNext } from '../src/logic/level.js';
 import { describeItem, makeItem, rollRarity } from '../src/logic/loot.js';
-import { computeStats, createBuild, implantDesc, implantEffect } from '../src/logic/stats.js';
+import { carryOptions, computeStats, createBuild, implantDesc, implantEffect, mapSpecies, runSpecies } from '../src/logic/stats.js';
+import { createRun } from '../src/game/run.js';
+import { createSave } from '../src/logic/save.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -48,7 +51,7 @@ describe('定義データのつじつま', () => {
   const effects = [
     ...DATA.implants.all().map((d) => [d.id, d.effect(1)]),
     ...DATA.legendEffects.all().map((d) => [d.id, d.effect]),
-    ...Object.entries(families).filter(([, f]) => f.bonus).map(([id, f]) => [`${id}系統`, f.bonus.effect]),
+    ...Object.entries(species).flatMap(([id, sp]) => sp.bonuses.map((b) => [`${id} の種族ボーナス（${b.need}種類）`, b.effect])),
   ];
   const stats = computeStats(createBuild());
 
@@ -70,11 +73,11 @@ describe('定義データのつじつま', () => {
     }
   });
 
-  it('仕様どおり、インプラント17種・固有効果4種・装備効果10種がある', () => {
-    expect(DATA.implants.all()).toHaveLength(17);
+  it('仕様どおり、インプラント23種（種族3つ×5、汎用8）・固有効果4種・装備効果10種がある', () => {
+    expect(DATA.implants.all()).toHaveLength(23);
     expect(DATA.legendEffects.all()).toHaveLength(4);
     expect(DATA.gearEffects.all()).toHaveLength(10);
-    for (const f of ['shock', 'heat', 'cold']) expect(DATA.implants.all().filter((d) => d.family === f)).toHaveLength(3);
+    for (const id of ['boar', 'wyvern', 'core']) expect(DATA.implants.all().filter((d) => d.species === id)).toHaveLength(5);
   });
 });
 
@@ -260,9 +263,9 @@ describe('レベルアップとインプラント', () => {
     expect(makeWorld(['coolant', 'coolant', 'coolant']).player.stats.freezeChance).toBeCloseTo(0.1);
   });
 
-  it('系統ボーナスは種類の数で数える（同じものを強化しても増えない）', () => {
+  it('種族ボーナスは種類の数で数える（同じものを強化しても増えない）', () => {
     expect(makeWorld(['chain', 'chain', 'chain']).player.stats.chainBonus).toBe(0);
-    expect(makeWorld(['chain', 'chain', 'overcurrent', 'shockdash']).player.stats.chainBonus).toBe(2);
+    expect(makeWorld(['chain', 'chain', 'overcurrent', 'shockdash']).player.stats.chainBonus).toBe(3);
   });
 
   it('装甲プレートは最大HP+25で全回復。強化すると +30', () => {
@@ -279,11 +282,53 @@ describe('レベルアップとインプラント', () => {
     expect(p.hp).toBe(130);
   });
 
-  it('同じ系統を3つ持つと系統ボーナスが発動する', () => {
-    expect(makeWorld(['chain', 'overcurrent']).player.stats.chainBonus).toBe(0);
-    expect(makeWorld(['chain', 'overcurrent', 'shockdash']).player.stats.chainBonus).toBe(2);
-    expect(makeWorld(['incendiary', 'thermal', 'blast']).player.stats.burnMul).toBe(2);
+  it('同じ種族を2種類持つと小さいボーナス、3種類で大きいボーナスが重なる', () => {
+    expect(makeWorld(['chain']).player.stats.chainBonus).toBe(0);
+    expect(makeWorld(['chain', 'overcurrent']).player.stats.chainBonus).toBe(1);
+    expect(makeWorld(['chain', 'overcurrent', 'shockdash']).player.stats.chainBonus).toBe(3);
+    expect(makeWorld(['incendiary', 'thermal']).player.stats.burnMul).toBeCloseTo(1.5);
+    expect(makeWorld(['incendiary', 'thermal', 'blast']).player.stats.burnMul).toBeCloseTo(2.5);
+    expect(makeWorld(['coolant', 'frostarmor']).player.stats.slowMul).toBeCloseTo(1.5);
+    expect(makeWorld(['coolant', 'frostarmor']).player.stats.freezeChance).toBe(0);
     expect(makeWorld(['coolant', 'frostarmor', 'icebreaker']).player.stats.freezeChance).toBeGreaterThan(0);
+  });
+
+  it('種族は、ボス1体につき1つ。どの部品も、定義された種族に属している', () => {
+    const bosses = Object.values(species).map((sp) => sp.boss).filter(Boolean);
+    expect(new Set(bosses).size).toBe(bosses.length);
+    for (const id of bosses) expect(DATA.bosses.has(id), id).toBe(true);
+    for (const d of DATA.implants.all()) expect(species[d.species], d.id).toBeDefined();
+    for (const sp of Object.values(species)) for (const b of sp.bonuses) expect(b.desc.length).toBeGreaterThan(0);
+  });
+
+  it('1回の出撃で選択肢に出るのは、汎用と、そのマップの種族と、持ち込みの種族だけ', () => {
+    expect(mapSpecies(maps[0]).sort()).toEqual(['boar', 'core', 'wyvern']);
+    // 仮に、猪しか出ないマップで、飛竜を持ち込んだとする
+    const build = createBuild();
+    build.species = runSpecies({ areas: ['slum'] }, 'wyvern');
+    expect(build.species.sort()).toEqual(['boar', 'wyvern']);
+    const ids = rollImplantChoices(build, seeded(3), 99).map((d) => DATA.implants.get(d.id).species);
+    expect(new Set(ids)).toEqual(new Set(['boar', 'wyvern', 'general']));
+    // 種族を絞っていないとき（隠れ家など）は、すべて出る
+    const all = rollImplantChoices(createBuild(), seeded(3), 99).map((d) => d.species);
+    expect(new Set(all).has('core')).toBe(true);
+  });
+
+  it('ランを始めると、そのマップの種族が選択肢に出るようになる', () => {
+    const r = createRun({ rng: seeded(3), mapId: 'map1' });
+    expect([...r.build.species].sort()).toEqual(['boar', 'core', 'wyvern']);
+  });
+
+  it('持ち込めるのは、倒したことのあるボスの種族のうち、そのマップに元からいないもの', () => {
+    const save = createSave();
+    const boarOnly = { areas: ['slum'] };
+    expect(carryOptions(save, boarOnly)).toEqual([]);
+    save.bossKills.cryowyvern = 1;
+    save.bossKills.boltboar = 2;
+    expect(carryOptions(save, boarOnly)).toEqual(['wyvern']);
+    // マップ1には3種族とも元からいるので、持ち込めるものはない
+    save.bossKills.overload = 1;
+    expect(carryOptions(save, maps[0])).toEqual([]);
   });
 });
 
@@ -314,9 +359,67 @@ describe('ダッシュで残るダメージ床（レジェンド装備：ネオ�
   });
 });
 
+describe('種族の新しい部品', () => {
+  it('帯電刃：攻撃に電撃属性が付く', () => {
+    expect(makeWorld(['voltedge']).player.stats.elements).toContain('shock');
+  });
+
+  it('帯電外皮：被弾したとき、周囲の敵に電撃ダメージ', () => {
+    const world = makeWorld(['voltskin']);
+    const e = addEnemy(world, 'grunt', 60);
+    const hp = e.hp;
+    hurtPlayer(world, 5);
+    expect(e.hp).toBeLessThan(hp);
+  });
+
+  it('排熱弁：被弾したとき、周囲の敵が燃える', () => {
+    const world = makeWorld(['exhaust']);
+    const near = addEnemy(world, 'grunt', 60);
+    const far = addEnemy(world, 'grunt', 400);
+    hurtPlayer(world, 5);
+    expect(near.burnT).toBeGreaterThan(0);
+    expect(far.burnT).toBe(0);
+  });
+
+  it('過熱出力：燃えている敵へのダメージが増える', () => {
+    const world = makeWorld(['overheat']);
+    const e = addEnemy(world, 'grunt', 60);
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1);
+    e.burnT = 2;
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1.2);
+  });
+
+  it('凍てつく爪：減速中の敵へのダメージが増える', () => {
+    const world = makeWorld(['frostclaw']);
+    const e = addEnemy(world, 'grunt', 60);
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1);
+    e.slowT = 2;
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1.2);
+  });
+
+  it('霜の翼：ダッシュで通り抜けた敵が減速する', () => {
+    const world = makeWorld(['frostwing']);
+    const e = addEnemy(world, 'grunt', 50);
+    updateWorld(world, DT, { ...idle, mx: 1, dashPressed: true });
+    for (let t = 0; t < 0.3; t += DT) updateWorld(world, DT, { ...idle, mx: 1 });
+    expect(e.slowT).toBeGreaterThan(0);
+  });
+
+  it('飛竜の部品を2種類持つと、減速が長く続く', () => {
+    const slowFor = (ids) => {
+      const world = makeWorld(ids);
+      const e = addEnemy(world, 'grunt', 60);
+      hurtPlayer(world, 5); // 氷結装甲：被弾で周囲を減速
+      return e.slowT;
+    };
+    expect(slowFor(['frostarmor'])).toBeCloseTo(STATUS.slow.duration);
+    expect(slowFor(['frostarmor', 'icebreaker'])).toBeCloseTo(STATUS.slow.duration * 1.5);
+  });
+});
+
 describe('インプラントの効果', () => {
-  it('連鎖放電：撃破時に近くの2体へ電撃。系統ボーナスで4体になる', () => {
-    for (const [implants, expected] of [[['chain'], 2], [['chain', 'overcurrent', 'shockdash'], 4]]) {
+  it('連鎖放電：撃破時に近くの2体へ電撃。種族ボーナスで3体（2種類）、5体（3種類）になる', () => {
+    for (const [implants, expected] of [[['chain'], 2], [['chain', 'overcurrent'], 3], [['chain', 'overcurrent', 'shockdash'], 5]]) {
       const world = makeWorld(implants);
       const victim = addEnemy(world, 'drone', 60);
       const others = [0, 1, 2, 3, 4].map((i) => addEnemy(world, 'grunt', 90 + i * 10, 40));
@@ -326,7 +429,7 @@ describe('インプラントの効果', () => {
     }
   });
 
-  it('焼却弾：熱属性が付き、3秒間の継続ダメージ。系統ボーナスで2倍', () => {
+  it('焼却弾：熱属性が付き、3秒間の継続ダメージ。種族ボーナス（3種類）で約2.5倍', () => {
     const totals = [['incendiary'], ['incendiary', 'thermal', 'blast']].map((implants) => {
       const world = makeWorld(implants);
       world.player.hp = world.player.stats.maxHp; // 熱暴走が効かないHP
@@ -340,7 +443,9 @@ describe('インプラントの効果', () => {
       return after - e.hp;
     });
     expect(totals[0]).toBe(STATUS.burn.dps * STATUS.burn.duration);
-    expect(totals[1]).toBe(totals[0] * 2);
+    // 小数は当たるたびに丸めるので、ぴったり2.5倍にはならない
+    expect(totals[1]).toBeGreaterThanOrEqual(totals[0] * 2.4);
+    expect(totals[1]).toBeLessThanOrEqual(totals[0] * 2.7);
   });
 
   it('冷却コア：冷却属性が付き、当てた敵は40%遅くなる', () => {

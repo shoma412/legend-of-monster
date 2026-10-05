@@ -5,7 +5,7 @@
 import { applyVolume, playSe } from '../audio/audio.js';
 import { BAG, LOOT, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
-import { families } from '../data/implants.js';
+import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
 import { AREA_ORDER } from '../game/run.js';
@@ -15,7 +15,7 @@ import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyUpgrade, canAfford, nextUpgradeCost, upgradeLevel } from '../logic/meta.js';
 import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
-import { activeFamilyBonuses, implantDesc } from '../logic/stats.js';
+import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
@@ -327,7 +327,7 @@ export class MenuOverlay {
     let iy = 156;
     for (const [id, n] of entries) {
       const def = DATA.implants.get(id);
-      const fam = families[def.family];
+      const fam = species[def.species];
       const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
       this.text(638, iy, `${def.name}　Lv${n}`, 12, color, { fontStyle: '700' });
       if (compact) {
@@ -337,8 +337,8 @@ export class MenuOverlay {
         iy += 20 + desc.height;
       }
     }
-    for (const f of activeFamilyBonuses(b)) {
-      this.text(638, iy + 2, `◆ ${families[f].name}系統：${families[f].bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
+    for (const bonus of activeSpeciesBonuses(b)) {
+      this.text(638, iy + 2, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
       iy += 18;
     }
   }

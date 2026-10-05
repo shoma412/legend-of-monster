@@ -18,8 +18,9 @@ export function applyBurn(enemy) {
   enemy.burnT = STATUS.burn.duration;
 }
 
-export function applySlow(enemy) {
-  enemy.slowT = STATUS.slow.duration;
+// mul: 減速の時間の倍率（種族ボーナスなどで伸びる）
+export function applySlow(enemy, mul = 1) {
+  enemy.slowT = Math.max(enemy.slowT, STATUS.slow.duration * mul);
 }
 
 // 凍結・停止。ボスには効かない
@@ -33,10 +34,10 @@ function applyElementStatus(world, enemy, elements) {
   if (enemy.dead) return;
   if (elements.includes('heat')) applyBurn(enemy);
   if (elements.includes('cold')) {
-    // 系統ボーナス：すでに減速している敵は凍結することがある
+    // 種族ボーナスなど：すでに減速している敵は凍結することがある
     const chance = world.player.stats.freezeChance;
     if (chance > 0 && enemy.slowT > 0 && world.rng() < chance) applyStop(enemy, STATUS.freeze.duration);
-    applySlow(enemy);
+    applySlow(enemy, world.player.stats.slowMul);
   }
 }
 

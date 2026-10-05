@@ -133,11 +133,11 @@ export class HideoutScene extends Phaser.Scene {
     this.mapSelect = createMapSelect(this, {
       save: () => this.save,
       onChange: () => persist(),
-      onStart: (mapId, cycle) => {
+      onStart: (mapId, cycle, carry) => {
         // 初めての出撃の前には、会話を挟む
         this.playPending('sortie', () => {
           playSe('door');
-          this.scene.start('Battle', { weaponId: this.save.selected, mapId, cycle });
+          this.scene.start('Battle', { weaponId: this.save.selected, mapId, cycle, carry });
         });
       },
     });

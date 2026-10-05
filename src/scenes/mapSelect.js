@@ -1,12 +1,14 @@
 // マップを選ぶ画面。隠れ家の出撃ゲートを調べると開く。
-//   A・D（← →）：マップを選ぶ　　W・S（↑ ↓）：周を選ぶ（2周目以降が選べるとき）
+//   A・D（← →）：マップを選ぶ　　W・S（↑ ↓）：周を選ぶ（2周目以降が選べるとき）　　Q・E：持ち込みの種族を選ぶ
 //   Enter：出撃　　Esc：やめる　　クリックでも選べる
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { species } from '../data/implants.js';
 import { canSortieCycle, clearedCycle, cycleNotes, mapState } from '../logic/maps.js';
+import { carryOptions, mapSpecies } from '../logic/stats.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -19,7 +21,7 @@ const GUARD_MS = 180; // 閉じた直後に、同じキーやクリックがゲ�
 
 const STATE_LABELS = { notReady: '準備中', locked: '未解放', open: '出撃できる', done: '完了' };
 
-// options: { save: () => セーブデータ, onStart: (mapId, cycle) => void, onChange: () => void（選んだマップや周を保存する） }
+// options: { save: () => セーブデータ, onStart: (mapId, cycle, carry) => void, onChange: () => void（選んだマップや周を保存する） }
 export function createMapSelect(scene, options) {
   const root = scene.add.container(0, 0).setDepth(35).setVisible(false);
   let closedAt = -Infinity;
@@ -83,6 +85,23 @@ export function createMapSelect(scene, options) {
     render();
   }
 
+  // 選んでいる持ち込みの種族（そのマップで選べないものなら null）
+  function currentCarry(save, map) {
+    return carryOptions(save, map).includes(save.carrySpecies) ? save.carrySpecies : null;
+  }
+
+  // 持ち込みの種族を切り替える（なし → 1つ目 → 2つ目 → … → なし）
+  function changeCarry(delta) {
+    const save = options.save();
+    const list = [null, ...carryOptions(save, maps[index])];
+    if (list.length <= 1) return;
+    const at = Math.max(0, list.indexOf(currentCarry(save, maps[index])));
+    save.carrySpecies = list[(at + delta + list.length) % list.length];
+    playSe('select');
+    options.onChange?.();
+    render();
+  }
+
   function start() {
     const save = options.save();
     const map = maps[index];
@@ -92,7 +111,7 @@ export function createMapSelect(scene, options) {
     }
     playSe('confirm');
     box.close();
-    options.onStart(map.id, cycle);
+    options.onStart(map.id, cycle, currentCarry(save, map));
   }
 
   function render() {
@@ -136,7 +155,22 @@ export function createMapSelect(scene, options) {
       text(80, py + 46, `エリア：${areas.map((a) => a.name).join(' → ')}`, 13, COLORS.ink);
       text(80, py + 70, `標的：${areas.map((a) => DATA.bosses.get(a.boss).name).join(' → ')}`, 13, COLORS.ink);
       const best = clearedCycle(save, map.id);
-      text(80, py + 94, best > 0 ? `完了済み（最高 ${best}周目）` : 'まだ完了していない', 12, best > 0 ? COLORS.green : COLORS.dim);
+      text(W - 80, py + 18, best > 0 ? `完了済み（最高 ${best}周目）` : 'まだ完了していない', 12, best > 0 ? COLORS.green : COLORS.dim).setOrigin(1, 0);
+      // 出る種族：そのマップの種族と、持ち込みの種族（1つ）
+      const names = mapSpecies(map).map((id) => species[id].name).join('・');
+      text(80, py + 94, `出る種族：${names}`, 13, COLORS.ink);
+      const carryList = carryOptions(save, map);
+      const carry = currentCarry(save, map);
+      const tx = 80 + 330;
+      text(tx, py + 94, '持ち込み', 13, COLORS.dim, { fontStyle: '700' });
+      if (carryList.length === 0) {
+        text(tx + 70, py + 95, 'なし（ほかのマップのボスを倒すと、その種族を持ち込める）', 12, LOCKED);
+      } else {
+        button(tx + 70, py + 88, 30, 26, '◀', COLORS.ink, () => changeCarry(-1));
+        text(tx + 160, py + 101, carry ? species[carry].name : 'なし', 15, carry ? COLORS.amber : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
+        button(tx + 220, py + 88, 30, 26, '▶', COLORS.ink, () => changeCarry(1));
+        text(tx + 262, py + 95, 'Q・E で切り替え', 11, COLORS.dim);
+      }
 
       // 周の選択（2周目以降が選べるときだけ）
       if (save.cycle > 1) {
@@ -168,6 +202,8 @@ export function createMapSelect(scene, options) {
   on(['D', 'RIGHT'], () => move(1));
   on(['W', 'UP'], () => changeCycle(1));
   on(['S', 'DOWN'], () => changeCycle(-1));
+  on(['Q'], () => changeCarry(-1));
+  on(['E'], () => changeCarry(1));
   on(['ENTER'], start);
   on(['ESC'], () => box.close());
 

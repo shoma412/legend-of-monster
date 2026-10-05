@@ -40,7 +40,7 @@ export class BattleScene extends Phaser.Scene {
   // run: 続きのラン。省略すると、weaponId の武器で、mapId のマップの cycle 周目を新しく始める
   init(data) {
     this.fresh = !data?.run;
-    this.run = data?.run ?? createRun({ weaponId: data?.weaponId ?? 'greatsword', save: getSave(), mapId: data?.mapId ?? 'map1', cycle: data?.cycle ?? 1 });
+    this.run = data?.run ?? createRun({ weaponId: data?.weaponId ?? 'greatsword', save: getSave(), mapId: data?.mapId ?? 'map1', cycle: data?.cycle ?? 1, carry: data?.carry ?? null });
   }
 
   create() {
