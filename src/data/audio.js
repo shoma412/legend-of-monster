@@ -79,6 +79,8 @@ export const BGM = {
   bossSewer: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
   reservoir: { file: 'audio/bgm/maou_loop_bgm_cyber24.ogg', song: 'tower' },
   bossReservoir: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
+  purifier: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossPurifier: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

@@ -198,6 +198,27 @@ const SHAPES = {
     neonStroke(g, color, 2, () => g.lineBetween(e.x - cos * e.r * 0.4, e.y - sin * e.r * 0.4, tip.x, tip.y));
     g.lineStyle(2, color, 1).lineBetween(tip.x, tip.y, tip.x - cos * 6 - sin * 5, tip.y - sin * 6 + cos * 5).lineBetween(tip.x, tip.y, tip.x - cos * 6 + sin * 5, tip.y - sin * 6 - cos * 5);
   },
+  // スラッジハイドラの首：体とつながる首すじと、口を開けた頭。弾を吐く前に口が光る
+  hydrahead(g, e, color, world) {
+    const p = world.player;
+    const b = e.anchor;
+    if (b && !b.dead) {
+      // 首すじ（体の中心から頭まで、節を並べる）
+      for (let i = 1; i <= 3; i++) {
+        const k = i / 4;
+        const sway = Math.sin(world.time * 3 + e.seed + i) * 4;
+        g.fillStyle(BODY_FILL, 0.9).fillCircle(b.x + (e.x - b.x) * k + sway, b.y + (e.y - b.y) * k, e.r * 0.5);
+        g.lineStyle(2, color, 0.7).strokeCircle(b.x + (e.x - b.x) * k + sway, b.y + (e.y - b.y) * k, e.r * 0.5);
+      }
+    }
+    const a = Math.atan2(p.y - e.y, p.x - e.x);
+    const head = rotatedEllipse(e.x, e.y, e.r * 1.2, e.r * 0.9, a, 16);
+    g.fillStyle(BODY_FILL, 0.9).fillPoints(head, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(head, true, true));
+    const mouth = { x: e.x + Math.cos(a) * e.r * 0.8, y: e.y + Math.sin(a) * e.r * 0.8 };
+    const aiming = e.state === 'aim';
+    g.fillStyle(aiming ? WHITE : color, aiming ? 0.9 : 0.6).fillCircle(mouth.x, mouth.y, aiming ? 5 : 3);
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -817,6 +838,32 @@ SHAPES.crab = (g, b, color, world) => {
       g.lineStyle(5, open ? hex(COLORS.dim) : WHITE, open ? 0.45 : 1);
       arcPath(g, b.x, b.y, r + 14, b.angle - half, b.angle + half);
     }
+  }
+};
+
+// スラッジハイドラ：ゆらゆら形の変わる大きな汚泥の体と、中の制御機。首が残っている間は、体のまわりに膜が出る
+SHAPES.hydra = (g, b, color, world) => {
+  const r = b.r;
+  const pts = [];
+  for (let i = 0; i < 18; i++) {
+    const a = (i * Math.PI * 2) / 18;
+    const rr = r * (1.08 + 0.1 * Math.sin(world.time * 3 + i * 1.3) + 0.05 * Math.sin(world.time * 5.3 + i * 2.1));
+    pts.push({ x: b.x + Math.cos(a) * rr, y: b.y + Math.sin(a) * rr });
+  }
+  g.fillStyle(BODY_FILL, 0.92).fillPoints(pts, true);
+  neonStroke(g, color, 3, () => g.strokePoints(pts, true, true));
+  // 中に沈んだ制御機（四角い箱と、点滅する表示）
+  const box = polygon(b.x, b.y, r * 0.5, 4, Math.PI / 4 + Math.sin(world.time) * 0.1);
+  g.lineStyle(2, color, 0.7).strokePoints(box, true, true);
+  g.fillStyle(hex(COLORS.red), 0.5 + 0.5 * Math.abs(Math.sin(world.time * 4))).fillCircle(b.x, b.y, 4);
+  // 泡
+  for (let i = 0; i < 4; i++) {
+    const a = world.time * 0.7 + i * 1.6;
+    g.lineStyle(1.5, color, 0.5).strokeCircle(b.x + Math.cos(a) * r * 0.6, b.y + Math.sin(a * 1.3) * r * 0.6, 3 + (i % 2) * 2);
+  }
+  // 首が残っている間は硬い：体のまわりに膜
+  if (b.armor > 0) {
+    g.lineStyle(3, WHITE, 0.25 + 0.15 * Math.sin(world.time * 6)).strokeCircle(b.x, b.y, r * 1.28);
   }
 };
 

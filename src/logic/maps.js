@@ -51,6 +51,16 @@ export function recordMapClear(save, mapId, cycle) {
   return { firstClear, nextCycle, ending: !before && allMapsCleared(save) };
 }
 
+// 記録の「最高到達」の表示（例：MAP 02 DRAIN 01-4）。まだ出撃していなければ「なし」
+export function bestReachText(save, areaOf) {
+  const r = save.records;
+  if (r.runs <= 0) return 'なし';
+  const map = maps[Math.min(r.bestMap ?? 0, maps.length - 1)];
+  const areaId = map.areas[Math.min(r.bestArea, map.areas.length - 1)];
+  if (!areaId) return 'なし';
+  return `${map.code} ${areaOf(areaId).code}-${r.bestStep + 1}`;
+}
+
 // その周での、敵の強さなどの変化。1周目は何も変わらない
 export function cycleMods(cycle = 1) {
   const n = Math.max(0, cycle - 1);

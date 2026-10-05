@@ -1,7 +1,9 @@
 // ボスの進行。定義（src/data/bosses.js）の phases と sequence に従って、攻撃パターンの部品を順に実行する。
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { angleDiff, circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { DATA } from '../data/index.js';
 import { PATTERNS } from './bossPatterns.js';
+import { createEnemy } from './enemyAI.js';
 import { hurtPlayer } from './combat.js';
 import { addShake, burst, floatText } from './fx.js';
 
@@ -40,6 +42,20 @@ function currentPhaseIndex(b) {
   const ratio = b.hp / b.maxHp;
   const i = b.def.phases.findIndex((ph) => ratio > ph.hpAbove);
   return Math.max(b.minPhase ?? 0, i < 0 ? b.def.phases.length - 1 : i);
+}
+
+// 首を1本生やす。index は、何番目の位置か（体の前側に、等間隔に並ぶ）
+function growHead(world, b, index) {
+  const heads = b.def.heads;
+  const e = createEnemy(DATA.enemies.get(heads.enemy), b.x, b.y, 0.5, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
+  e.anchor = b;
+  e.headIndex = index;
+  e.anchorAngle = (index - (heads.count - 1) / 2) * 0.95; // 正面を中心に、左右へ開く
+  e.anchorDist = heads.orbit;
+  e.cd = 1 + index * 0.8; // 弾を吐くタイミングをずらす
+  e.noStagger = true;
+  world.enemies.push(e);
+  return e;
 }
 
 export function updateBoss(world, b, dt) {
@@ -98,6 +114,25 @@ export function updateBoss(world, b, dt) {
       b.seqIndex++;
       b.act = { name, def: b.def.attacks[name], phase: '', t: 0 };
       PATTERNS[b.act.def.pattern].start(world, b, b.act, d);
+    }
+  }
+
+  // 首：残っている間は本体が硬い。段階によっては、倒された首が時間で生え直す
+  if (b.def.heads) {
+    const heads = b.def.heads;
+    if (!b.headsSpawned) {
+      b.headsSpawned = true;
+      for (let i = 0; i < heads.count; i++) growHead(world, b, i);
+    }
+    const alive = world.enemies.filter((e) => e.anchor === b && !e.dead);
+    b.armor = alive.length > 0 ? heads.reduce : 0;
+    if (phase.regrow && alive.length < heads.count) {
+      b.regrowT = (b.regrowT ?? phase.regrow) - dt;
+      if (b.regrowT <= 0) {
+        b.regrowT = phase.regrow;
+        const used = new Set(alive.map((e) => e.headIndex));
+        growHead(world, b, [...Array(heads.count).keys()].find((i) => !used.has(i)));
+      }
     }
   }
 

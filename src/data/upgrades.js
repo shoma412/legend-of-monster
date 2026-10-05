@@ -8,6 +8,7 @@
 //   kits        : ラン開始時の修復キットの数に足す
 //   startChoice : true なら、ラン開始時にインプラントを1つ選べる
 //   ougi        : その武器の奥義が使えるようになる（武器の id）
+//   carrySlots  : 持ち込みの種族の枠を増やす数
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
 export const upgrades = [
   {
@@ -49,6 +50,16 @@ export const upgrades = [
     id: 'armorplate', name: '装甲板', desc: '被ダメージ −3%', max: 3,
     costs: [{ crabCore: 1 }, { crabCore: 1 }, { crabCore: 1 }],
     perLevel: { mods: [{ stat: 'damageTaken', add: -0.03 }] },
+  },
+  {
+    id: 'regentank', name: '再生槽', desc: '最大HP +15', max: 2,
+    costs: [{ hydraCore: 1 }, { hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 15 }] },
+  },
+  {
+    id: 'carryslot', name: '部品棚の増設', desc: '持ち込みの種族の枠が2つになる', max: 1,
+    costs: [{ hydraCore: 2 }],
+    perLevel: { carrySlots: 1 },
   },
 ];
 

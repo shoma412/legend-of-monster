@@ -3,6 +3,7 @@ import { LOOT, PLAYER, ROOMGEN } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { addImplant, equipFocusLoot, equipItem, stashFocusLoot } from './build.js';
+import { healPlayer } from './combat.js';
 import { addItem } from './consumables.js';
 import { floatText, ring, sfx } from './fx.js';
 
@@ -49,8 +50,7 @@ const HANDLERS = {
   heal(world, o) {
     if (o.used) return;
     const p = world.player;
-    const amount = Math.round(p.stats.maxHp * ROOMGEN.supply.heal * (world.room.healScale ?? 1));
-    p.hp = Math.min(p.stats.maxHp, p.hp + amount);
+    const amount = Math.round(healPlayer(world, Math.round(p.stats.maxHp * ROOMGEN.supply.heal * (world.room.healScale ?? 1))));
     o.used = true;
     sfx(world, 'heal');
     say(world, `修復 +${amount}`, COLORS.green);
@@ -139,8 +139,9 @@ export function useKit(world) {
   if (world.mode === 'dead' || world.choice || p.build.kits <= 0 || p.hp >= p.stats.maxHp) return false;
   p.build.kits--;
   sfx(world, 'heal');
-  p.hp = Math.min(p.stats.maxHp, p.hp + PLAYER.kit.heal);
-  say(world, `修復キット +${PLAYER.kit.heal}`, COLORS.green);
+  // 修復キットの回復量は、インプラントで増える
+  const healed = Math.round(healPlayer(world, PLAYER.kit.heal * (1 + (p.stats.kitBonus ?? 0))));
+  say(world, `修復キット +${healed}`, COLORS.green);
   ring(world, p.x, p.y, 40, COLORS.green);
   return true;
 }

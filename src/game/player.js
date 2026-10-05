@@ -5,7 +5,7 @@ import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { createBuild } from '../logic/stats.js';
 import { recalcStats } from './build.js';
-import { hitEnemy } from './combat.js';
+import { healPlayer, hitEnemy } from './combat.js';
 import { updateItemEffects } from './consumables.js';
 import { fire } from './effects.js';
 import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
@@ -83,6 +83,8 @@ export function updatePlayer(world, dt, input) {
   p.attackBuffer -= dt;
   p.sinceDash += dt;
   p.sinceHurt += dt;
+  // 再生組織（種族「多頭」）：少しずつ HP が戻る
+  if (p.stats.hpRegen > 0 && world.mode !== 'dead' && p.hp < p.stats.maxHp) healPlayer(world, p.stats.hpRegen * dt);
   if (!p.attack) p.comboTimer -= dt;
 
   let mx = input.mx;

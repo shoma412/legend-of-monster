@@ -8,7 +8,7 @@ import { DATA } from '../data/index.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
-import { AREA_ORDER } from '../game/run.js';
+import { bestReachText } from '../logic/maps.js';
 import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
@@ -527,7 +527,7 @@ export class MenuOverlay {
   // ---- 記録 ----
   renderRecords(save) {
     const r = save.records;
-    const best = r.runs > 0 ? `${DATA.areas.get(AREA_ORDER[Math.min(r.bestArea, AREA_ORDER.length - 1)]).code}-${r.bestStep + 1}` : 'なし';
+    const best = bestReachText(save, (id) => DATA.areas.get(id));
     const bosses = DATA.bosses.all().map((b) => `${b.name} ×${save.bossKills[b.id] ?? 0}`).join('　');
     const rows = [
       ['出撃した回数', `${r.runs}`],

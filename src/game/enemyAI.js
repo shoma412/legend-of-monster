@@ -358,6 +358,31 @@ const BEHAVIORS = {
     }
   },
 
+  // スラッジハイドラの首：体のまわりの決まった位置に付いたまま、狙いをつけて弾を吐く
+  hydrahead(world, e, dt, d) {
+    const shot = e.def.shot;
+    const b = e.anchor;
+    if (b && !b.dead) {
+      const a = b.angle + e.anchorAngle + Math.sin(world.time * 1.4 + e.seed) * 0.18;
+      e.x = b.x + Math.cos(a) * e.anchorDist;
+      e.y = b.y + Math.sin(a) * e.anchorDist;
+    }
+    if (e.state === 'chase') {
+      if (e.cd <= 0) {
+        e.state = 'aim';
+        e.t = shot.aim;
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        sfx(world, 'enemyShot');
+        world.shots.push({ x: e.x, y: e.y, vx: (d.dx / d.dist) * shot.speed, vy: (d.dy / d.dist) * shot.speed, r: shot.radius, damage: e.def.damage, life: shot.life, color: e.color });
+        e.state = 'chase';
+        e.cd = shot.interval;
+      }
+    }
+  },
+
   gunner(world, e, dt, d) {
     const keep = e.def.keepDistance;
     const shot = e.def.shot;
@@ -427,12 +452,13 @@ export function updateEnemies(world, dt) {
     e.cd -= edt;
     e.stagger -= dt;
     if (e.swingT > 0) e.swingT -= dt;
+    if (e.anchor) e.stagger = 0; // 首は、ひるんでも体から離れない
     if (e.stagger <= 0 && edt > 0) {
       const dx = p.x - e.x;
       const dy = p.y - e.y;
       BEHAVIORS[e.def.behavior](world, e, edt, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
     }
-    if (e.state !== 'latched') {
+    if (e.state !== 'latched' && !e.anchor) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
     }
@@ -442,7 +468,7 @@ export function updateEnemies(world, dt) {
   }
 
   // 敵同士が重ならないように押し合う
-  const live = world.enemies.filter((e) => !e.dead && e.spawnT <= 0 && e.state !== 'latched' && !e.hidden);
+  const live = world.enemies.filter((e) => !e.dead && e.spawnT <= 0 && e.state !== 'latched' && !e.hidden && !e.anchor);
   for (let i = 0; i < live.length; i++) {
     for (let j = i + 1; j < live.length; j++) {
       const a = live[i];

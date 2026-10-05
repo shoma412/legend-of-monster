@@ -141,6 +141,8 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
       return;
     }
   }
+  // 首が残っているボス：本体へのダメージが減る
+  if (enemy.armor > 0) amount = Math.max(1, Math.round(amount * (1 - enemy.armor)));
   enemy.hp -= amount;
   enemy.hit = 0.1;
   const label = amount + (crit ? '!' : '') + (weak ? ' 弱点' : '');
@@ -159,7 +161,7 @@ export function killEnemy(world, enemy) {
   sfx(world, enemy.boss ? 'bossKill' : 'kill');
 
   const p = world.player;
-  if (p.stats.killHeal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.killHeal);
+  if (p.stats.killHeal > 0) healPlayer(world, p.stats.killHeal);
   const levelUps = addXp(p.build, enemy.def.xp ?? 0);
   world.pendingLevelUps += levelUps;
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
@@ -214,6 +216,17 @@ function dropLoot(world, enemy) {
   }
 }
 
+// ---- プレイヤーの回復 ----
+
+// HP を回復する。HPが半分以下のときは、種族ボーナスで回復が増えることがある。実際に回復した量を返す
+export function healPlayer(world, amount) {
+  const p = world.player;
+  const boost = p.hp <= p.stats.maxHp * 0.5 ? 1 + (p.stats.lowHealBonus ?? 0) : 1;
+  const before = p.hp;
+  p.hp = Math.min(p.stats.maxHp, p.hp + amount * boost);
+  return p.hp - before;
+}
+
 // ---- プレイヤーへのダメージ ----
 
 // 冷気を浴びたときの減速。無敵中（ダッシュ中など）は付かない
@@ -243,6 +256,15 @@ export function hurtPlayer(world, damage) {
   sfx(world, p.hp <= 0 ? 'death' : 'hurt');
   floatText(world, p.x, p.y - 22, '-' + amount, COLORS.red, 18);
   burst(world, p.x, p.y, COLORS.red, 12);
+  // 予備の首（種族「多頭」）：出撃ごとに1回だけ、倒れても起き上がる
+  if (p.hp <= 0 && p.stats.revive > 0 && !p.build.reviveUsed) {
+    p.build.reviveUsed = true;
+    p.hp = Math.max(1, Math.round(p.stats.maxHp * p.stats.revive));
+    p.inv = Math.max(p.inv, 2);
+    floatText(world, p.x, p.y - 44, '予備の首 // 再起動', COLORS.magenta, 18);
+    burst(world, p.x, p.y, COLORS.magenta, 40, 320);
+    sfx(world, 'levelup');
+  }
   if (p.hp <= 0) {
     world.mode = 'dead';
     p.attack = null;

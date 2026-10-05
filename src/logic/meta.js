@@ -43,7 +43,7 @@ export function unlockWeapon(save, weaponId) {
 
 // ラン開始時に乗る恒久強化。{ effects: ステータス補正の並び, kits: 修復キットの追加, startChoice: 最初にインプラントを選べるか }
 export function permanentBonuses(save) {
-  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [] };
+  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [], carrySlots: 1 };
   for (const def of DATA.upgrades.all()) {
     const level = upgradeLevel(save, def.id);
     for (let i = 0; i < level; i++) {
@@ -51,6 +51,7 @@ export function permanentBonuses(save) {
       bonus.kits += def.perLevel.kits ?? 0;
       if (def.perLevel.startChoice) bonus.startChoice = true;
       if (def.perLevel.ougi) bonus.ougi.push(def.perLevel.ougi);
+      bonus.carrySlots += def.perLevel.carrySlots ?? 0;
     }
   }
   return bonus;
@@ -119,10 +120,14 @@ export function startRunRecord(save) {
   save.records.runs++;
 }
 
-// 最高到達の更新（部屋に入るたびに呼ぶ）
-export function recordProgress(save, areaIndex, step) {
+// 最高到達の更新（部屋に入るたびに呼ぶ）。マップ → エリア → 部屋の順に、奥まで進んだほうを残す
+export function recordProgress(save, areaIndex, step, mapIndex = 0) {
   const r = save.records;
-  if (areaIndex > r.bestArea || (areaIndex === r.bestArea && step > r.bestStep)) {
+  const now = [mapIndex, areaIndex, step];
+  const best = [r.bestMap ?? 0, r.bestArea, r.bestStep];
+  const i = now.findIndex((v, k) => v !== best[k]); // 最初に違いが出るところ
+  if (i >= 0 && now[i] > best[i]) {
+    r.bestMap = mapIndex;
     r.bestArea = areaIndex;
     r.bestStep = step;
   }

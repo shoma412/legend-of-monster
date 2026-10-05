@@ -66,6 +66,15 @@ export const MATERIAL_ICONS = {
     g.strokePoints([{ x: x - s * 0.1, y: y + s * 0.55 }, { x: x - s * 0.5, y: y - s * 0.1 }, { x: x - s * 0.2, y: y - s * 0.6 }], false, false);
     g.strokePoints([{ x: x + s * 0.1, y: y + s * 0.55 }, { x: x + s * 0.5, y: y - s * 0.1 }, { x: x + s * 0.2, y: y - s * 0.6 }], false, false);
   },
+  // ハイドラコア：三つ首
+  hydraCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    for (const dx of [-0.45, 0, 0.45]) {
+      g.lineBetween(x, y + s * 0.5, x + dx * s, y - s * 0.25);
+      g.fillStyle(c, 1).fillCircle(x + dx * s, y - s * 0.35, s * 0.16);
+    }
+  },
 };
 
 export function drawMaterialIcon(g, id, x, y, s, c) {

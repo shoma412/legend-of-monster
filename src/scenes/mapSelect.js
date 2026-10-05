@@ -8,6 +8,7 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { species } from '../data/implants.js';
 import { canSortieCycle, clearedCycle, cycleNotes, mapState } from '../logic/maps.js';
+import { permanentBonuses } from '../logic/meta.js';
 import { carryOptions, mapSpecies } from '../logic/stats.js';
 
 const W = SCREEN.width;
@@ -85,18 +86,31 @@ export function createMapSelect(scene, options) {
     render();
   }
 
-  // 選んでいる持ち込みの種族（そのマップで選べないものなら null）
+  // 持ち込みの枠（セーブデータの項目の名前）。枠の数は、恒久強化で増える
+  const CARRY_KEYS = ['carrySpecies', 'carrySpecies2'];
+  const carrySlots = (save) => Math.min(CARRY_KEYS.length, permanentBonuses(save).carrySlots);
+
+  // 選んでいる持ち込みの種族（枠ごと。そのマップで選べないものや、ほかの枠と同じものは null）
   function currentCarry(save, map) {
-    return carryOptions(save, map).includes(save.carrySpecies) ? save.carrySpecies : null;
+    const ok = carryOptions(save, map);
+    const picked = [];
+    for (let slot = 0; slot < carrySlots(save); slot++) {
+      const id = save[CARRY_KEYS[slot]];
+      picked.push(ok.includes(id) && !picked.includes(id) ? id : null);
+    }
+    return picked;
   }
 
-  // 持ち込みの種族を切り替える（なし → 1つ目 → 2つ目 → … → なし）
-  function changeCarry(delta) {
+  // 持ち込みの種族を切り替える（なし → 1つ目 → 2つ目 → … → なし）。ほかの枠で選んでいるものは飛ばす
+  function changeCarry(delta, slot = 0) {
     const save = options.save();
-    const list = [null, ...carryOptions(save, maps[index])];
+    if (slot >= carrySlots(save)) return;
+    const now = currentCarry(save, maps[index]);
+    const others = now.filter((id, i) => i !== slot && id);
+    const list = [null, ...carryOptions(save, maps[index]).filter((id) => !others.includes(id))];
     if (list.length <= 1) return;
-    const at = Math.max(0, list.indexOf(currentCarry(save, maps[index])));
-    save.carrySpecies = list[(at + delta + list.length) % list.length];
+    const at = Math.max(0, list.indexOf(now[slot]));
+    save[CARRY_KEYS[slot]] = list[(at + delta + list.length) % list.length];
     playSe('select');
     options.onChange?.();
     render();
@@ -111,7 +125,7 @@ export function createMapSelect(scene, options) {
     }
     playSe('confirm');
     box.close();
-    options.onStart(map.id, cycle, currentCarry(save, map));
+    options.onStart(map.id, cycle, currentCarry(save, map).filter(Boolean));
   }
 
   function render() {
@@ -161,15 +175,19 @@ export function createMapSelect(scene, options) {
       text(80, py + 94, `出る種族：${names}`, 13, COLORS.ink);
       const carryList = carryOptions(save, map);
       const carry = currentCarry(save, map);
-      const tx = 80 + 330;
+      const tx = 80 + 300;
       text(tx, py + 94, '持ち込み', 13, COLORS.dim, { fontStyle: '700' });
       if (carryList.length === 0) {
         text(tx + 70, py + 95, 'なし（ほかのマップのボスを倒すと、その種族を持ち込める）', 12, LOCKED);
       } else {
-        button(tx + 70, py + 88, 30, 26, '◀', COLORS.ink, () => changeCarry(-1));
-        text(tx + 160, py + 101, carry ? species[carry].name : 'なし', 15, carry ? COLORS.amber : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
-        button(tx + 220, py + 88, 30, 26, '▶', COLORS.ink, () => changeCarry(1));
-        text(tx + 262, py + 95, 'Q・E で切り替え', 11, COLORS.dim);
+        // 枠ごとに ◀ 名前 ▶（枠は、恒久強化で2つまで増える）
+        carry.forEach((id, slot) => {
+          const sx = tx + 70 + slot * 190;
+          button(sx, py + 88, 26, 26, '◀', COLORS.ink, () => changeCarry(-1, slot));
+          text(sx + 80, py + 101, id ? species[id].name : 'なし', 15, id ? COLORS.amber : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
+          button(sx + 134, py + 88, 26, 26, '▶', COLORS.ink, () => changeCarry(1, slot));
+        });
+        text(W - 80, py + 72, carry.length > 1 ? 'Q・E：1つ目　Z・C：2つ目' : 'Q・E で切り替え', 11, COLORS.dim).setOrigin(1, 0);
       }
 
       // 周の選択（2周目以降が選べるときだけ）
@@ -202,8 +220,10 @@ export function createMapSelect(scene, options) {
   on(['D', 'RIGHT'], () => move(1));
   on(['W', 'UP'], () => changeCycle(1));
   on(['S', 'DOWN'], () => changeCycle(-1));
-  on(['Q'], () => changeCarry(-1));
-  on(['E'], () => changeCarry(1));
+  on(['Q'], () => changeCarry(-1, 0));
+  on(['E'], () => changeCarry(1, 0));
+  on(['Z'], () => changeCarry(-1, 1));
+  on(['C'], () => changeCarry(1, 1));
   on(['ENTER'], start);
   on(['ESC'], () => box.close());
 

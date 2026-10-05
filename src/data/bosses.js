@@ -16,12 +16,14 @@
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
+// heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
 // turnRate: 攻撃の合間に向きを変える速さ（ラジアン/秒）。書かなければ、すぐにプレイヤーのほうを向く
 // phases: HP の割合で切り替わる行動。上から順に見て、残りHPの割合が hpAbove より大きい最初のものを使う
 //   sequence : attacks の名前を出す順番（最後まで行ったら最初に戻る）
 //   idle     : 攻撃と攻撃の間に歩いて近づく時間（秒）
 //   speed    : この段階の速さの倍率（予告も攻撃も、合間の時間も速くなる）
 //   noShield : true なら、この段階では甲羅で防げない
+//   regrow   : この段階では、倒された首がこの秒数ごとに1本ずつ生え直す
 //   arena    : この段階に入ると、部屋の端から inset px まで seconds 秒かけて凍りつき、動ける範囲が狭まる
 export const bosses = [
   {
@@ -258,6 +260,49 @@ export const bosses = [
         noShield: true,
         sequence: ['leap', 'scuttle', 'jetsHard', 'pinch', 'bubblesHard', 'scuttle'],
         announce: '甲羅破損',
+      },
+    ],
+  },
+  {
+    id: 'sludgehydra',
+    name: 'スラッジハイドラ',
+    alias: '汚泥の多頭', // 登場時に出す異名
+    shape: 'hydra',
+    color: 'magenta',
+    weakness: 'heat',
+    material: 'hydraCore',
+    radius: 50,
+    hp: 5200,
+    speed: 26,
+    contactDamage: 38,
+    xp: 360,
+    credits: 180,
+    drops: { count: 3, rarityBonus: 2 },
+    // 首：3本。体の前側に付いて、弾を吐く。残っている間は、本体へのダメージが 75% 減る
+    heads: { enemy: 'hydrahead', count: 3, orbit: 78, reduce: 0.75 },
+    attacks: {
+      // 汚泥の落下
+      drop: { pattern: 'rain', telegraph: 0.4, count: 8, interval: 0.3, delay: 0.9, radius: 40, spread: 80, damage: 32, recover: 0.8 },
+      dropHard: { pattern: 'rain', telegraph: 0.3, count: 13, interval: 0.2, delay: 0.85, radius: 40, spread: 110, damage: 32, recover: 0.7 },
+      // うずまきの弾
+      spiral: { pattern: 'barrage', telegraph: 0.7, count: 8, spread: 360, waves: 5, interval: 0.32, rotate: 14, shotSpeed: 200, shotRadius: 7, damage: 28, recover: 0.9 },
+      spiralHard: { pattern: 'barrage', telegraph: 0.6, count: 10, spread: 360, waves: 7, interval: 0.26, rotate: 11, shotSpeed: 220, shotRadius: 7, damage: 28, recover: 0.8 },
+      // ぬかるみ：踏むと減速してダメージを受ける床
+      mire: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 58, spread: 150, arm: 0.9, life: 7, tick: 0.5, damage: 16, slow: true, recover: 0.7 },
+      // 体のまわりを叩く
+      slam: { pattern: 'slam', telegraph: 0.8, radius: 165, damage: 42, recover: 1.0 },
+      // 汚泥のしずくを生む
+      spawn: { pattern: 'summon', telegraph: 0.7, enemy: 'sludgelet', count: 3, max: 8, recover: 0.7 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, sequence: ['drop', 'spiral', 'mire', 'slam', 'spawn'] },
+      // 再生：倒された首が、時間で生え直す
+      {
+        hpAbove: 0,
+        idle: { min: 0.9, max: 1.4 },
+        regrow: 9,
+        sequence: ['dropHard', 'spiral', 'slam', 'mire', 'spawn', 'spiralHard'],
+        announce: '再生開始',
       },
     ],
   },

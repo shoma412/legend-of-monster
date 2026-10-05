@@ -31,7 +31,7 @@ export const areas = [
     ],
     eliteBases: ['grunt', 'turret'],
     boss: 'boltboar',
-    final: false, // 最後のエリアなら true（ここのボスを倒すとクリア）
+    final: false, // 昔の目印（マップ1の最後のエリアだけ true）。今は、マップの定義（src/data/maps.js）の areas の最後が、そのマップの最後のエリア
     comms: {
       bossIntro: [
         '@noise＞ 最深部に大型反応。そいつが今回の標的だ。',
@@ -168,6 +168,39 @@ export const areas = [
       bossDefeated: [
         '@noise＞ 水門が開いた。……もう、ためる水はないのに。',
         '@noise＞ コアを回収しろ。残りは、いちばん下の浄水プラントだ。',
+      ],
+    },
+  },
+  {
+    id: 'purifier',
+    code: 'DRAIN 03',
+    name: '浄水プラント',
+    theme: 'filter',
+    // 曲は、マップ2の曲を選ぶまでの仮
+    bgm: 'purifier',
+    bossBgm: 'bossPurifier',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'sludge', weight: 4 },
+      { id: 'poacher', weight: 2 },
+      { id: 'roller', weight: 2 },
+      { id: 'leech', weight: 2 },
+      { id: 'pipegun', weight: 3 },
+      { id: 'bomber', weight: 2 },
+    ],
+    eliteBases: ['sludge', 'poacher', 'pipegun'],
+    boss: 'sludgehydra',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 沈殿池の中央だ。首が三本、見えるはずだ。',
+        '@noise＞ 首を落とさないと、本体にはほとんど通らない。熱が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……止まった。排水区は、これで全部だ。',
+        '@noise＞ 帰ってこい。礼を言いたい。',
       ],
     },
   },

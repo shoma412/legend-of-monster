@@ -86,7 +86,7 @@ export function enterRoom(run) {
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
   if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
   run.started = true;
-  recordProgress(save, run.areaIndex, plan.step);
+  recordProgress(save, run.areaIndex, plan.step, DATA.maps.all().indexOf(run.map));
   const world = createWorld({
     weaponId: run.weaponId,
     rng,

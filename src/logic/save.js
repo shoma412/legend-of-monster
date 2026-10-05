@@ -1,7 +1,7 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -20,7 +20,7 @@ export function createSave() {
     bossKills: {}, // { ボスのid: 倒した回数 }
     fragments: [], // 手に入れたデータ片の id
     achievements: [], // 解除した実績の id
-    records: { runs: 0, clears: 0, kills: 0, bestArea: 0, bestStep: 0 },
+    records: { runs: 0, clears: 0, kills: 0, bestMap: 0, bestArea: 0, bestStep: 0 }, // bestMap は版5で追加
     tutorialSeen: false, // 最初の操作説明を見たか
     seenDialogues: [], // 自動で出る会話のうち、もう見たものの id（版2で追加）
     // ここから版3で追加（マップと周回）
@@ -29,6 +29,7 @@ export function createSave() {
     selectedMap: 'map1', // マップを選ぶ画面で、最後に選んでいたマップ
     selectedCycle: 1, // 同じく、最後に選んでいた周
     carrySpecies: null, // 持ち込みの種族の id（版4で追加。選んでいなければ null）
+    carrySpecies2: null, // 持ち込みの2つ目の枠（版5で追加。恒久強化で枠を増やすと使える）
   };
 }
 
@@ -53,6 +54,12 @@ function migrate(data) {
   if (data.version === 3) {
     data.carrySpecies = null;
     data.version = 4;
+  }
+  // 版4 → 版5：持ち込みの2つ目の枠と、記録の「最高到達」のマップを足す
+  if (data.version === 4) {
+    data.carrySpecies2 = null;
+    if (data.records) data.records.bestMap = 0;
+    data.version = 5;
   }
   return data;
 }
@@ -79,6 +86,7 @@ function normalize(data) {
     selectedMap: typeof d.selectedMap === 'string' ? d.selectedMap : base.selectedMap,
     selectedCycle: Number.isInteger(d.selectedCycle) && d.selectedCycle >= 1 ? d.selectedCycle : 1,
     carrySpecies: typeof d.carrySpecies === 'string' ? d.carrySpecies : null,
+    carrySpecies2: typeof d.carrySpecies2 === 'string' ? d.carrySpecies2 : null,
   };
 }
 

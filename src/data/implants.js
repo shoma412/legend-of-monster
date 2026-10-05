@@ -152,6 +152,32 @@ export const implants = [
     desc: (k) => `会心ダメージ +${pct(0.3 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'critMul', add: 0.3 * k }] }),
   },
+  // ---- 多頭（スラッジハイドラ由来・回復して粘る） ----
+  {
+    id: 'regen', species: 'hydra', name: '再生組織',
+    desc: (k) => `少しずつ HP が戻る（2秒ごとに +${Math.round(k * 10) / 10}）`,
+    effect: (k) => ({ mods: [{ stat: 'hpRegen', add: 0.5 * k }] }),
+  },
+  {
+    id: 'devour', species: 'hydra', name: '捕食',
+    desc: (k) => `撃破するたび HP +${Math.round(3 * k * 10) / 10}`,
+    effect: (k) => ({ mods: [{ stat: 'killHeal', add: Math.round(3 * k * 10) / 10 }] }),
+  },
+  {
+    id: 'sparehead', species: 'hydra', name: '予備の首',
+    desc: (k) => `倒れたとき、出撃ごとに1回だけ、HP ${pct(Math.min(1, 0.3 * k))} で起き上がる`,
+    effect: (k) => ({ mods: [{ stat: 'revive', add: Math.min(1, 0.3 * k) }] }),
+  },
+  {
+    id: 'thickblood', species: 'hydra', name: '濃縮体液',
+    desc: (k) => `修復キットの回復量 +${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'kitBonus', add: 0.25 * k }] }),
+  },
+  {
+    id: 'lastgasp', species: 'hydra', name: '底力',
+    desc: (k) => `HPが50%以下のとき、被ダメージ −${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.15 * k, when: 'hpBelowHalf' }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -235,6 +261,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '被ダメージ −10%', effect: { mods: [{ stat: 'damageTaken', add: -0.1 }] } },
       { need: 3, desc: '被弾後の無敵時間 +0.4秒', effect: { mods: [{ stat: 'hurtInvincible', add: 0.4 }] } },
+    ],
+  },
+  hydra: {
+    name: '多頭', color: 'magenta', boss: 'sludgehydra',
+    bonuses: [
+      { need: 2, desc: '修復キットの回復量 +30%', effect: { mods: [{ stat: 'kitBonus', add: 0.3 }] } },
+      { need: 3, desc: 'HPが半分以下のとき、回復が2倍', effect: { mods: [{ stat: 'lowHealBonus', add: 1 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },

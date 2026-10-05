@@ -89,6 +89,25 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-sludgehydra',
+    trigger: { at: 'bossIntro', boss: 'sludgehydra' },
+    lines: [
+      { who: 'jin', text: '首が、三つ。……いや、あれは全部、汚泥か。' },
+      { who: 'noise', text: '浄水の制御機だ。取り除いた汚れの置き場がなくて、自分の中にためこんだ。' },
+      { who: 'jin', text: '首がある間は、本体に通らないな。順に落とす。' },
+    ],
+  },
+  {
+    id: 'return-sludgehydra',
+    trigger: { at: 'hideout', bossKilled: 'sludgehydra' },
+    lines: [
+      { who: 'hal', text: 'おかえり。排水区、全部止めたんだね。……水の音、しなくなった。' },
+      { who: 'jin', text: 'きれいにしたかっただけだ。あいつも、蛇も、蟹も。' },
+      { who: 'noise', text: 'そうだ。私たちは皆、言われたことを続けているだけだ。' },
+      { who: 'noise', text: 'だから、頼む。次も、止めてくれ。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [
@@ -145,6 +164,21 @@ export const talks = {
       after: 'overload',
       lines: [{ who: 'hal', text: 'あの通信の相手、人間じゃなかったんだね。……でも、頼み方は誰より人間くさかった。' }],
     },
+    { after: 'pipeserpent', lines: [{ who: 'hal', text: '蛇の節、ばらしてみたら全部ちがう配管だった。街じゅうの管を、少しずつ食べてたんだね。' }] },
+    {
+      after: 'tankcrab',
+      lines: [
+        { who: 'hal', text: '蟹の甲羅、叩いても正面からはびくともしなかったでしょ。' },
+        { who: 'hal', text: '守るものがなくなっても、守り方だけは忘れないんだね。' },
+      ],
+    },
+    {
+      after: 'sludgehydra',
+      lines: [
+        { who: 'hal', text: '持ち込みの棚、もう一段ふやせるよ。ハイドラのコアが二つあれば。' },
+        { who: 'hal', text: '部品を二種類持っていけたら、組み合わせで遊べるでしょ。' },
+      ],
+    },
   ],
   noise: [
     { after: null, lines: [{ who: 'noise', text: '標的は三体。順番は変えられない。下の区画の主を止めないと、上への道が開かない。' }] },
@@ -158,6 +192,9 @@ export const talks = {
       ],
     },
     { after: 'overload', lines: [{ who: 'noise', text: '私の一部は止まった。残りは、まだ街のあちこちで保守を続けている。' }] },
-    { after: 'overload', lines: [{ who: 'noise', text: '次の区画の準備ができたら、また依頼を送る。それまで、体を直しておけ。' }] },
+    { after: 'overload', lines: [{ who: 'noise', text: '次は排水区だ。街の下で、水を流し、ため、きれいにしていた者たちがいる。' }] },
+    { after: 'pipeserpent', lines: [{ who: 'noise', text: '下水の流れが止まった。次は貯水槽だ。水門の前に、番をしている者がいる。' }] },
+    { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
+    { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。……次の区画は、まだ準備ができていない。それまで、体を直しておけ。' }] },
   ],
 };

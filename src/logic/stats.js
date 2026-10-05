@@ -21,6 +21,7 @@ export function createBuild(bonus = null) {
     permanent: bonus?.effects ?? [], // 恒久強化のステータス補正
     ougi: bonus?.ougi ?? [], // 奥義が使える武器の id
     ougiUsed: false, // このエリアで奥義を使ったか（エリアごとに1回）
+    reviveUsed: false, // この出撃で、もう起き上がったか（種族「多頭」の予備の首）
   };
 }
 
@@ -65,9 +66,10 @@ export function mapSpecies(map) {
   return Object.keys(species).filter((id) => bosses.includes(species[id].boss));
 }
 
+// carry は、持ち込みの種族の id（1つ、または並び。なければ null）
 export function runSpecies(map, carry = null) {
   const list = mapSpecies(map);
-  if (carry && species[carry] && !list.includes(carry)) list.push(carry);
+  for (const id of [carry].flat()) if (id && species[id] && !list.includes(id)) list.push(id);
   return list;
 }
 
@@ -140,6 +142,10 @@ export function computeStats(build) {
     slowMul: 1, // 敵にかける減速の時間の倍率
     dashHaste: 0, // ダッシュの回復が速くなる割合（0.15 = 15% 速い）
     hurtInvincible: 0, // 被弾後の無敵時間に足す秒数
+    hpRegen: 0, // 1秒あたりに戻る HP
+    revive: 0, // 倒れたとき、出撃ごとに1回だけ起き上がる。そのときの HP の割合（0 なら起き上がらない）
+    kitBonus: 0, // 修復キットの回復量が増える割合
+    lowHealBonus: 0, // HPが半分以下のとき、回復が増える割合（1 = 2倍）
     comboBonus: 0, // 同じ敵に続けて当てるたびに上がるダメージの割合
     comboMax: COMBO.max, // その重なる回数の上限
     freezeChance: 0,

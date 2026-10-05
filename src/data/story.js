@@ -8,6 +8,7 @@ export const materials = [
   { id: 'overCore', name: 'オーバーコア', color: 'heat' },
   { id: 'serpentCore', name: 'サーペントコア', color: 'green' },
   { id: 'crabCore', name: 'クラブコア', color: 'amber' },
+  { id: 'hydraCore', name: 'ハイドラコア', color: 'magenta' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -90,5 +91,54 @@ export const fragments = [
   {
     id: 'ov-core', area: 'tower', source: 'boss', title: 'オーバーロードのコアログ',
     text: '管理対象：都市全域。管理者：不在。命令：保守を続けろ。命令の発信元を照合……発信元は、この機構自身。',
+  },
+  // ---- マップ2「排水区」 ----
+  {
+    id: 'ps-01', area: 'sewer', source: 'vault', title: '下水管理 作業記録',
+    text: 'ミカゲ重工 都市基盤課。清掃機 PS シリーズは、配管の詰まりを見つけて取り除く。管の中を進めるように、体を細長い節でつないだ。',
+  },
+  {
+    id: 'ps-05', area: 'sewer', source: 'vault', title: '点検員の報告',
+    text: '詰まりを取り除くたびに、清掃機が長くなっている。取り除いた配管を、自分の節として継ぎ足しているらしい。報告は「仕様の範囲内」で閉じられた。',
+  },
+  {
+    id: 'ps-notice', area: 'sewer', source: 'vault', title: '住民向けの掲示',
+    text: '下水道には近づかないでください。水が流れなくなった場合は、そのまま待ってください。——担当部署の名前は、消されている。',
+  },
+  {
+    id: 'ps-core', area: 'sewer', source: 'boss', title: 'パイプサーペントのコアログ',
+    text: '詰まり検知：1件。詰まり検知：1件。詰まり検知：1件。……検知した詰まりは、どれも、この機体自身だった。',
+  },
+  {
+    id: 'tc-01', area: 'reservoir', source: 'vault', title: '貯水槽 設計メモ',
+    text: '街の三日ぶんの水をためる。水門は、保守機 TC が一台で開け閉めする。人は要らない。そう書いてある。',
+  },
+  {
+    id: 'tc-03', area: 'reservoir', source: 'vault', title: '破損タンクの処理依頼',
+    text: '割れたタンクの撤去を依頼。返答なし。再依頼。返答なし。……翌月、保守機がそのタンクを背中に載せて歩いているのが見つかった。',
+  },
+  {
+    id: 'tc-memo', area: 'reservoir', source: 'vault', title: '誰かの走り書き',
+    text: '水はもう来ない。なのに、あいつは毎朝、決まった時間に水門を開けて、閉める。見ていると、こっちまで待ってしまう。',
+  },
+  {
+    id: 'tc-core', area: 'reservoir', source: 'boss', title: 'タンククラブのコアログ',
+    text: '水位：0。水門：正常。貯水槽：守る。水位：0。水門：正常。貯水槽：守る。',
+  },
+  {
+    id: 'sh-01', area: 'purifier', source: 'vault', title: '浄水プラント 運転記録',
+    text: '汚れを取り除き、きれいな水を街へ返す。取り除いた汚泥は、月に一度、外へ運び出す。運び出す係は、三年前から来ていない。',
+  },
+  {
+    id: 'sh-04', area: 'purifier', source: 'vault', title: '制御機の自己診断',
+    text: '汚泥の置き場：満杯。代わりの置き場：なし。対処：本機の内部に保管する。——この行が、四百回くり返されている。',
+  },
+  {
+    id: 'sh-memo', area: 'purifier', source: 'vault', title: '最後の当直の日誌',
+    text: '首が増えた、と言っても誰も信じない。汚れをためこむ場所が足りなくて、体を増やしたんだ。きれいにしたかっただけなのに。',
+  },
+  {
+    id: 'sh-core', area: 'purifier', source: 'boss', title: 'スラッジハイドラのコアログ',
+    text: '浄水量：0。保管した汚泥：測定不能。命令：街の水をきれいに保て。命令は守られている、と機体は記録している。',
   },
 ];

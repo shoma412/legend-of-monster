@@ -334,6 +334,46 @@ const THEMES = {
       for (let k = 0; k < 5; k++) block(g, x - 18 + k * 9, a.bottom - 16, PX / 2, 12, 0x1c3a58, 0.9);
     }
   },
+  // 浄水プラント：丸い沈殿池、ろ過装置の格子、床を走る太い管、こぼれた汚泥
+  filter(g, rng, a) {
+    speckles(g, rng, a, 280, [0x1a1022, 0x241530, 0x120a18, 0x2e1a3c], 0.7);
+    // 沈殿池（丸い池。ふちが光る）
+    for (let i = 0; i < 4; i++) {
+      const cx = a.left + 120 + rng() * (a.w - 240);
+      const cy = a.top + 90 + rng() * (a.h - 180);
+      const r = 40 + rng() * 34;
+      blob(g, cx, cy, r, r * 0.62, 0x08050c, 0.75);
+      blob(g, cx, cy, r * 0.82, r * 0.5, 0x3a1a4a, 0.5);
+      blob(g, cx - r * 0.2, cy - r * 0.1, r * 0.3, r * 0.12, 0xff2bd6, 0.08);
+      for (let k = 0; k < 10; k++) {
+        const t = (k / 10) * Math.PI * 2;
+        block(g, cx + Math.cos(t) * r - 2, cy + Math.sin(t) * r * 0.62 - 2, PX, PX, 0xb05ad0, 0.3);
+      }
+    }
+    // ろ過装置（格子のパネル）
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + 60 + rng() * (a.w - 200);
+      const y = a.top + 50 + rng() * (a.h - 130);
+      block(g, x, y, 64, 40, 0x120a18, 0.7);
+      for (let c = 0; c <= 64; c += 8) block(g, x + c, y, PX / 2, 40, 0x4a2a5e, 0.7);
+      for (let rr = 0; rr <= 40; rr += 8) block(g, x, y + rr, 64, PX / 2, 0x4a2a5e, 0.7);
+    }
+    // 床を走る太い管（縦に2本）
+    for (const k of [0.22, 0.78]) {
+      const x = a.left + a.w * k + (rng() - 0.5) * 40;
+      block(g, x - 8, a.top, 16, a.h, 0x1e1226, 0.7);
+      block(g, x - 8, a.top, PX / 2, a.h, 0xb05ad0, 0.2);
+      for (let y = a.top + 30 + rng() * 40; y < a.bottom - 20; y += 90 + rng() * 60) block(g, x - 11, y, 22, 8, 0x4a2a5e, 0.9);
+    }
+    // こぼれた汚泥
+    for (let i = 0; i < 8; i++) {
+      const x = a.left + 40 + rng() * (a.w - 80);
+      const y = a.top + 40 + rng() * (a.h - 80);
+      blob(g, x, y, 10 + rng() * 16, 4 + rng() * 5, 0x5a2a6a, 0.3);
+    }
+    // 上の壁の表示灯
+    for (let x = a.left + 50; x < a.right - 30; x += 120) block(g, x, a.top + 8, 10, PX, rng() < 0.3 ? 0xff4d5e : 0x5dffa0, 0.5);
+  },
 };
 
 // 部屋の内側（壁の内側）に、エリアの背景を描く

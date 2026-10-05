@@ -3,7 +3,7 @@ import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
-import { AREA_ORDER } from '../game/run.js';
+import { bestReachText } from '../logic/maps.js';
 import { eraseSlot, getSlots, selectSlot } from '../game/saveStore.js';
 import { setupView } from '../render/view.js';
 
@@ -124,7 +124,7 @@ export class SaveSelectScene extends Phaser.Scene {
       }
 
       const r = save.records;
-      const best = r.runs > 0 ? `${DATA.areas.get(AREA_ORDER[Math.min(r.bestArea, AREA_ORDER.length - 1)]).code}-${r.bestStep + 1}` : 'なし';
+      const best = bestReachText(save, (id) => DATA.areas.get(id));
       const rows = [
         ['出撃', `${r.runs} 回`],
         ['クリア', `${r.clears} 回`],

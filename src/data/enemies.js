@@ -13,6 +13,7 @@
 //   leech   : 飛びついて張り付き、HP を吸い続ける。ダッシュで振り払える
 //   steamer : 動かない。予告の帯を出してから、蒸気を一直線に噴き続ける
 //   harpooner : 距離を取り、照準線を出してから銛を投げる。当たると引き寄せられる
+//   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
 // hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
@@ -246,5 +247,23 @@ export const enemies = [
     keepDistance: { min: 220, max: 340 },
     // aim 秒かけて狙い（最後の lock 秒は向きを固定）、銛を投げる。当たると pull 秒かけて、手元の pullTo の距離まで引き寄せる
     harpoon: { interval: 3.0, aim: 0.95, lock: 0.3, range: 420, width: 10, pull: 0.32, pullTo: 70 },
+  },
+  {
+    // スラッジハイドラの首。ボスが生やす（部屋の敵としては選ばれない）
+    id: 'hydrahead',
+    name: '汚泥の首',
+    behavior: 'hydrahead',
+    shape: 'hydrahead',
+    color: 'magenta',
+    radius: 17,
+    hp: 300,
+    speed: 0,
+    damage: 22,
+    xp: 8,
+    credits: 3,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    shot: { interval: 2.6, aim: 0.6, speed: 250, radius: 7, life: 4 },
   },
 ];

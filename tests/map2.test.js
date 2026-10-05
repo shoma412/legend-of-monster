@@ -9,10 +9,12 @@ import { hitEnemy, hurtPlayer as hurtPlayerFor } from '../src/game/combat.js';
 import { statWith } from '../src/game/effects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { dashCooldown } from '../src/game/player.js';
-import { recalcStats } from '../src/game/build.js';
+import { chooseImplant, recalcStats } from '../src/game/build.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { mapState, recordMapClear } from '../src/logic/maps.js';
+import { bestReachText, mapState, recordMapClear } from '../src/logic/maps.js';
+import { useKit } from '../src/game/objects.js';
+import { SAVE_VERSION, loadSlot, slotKey } from '../src/logic/save.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
 import { createSave } from '../src/logic/save.js';
 import { carryOptions, createBuild, mapSpecies } from '../src/logic/stats.js';
@@ -91,11 +93,11 @@ describe('マップ2の定義', () => {
     expect(area.enemies.map((x) => x.id)).toEqual(expect.arrayContaining(['roller', 'leech', 'pipegun']));
   });
 
-  it('マップ2では、雑魚がマップ1より強い。出る種族は、マップ2のボスの種族（大蛇・大蟹）', () => {
+  it('マップ2では、雑魚がマップ1より強い。出る種族は、マップ2のボスの種族（大蛇・大蟹・多頭）', () => {
     const r = createRun({ rng: seeded(4), mapId: 'map2' });
-    expect(r.build.species).toEqual(['serpent', 'crab']);
+    expect(r.build.species).toEqual(['serpent', 'crab', 'hydra']);
     expect(enterRoom(r).room.enemyScale).toBeCloseTo(maps[1].enemyScale);
-    expect(mapSpecies(maps[1])).toEqual(['serpent', 'crab']);
+    expect(mapSpecies(maps[1])).toEqual(['serpent', 'crab', 'hydra']);
     expect(species.serpent.boss).toBe('pipeserpent');
   });
 
@@ -104,12 +106,12 @@ describe('マップ2の定義', () => {
     save.bossKills.boltboar = 1;
     expect(carryOptions(save, maps[1])).toEqual(['boar']);
     const r = createRun({ rng: seeded(4), mapId: 'map2', carry: 'boar' });
-    expect([...r.build.species].sort()).toEqual(['boar', 'crab', 'serpent']);
+    expect([...r.build.species].sort()).toEqual(['boar', 'crab', 'hydra', 'serpent']);
     save.bossKills.pipeserpent = 1;
     expect(carryOptions(save, maps[0])).toEqual(['serpent']);
   });
 
-  it('パイプサーペントを倒すとサーペントコア、次のエリアでタンククラブを倒すとクラブコアが手に入り、マップ2が完了になる', () => {
+  it('3体のボスを順に倒すと、それぞれのコアが手に入り、最後のスラッジハイドラでマップ2が完了になる', () => {
     const save = createSave();
     recordMapClear(save, 'map1', 1); // マップ2は、マップ1を完了すると選べる
     const r = createRun({ rng: seeded(7), save, mapId: 'map2' });
@@ -129,10 +131,21 @@ describe('マップ2の定義', () => {
     expect(mapState(save, maps[1])).toBe('open'); // まだ先がある
     leaveRoom(r, first, NEXT_AREA);
     expect(currentArea(r).id).toBe('reservoir');
-    killBoss();
+    const second = killBoss();
     expect(save.materials.crabCore).toBeGreaterThan(0);
     expect(save.achievements).toContain('tankcrab');
+    expect(mapState(save, maps[1])).toBe('open');
+    leaveRoom(r, second, NEXT_AREA);
+    expect(currentArea(r).id).toBe('purifier');
+    killBoss();
+    expect(save.materials.hydraCore).toBeGreaterThan(0);
+    expect(save.achievements).toEqual(expect.arrayContaining(['sludgehydra', 'map2']));
     expect(mapState(save, maps[1])).toBe('done');
+    // マップ1と2を完了したので、2周目が選べる
+    expect(save.cycle).toBe(2);
+    // 最高到達は、マップ2の3つ目のエリアまで
+    expect(save.records).toMatchObject({ bestMap: 1, bestArea: 2 });
+    expect(bestReachText(save, (id) => DATA.areas.get(id))).toContain('MAP 02 DRAIN 03');
   });
 });
 
@@ -561,5 +574,217 @@ describe('種族「大蟹」', () => {
     expect(buyUpgrade(save, 'armorplate')).toBe(true);
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.damageTaken).toBeCloseTo(0.94);
+  });
+});
+
+// ===== エリア3：浄水プラント（スラッジハイドラ、種族「多頭」、データ片、持ち込みの枠） =====
+
+function hydraWorld() {
+  const world = createWorld({ waves: [{ boss: 'sludgehydra' }], rng: () => 0.5 });
+  while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  world.boss.idleT = Infinity;
+  world.player.inv = Infinity;
+  for (let t = 0; t < 1; t += DT) updateWorld(world, DT, idle); // 首が生えそろうまで
+  return world;
+}
+const headsOf = (world) => world.enemies.filter((e) => e.anchor === world.boss && !e.dead);
+
+describe('浄水プラントの定義', () => {
+  it('色・背景・敵・ボス・素材がそろっている。マップ2は3エリア', () => {
+    expect(maps[1].areas).toEqual(['sewer', 'reservoir', 'purifier']);
+    const area = DATA.areas.get('purifier');
+    expect(AREA_THEMES[area.theme]).toBeDefined();
+    expect(hasBackdrop(area.theme)).toBe(true);
+    for (const e of [...area.enemies.map((x) => x.id), ...area.eliteBases]) expect(DATA.enemies.has(e), e).toBe(true);
+    expect(MATERIAL_ICONS[DATA.bosses.get(area.boss).material]).toBeDefined();
+    for (const a of DATA.areas.all()) expect(a.enemies.map((x) => x.id)).not.toContain('hydrahead');
+  });
+
+  it('マップ2のどのエリアにも、データ片が4つある（データ金庫で3つ、ボスで1つ）', () => {
+    for (const id of maps[1].areas) {
+      const frags = DATA.fragments.all().filter((f) => f.area === id);
+      expect(frags.filter((f) => f.source === 'vault'), id).toHaveLength(3);
+      expect(frags.filter((f) => f.source === 'boss'), id).toHaveLength(1);
+    }
+  });
+});
+
+describe('スラッジハイドラ：首', () => {
+  it('首が3本生える。体のまわりに付いたまま、弾を吐く', () => {
+    const world = hydraWorld();
+    const b = world.boss;
+    const heads = headsOf(world);
+    expect(heads).toHaveLength(3);
+    for (const h of heads) expect(Math.hypot(h.x - b.x, h.y - b.y)).toBeCloseTo(b.def.heads.orbit, 0);
+    world.player.inv = 0;
+    expect(runUntil(world, () => world.shots.length > 0, 6)).toBe(true);
+    // ボスが動くと、首もついてくる
+    b.x -= 100;
+    updateWorld(world, DT, idle);
+    for (const h of headsOf(world)) expect(Math.hypot(h.x - b.x, h.y - b.y)).toBeCloseTo(b.def.heads.orbit, 0);
+  });
+
+  it('首が残っている間は本体が硬く、すべて落とすとふつうに通る', () => {
+    const world = hydraWorld();
+    const b = world.boss;
+    const hit = () => {
+      const before = b.hp;
+      hitEnemy(world, b, 100, 1, 0, 0);
+      return before - b.hp;
+    };
+    expect(hit()).toBe(Math.round(100 * (1 - b.def.heads.reduce)));
+    for (const h of headsOf(world)) hitEnemy(world, h, 999999, 1, 0, 0);
+    updateWorld(world, DT, idle);
+    expect(headsOf(world)).toHaveLength(0);
+    expect(b.armor).toBe(0);
+    expect(hit()).toBe(100);
+  });
+
+  it('前半は、落とした首は生え直さない。後半は、時間がたつと1本ずつ生え直す', () => {
+    const world = hydraWorld();
+    const b = world.boss;
+    for (const h of headsOf(world)) hitEnemy(world, h, 999999, 1, 0, 0);
+    for (let t = 0; t < 12; t += DT) updateWorld(world, DT, idle);
+    expect(headsOf(world)).toHaveLength(0);
+
+    b.hp = b.maxHp * 0.4; // 後半へ
+    b.idleT = Infinity;
+    const regrow = b.def.phases[1].regrow;
+    for (let t = 0; t < regrow + 1; t += DT) { b.idleT = Infinity; updateWorld(world, DT, idle); }
+    expect(headsOf(world)).toHaveLength(1);
+    for (let t = 0; t < regrow * 3; t += DT) { b.idleT = Infinity; updateWorld(world, DT, idle); }
+    expect(headsOf(world)).toHaveLength(3); // 上限まで
+  });
+
+  it('本体を倒すと、首も一緒に消える', () => {
+    const world = hydraWorld();
+    hitEnemy(world, world.boss, 99999999, 1, 0, 0);
+    // 倒した瞬間の、画面が止まる演出と、経験値でのレベルアップの3択を済ませる
+    for (let t = 0; t < 3; t += DT) {
+      if (world.choice) chooseImplant(world, 0);
+      updateWorld(world, DT, idle);
+    }
+    expect(world.enemies.filter((e) => !e.dead)).toHaveLength(0);
+    expect(world.mode).toBe('clear');
+  });
+});
+
+describe('種族「多頭」', () => {
+  it('再生組織：少しずつ HP が戻る（満タンより上には増えない）', () => {
+    const world = makeWorld(['regen']);
+    const p = world.player;
+    p.hp = 50;
+    run(world, 4);
+    expect(p.hp).toBeCloseTo(52, 0);
+    p.hp = p.stats.maxHp - 0.2;
+    run(world, 4);
+    expect(p.hp).toBe(p.stats.maxHp);
+  });
+
+  it('捕食：撃破するたびに HP が戻る', () => {
+    const world = makeWorld(['devour']);
+    const p = world.player;
+    p.hp = 60;
+    hitEnemy(world, addEnemy(world, 'drone', 60), 9999, 1, 0, 0);
+    expect(p.hp).toBe(63);
+  });
+
+  it('予備の首：倒れても、出撃ごとに1回だけ起き上がる', () => {
+    const world = makeWorld(['sparehead']);
+    const p = world.player;
+    p.inv = 0;
+    hurtPlayerFor(world, 9999);
+    expect(world.mode).toBe('play');
+    expect(p.hp).toBe(Math.round(p.stats.maxHp * 0.3));
+    expect(p.build.reviveUsed).toBe(true);
+    p.inv = 0;
+    hurtPlayerFor(world, 9999);
+    expect(world.mode).toBe('dead');
+  });
+
+  it('濃縮体液：修復キットの回復量が増える。種族ボーナス（2種類）でさらに増える', () => {
+    const heal = (ids) => {
+      const world = makeWorld(ids);
+      const p = world.player;
+      p.build.kits = 1;
+      p.stats.maxHp = 1000; // 回復が上限で切られないように
+      p.hp = 600; // 半分より上（HP 半分以下の効果が乗らないように）
+      useKit(world);
+      return p.hp - 600;
+    };
+    expect(heal([])).toBeCloseTo(PLAYER.kit.heal);
+    expect(heal(['thickblood'])).toBeCloseTo(PLAYER.kit.heal * 1.25);
+    expect(heal(['thickblood', 'devour'])).toBeCloseTo(PLAYER.kit.heal * 1.55);
+  });
+
+  it('底力：HPが半分以下のとき、被ダメージが減る', () => {
+    const world = makeWorld(['lastgasp']);
+    const p = world.player;
+    p.inv = 0;
+    p.hp = 100;
+    hurtPlayerFor(world, 20);
+    expect(p.hp).toBe(80);
+    p.hp = 50;
+    p.inv = 0;
+    hurtPlayerFor(world, 20);
+    expect(p.hp).toBe(33);
+  });
+
+  it('種族ボーナス（3種類）：HPが半分以下のとき、回復が2倍', () => {
+    const world = makeWorld(['regen', 'devour', 'lastgasp']);
+    const p = world.player;
+    p.build.kits = 2;
+    p.hp = 60;
+    useKit(world);
+    const high = p.hp - 60;
+    p.hp = 20;
+    useKit(world);
+    expect(p.hp - 20).toBe(high * 2);
+  });
+});
+
+describe('恒久強化（ハイドラコア）', () => {
+  it('再生槽：最大HPが増える。部品棚の増設：持ち込みの枠が2つになる', () => {
+    const save = createSave();
+    expect(permanentBonuses(save).carrySlots).toBe(1);
+    save.materials.hydraCore = 3;
+    expect(buyUpgrade(save, 'regentank')).toBe(true);
+    expect(buyUpgrade(save, 'carryslot')).toBe(true);
+    expect(save.materials.hydraCore).toBe(0);
+    const bonus = permanentBonuses(save);
+    expect(bonus.carrySlots).toBe(2);
+    const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(bonus) } });
+    expect(world.player.stats.maxHp).toBe(PLAYER.maxHp + 15);
+  });
+
+  it('持ち込みは、2種類まで渡せる', () => {
+    const r = createRun({ rng: seeded(4), mapId: 'map1', carry: ['serpent', 'hydra'] });
+    expect([...r.build.species].sort()).toEqual(['boar', 'core', 'hydra', 'serpent', 'wyvern']);
+  });
+});
+
+describe('セーブデータ（版5）', () => {
+  it('版4のセーブデータを読むと、持ち込みの2つ目の枠と、最高到達のマップが足される', () => {
+    const old = { ...createSave(), version: 4, carrySpecies: 'boar', records: { runs: 3, clears: 1, kills: 50, bestArea: 2, bestStep: 9 } };
+    delete old.carrySpecies2;
+    const loaded = loadSlot({ getItem: (k) => (k === slotKey(1) ? JSON.stringify(old) : null), setItem() {}, removeItem() {} }, 1);
+    expect(loaded.version).toBe(SAVE_VERSION);
+    expect(loaded.carrySpecies).toBe('boar');
+    expect(loaded.carrySpecies2).toBeNull();
+    expect(loaded.records).toMatchObject({ bestMap: 0, bestArea: 2, bestStep: 9 });
+    expect(bestReachText(loaded, (id) => DATA.areas.get(id))).toBe('MAP 01 SECTOR 03-10');
+  });
+
+  it('最高到達は、マップ → エリア → 部屋の順に、奥まで進んだほうが残る', () => {
+    const save = createSave();
+    save.records.runs = 1;
+    const r2 = createRun({ rng: seeded(4), save, mapId: 'map2' });
+    enterRoom(r2);
+    expect(save.records).toMatchObject({ bestMap: 1, bestArea: 0, bestStep: 0 });
+    // そのあとマップ1の奥まで行っても、マップ2の記録は上書きされない
+    const r1 = createRun({ rng: seeded(4), save, mapId: 'map1' });
+    skipToBoss(r1, enterRoom(r1));
+    enterRoom(r1);
+    expect(save.records.bestMap).toBe(1);
   });
 });
