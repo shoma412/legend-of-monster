@@ -60,8 +60,14 @@ export class MenuOverlay {
     this.dialog = null; // 確認の案内 { message, yes }
     this.iconLayers = [];
     this.root = scene.add.container(0, 0).setDepth(30).setVisible(false);
+    this.scroll = 0; // 一覧が長いときの、いちばん上に出ている行（タブを切り替えると 0 に戻る）
+    this.scrollMax = 0; // 今のタブで動かせる上限（描くたびに決まる）
     scene.input.keyboard.addCapture('TAB');
     scene.input.keyboard.on('keydown', (event) => this.onKey(event));
+    // マウスのホイールで、長い一覧を上下に動かす
+    scene.input.on('wheel', (_pointer, _over, _dx, dy) => {
+      if (this.isOpen && !this.dialog && dy !== 0) this.scrollBy(dy > 0 ? 1 : -1);
+    });
   }
 
   get tabId() {
@@ -72,6 +78,7 @@ export class MenuOverlay {
     this.isOpen = true;
     this.tab = Math.max(0, this.options.tabs.indexOf(tabId));
     this.cursor = 0;
+    this.scroll = 0;
     this.dialog = null;
     this.root.setVisible(true);
     this.render();
@@ -126,6 +133,7 @@ export class MenuOverlay {
     playSe('select');
     this.tab = index;
     this.cursor = 0;
+    this.scroll = 0;
     this.render();
   }
 
@@ -137,10 +145,43 @@ export class MenuOverlay {
 
   moveCursor(delta) {
     const n = this.rowCount();
-    if (n === 0) return;
+    // 選ぶ行のないタブ（実績、ステータス）では、W・S は一覧を上下に動かす
+    if (n === 0) {
+      this.scrollBy(delta);
+      return;
+    }
     this.cursor = (this.cursor + delta + n) % n;
+    this.followCursor = true; // 選んだ行が見える位置まで、一覧を動かす
     playSe('select');
     this.render();
+  }
+
+  // 一覧を上下に動かす（ホイール、W・S）
+  scrollBy(delta) {
+    const next = Math.max(0, Math.min(this.scrollMax, this.scroll + delta));
+    if (next === this.scroll) return;
+    this.scroll = next;
+    this.render();
+  }
+
+  // 長い一覧の、今出す範囲を決める。total 行のうち visible 行だけ出す。返り値は、最初に出す行の番号
+  //   bar: { x, y, h } を渡すと、右端にスクロールバーを描く
+  window(total, visible, bar = null) {
+    this.scrollMax = Math.max(0, total - visible);
+    if (this.followCursor) {
+      if (this.cursor < this.scroll) this.scroll = this.cursor;
+      if (this.cursor >= this.scroll + visible) this.scroll = this.cursor - visible + 1;
+      this.followCursor = false;
+    }
+    this.scroll = Math.max(0, Math.min(this.scrollMax, this.scroll));
+    if (bar && this.scrollMax > 0) {
+      const track = this.scene.add.rectangle(bar.x, bar.y, 4, bar.h, hex(COLORS.line), 1).setOrigin(0);
+      const size = Math.max(24, (bar.h * visible) / total);
+      const thumb = this.scene.add.rectangle(bar.x, bar.y + ((bar.h - size) * this.scroll) / this.scrollMax, 4, size, hex(COLORS.cyan), 1).setOrigin(0);
+      this.root.add([track, thumb]);
+      this.text(bar.x + 4, bar.y - 14, 'ホイール / W・S：スクロール', 11, COLORS.dim).setOrigin(1, 0);
+    }
+    return this.scroll;
   }
 
   confirmRow() {
@@ -198,6 +239,7 @@ export class MenuOverlay {
     const { save } = ctx;
     this.root.removeAll(true);
     this.iconLayers = [];
+    this.scrollMax = 0;
     // 後ろの画面を暗くして、クリックも通さない
     const dim = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.92).setInteractive();
     this.root.add(dim);
@@ -322,10 +364,17 @@ export class MenuOverlay {
     this.text(638, 130, 'インプラント', 14, COLORS.cyan, { fontStyle: '700' });
     const entries = Object.entries(b.implants);
     if (entries.length === 0) this.text(638, 156, 'なし', 13, LOCKED);
-    // 数が多いときは説明を省いて、名前だけ並べる
-    const compact = entries.length > 7;
+    // 入りきらないときは説明を省いて、名前だけ並べる。それでも多ければスクロールで見る
+    const bonuses = activeSpeciesBonuses(b);
+    const LIST_BOTTOM = 448;
+    const compact = entries.length * 46 + bonuses.length * 18 > LIST_BOTTOM - 156;
+    const compactRows = Math.floor((LIST_BOTTOM - 156) / 17);
+    const firstEntry = compact ? this.window(entries.length + bonuses.length, compactRows, { x: 910, y: 156, h: LIST_BOTTOM - 160 }) : 0;
     let iy = 156;
+    let line = 0; // 上から何行目か（詰めて並べるときに数える）
+    const hidden = () => compact && (line++ < firstEntry || line > firstEntry + compactRows);
     for (const [id, n] of entries) {
+      if (hidden()) continue;
       const def = DATA.implants.get(id);
       const fam = species[def.species];
       const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
@@ -337,7 +386,8 @@ export class MenuOverlay {
         iy += 20 + desc.height;
       }
     }
-    for (const bonus of activeSpeciesBonuses(b)) {
+    for (const bonus of bonuses) {
+      if (hidden()) continue;
       this.text(638, iy + 2, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
       iy += 18;
     }
@@ -411,8 +461,11 @@ export class MenuOverlay {
   renderUpgrades(save) {
     const readOnly = this.options.readOnlyUpgrades;
     this.text(40, 114, readOnly ? '買った恒久強化（買うのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を買う。行をクリックするか、W・S で選んで Enter', 12, COLORS.dim);
+    const upgradeRows = 6; // 一度に出す行の数（下のボタンに重ならない範囲）
+    const first = this.window(DATA.upgrades.all().length, upgradeRows, { x: 926, y: 134, h: upgradeRows * 54 - 8 });
     DATA.upgrades.all().forEach((def, i) => {
-      const y = 134 + i * 54;
+      if (i < first || i >= first + upgradeRows) return;
+      const y = 134 + (i - first) * 54;
       const level = upgradeLevel(save, def.id);
       const cost = nextUpgradeCost(save, def);
       const ready = def.ready !== false;
@@ -464,14 +517,18 @@ export class MenuOverlay {
     const list = DATA.fragments.all();
     const g = this.graphics();
     this.panel(40, 122, 300, 336);
-    list.forEach((f, i) => {
+    const fragmentRows = 12;
+    const firstFragment = this.window(list.length, fragmentRows, { x: 332, y: 132, h: 316 });
+    list.forEach((f, index) => {
+      if (index < firstFragment || index >= firstFragment + fragmentRows) return;
+      const i = index - firstFragment; // 画面の上から何行目か
       const have = save.fragments.includes(f.id);
-      const selected = i === this.cursor;
+      const selected = index === this.cursor;
       const color = selected ? COLORS.cyan : have ? COLORS.ink : LOCKED;
       // エリアの色のアイコン。未回収は中身のない暗いアイコン
       drawFragmentIcon(g, 60, 141 + i * 26, 6, have ? hex(AREA_THEMES[DATA.areas.get(f.area).theme].edge) : 0x4a4470, !have);
       this.text(76, 132 + i * 26, have ? f.title : '？？？', 13, color, { fontStyle: have ? '700' : '400' }, () => {
-        this.cursor = i;
+        this.cursor = index;
         this.render();
       });
       if (selected) this.text(46, 132 + i * 26, '▶', 9, COLORS.cyan).setY(135 + i * 26);
@@ -497,10 +554,14 @@ export class MenuOverlay {
     const list = DATA.achievements.all();
     const g = this.graphics();
     this.text(40, 114, `解除 ${save.achievements.length} / ${list.length}`, 12, COLORS.dim);
+    // 3列に並べる。一度に出すのは6行ぶん（下のボタンに重ならない範囲）で、残りはスクロールで見る
+    const achievementRows = 6;
+    const firstRow = this.window(Math.ceil(list.length / 3), achievementRows, { x: 926, y: 134, h: achievementRows * 47 - 5 });
     list.forEach((def, i) => {
-      // 3列に並べる
+      const row = Math.floor(i / 3) - firstRow;
+      if (row < 0 || row >= achievementRows) return;
       const x = 40 + (i % 3) * 297;
-      const y = 134 + Math.floor(i / 3) * 47;
+      const y = 134 + row * 47;
       const done = save.achievements.includes(def.id);
       const color = done ? (ELEMENT_COLORS[def.color] ?? COLORS.amber) : LOCKED;
       this.panel(x, y, 287, 42, done ? COLORS.amber : COLORS.line);
