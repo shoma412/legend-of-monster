@@ -13,6 +13,9 @@ import { eliteTraits } from './eliteTraits.js';
 import { achievements } from './achievements.js';
 import { consumables } from './consumables.js';
 import { fragments, materials } from './story.js';
+import { characters } from './characters.js';
+import { dialogues } from './dialogues.js';
+import { encounters } from './encounters.js';
 
 export const DATA = {
   enemies: defineRegistry('敵', enemies),
@@ -29,4 +32,7 @@ export const DATA = {
   fragments: defineRegistry('データ片', fragments),
   achievements: defineRegistry('実績', achievements),
   consumables: defineRegistry('消耗品', consumables),
+  characters: defineRegistry('人物', characters),
+  dialogues: defineRegistry('会話', dialogues),
+  encounters: defineRegistry('遭遇', encounters),
 };

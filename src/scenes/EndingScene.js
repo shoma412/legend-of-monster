@@ -3,6 +3,7 @@ import { playBgm, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { ending } from '../data/story.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { resolveNames } from '../logic/dialogue.js';
 import { setupView } from '../render/view.js';
 
 const LINE_INTERVAL = 900; // 1行ずつ出す間隔（ミリ秒）
@@ -36,7 +37,7 @@ export class EndingScene extends Phaser.Scene {
     // 物語の行を、上から1行ずつ出す
     const body = { fontFamily: FONTS.body, fontSize: '16px', color: COLORS.ink };
     let y = 118;
-    const texts = ending.lines.map((line) => {
+    const texts = resolveNames(ending.lines).map((line) => {
       const t = this.add.text(W / 2, y, line, body).setOrigin(0.5, 0).setAlpha(0);
       y += line === '' ? 14 : 28;
       return t;

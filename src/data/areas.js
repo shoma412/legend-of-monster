@@ -11,7 +11,7 @@
 // enemies     : 出る雑魚と出やすさ（weight）
 // eliteBases  : エリートになる雑魚
 // boss        : エリアの最後のボス
-// comms       : 通信ログ。下書きなので、文章は自由に書き換えてよい
+// comms       : 通信ログ。下書きなので、文章は自由に書き換えてよい。@noise は依頼主の名前（記号の並びでごまかして表示される）
 export const areas = [
   {
     id: 'slum',
@@ -22,7 +22,7 @@ export const areas = [
     bossBgm: 'bossSlum',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
-    specialRooms: ['supply', 'market', 'vault'],
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 5 },
       { id: 'grunt', weight: 3 },
@@ -33,12 +33,12 @@ export const areas = [
     final: false, // 最後のエリアなら true（ここのボスを倒すとクリア）
     comms: {
       bossIntro: [
-        '依頼主＞ 最深部に大型反応。そいつが今回の標的だ。',
-        '依頼主＞ 電線を喰って肥えた猪だ。突っ込んできたら、壁にぶつけてやれ。',
+        '@noise＞ 最深部に大型反応。そいつが今回の標的だ。',
+        '@noise＞ 電線を喰って肥えた猪だ。突っ込んできたら、壁にぶつけてやれ。',
       ],
       bossDefeated: [
-        '依頼主＞ 反応消失を確認。コアを回収しろ。',
-        '依頼主＞ 下の冷却プラントへ降りるルートが開いた。',
+        '@noise＞ 反応消失を確認。コアを回収しろ。',
+        '@noise＞ 下の冷却プラントへ降りるルートが開いた。',
       ],
     },
   },
@@ -51,7 +51,7 @@ export const areas = [
     bossBgm: 'bossPlant',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
-    specialRooms: ['supply', 'market', 'vault'],
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 3 },
       { id: 'grunt', weight: 2 },
@@ -64,12 +64,12 @@ export const areas = [
     final: false,
     comms: {
       bossIntro: [
-        '依頼主＞ プラントの心臓部だ。上を飛んでいるのが次の標的だ。',
-        '依頼主＞ 冷気を浴びると足が鈍る。熱が効くはずだ。',
+        '@noise＞ プラントの心臓部だ。上を飛んでいるのが次の標的だ。',
+        '@noise＞ 冷気を浴びると足が鈍る。熱が効くはずだ。',
       ],
       bossDefeated: [
-        '依頼主＞ 冷却が止まった。上の連中が騒ぎ出す前に進め。',
-        '依頼主＞ 次は企業タワーの最深部だ。',
+        '@noise＞ 冷却が止まった。上の連中が騒ぎ出す前に進め。',
+        '@noise＞ 次は企業タワーの最深部だ。',
       ],
     },
   },
@@ -82,7 +82,7 @@ export const areas = [
     bossBgm: 'bossTower',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
-    specialRooms: ['supply', 'market', 'vault'],
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
     enemies: [
       { id: 'drone', weight: 2 },
       { id: 'grunt', weight: 2 },
@@ -96,12 +96,12 @@ export const areas = [
     final: true, // ここのボスを倒すとクリア
     comms: {
       bossIntro: [
-        '依頼主＞ タワーの最深部だ。街の電力も冷却も、全部そいつが握っている。',
-        '依頼主＞ 熱を持ちすぎると、冷却で動きが止まる。そこを叩け。電撃が効く。',
+        '@noise＞ タワーの最深部だ。街の電力も冷却も、全部そいつが握っている。',
+        '@noise＞ 熱を持ちすぎると、冷却で動きが止まる。そこを叩け。電撃が効く。',
       ],
       bossDefeated: [
-        '依頼主＞ ……止まったか。よくやった。',
-        '依頼主＞ 帰ってこい。報酬の話をしよう。',
+        '@noise＞ ……止まったか。よくやった。',
+        '@noise＞ 帰ってこい。報酬の話をしよう。',
       ],
     },
   },

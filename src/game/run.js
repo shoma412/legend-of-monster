@@ -55,10 +55,16 @@ export function enterRoom(run) {
   // 奥のエリアほど、敵の数が増える（部屋数ぶん先に進んだものとして数える）
   const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea;
   const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng) };
+  const type = currentNode(plan).type;
+  // 遭遇部屋で装備を拾ったあと：次の戦闘部屋は、敵が増える
+  if (run.build.ambush && (type === 'combat' || type === 'elite')) {
+    ctx.step += ROOMGEN.encounter.ambushSteps;
+    run.build.ambush = false;
+  }
   let doors = doorOptions(plan);
   // ボス部屋：倒したあと、次のエリアがあればそこへの扉が開く
   if (plan.current === 'boss' && hasNextArea(run)) doors = [{ id: NEXT_AREA, type: 'descend' }];
-  const room = buildRoom(currentNode(plan).type, ctx, doors);
+  const room = buildRoom(type, ctx, doors);
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex;
   const first = !run.started;

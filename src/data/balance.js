@@ -114,6 +114,15 @@ export const ROOMGEN = {
   elite: { minionBudget: 7 }, // エリートの取り巻きの予算
   supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
   vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ
+  // 遭遇部屋
+  encounter: {
+    hpCost: 0.25, // 流れの商人：払うHP（最大HPに対する割合）
+    gearRarityBonus: 2, // 流れの商人：もらえる装備のレア度の底上げ
+    salvageCredits: 40, // 壊れかけの保守機：部品を抜いたときのクレジット
+    lootRarityBonus: 1, // 倒れた回収屋：拾える装備のレア度の底上げ
+    ambushSteps: 3, // 倒れた回収屋：次の戦闘部屋を、この部屋数ぶん奥のものとして敵を増やす
+    restHeal: 0.2, // 倒れた回収屋：休んだときの回復（最大HPに対する割合）
+  },
 };
 
 // エリート（雑魚の強化版）

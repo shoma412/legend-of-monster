@@ -11,12 +11,14 @@ import { interact } from '../game/objects.js';
 import { currentSlot, getSave, persist } from '../game/saveStore.js';
 import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
+import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawMaterialIcon } from '../render/metaIcons.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView } from '../render/view.js';
+import { createDialogueBox } from './dialogueBox.js';
 import { MenuOverlay, costText } from './menuOverlay.js';
 
 const W = SCREEN.width;
@@ -26,6 +28,7 @@ const LOCKED = '#4a4470';
 // 隠れ家（拠点）。歩き回れる部屋で、置いてあるものに近づいて E で使う。
 //   武器ラック：出撃する武器を選ぶ（未解放ならボス素材で解放）
 //   強化端末：恒久強化を買う / 記録端末：記録・データ片・実績を見る
+//   ハル（整備士）・通信端末（依頼主）：話しかける
 //   出撃ゲート：依頼文を確かめて出撃する
 export class HideoutScene extends Phaser.Scene {
   constructor() {
@@ -93,11 +96,11 @@ export class HideoutScene extends Phaser.Scene {
     }
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.keys.E.on('down', () => {
-      if (!this.menu.isOpen) interact(this.world);
+      if (!this.menu.isOpen && !this.dialogue.blocking) interact(this.world);
     });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (this.menu.isOpen) return;
+      if (this.menu.isOpen || this.dialogue.blocking) return;
       if (pointer.leftButtonDown()) this.attackPressed = true;
       if (pointer.rightButtonDown()) this.specialPressed = true;
     });
@@ -115,6 +118,7 @@ export class HideoutScene extends Phaser.Scene {
         },
       ],
       context: () => ({ save: this.save, player: this.world.player }),
+      canOpen: () => !this.dialogue.blocking,
       onBuy: () => {
         persist();
         this.applyUpgrades();
@@ -122,12 +126,30 @@ export class HideoutScene extends Phaser.Scene {
       onClose: () => this.refreshStations(),
     });
 
+    this.dialogue = createDialogueBox(this);
+    this.talkCount = {};
+
     // このセーブデータで初めて隠れ家に来たときは、操作説明を出す
     if (!this.save.tutorialSeen) {
       this.save.tutorialSeen = true;
       persist();
       this.time.delayedCall(350, () => this.menu.open('controls'));
+    } else {
+      // 帰ってきたときの会話（ボスを初めて倒したあとなど）
+      this.time.delayedCall(450, () => this.playPending('hideout'));
     }
+  }
+
+  // その場面でまだ見ていない会話を、順に全部出す。終わったら（何もなくても）onDone を呼ぶ
+  playPending(at, onDone) {
+    const d = pendingDialogue(this.save, at);
+    if (!d) {
+      onDone?.();
+      return;
+    }
+    markSeen(this.save, d.id);
+    persist();
+    this.dialogue.play(d.lines, { onDone: () => this.playPending(at, onDone) });
   }
 
   usable(weaponId) {
@@ -139,6 +161,8 @@ export class HideoutScene extends Phaser.Scene {
     const stations = weaponUnlocks.map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 240 + i * 150, y: 150, r: 52 }));
     stations.push({ kind: 'station', id: 'menu:upgrade', icon: 'terminal', color: COLORS.green, label: '強化端末', sub: '恒久強化', prompt: 'E：恒久強化を買う', x: 240, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'menu:record', icon: 'terminal', color: COLORS.magenta, label: '記録端末', sub: '記録・データ片・実績', prompt: 'E：記録・データ片・実績を見る', x: 440, y: 400, r: 52 });
+    stations.push({ kind: 'station', id: 'talk:hal', icon: 'npc', who: 'hal', color: COLORS.ink, label: 'ハル', sub: '整備士', prompt: 'E：ハルと話す', x: 110, y: 400, r: 50 });
+    stations.push({ kind: 'station', id: 'talk:noise', icon: 'comm', color: COLORS.ice, label: '通信端末', sub: '依頼主', prompt: 'E：依頼主と話す', x: 640, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'sortie', icon: 'gate', color: COLORS.amber, label: '出撃', x: W - ROOM.wall, y: H / 2, r: 62 });
     return stations;
   }
@@ -191,8 +215,18 @@ export class HideoutScene extends Phaser.Scene {
     const world = this.world;
     const p = world.player;
     if (id === 'sortie') {
-      playSe('door');
-      this.scene.start('Battle', { weaponId: this.save.selected });
+      // 初めての出撃の前には、会話を挟む
+      this.playPending('sortie', () => {
+        playSe('door');
+        this.scene.start('Battle', { weaponId: this.save.selected });
+      });
+      return;
+    }
+    if (id.startsWith('talk:')) {
+      const who = id.slice(5);
+      const count = this.talkCount[who] ?? 0;
+      this.talkCount[who] = count + 1;
+      this.dialogue.play(talkLines(this.save, who, count));
       return;
     }
     if (id.startsWith('menu:')) {
@@ -255,7 +289,10 @@ export class HideoutScene extends Phaser.Scene {
       this.readInput(); // 開いている間の入力は捨てる
       return;
     }
-    advanceWorld(world, seconds, this.readInput());
+    // 会話中は、ゲームを止める（画面は描き続ける）
+    this.dialogue.update(seconds * 1000);
+    if (this.dialogue.isOpen) this.readInput();
+    else advanceWorld(world, seconds, this.readInput());
     world.events.length = 0;
     for (const name of world.fx.sounds.splice(0)) playSe(name);
     if (world.request) {

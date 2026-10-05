@@ -13,6 +13,8 @@ export const rooms = [
   { id: 'supply', label: '補給', tag: '補給ポイント', color: 'green', icon: 'cross', build: 'supply' },
   { id: 'market', label: '闇市', tag: '闇市', color: 'amber', icon: 'coin', build: 'market' },
   { id: 'vault', label: 'データ金庫', tag: 'データ金庫', color: 'magenta', icon: 'vault', build: 'vault' },
+  // 遭遇：人物と会い、選択肢で結果が変わる（src/data/encounters.js）
+  { id: 'encounter', label: '遭遇', tag: '反応あり', color: 'ice', icon: 'talk', build: 'encounter' },
   { id: 'boss', label: 'BOSS', tag: '最深部', color: 'red', icon: 'warning', build: 'boss', clearCredits: 50 },
   // ボスを倒したあとに開く、次のエリアへの扉（部屋ではない）
   { id: 'descend', label: '次のエリアへ', tag: '', color: 'cyan', icon: 'down', build: 'none' },

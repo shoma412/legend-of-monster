@@ -10,6 +10,8 @@ import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, 
 import { getSave, persist } from '../game/saveStore.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
+import { markSeen, pendingDialogue, resolveNames } from '../logic/dialogue.js';
+import { choiceBlocked, chooseEncounter } from '../game/encounters.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
@@ -20,6 +22,7 @@ import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView, shakeView } from '../render/view.js';
 import { createBuildList, createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
+import { createDialogueBox } from './dialogueBox.js';
 import { createResultPanel } from './resultPanel.js';
 import { MenuOverlay } from './menuOverlay.js';
 
@@ -76,19 +79,19 @@ export class BattleScene extends Phaser.Scene {
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
-      if (this.world.choice || this.menu.isOpen) return;
+      if (this.world.choice || this.menu.isOpen || this.dialogue.blocking) return;
       if (pointer.leftButtonDown()) this.attackPressed = true;
       if (pointer.rightButtonDown()) this.specialPressed = true;
     });
     // ポーズ画面が開いている間は、ゲームの操作を受け付けない
-    const playing = () => !this.menu.isOpen;
+    const playing = () => !this.menu.isOpen && !this.dialogue.blocking;
     this.keys.E.on('down', () => playing() && interact(this.world));
     this.keys.F.on('down', () => playing() && stash(this.world));
     this.keys.Q.on('down', () => playing() && useKit(this.world));
     this.keys.M.on('down', () => playing() && this.bigMap.setVisible(!this.bigMap.visible));
     // 1・2・3：レベルアップの3択が出ていればその選択、出ていなければ 1・2 で消耗品を使う
     ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => {
-      if (this.menu.isOpen) return;
+      if (!playing()) return;
       if (this.world.choice) this.choose(i);
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
@@ -97,7 +100,7 @@ export class BattleScene extends Phaser.Scene {
     }));
     this.keys.ENTER.on('down', () => {
       const world = this.world;
-      if (world.choice || this.menu.isOpen) return;
+      if (world.choice || !playing()) return;
       // 最後まで進んだあと：Enter でリザルトへ（リザルトの「隠れ家に戻る」は、画面のボタンを押す）
       this.goToResult();
     });
@@ -116,7 +119,7 @@ export class BattleScene extends Phaser.Scene {
       ],
       context: () => ({ save: this.run.save, player: this.world.player, world: this.world, run: this.run }),
       // レベルアップの3択が出ているときと、リザルトが出ているときは開かない
-      canOpen: () => !this.world.choice && !this.result.visible,
+      canOpen: () => !this.world.choice && !this.result.visible && !this.dialogue.blocking,
       // 装備を付け替えたときの出来事（レジェンド装備の実績など）は、閉じたあとの更新で処理される
     });
     // 確認用のキー（開発中の画面だけ。公開版では効かない）：ボス部屋へ飛ぶ
@@ -200,6 +203,28 @@ export class BattleScene extends Phaser.Scene {
     const rb = this.add.rectangle(0, 0, 260, 36, 0x110f1d, 0.95).setStrokeStyle(2, hex(COLORS.green)).setInteractive({ useHandCursor: true });
     rb.on('pointerdown', () => this.goToResult());
     this.returnButton.add([rb, this.add.text(0, 0, '帰還する（リザルトへ）', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.green }).setOrigin(0.5)]);
+
+    // 会話。そのボスの部屋に初めて入ったときは、戦闘の前に数行だけ話す
+    this.dialogue = createDialogueBox(this);
+    const bossId = this.world.room.waves[0]?.boss;
+    const intro = bossId ? pendingDialogue(run.save, 'bossIntro', { boss: bossId }) : null;
+    if (intro) {
+      markSeen(run.save, intro.id);
+      persist();
+      this.time.delayedCall(250, () => this.dialogue.play(intro.lines));
+    }
+  }
+
+  // 遭遇部屋の人物に話しかけた：会話のあと、選択肢を出す
+  openEncounter(id) {
+    const world = this.world;
+    const npc = world.objects.find((o) => o.kind === 'npc' && o.encounter === id);
+    if (!npc || npc.used) return;
+    const def = DATA.encounters.get(id);
+    this.dialogue.play(def.intro, {
+      choices: def.choices.map((c) => ({ label: c.label, blocked: choiceBlocked(world, c) })),
+      onChoice: (i) => (chooseEncounter(world, npc, def.choices[i]) ? def.choices[i].result : null),
+    });
   }
 
   // 線画をぼかして重ね、ネオンがにじんで光るように見せる。対応していない環境ではそのまま描く
@@ -279,8 +304,16 @@ export class BattleScene extends Phaser.Scene {
       this.readInput();
       return;
     }
+    // 会話中は、ゲームを止める（画面は描き続ける）
+    this.dialogue.update(delta);
     const hadChoice = !!world.choice;
-    advanceWorld(world, seconds, this.readInput());
+    if (this.dialogue.isOpen) this.readInput();
+    else advanceWorld(world, seconds, this.readInput());
+    if (world.request) {
+      const request = world.request;
+      world.request = null;
+      if (request.startsWith('encounter:')) this.openEncounter(request.slice('encounter:'.length));
+    }
     if (world.choice && !hadChoice) this.choiceShownAt = this.time.now;
 
     // ボス素材・データ片・実績。手に入った時点でセーブする
@@ -369,14 +402,14 @@ export class BattleScene extends Phaser.Scene {
     this.bossIntroDone = true;
     this.bossWarning?.forEach((t) => t.destroy());
     this.bossName.setText(`${boss.def.name} — ${boss.def.alias}`).setVisible(true);
-    this.commLog.play(this.area.comms.bossIntro);
+    this.commLog.play(resolveNames(this.area.comms.bossIntro));
   }
 
   showClear(boss) {
     this.clearShown = true;
     const world = this.world;
     if (boss) {
-      this.commLog.play(this.area.comms.bossDefeated);
+      this.commLog.play(resolveNames(this.area.comms.bossDefeated));
       if (hasNextArea(this.run)) {
         // 次のエリアへの扉が開く
         this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);

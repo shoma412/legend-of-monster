@@ -35,7 +35,7 @@ function say(world, text, color) {
 }
 
 const HANDLERS = {
-  // 隠れ家に置いてあるもの。world.request を見て、画面側が処理する
+  // 隠れ家に置いてあるもの（武器ラック、端末、人物、出撃ゲート）。world.request を見て、画面側が処理する
   station(world, o) {
     world.request = o.id;
   },
@@ -103,6 +103,11 @@ const HANDLERS = {
     sfx(world, 'fragment');
     ring(world, o.x, o.y, 50, COLORS.cyan);
     world.objects = world.objects.filter((x) => x !== o);
+  },
+
+  // 遭遇部屋の人物：話しかける。world.request を見て、画面側が会話を出す
+  npc(world, o) {
+    if (!o.used) world.request = `encounter:${o.encounter}`;
   },
 
   // データ金庫：1つ取ると残りは消える

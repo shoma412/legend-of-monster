@@ -37,6 +37,13 @@ const BUILDERS = {
     if (fragment) objects.push({ kind: 'fragment', id: fragment, x: CX, y: CY + 110, r: 44 });
     return { objects };
   },
+
+  // 遭遇：人物が1人いる。話しかけると選択肢が出る
+  encounter: ({ rng }) => {
+    const ids = DATA.encounters.ids();
+    const def = DATA.encounters.get(ids[Math.min(ids.length - 1, Math.floor(rng() * ids.length))]);
+    return { objects: [{ kind: 'npc', encounter: def.id, who: def.who, color: def.color, x: CX + 60, y: CY, r: 64, used: false }] };
+  },
 };
 
 // 部屋を作る。doors は、クリア後に開く扉（進める部屋 { id, type } の並び）

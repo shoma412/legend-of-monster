@@ -1,7 +1,7 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -22,12 +22,18 @@ export function createSave() {
     achievements: [], // 解除した実績の id
     records: { runs: 0, clears: 0, kills: 0, bestArea: 0, bestStep: 0 },
     tutorialSeen: false, // 最初の操作説明を見たか
+    seenDialogues: [], // 自動で出る会話のうち、もう見たものの id（版2で追加）
   };
 }
 
 // 古い版のセーブデータを今の形に直す。版が上がったら、ここに1段ずつ足す
 //   例：if (data.version === 1) { data.newField = ...; data.version = 2; }
 function migrate(data) {
+  // 版1 → 版2：会話の既読を足す
+  if (data.version === 1) {
+    data.seenDialogues = [];
+    data.version = 2;
+  }
   return data;
 }
 
@@ -47,6 +53,7 @@ function normalize(data) {
     achievements: Array.isArray(d.achievements) ? [...new Set(d.achievements)] : [],
     records: { ...base.records, ...(d.records ?? {}) },
     tutorialSeen: d.tutorialSeen === true,
+    seenDialogues: Array.isArray(d.seenDialogues) ? [...new Set(d.seenDialogues)] : [],
   };
 }
 

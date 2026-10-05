@@ -46,6 +46,15 @@ const ICONS = {
     glowLine(g, c, 2.5, () => g.strokePoints(pts, false, false));
     glowLine(g, c, 2.5, () => g.lineBetween(x, y - s, x, y + s * 0.6));
   },
+  // 吹き出し（遭遇）
+  talk(g, x, y, s, c) {
+    const pts = [
+      { x: x - s, y: y - s * 0.8 }, { x: x + s, y: y - s * 0.8 }, { x: x + s, y: y + s * 0.35 },
+      { x: x - s * 0.1, y: y + s * 0.35 }, { x: x - s * 0.6, y: y + s }, { x: x - s * 0.55, y: y + s * 0.35 }, { x: x - s, y: y + s * 0.35 },
+    ];
+    glowLine(g, c, 2, () => g.strokePoints(pts, true, true));
+    g.fillStyle(c, 1).fillCircle(x - s * 0.45, y - s * 0.22, 1.3).fillCircle(x, y - s * 0.22, 1.3).fillCircle(x + s * 0.45, y - s * 0.22, 1.3);
+  },
   warning(g, x, y, s, c) {
     const pts = [{ x, y: y - s * 1.1 }, { x: x + s * 1.1, y: y + s * 0.9 }, { x: x - s * 1.1, y: y + s * 0.9 }];
     glowLine(g, c, 2, () => g.strokePoints(pts, true, true));
@@ -84,8 +93,73 @@ const WEAPON_GLYPHS = {
   },
 };
 
+// 人物の線画。who で形を変える
+const FIGURES = {
+  // 立っている人（頭・肩・胴）
+  person(g, x, y, c) {
+    g.fillStyle(BODY_FILL, 0.9).fillCircle(x, y - 17, 7);
+    glowLine(g, c, 2, () => g.strokeCircle(x, y - 17, 7));
+    const body = [{ x: x - 10, y: y - 8 }, { x: x + 10, y: y - 8 }, { x: x + 7, y: y + 16 }, { x: x - 7, y: y + 16 }];
+    g.fillStyle(BODY_FILL, 0.9).fillPoints(body, true);
+    glowLine(g, c, 2, () => g.strokePoints(body, true, true));
+  },
+  hal(g, x, y, c, world) {
+    FIGURES.person(g, x, y, c);
+    // 結んだ髪と、手に持った工具
+    g.fillStyle(c, 1).fillCircle(x + 9, y - 21, 3);
+    const swing = Math.sin(world.time * 3) * 2;
+    glowLine(g, c, 2, () => g.lineBetween(x - 12, y + 2 + swing, x - 19, y - 8 + swing));
+  },
+  peddler(g, x, y, c) {
+    FIGURES.person(g, x, y, c);
+    // つばの広い帽子と、背負った荷
+    glowLine(g, c, 2, () => g.lineBetween(x - 14, y - 22, x + 14, y - 22));
+    g.fillStyle(BODY_FILL, 0.9).fillRect(x + 10, y - 10, 12, 20);
+    glowLine(g, c, 1.5, () => g.strokeRect(x + 10, y - 10, 12, 20));
+  },
+  machine(g, x, y, c, world) {
+    // 四角い頭、点滅する片目、曲がったアンテナ
+    g.fillStyle(BODY_FILL, 0.9).fillRect(x - 11, y - 24, 22, 17).fillRect(x - 13, y - 4, 26, 20);
+    glowLine(g, c, 2, () => g.strokeRect(x - 11, y - 24, 22, 17));
+    glowLine(g, c, 2, () => g.strokeRect(x - 13, y - 4, 26, 20));
+    glowLine(g, c, 1.5, () => g.lineBetween(x - 5, y - 24, x - 5, y - 31).lineBetween(x - 5, y - 31, x, y - 35));
+    g.fillStyle(c, 1).fillRect(x - 7, y - 19, 5, 4);
+    if (Math.sin(world.time * 9) > 0.2) g.fillStyle(c, 0.6).fillRect(x + 2, y - 19, 5, 4);
+    g.lineStyle(1.5, c, 0.7).lineBetween(x + 13, y + 2, x + 20, y + 12);
+  },
+  scavenger(g, x, y, c) {
+    // 壁にもたれて倒れている
+    g.fillStyle(BODY_FILL, 0.9).fillCircle(x - 14, y + 2, 7);
+    glowLine(g, c, 2, () => g.strokeCircle(x - 14, y + 2, 7));
+    const body = [{ x: x - 7, y: y - 4 }, { x: x + 16, y: y + 2 }, { x: x + 18, y: y + 14 }, { x: x - 8, y: y + 12 }];
+    g.fillStyle(BODY_FILL, 0.9).fillPoints(body, true);
+    glowLine(g, c, 2, () => g.strokePoints(body, true, true));
+    g.lineStyle(2, c, 0.8).lineBetween(x + 18, y + 12, x + 28, y + 16);
+  },
+};
+
 // 隠れ家に置いてあるものの見た目
 const STATION_ICONS = {
+  // 人物（ハル）
+  npc(g, o, world, focused, c) {
+    (FIGURES[o.who] ?? FIGURES.person)(g, o.x, o.y, c, world);
+    if (focused) g.lineStyle(1, c, 0.5).strokeCircle(o.x, o.y, 34);
+  },
+  // 通信端末（依頼主と話す）：画面と、電波を出すアンテナ
+  comm(g, o, world, focused, c) {
+    g.fillStyle(BODY_FILL, 0.9).fillRect(o.x - 20, o.y - 12, 40, 26);
+    glowLine(g, c, 2, () => g.strokeRect(o.x - 20, o.y - 12, 40, 26));
+    // 画面の波形
+    g.lineStyle(2, c, 0.9);
+    for (let i = 0; i < 6; i++) {
+      const h = 3 + 6 * Math.abs(Math.sin(world.time * 5 + i * 1.3));
+      g.lineBetween(o.x - 13 + i * 5, o.y + 1 - h, o.x - 13 + i * 5, o.y + 1 + h);
+    }
+    glowLine(g, c, 2, () => g.lineBetween(o.x + 12, o.y - 12, o.x + 12, o.y - 26));
+    const wave = (world.time * 1.5) % 1;
+    g.lineStyle(1.5, c, 1 - wave).strokeCircle(o.x + 12, o.y - 26, 3 + wave * 10);
+    g.lineStyle(2, c, 1).lineBetween(o.x, o.y + 14, o.x, o.y + 22).lineBetween(o.x - 12, o.y + 22, o.x + 12, o.y + 22);
+  },
   weapon(g, o, world, focused, c) {
     g.fillStyle(BODY_FILL, 0.9).fillRect(o.x - 24, o.y + 18, 48, 8);
     g.lineStyle(1.5, c, 0.8).strokeRect(o.x - 24, o.y + 18, 48, 8);
@@ -120,6 +194,13 @@ const DRAWERS = {
   },
   station(g, o, world, focused) {
     STATION_ICONS[o.icon](g, o, world, focused, hex(o.color ?? COLORS.ink));
+  },
+
+  // 遭遇部屋の人物
+  npc(g, o, world, focused) {
+    const c = hex(o.used ? COLORS.dim : COLORS[o.color] ?? COLORS.ink);
+    (FIGURES[o.who] ?? FIGURES.person)(g, o.x, o.y, c, world);
+    if (!o.used) g.lineStyle(1.5, c, focused ? 0.7 : 0.3 + 0.2 * Math.sin(world.time * 4)).strokeCircle(o.x, o.y, 36);
   },
 
   // データ片：ゆっくり回る記録チップ
@@ -227,6 +308,8 @@ export function objectLabels(world) {
       labels.push({ x: o.x, y: o.y - 36, text: slotName(o.item.slot), color: COLORS.ink, size: 12 });
     } else if (o.kind === 'fragment') {
       labels.push({ x: o.x, y: o.y - 28, text: 'データ片', color: COLORS.cyan, size: 12 });
+    } else if (o.kind === 'npc') {
+      labels.push({ x: o.x, y: o.y - 50, text: DATA.characters.get(o.who).name, color: o.used ? COLORS.dim : COLORS[o.color] ?? COLORS.ink, size: 12 });
     }
   }
   // エリートは名前（特性つき）を頭の上に出す
@@ -253,6 +336,7 @@ export function focusPrompt(world) {
     return { text: `E：${def.name} を買う（${o.goods.price} c）　${def.desc}`, color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink };
   }
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
+  if (o.kind === 'npc') return o.used ? null : { text: 'E：話しかける', color: COLORS[o.color] ?? COLORS.ink };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: 'E：修復する（最大HPの40%回復）', color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'implant') return { text: `E：${o.goods.def.name} を買う（${o.goods.price} c）　${o.goods.def.desc}`, color: COLORS.magenta };

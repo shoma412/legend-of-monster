@@ -65,7 +65,7 @@ describe('定義データのつじつま', () => {
 });
 
 describe('エリアの地図', () => {
-  const SPECIAL = ['supply', 'market', 'vault'];
+  const SPECIAL = ['supply', 'market', 'vault', 'encounter'];
   const spread = (n) => seeded((n * 2654435761) % 4294967296); // 連番の種だと最初の乱数が似るので散らす
 
   it('最初の部屋・途中の3列（上下2部屋）・ボスでできている', () => {
