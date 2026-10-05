@@ -20,6 +20,11 @@ export function saveSettings() {
   return storeSettings(storage(), getSettings());
 }
 
+// フレームレートの上限を反映する（0 は制限なし）。遊んでいる途中でもすぐ変わる
+export function applyFrameRate(game) {
+  game.loop.setFPSLimit(getSettings().frameRate);
+}
+
 // フルスクリーンにできる環境か（アプリに埋め込まれた画面などでは、できないことがある）
 export function canFullscreen() {
   return typeof document !== 'undefined' && document.fullscreenEnabled === true;

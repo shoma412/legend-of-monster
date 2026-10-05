@@ -41,6 +41,7 @@ loadFonts().then(() => {
     height: SCREEN.height * quality,
     backgroundColor: COLORS.void,
     banner: false,
+    fps: { limit: getSettings().frameRate }, // フレームレートの上限（設定。0 は制限なし）
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

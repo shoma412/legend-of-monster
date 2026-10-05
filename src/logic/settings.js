@@ -12,10 +12,19 @@ export const DISPLAY_SIZES = [
   { id: '1600', label: '1600×900', width: 1600, height: 900 },
 ];
 
-// 画質（描画の細かさ）。数字は、基準の 960×540 に対する倍率
+// 画質（描画の細かさ）。数字は、基準の 960×540 に対する倍率（2 = 1920×1080, 3 = 2880×1620 で描く）
 export const QUALITIES = [
   { id: 1, label: '標準' },
-  { id: 2, label: '高（くっきり）' },
+  { id: 2, label: '高' },
+  { id: 3, label: '最高' },
+];
+
+// フレームレート（1秒に画面を描き直す回数）の上限。0 は制限なし（モニターの速さに合わせる）
+export const FRAME_RATES = [
+  { id: 0, label: '制限なし' },
+  { id: 30, label: '30' },
+  { id: 60, label: '60' },
+  { id: 120, label: '120' },
 ];
 
 export function createSettings() {
@@ -24,6 +33,7 @@ export function createSettings() {
     muted: false,
     displaySize: 'fit',
     quality: 1,
+    frameRate: 0,
   };
 }
 
@@ -42,6 +52,7 @@ export function normalizeSettings(data) {
     muted: data.muted === true,
     displaySize: DISPLAY_SIZES.some((d) => d.id === data.displaySize) ? data.displaySize : base.displaySize,
     quality: QUALITIES.some((q) => q.id === data.quality) ? data.quality : base.quality,
+    frameRate: FRAME_RATES.some((r) => r.id === data.frameRate) ? data.frameRate : base.frameRate,
   };
 }
 

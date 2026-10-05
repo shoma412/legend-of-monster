@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DISPLAY_SIZES, QUALITIES, SETTINGS_KEY, createSettings, loadSettings, normalizeSettings, stepVolume, storeSettings } from '../src/logic/settings.js';
+import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, SETTINGS_KEY, createSettings, loadSettings, normalizeSettings, stepVolume, storeSettings } from '../src/logic/settings.js';
 
 function fakeStorage() {
   const data = new Map();
@@ -13,6 +13,7 @@ describe('設定', () => {
     s.volume.bgm = 0.3;
     s.displaySize = '1280';
     s.quality = 2;
+    s.frameRate = 60;
     s.muted = true;
     expect(storeSettings(storage, s)).toBe(true);
     expect(SETTINGS_KEY).not.toContain('save');
@@ -22,7 +23,8 @@ describe('設定', () => {
   it('壊れた値や知らない値は、初期値に戻す', () => {
     const base = createSettings();
     expect(normalizeSettings(null)).toEqual(base);
-    const s = normalizeSettings({ volume: { master: 5, bgm: -1, se: 'x' }, displaySize: '9999', quality: 7 });
+    const s = normalizeSettings({ volume: { master: 5, bgm: -1, se: 'x' }, displaySize: '9999', quality: 7, frameRate: 45 });
+    expect(s.frameRate).toBe(0);
     expect(s.volume).toEqual({ master: 1, bgm: 0, se: base.volume.se });
     expect(s.displaySize).toBe('fit');
     expect(s.quality).toBe(1);
@@ -38,8 +40,11 @@ describe('設定', () => {
     expect(stepVolume(0, -1)).toBe(0);
   });
 
-  it('表示の大きさは4種類、画質は2種類から選ぶ', () => {
+  it('表示の大きさは4種類、画質は3種類（標準・高・最高）、フレームレートは4種類から選ぶ', () => {
     expect(DISPLAY_SIZES.map((d) => d.id)).toEqual(['fit', '960', '1280', '1600']);
-    expect(QUALITIES.map((q) => q.id)).toEqual([1, 2]);
+    expect(QUALITIES.map((q) => q.id)).toEqual([1, 2, 3]);
+    // フレームレートは 制限なし（0）／30／60／120。最初は制限なし
+    expect(FRAME_RATES.map((r) => r.id)).toEqual([0, 30, 60, 120]);
+    expect(createSettings().frameRate).toBe(0);
   });
 });

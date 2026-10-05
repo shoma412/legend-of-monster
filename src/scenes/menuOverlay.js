@@ -9,12 +9,12 @@ import { families } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
 import { AREA_ORDER } from '../game/run.js';
-import { applyDisplaySize, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
+import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyUpgrade, canAfford, nextUpgradeCost, upgradeLevel } from '../logic/meta.js';
-import { DISPLAY_SIZES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
+import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeFamilyBonuses } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
@@ -573,10 +573,17 @@ export class MenuOverlay {
         window.location.reload();
       });
     });
-    this.text(540, 331, '「高」は線や文字がくっきりするが、動作が重くなることがある', 11, COLORS.dim);
-    this.text(64, 364, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
+    this.text(696, 331, '上げるほどくっきりするが、重くなる', 11, COLORS.dim);
+    choiceRow(360, 'フレームレート', FRAME_RATES, s.frameRate, (opt) => {
+      s.frameRate = opt.id;
+      saveSettings();
+      applyFrameRate(game);
+      playSe('select');
+      this.render();
+    });
+    this.text(64, 398, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
     if (canFullscreen()) {
-      this.button(220, 360, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
+      this.button(220, 394, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
         toggleFullscreen().then((ok) => {
           if (!ok) playSe('deny');
           this.scene.time.delayedCall(200, () => this.isOpen && this.render());
@@ -584,9 +591,9 @@ export class MenuOverlay {
       });
     } else {
       // アプリに埋め込まれた画面などでは、フルスクリーンにできない
-      this.button(220, 360, 148, 26, '使えない', LOCKED, () => playSe('deny'));
-      this.text(380, 365, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
+      this.button(220, 394, 148, 26, '使えない', LOCKED, () => playSe('deny'));
+      this.text(380, 399, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
     }
-    this.text(64, 414, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
+    this.text(64, 432, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
   }
 }
