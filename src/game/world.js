@@ -98,9 +98,10 @@ export function updateWorld(world, dt, input) {
     updateShots(world, dt);
     updateHazards(world, dt);
     updateArena(world, dt);
-    updateZones(world, dt);
     updateWaves(world, dt);
   }
+  // ダメージ床は、カウントダウン中や部屋をクリアしたあとでも、時間がたてば消える
+  updateZones(world, dt);
   // クリア後や隠れ家でも、撃った弾は飛ぶ（試し撃ち）
   if (world.mode === 'clear') updatePlayerShots(world, dt);
   for (const l of world.loot) l.t += dt;

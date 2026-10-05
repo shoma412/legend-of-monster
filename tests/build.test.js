@@ -287,6 +287,33 @@ describe('レベルアップとインプラント', () => {
   });
 });
 
+describe('ダッシュで残るダメージ床（レジェンド装備：ネオン・ハロー）', () => {
+  const halo = () => ({ slot: 'acc', rarity: 3, name: 'テスト', effects: [], unique: 'neonhalo' });
+  const dash = (world) => {
+    updateWorld(world, DT, { ...idle, mx: 1, dashPressed: true });
+    for (let t = 0; t < 0.4; t += DT) updateWorld(world, DT, { ...idle, mx: 1 });
+  };
+
+  it('ダッシュした場所に床が残り、3秒たつと消える', () => {
+    const world = makeWorld();
+    equipItem(world, halo());
+    dash(world);
+    expect(world.zones.length).toBeGreaterThan(0);
+    for (let t = 0; t < 3.2; t += DT) updateWorld(world, DT, idle);
+    expect(world.zones).toHaveLength(0);
+  });
+
+  it('部屋をクリアしたあとにダッシュしても、床は残り続けない', () => {
+    const world = makeWorld();
+    equipItem(world, halo());
+    world.mode = 'clear';
+    dash(world);
+    expect(world.zones.length).toBeGreaterThan(0);
+    for (let t = 0; t < 3.2; t += DT) updateWorld(world, DT, idle);
+    expect(world.zones).toHaveLength(0);
+  });
+});
+
 describe('インプラントの効果', () => {
   it('連鎖放電：撃破時に近くの2体へ電撃。系統ボーナスで4体になる', () => {
     for (const [implants, expected] of [[['chain'], 2], [['chain', 'overcurrent', 'shockdash'], 4]]) {
