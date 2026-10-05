@@ -251,7 +251,7 @@ PATTERNS.summon = {
     act.t -= dt;
     if (act.phase === 'telegraph') {
       if (act.t <= 0) {
-        const live = world.enemies.filter((e) => !e.boss && !e.dead).length;
+        const live = world.enemies.filter((e) => !e.boss && !e.dead && !e.def.prop).length;
         const count = Math.max(0, Math.min(def.count, def.max - live));
         for (let i = 0; i < count; i++) {
           const a = (i / Math.max(1, count)) * Math.PI * 2 + world.rng() * 0.6;
@@ -447,6 +447,64 @@ PATTERNS.pools = {
           });
         }
         sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 橋げた：予告の線に沿って、部屋を横切る杭の列（壁）を張る。
+//   1本目は縦、2本目は横…と交互に、プレイヤーの少し横を通る。ところどころに隙間がある
+PATTERNS.girder = {
+  start(world, b, act) {
+    const def = act.def;
+    const p = world.player;
+    const bounds = world.bounds;
+    act.phase = 'telegraph';
+    act.t = def.telegraph;
+    act.spots = [];
+    for (let i = 0; i < def.lines; i++) {
+      const vertical = i % 2 === 0;
+      const side = world.rng() < 0.5 ? -1 : 1;
+      const from = vertical ? bounds.top : bounds.left;
+      const to = vertical ? bounds.bottom : bounds.right;
+      // プレイヤーの少し横を通る（部屋の端に寄りすぎないようにする）
+      const lo = (vertical ? bounds.left : bounds.top) + 60;
+      const hi = (vertical ? bounds.right : bounds.bottom) - 60;
+      const at = Math.max(lo, Math.min(hi, (vertical ? p.x : p.y) + side * def.offset * (1 + Math.floor(i / 2) * 0.9)));
+      // 隙間の場所
+      const gaps = Array.from({ length: def.gaps }, () => from + 50 + world.rng() * (to - from - 100 - def.gap));
+      for (let v = from + def.spacing / 2; v < to; v += def.spacing) {
+        if (gaps.some((g) => v >= g && v <= g + def.gap)) continue;
+        act.spots.push(vertical ? { x: at, y: v } : { x: v, y: at });
+      }
+    }
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const post = DATA.enemies.get(def.post);
+        for (const s of act.spots) {
+          // プレイヤーの真上と、ボスの体の中には立てない
+          if (Math.hypot(s.x - p.x, s.y - p.y) < p.r + post.radius + 8) continue;
+          if (Math.hypot(s.x - b.x, s.y - b.y) < b.r + post.radius) continue;
+          world.enemies.push(createEnemy(post, s.x, s.y, 0.15, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1));
+        }
+        // 部屋に残せる数まで。超えたら、古い杭から崩れる
+        const posts = world.enemies.filter((e) => !e.dead && e.def.id === def.post);
+        for (const old of posts.slice(0, Math.max(0, posts.length - def.max))) {
+          old.dead = true;
+          burst(world, old.x, old.y, old.color, 6, 160);
+        }
+        sfx(world, 'block');
+        addShake(world, FEEL.shake.hit);
         act.phase = 'recover';
         act.t = def.recover;
       }

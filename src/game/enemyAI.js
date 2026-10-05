@@ -1,5 +1,6 @@
 // 雑魚敵の動き方の部品。敵の定義（src/data/enemies.js）の behavior で選ぶ。
 import { COMBAT, STATUS } from '../data/balance.js';
+import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
@@ -391,6 +392,75 @@ const BEHAVIORS = {
     }
   },
 
+  // 置かれたもの（柵・橋げたの杭）：何もしない
+  prop() {},
+
+  // 足場組み：距離を取り、プレイヤーの手前に柵を立てる
+  builder(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const build = e.def.build;
+    const p = world.player;
+    if (e.state === 'chase') {
+      const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+      e.x += (d.dx / d.dist) * e.def.speed * want * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * want * dt;
+      const standing = world.enemies.filter((o) => !o.dead && o.def.id === build.post).length;
+      if (e.cd <= 0 && standing + build.posts <= build.max) {
+        e.state = 'windup';
+        e.t = build.windup;
+        // プレイヤーから見て、こちら側の少し手前に、横一列に並べる
+        const ux = -d.dx / d.dist;
+        const uy = -d.dy / d.dist;
+        const cx = p.x + ux * build.ahead;
+        const cy = p.y + uy * build.ahead;
+        e.buildSpots = Array.from({ length: build.posts }, (_, i) => {
+          const k = (i - (build.posts - 1) / 2) * build.spacing;
+          return { x: cx - uy * k, y: cy + ux * k };
+        });
+      }
+    } else if (e.state === 'windup') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        const post = DATA.enemies.get(build.post);
+        for (const s of e.buildSpots) {
+          const made = createEnemy(post, s.x, s.y, 0.15, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
+          clampToBounds(made, world.bounds);
+          world.enemies.push(made);
+        }
+        sfx(world, 'block');
+        e.buildSpots = null;
+        e.state = 'chase';
+        e.cd = build.interval;
+      }
+    }
+  },
+
+  // 現場荒らし：距離を取り、鉄パイプを山なりに投げる。落ちる場所は先に表示される
+  lobber(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const lob = e.def.lob;
+    const p = world.player;
+    if (e.state === 'chase') {
+      const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+      e.x += (d.dx / d.dist) * e.def.speed * want * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * want * dt;
+      if (e.cd <= 0) {
+        e.state = 'aim';
+        e.t = lob.windup;
+        e.angle = Math.atan2(d.dy, d.dx);
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        world.hazards.push({ type: 'mark', x: p.x, y: p.y, r: lob.radius, t: lob.delay, max: lob.delay, damage: e.def.damage, color: e.color, from: { x: e.x, y: e.y } });
+        sfx(world, 'enemyShot');
+        e.state = 'chase';
+        e.cd = lob.interval;
+      }
+    }
+  },
+
   gunner(world, e, dt, d) {
     const keep = e.def.keepDistance;
     const shot = e.def.shot;
@@ -527,18 +597,36 @@ export function updateEnemies(world, dt) {
       const dist = Math.hypot(dx, dy);
       const min = a.r + b.r;
       if (dist < min && dist > 0) {
-        // ボスは押されない
-        const push = (min - dist) / (a.boss || b.boss ? 1 : 2);
-        if (!a.boss) {
+        // ボスと、通れないもの（柵・橋げた）は押されない
+        const fixedA = a.boss || a.def.solid;
+        const fixedB = b.boss || b.def.solid;
+        if (fixedA && fixedB) continue;
+        const push = (min - dist) / (fixedA || fixedB ? 1 : 2);
+        if (!fixedA) {
           a.x -= (dx / dist) * push;
           a.y -= (dy / dist) * push;
         }
-        if (!b.boss) {
+        if (!fixedB) {
           b.x += (dx / dist) * push;
           b.y += (dy / dist) * push;
         }
       }
     }
+  }
+  // 通れないもの（柵・橋げた）：プレイヤーも歩いては通れない。ダッシュ中はすり抜けられる
+  if (p.dashT <= 0) {
+    for (const e of live) {
+      if (!e.def.solid) continue;
+      const dx = p.x - e.x;
+      const dy = p.y - e.y;
+      const dist = Math.hypot(dx, dy) || 0.01;
+      const min = p.r + e.r;
+      if (dist < min) {
+        p.x += (dx / dist) * (min - dist);
+        p.y += (dy / dist) * (min - dist);
+      }
+    }
+    clampToBounds(p, world.bounds);
   }
   world.enemies = world.enemies.filter((e) => !e.dead);
 }
@@ -546,11 +634,14 @@ export function updateEnemies(world, dt) {
 export function updateShots(world, dt) {
   const p = world.player;
   const b = world.bounds;
+  // 通れないもの（柵・橋げた）は、敵の弾も止める
+  const solids = world.enemies.filter((e) => e.def.solid && !e.dead && e.spawnT <= 0);
   for (const s of world.shots) {
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.life -= dt;
     if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) s.life = 0;
+    if (s.life > 0 && solids.some((e) => circlesOverlap(s.x, s.y, s.r, e.x, e.y, e.r))) s.life = 0;
     if (s.life > 0 && circlesOverlap(s.x, s.y, s.r, p.x, p.y, p.r)) {
       // 無敵中（ダッシュ中など）はすり抜ける
       // 減速つきの弾（氷の破片）は、当たると動きも鈍る。減速は、ダメージの無敵時間が付く前にかける

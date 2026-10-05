@@ -126,6 +126,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-girderspider',
+    trigger: { at: 'bossIntro', boss: 'girderspider' },
+    lines: [
+      { who: 'jin', text: '橋げたが、巣になってる。……どこにもつながってないぞ、これ。' },
+      { who: 'noise', text: '架設機だ。対岸の場所を消されたあとも、桁を張り続けた。' },
+      { who: 'jin', text: '壁を張られたら、壊すか、すり抜けるかだな。' },
+    ],
+  },
+  {
+    id: 'return-girderspider',
+    trigger: { at: 'hideout', bossKilled: 'girderspider' },
+    lines: [
+      { who: 'hal', text: 'その糸、鉄より強いよ。ちょっと分けて。棚を吊るのに使うから。' },
+      { who: 'jin', text: 'あいつは、橋をかけたかっただけだ。向こう岸が、なかっただけで。' },
+      { who: 'noise', text: '……残りは、塔だ。いちばん上で、まだ積み上げている者がいる。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [
@@ -214,6 +232,7 @@ export const talks = {
     { after: 'pipeserpent', lines: [{ who: 'noise', text: '下水の流れが止まった。次は貯水槽だ。水門の前に、番をしている者がいる。' }] },
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
     { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
-    { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。……その先の区画は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
+    { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。……塔の区画は、まだ準備ができていない。体を直しておけ。' }] },
   ],
 };

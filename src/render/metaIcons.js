@@ -81,6 +81,16 @@ export const MATERIAL_ICONS = {
     g.lineStyle(1.5, c, 1);
     for (const dx of [-0.3, 0.3]) g.strokePoints([{ x: x + dx * s - s * 0.2, y: y - s * 0.45 }, { x: x + dx * s, y: y + s * 0.5 }, { x: x + dx * s + s * 0.2, y: y - s * 0.45 }], false, false);
   },
+  // スパイダーコア：巣
+  spiderCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.2, c, 1);
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI) / 3 + Math.PI / 6;
+      g.lineBetween(x - Math.cos(a) * s * 0.7, y - Math.sin(a) * s * 0.7, x + Math.cos(a) * s * 0.7, y + Math.sin(a) * s * 0.7);
+    }
+    g.strokePoints(ngon(x, y, s * 0.4, 6, Math.PI / 6), true, true);
+  },
 };
 
 export function drawMaterialIcon(g, id, x, y, s, c) {

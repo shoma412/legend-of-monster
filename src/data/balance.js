@@ -25,6 +25,14 @@ export const PLAYER = {
 // 連続ヒット（種族「大蛇」）：同じ敵に続けて当てるたびにダメージが上がる。その重なる回数の上限
 export const COMBO = { max: 5 };
 
+// 設置物（種族「蜘蛛」）
+export const DEVICE = {
+  // 地雷：置いてから arm 秒後に効き始め、敵が trigger の距離に入ると、blast の範囲に爆発する
+  mine: { trigger: 26, blast: 72, arm: 0.35 },
+  // 小型タレット：interval 秒ごとに足元に置く（部屋に入って最初の1つは first 秒後）。life 秒のあいだ、range 以内のいちばん近い敵を rate 秒ごとに撃つ
+  sentry: { interval: 8, first: 1.5, life: 6, range: 300, rate: 0.6 },
+};
+
 export const COMBAT = {
   weaknessMultiplier: 1.5, // 弱点属性の倍率
   stagger: 0.18, // 攻撃を当てた敵がひるむ時間（秒）

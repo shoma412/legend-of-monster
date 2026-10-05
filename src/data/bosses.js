@@ -14,6 +14,7 @@
 //   leap      : プレイヤーの場所に着地点の予告 → 跳ぶ → 着地で周りを攻撃。ring を書くと衝撃波の輪も出る
 //   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
+//   girder    : 予告の線に沿って、杭の列（壁）を張る。lines 本。杭は post の敵（置かれたもの）で、gap の幅の隙間が gaps か所ある。部屋に残せるのは max 本まで
 //   magnet    : duration 秒のあいだ、プレイヤーを strength の速さで引き寄せる（ダッシュ中は引かれない）。最後に radius の範囲を叩く
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
@@ -345,6 +346,46 @@ export const bosses = [
         speed: 1.2,
         sequence: ['magnetHard', 'pounce', 'triple', 'scrapHard', 'pounce', 'howl'],
         announce: '不足検知',
+      },
+    ],
+  },
+  {
+    id: 'girderspider',
+    name: 'ガーダースパイダー',
+    alias: '橋げた張り', // 登場時に出す異名
+    shape: 'spider',
+    color: 'ice',
+    weakness: 'heat',
+    material: 'spiderCore',
+    radius: 40,
+    hp: 8200,
+    speed: 92,
+    contactDamage: 40,
+    xp: 440,
+    credits: 220,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 糸の弾：プレイヤーへ扇形に。当たると減速
+      web: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 60, waves: 3, interval: 0.4, track: true, shotSpeed: 280, shotRadius: 8, damage: 28, slow: true, recover: 0.7 },
+      // 跳びかかり
+      leap: { pattern: 'leap', telegraph: 0.8, lockTime: 0.3, air: 0.45, radius: 105, damage: 46, recover: 0.8 },
+      // 脚の突き：正面の細い扇
+      stab: { pattern: 'cone', telegraph: 0.6, lockTime: 0.25, range: 210, arc: 40, duration: 0.2, damage: 46, recover: 0.8 },
+      // 子蜘蛛を生む
+      brood: { pattern: 'summon', telegraph: 0.7, enemy: 'spiderling', count: 3, max: 6, recover: 0.7 },
+      // 橋げた：部屋を横切る壁を張る
+      girder: { pattern: 'girder', telegraph: 1.0, lines: 2, offset: 110, spacing: 34, gap: 96, gaps: 2, max: 46, post: 'girderpost', recover: 0.8 },
+      girderHard: { pattern: 'girder', telegraph: 0.8, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.7 },
+      // 突進（後半）：2連続
+      rush: { pattern: 'charge', repeat: 2, repeatTelegraph: 0.4, telegraph: 0.6, lockTime: 0.2, speed: 620, duration: 0.6, damage: 44, recover: 0.8, wallStun: 1.2 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, sequence: ['web', 'girder', 'leap', 'stab', 'brood'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.8, max: 1.2 },
+        sequence: ['girderHard', 'leap', 'web', 'rush', 'brood', 'stab'],
+        announce: '架設続行',
       },
     ],
   },

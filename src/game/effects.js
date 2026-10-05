@@ -5,6 +5,7 @@
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyBurn, applySlow, applyStop, effectDamage } from './combat.js';
+import { placeMine } from './devices.js';
 import { burst, ring } from './fx.js';
 
 // 条件つき補正（mods の when）
@@ -14,6 +15,7 @@ const CONDITIONS = {
   recentDash: (world, mod) => world.player.sinceDash <= (mod.window ?? 2),
   targetSlowed: (world, mod, target) => !!target && (target.slowT > 0 || target.stopT > 0),
   targetBurning: (world, mod, target) => !!target && target.burnT > 0,
+  targetStopped: (world, mod, target) => !!target && target.stopT > 0,
   standing: (world) => world.player.stillT >= 0.25, // 少しの間、動いていない
   moving: (world) => world.player.stillT <= 0,
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
@@ -128,6 +130,14 @@ const ACTIONS = {
       world.fx.bolts.push({ x1: p.x, y1: p.y, x2: e.x, y2: e.y, life: 0.18, max: 0.18 });
       effectDamage(world, e, t.damage, 'shock');
     }
+  },
+
+  // ダッシュした場所に地雷を置く（1回のダッシュで1個）
+  placeMine(world, t, ctx) {
+    if (ctx.dash.mine) return;
+    ctx.dash.mine = true;
+    const p = world.player;
+    placeMine(world, p.x, p.y);
   },
 
   // プレイヤーの周りの敵にダメージ（属性なし）

@@ -154,6 +154,12 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
 export function killEnemy(world, enemy) {
   if (enemy.dead) return;
   enemy.dead = true;
+  // 柵などの「置かれたもの」：壊れるだけ（撃破数にも経験値にもならない）
+  if (enemy.def.prop) {
+    burst(world, enemy.x, enemy.y, enemy.color, 10, 200);
+    sfx(world, 'block');
+    return;
+  }
   world.kills++;
   burst(world, enemy.x, enemy.y, enemy.color, enemy.boss ? 90 : 18, enemy.boss ? 400 : 240);
   addShake(world, enemy.boss ? FEEL.shake.bossKill : FEEL.shake.kill);

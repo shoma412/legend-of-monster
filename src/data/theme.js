@@ -36,6 +36,7 @@ export const AREA_THEMES = {
   tank: { floor: 0x060d16, grid: 0x3a8fd0, wall: 0x0d1a2b, edge: '#4fb8ff' },
   filter: { floor: 0x100a14, grid: 0xb05ad0, wall: 0x1e1226, edge: '#ff2bd6' },
   yard: { floor: 0x12100a, grid: 0xc9a12e, wall: 0x241f12, edge: '#fff36b' },
+  bridge: { floor: 0x0a0d12, grid: 0x7f9ab8, wall: 0x161c26, edge: '#8fd8ff' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

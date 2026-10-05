@@ -16,6 +16,7 @@ export const achievements = [
   { id: 'tankcrab', icon: 'skull', color: 'amber', name: '水門の番狩り', desc: 'タンククラブを倒した', on: 'bossKill', check: 'bossIs', boss: 'tankcrab' },
   { id: 'sludgehydra', icon: 'skull', color: 'heat', name: '汚泥の多頭狩り', desc: 'スラッジハイドラを倒した', on: 'bossKill', check: 'bossIs', boss: 'sludgehydra' },
   { id: 'scraphound', icon: 'skull', color: 'red', name: '資材喰い狩り', desc: 'スクラップハウンドを倒した', on: 'bossKill', check: 'bossIs', boss: 'scraphound' },
+  { id: 'girderspider', icon: 'skull', color: 'cold', name: '橋げた張り狩り', desc: 'ガーダースパイダーを倒した', on: 'bossKill', check: 'bossIs', boss: 'girderspider' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },

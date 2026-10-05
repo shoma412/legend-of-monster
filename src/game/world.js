@@ -10,7 +10,8 @@ import { doorObjects } from './rooms.js';
 import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
-import { createFx, updateFx } from './fx.js';
+import { burst, createFx, updateFx } from './fx.js';
+import { updateDevices } from './devices.js';
 import { updateGimmick } from './gimmicks.js';
 import { canUseOugi, createPlayer, updatePlayer, updatePlayerShots } from './player.js';
 
@@ -35,6 +36,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     hazards: [],
     arena: null, // ボスが部屋を狭めているとき { inset, target, speed, base }
     zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
+    devices: [], // 設置物（地雷・小型タレット）。部屋を出ると消える
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
     room,
@@ -98,6 +100,7 @@ export function updateWorld(world, dt, input) {
     updatePlayerShots(world, dt);
     updateShots(world, dt);
     updateGimmick(world, dt);
+    updateDevices(world, dt);
     updateHazards(world, dt);
     updateArena(world, dt);
     updateWaves(world, dt);
@@ -112,7 +115,8 @@ export function updateWorld(world, dt, input) {
 }
 
 function updateWaves(world, dt) {
-  if (world.mode !== 'play' || world.enemies.length > 0) return;
+  // 柵などの「置かれたもの」は、残っていても数えない
+  if (world.mode !== 'play' || world.enemies.some((e) => !e.def.prop)) return;
   if (world.wave + 1 >= world.waves.length) {
     clearRoom(world);
     return;
@@ -143,6 +147,10 @@ function clearRoom(world) {
   world.shots = [];
   world.hazards = [];
   world.zones = [];
+  world.devices = [];
+  // 残っている柵や橋げたは、片づける
+  for (const e of world.enemies) burst(world, e.x, e.y, e.color, 6, 160);
+  world.enemies = [];
   p.build.credits += Math.round(world.room.clearCredits * p.stats.creditMul);
   // ボスを倒したら全回復
   if (world.boss) p.hp = p.stats.maxHp;

@@ -14,8 +14,13 @@
 //   steamer : 動かない。予告の帯を出してから、蒸気を一直線に噴き続ける
 //   harpooner : 距離を取り、照準線を出してから銛を投げる。当たると引き寄せられる
 //   bombardier : プレイヤーの近くまで飛んできて、頭上から樽を落とす（落下地点を表示）
+//   builder   : 距離を取り、プレイヤーの行く手に柵を立てる
+//   lobber    : 距離を取り、ものを山なりに投げる（落下地点を表示）
+//   prop      : 動かない。攻撃もしない（柵や橋げたの杭）
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
+// prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
+// solid: true は、歩いて通れず、敵の弾も止める（ダッシュ中はすり抜けられる）
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
 // hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
 export const enemies = [
@@ -323,5 +328,97 @@ export const enemies = [
     keepDistance: { min: 90, max: 170 },
     // 近くまで来ると、プレイヤーのいる場所に樽を落とす（delay 秒後に、半径 radius の範囲に当たる）
     drop: { interval: 2.6, radius: 46, delay: 0.95 },
+  },
+  {
+    id: 'scaffolder',
+    name: '足場組み',
+    behavior: 'builder',
+    shape: 'square',
+    color: 'amber',
+    radius: 15,
+    hp: 72,
+    speed: 64,
+    damage: 0,
+    xp: 13,
+    credits: 5,
+    cost: 3,
+    dropChance: 0.24,
+    knockbackResist: 0.4,
+    keepDistance: { min: 190, max: 310 },
+    // windup 秒かけて、プレイヤーの手前（ahead）に、杭 posts 本の柵を立てる。部屋に立てられるのは max 本まで
+    build: { interval: 5, windup: 0.8, posts: 4, spacing: 30, ahead: 78, max: 12, post: 'fencepost' },
+  },
+  {
+    id: 'lobber',
+    name: '現場荒らし',
+    behavior: 'lobber',
+    shape: 'poacher',
+    color: 'magenta',
+    radius: 14,
+    hp: 58,
+    speed: 82,
+    damage: 20,
+    xp: 13,
+    credits: 5,
+    cost: 3,
+    dropChance: 0.24,
+    keepDistance: { min: 230, max: 370 },
+    // 鉄パイプを山なりに投げる。投げてから delay 秒後に、プレイヤーのいた場所（半径 radius）に落ちる
+    lob: { interval: 2.5, windup: 0.5, radius: 40, delay: 1.0 },
+  },
+  {
+    // 足場組みが立てる柵の杭（置かれたもの）
+    id: 'fencepost',
+    name: '柵',
+    behavior: 'prop',
+    shape: 'post',
+    color: 'amber',
+    radius: 12,
+    hp: 46,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
+    solid: true,
+  },
+  {
+    // ガーダースパイダーが張る橋げたの杭（置かれたもの）
+    id: 'girderpost',
+    name: '橋げた',
+    behavior: 'prop',
+    shape: 'post',
+    color: 'ice',
+    radius: 14,
+    hp: 80,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
+    solid: true,
+  },
+  {
+    // ガーダースパイダーが生む子蜘蛛（部屋の敵としては選ばれない）
+    id: 'spiderling',
+    name: '子蜘蛛',
+    behavior: 'swarm',
+    shape: 'triangle',
+    color: 'ice',
+    radius: 9,
+    hp: 30,
+    speed: 165,
+    damage: 10,
+    xp: 3,
+    credits: 1,
+    cost: 99,
+    dropChance: 0,
+    wobble: 0.9,
   },
 ];

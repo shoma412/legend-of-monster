@@ -84,6 +84,8 @@ export const BGM = {
   // マップ3「建設区」。曲を選ぶまでの仮（ほかのマップの曲のファイルを指している）
   yard: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossYard: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  viaduct: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
+  bossViaduct: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
 };
 
 // ---- コードで鳴らす曲 ----

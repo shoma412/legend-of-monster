@@ -144,6 +144,11 @@ export function computeStats(build) {
     hurtInvincible: 0, // 被弾後の無敵時間に足す秒数
     hpRegen: 0, // 1秒あたりに戻る HP
     dashDistance: 0, // ダッシュの距離が伸びる割合
+    // 設置物（種族「蜘蛛」）：地雷と小型タレットの1発のダメージ（0 なら置かない）、ダメージの倍率、同じ種類を置ける数
+    mineDamage: 0,
+    sentryDamage: 0,
+    deviceMul: 1,
+    deviceCount: 1,
     revive: 0, // 倒れたとき、出撃ごとに1回だけ起き上がる。そのときの HP の割合（0 なら起き上がらない）
     kitBonus: 0, // 修復キットの回復量が増える割合
     lowHealBonus: 0, // HPが半分以下のとき、回復が増える割合（1 = 2倍）

@@ -10,6 +10,7 @@ export const materials = [
   { id: 'crabCore', name: 'クラブコア', color: 'amber' },
   { id: 'hydraCore', name: 'ハイドラコア', color: 'magenta' },
   { id: 'houndCore', name: 'ハウンドコア', color: 'red' },
+  { id: 'spiderCore', name: 'スパイダーコア', color: 'ice' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -158,5 +159,21 @@ export const fragments = [
   {
     id: 'sc-core', area: 'yard', source: 'boss', title: 'スクラップハウンドのコアログ',
     text: '不足：鉄骨。不足：鋲。不足：設計図。不足：設計図。不足：設計図。——探索を続ける。',
+  },
+  {
+    id: 'gs-01', area: 'viaduct', source: 'vault', title: '高架工事 進捗表',
+    text: '架設機 GS シリーズは、橋げたを一本ずつ張って、対岸までつなぐ。対岸の座標は、工事の途中で「未定」に書き換えられた。',
+  },
+  {
+    id: 'gs-03', area: 'viaduct', source: 'vault', title: '測量班の報告',
+    text: '橋げたが、橋げたの上に張られている。行き先のない桁が、何層も。上から見ると、巣にしか見えない。',
+  },
+  {
+    id: 'gs-memo', area: 'viaduct', source: 'vault', title: '撤収の張り紙',
+    text: '本日をもって現場を閉鎖する。架設機は停止させること。——停止の手順は、三枚目に書いてあったはずだ。三枚目は、どこにもない。',
+  },
+  {
+    id: 'gs-core', area: 'viaduct', source: 'boss', title: 'ガーダースパイダーのコアログ',
+    text: '架設：完了。接続先：なし。架設：完了。接続先：なし。……つながるまで、張り続ける。',
   },
 ];

@@ -49,7 +49,7 @@ export const TRAIT_PARTS = {
       e.traitT = trait.interval;
       let healed = false;
       for (const o of world.enemies) {
-        if (o === e || o.dead || o.spawnT > 0 || o.hp >= o.maxHp) continue;
+        if (o === e || o.dead || o.spawnT > 0 || o.hp >= o.maxHp || o.def.prop) continue;
         if (Math.hypot(o.x - e.x, o.y - e.y) > trait.radius) continue;
         o.hp = Math.min(o.maxHp, o.hp + trait.heal);
         floatText(world, o.x, o.y - o.r - 6, `+${trait.heal}`, COLORS.green, 12);

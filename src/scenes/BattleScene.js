@@ -16,7 +16,7 @@ import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
   ITEM_SLOT_POS, drawArena, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
-  drawZones,
+  drawDevices, drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
@@ -342,6 +342,7 @@ export class BattleScene extends Phaser.Scene {
     drawArena(g, world);
     drawBossTelegraph(g, world);
     drawZones(g, world);
+    drawDevices(g, world);
     drawObjects(g, world);
     drawLoot(g, world);
     drawFx(g, world);
@@ -368,7 +369,7 @@ export class BattleScene extends Phaser.Scene {
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
     const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;
-    this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.length}`);
+    this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 
     const implantCount = Object.keys(p.build.implants).length;
     this.implantText.setText(implantCount > 0 ? `インプラント ${implantCount}` : '');

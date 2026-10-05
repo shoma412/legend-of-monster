@@ -219,6 +219,13 @@ const SHAPES = {
     const aiming = e.state === 'aim';
     g.fillStyle(aiming ? WHITE : color, aiming ? 0.9 : 0.6).fillCircle(mouth.x, mouth.y, aiming ? 5 : 3);
   },
+  // 柵・橋げたの杭：四角い柱と、筋交い
+  post(g, e, color) {
+    const s = e.r * 0.9;
+    g.fillStyle(BODY_FILL, 0.9).fillRect(e.x - s, e.y - s, s * 2, s * 2);
+    neonStroke(g, color, 2, () => g.strokeRect(e.x - s, e.y - s, s * 2, s * 2));
+    g.lineStyle(1.5, color, 0.6).lineBetween(e.x - s, e.y - s, e.x + s, e.y + s).lineBetween(e.x + s, e.y - s, e.x - s, e.y + s);
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -295,6 +302,20 @@ function drawTelegraph(g, e, world) {
     const locked = e.t <= harpoon.lock;
     g.lineStyle(locked ? 4 : 1.5, red, locked ? 0.95 : 0.45 + 0.25 * Math.sin(world.time * 30));
     g.lineBetween(e.x, e.y, e.x + Math.cos(e.angle) * harpoon.range, e.y + Math.sin(e.angle) * harpoon.range);
+  }
+  if (e.def.behavior === 'builder' && e.state === 'windup' && e.buildSpots) {
+    // 柵が立つ場所の予告
+    const k = 1 - e.t / e.def.build.windup;
+    for (const s of e.buildSpots) {
+      g.fillStyle(red, 0.12 + 0.25 * k).fillRect(s.x - 11, s.y - 11, 22, 22);
+      g.lineStyle(1.5, red, 0.7).strokeRect(s.x - 11, s.y - 11, 22, 22);
+    }
+    g.lineStyle(1.5, hex(e.color), 0.5).lineBetween(e.x, e.y, e.buildSpots[0].x, e.buildSpots[0].y);
+  }
+  if (e.def.behavior === 'lobber' && e.state === 'aim') {
+    // 投げる構え：振りかぶる腕
+    const k = 1 - e.t / e.def.lob.windup;
+    g.lineStyle(3, hex(e.color), 0.9).lineBetween(e.x, e.y, e.x - Math.cos(e.angle) * (10 + 14 * k), e.y - Math.sin(e.angle) * (10 + 14 * k) - 10 * k);
   }
   if (e.def.behavior === 'gunner' && e.state === 'aim') {
     // 照準線
@@ -710,6 +731,15 @@ BOSS_TELEGRAPHS.magnet = (g, b, act, world) => {
     g.lineStyle(2, hex(COLORS.red), 0.5 + 0.4 * near).strokeCircle(b.x, b.y, def.radius);
   }
 };
+// 予告：橋げた（杭が立つ場所。時間が近づくほど濃くなる）
+BOSS_TELEGRAPHS.girder = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  for (const s of act.spots) {
+    g.fillStyle(hex(COLORS.red), 0.08 + 0.22 * k).fillRect(s.x - 13, s.y - 13, 26, 26);
+    g.lineStyle(1.5, hex(COLORS.red), 0.4 + 0.5 * k).strokeRect(s.x - 13, s.y - 13, 26, 26);
+  }
+};
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -927,6 +957,49 @@ SHAPES.hound = (g, b, color, world) => {
   }
 };
 
+// ガーダースパイダー：丸い頭胸と、後ろの大きな腹、左右4本ずつの脚（橋げたのように角ばっている）
+SHAPES.spider = (g, b, color, world) => {
+  const r = b.r;
+  const at = (forward, side) => local(b, forward, side);
+  // 脚（2節。ひざが外へ張り出す）
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const f = 0.55 - i * 0.38;
+      const swing = Math.sin(world.time * 9 + i * 1.7 + side) * r * 0.08;
+      const hip = at(f * r, side * r * 0.5);
+      const knee = at(f * r * 1.3 + swing, side * r * 1.25);
+      const foot = at(f * r * 1.9 + swing * 2, side * r * 1.75);
+      g.lineStyle(3.5, color, 0.85).lineBetween(hip.x, hip.y, knee.x, knee.y).lineBetween(knee.x, knee.y, foot.x, foot.y);
+    }
+  }
+  // 腹（後ろの大きな丸。桁の模様）
+  const belly = at(-r * 0.75, 0);
+  g.fillStyle(BODY_FILL, 0.92).fillCircle(belly.x, belly.y, r * 0.85);
+  neonStroke(g, color, 3, () => g.strokeCircle(belly.x, belly.y, r * 0.85));
+  for (const k of [-0.35, 0.35]) {
+    const a1 = at(-r * 1.35, k * r);
+    const a2 = at(-r * 0.15, k * r);
+    g.lineStyle(1.5, color, 0.5).lineBetween(a1.x, a1.y, a2.x, a2.y);
+  }
+  // 頭胸
+  const head = at(r * 0.35, 0);
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(head.x, head.y, r * 0.58);
+  neonStroke(g, color, 3, () => g.strokeCircle(head.x, head.y, r * 0.58));
+  // きば
+  for (const side of [-1, 1]) {
+    const from = at(r * 0.85, side * r * 0.2);
+    const to = at(r * 1.25, side * r * 0.08);
+    neonStroke(g, color, 2.5, () => g.lineBetween(from.x, from.y, to.x, to.y));
+  }
+  // 目（たくさん）
+  if (b.act?.phase !== 'stun') {
+    for (const [f, s] of [[0.62, 0.22], [0.62, -0.22], [0.42, 0.34], [0.42, -0.34]]) {
+      const eye = at(r * f, r * s);
+      g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 2.6);
+    }
+  }
+};
+
 SHAPES.boar = (g, b, color) => {
   const r = b.r;
   const stunned = b.act?.phase === 'stun';
@@ -971,6 +1044,13 @@ export function drawHazards(g, world) {
       g.fillStyle(hex(COLORS.red), 0.1 + 0.2 * k).fillCircle(h.x, h.y, h.r);
       g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(h.x, h.y, h.r);
       g.lineStyle(2, hex(h.color), 0.9).strokeCircle(h.x, h.y, h.r * k);
+      // 投げられたもの（鉄パイプ）：投げた場所から落下地点へ、山なりに飛ぶ
+      if (h.from) {
+        const x = h.from.x + (h.x - h.from.x) * k;
+        const y = h.from.y + (h.y - h.from.y) * k - Math.sin(k * Math.PI) * 90;
+        const spin = k * 14;
+        g.lineStyle(4, hex(h.color), 0.95).lineBetween(x - Math.cos(spin) * 12, y - Math.sin(spin) * 12, x + Math.cos(spin) * 12, y + Math.sin(spin) * 12);
+      }
     } else if (h.type === 'bar') {
       const dx = Math.cos(h.angle) * ROOM.barLength;
       const dy = Math.sin(h.angle) * ROOM.barLength;
@@ -1046,6 +1126,31 @@ export function drawLoot(g, world) {
     // スロットごとの形（武器モッド＝刃、防具＝盾、アクセ＝指輪）。色はレア度
     drawSlotIcon(g, l.item.slot, l.x, l.y + bob, focused ? 13 : 11, color);
     if (focused) g.lineStyle(1, color, 0.5).strokeCircle(l.x, l.y, LOOT.pickupRadius * 0.7);
+  }
+}
+
+// 設置物（地雷・小型タレット）
+export function drawDevices(g, world) {
+  const amber = hex(COLORS.amber);
+  const cyan = hex(COLORS.cyan);
+  for (const d of world.devices ?? []) {
+    if (d.type === 'mine') {
+      const armed = d.arm <= 0;
+      const blink = armed ? 0.5 + 0.5 * Math.abs(Math.sin(world.time * 6)) : 0.35;
+      const pts = [{ x: d.x, y: d.y - 8 }, { x: d.x + 8, y: d.y }, { x: d.x, y: d.y + 8 }, { x: d.x - 8, y: d.y }];
+      g.fillStyle(BODY_FILL, 0.9).fillPoints(pts, true);
+      g.lineStyle(2, amber, blink).strokePoints(pts, true, true);
+      g.fillStyle(amber, blink).fillCircle(d.x, d.y, 2.5);
+      if (armed) g.lineStyle(1, amber, 0.18).strokeCircle(d.x, d.y, d.blast);
+    } else if (d.type === 'sentry') {
+      const a = d.aim ?? -Math.PI / 2;
+      g.fillStyle(BODY_FILL, 0.9).fillRect(d.x - 8, d.y - 8, 16, 16);
+      g.lineStyle(2, cyan, 0.9).strokeRect(d.x - 8, d.y - 8, 16, 16);
+      g.lineStyle(3, cyan, 1).lineBetween(d.x, d.y, d.x + Math.cos(a) * 15, d.y + Math.sin(a) * 15);
+      // 残り時間の輪
+      g.lineStyle(2, cyan, 0.6);
+      arcPath(g, d.x, d.y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, d.life / d.max));
+    }
   }
 }
 

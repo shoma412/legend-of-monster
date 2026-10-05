@@ -424,6 +424,47 @@ const THEMES = {
       for (let k = 0; k < 4; k++) block(g, x + k * 3, a.bottom - 18 - k * 3, 70 + rng() * 30, PX / 2, 0x6a5a30, 0.6);
     }
   },
+  // 高架の現場：橋げたの床（継ぎ目とリベット）、下に見える街の灯り、手すり、垂れたワイヤー
+  bridge(g, rng, a) {
+    speckles(g, rng, a, 240, [0x12161e, 0x181e28, 0x0c0f15, 0x202836], 0.7);
+    // 床の桁の継ぎ目（横に長い板が並ぶ）とリベット
+    for (let y = a.top + 70; y < a.bottom - 30; y += 84) {
+      block(g, a.left, y, a.w, PX / 2, 0x2a3446, 0.7);
+      for (let x = a.left + 20; x < a.right - 10; x += 44) block(g, x, y - 5, PX, PX, 0x3a4860, 0.7);
+    }
+    for (let x = a.left + 150; x < a.right - 60; x += 210) block(g, x, a.top, PX / 2, a.h, 0x2a3446, 0.5);
+    // 床の抜けたところから、下の街の灯りが見える
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 80 + rng() * (a.w - 240);
+      const y = a.top + 60 + rng() * (a.h - 140);
+      const w = 50 + rng() * 60;
+      block(g, x, y, w, 30, 0x04050a, 0.85);
+      for (let k = 0; k < 7; k++) {
+        const color = [0x2ef2ff, 0xff2bd6, 0xffc23a][Math.floor(rng() * 3)];
+        block(g, x + 4 + rng() * (w - 10), y + 4 + rng() * 22, PX, PX / 2, color, 0.35);
+      }
+      block(g, x, y, w, PX / 2, 0x3a4860, 0.8);
+      block(g, x, y + 30, w, PX / 2, 0x3a4860, 0.8);
+    }
+    // 上下の手すり
+    for (const y of [a.top + 8, a.bottom - 14]) {
+      block(g, a.left, y, a.w, PX, 0x3a4860, 0.8);
+      for (let x = a.left + 10; x < a.right; x += 34) block(g, x, y, PX / 2, 10, 0x3a4860, 0.8);
+    }
+    // 垂れたワイヤー（上から下へ、斜めに）
+    for (let i = 0; i < 3; i++) {
+      const x0 = a.left + 80 + rng() * (a.w - 160);
+      const lean = (rng() - 0.5) * 120;
+      for (let y = a.top; y < a.bottom; y += PX) block(g, x0 + ((y - a.top) / a.h) * lean, y, PX / 2, PX, 0x05070b, 0.6);
+    }
+    // 置きっぱなしの工具箱
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 50 + rng() * (a.w - 100);
+      const y = a.top + 50 + rng() * (a.h - 100);
+      block(g, x, y, 18, 10, 0x4a3a1a, 0.6);
+      block(g, x + 6, y - 3, 6, PX, 0x8fd8ff, 0.3);
+    }
+  },
 };
 
 // 部屋の内側（壁の内側）に、エリアの背景を描く

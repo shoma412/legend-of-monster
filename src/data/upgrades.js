@@ -66,6 +66,11 @@ export const upgrades = [
     costs: [{ houndCore: 1 }, { houndCore: 1 }, { houndCore: 1 }],
     perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.03 }] },
   },
+  {
+    id: 'coproc', name: '補助演算', desc: '会心率 +2%', max: 3,
+    costs: [{ spiderCore: 1 }, { spiderCore: 1 }, { spiderCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.02 }] },
+  },
 ];
 
 // 武器の解放

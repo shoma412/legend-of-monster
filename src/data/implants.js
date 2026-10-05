@@ -10,7 +10,8 @@
 //   mods     : ステータス補正。{ stat, add, when } … when を書くと条件を満たす間だけ効く
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
-//                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）
+//                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
+//                    targetStopped（相手が足止め・凍結・停止で動けない）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
 //              do: 発動する効果の部品の名前（src/game/effects.js の ACTIONS）
@@ -205,6 +206,32 @@ export const implants = [
     desc: (k) => `ダッシュ後1.5秒間、攻撃速度 +${pct(0.2 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.2 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
+  {
+    id: 'mine', species: 'spider', name: '地雷',
+    desc: (k) => `ダッシュした場所に地雷を置く。敵が触れると爆発（${num(48 * k)}ダメージ）`,
+    effect: (k) => ({ triggers: [{ on: 'dashMove', do: 'placeMine' }], mods: [{ stat: 'mineDamage', add: 48 * k }] }),
+  },
+  {
+    id: 'stickyweb', species: 'spider', name: '粘着糸',
+    desc: (k) => `攻撃が当たった敵を、${pct(0.15 * k)}の確率で0.8秒足止めする`,
+    effect: (k) => ({ triggers: [{ on: 'hit', do: 'stun', chance: 0.15 * k, duration: 0.8 }] }),
+  },
+  {
+    id: 'sentry', species: 'spider', name: '小型タレット',
+    desc: (k) => `8秒ごとに、足元に小型タレットを置く。6秒間、近くの敵を撃つ（1発 ${num(12 * k)}ダメージ）`,
+    effect: (k) => ({ mods: [{ stat: 'sentryDamage', add: 12 * k }] }),
+  },
+  {
+    id: 'trapper', species: 'spider', name: '罠師',
+    desc: (k) => `動けない敵（足止め・凍結・停止中）へのダメージ +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.3 * k, when: 'targetStopped' }] }),
+  },
+  {
+    id: 'spinneret', species: 'spider', name: '紡績腺',
+    desc: (k) => `設置物（地雷・小型タレット）のダメージ +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'deviceMul', add: 0.3 * k }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -302,6 +329,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '移動速度 +10%', effect: { mods: [{ stat: 'moveSpeedMul', add: 0.1 }] } },
       { need: 3, desc: 'ダッシュの回数 +1', effect: { mods: [{ stat: 'dashCharges', add: 1 }] } },
+    ],
+  },
+  spider: {
+    name: '蜘蛛', color: 'cold', boss: 'girderspider',
+    bonuses: [
+      { need: 2, desc: '設置物のダメージ +25%', effect: { mods: [{ stat: 'deviceMul', add: 0.25 }] } },
+      { need: 3, desc: '設置物が2つ置ける', effect: { mods: [{ stat: 'deviceCount', add: 1 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },
