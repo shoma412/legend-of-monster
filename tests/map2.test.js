@@ -141,8 +141,9 @@ describe('マップ2の定義', () => {
     expect(save.materials.hydraCore).toBeGreaterThan(0);
     expect(save.achievements).toEqual(expect.arrayContaining(['sludgehydra', 'map2']));
     expect(mapState(save, maps[1])).toBe('done');
-    // マップ1と2を完了したので、2周目が選べる
-    expect(save.cycle).toBe(2);
+    // 2周目は、今あるマップをすべて完了するまで選べない（マップ3が残っている）
+    expect(save.cycle).toBe(1);
+    expect(mapState(save, maps[2])).toBe('open');
     // 最高到達は、マップ2の3つ目のエリアまで
     expect(save.records).toMatchObject({ bestMap: 1, bestArea: 2 });
     expect(bestReachText(save, (id) => DATA.areas.get(id))).toContain('MAP 02 DRAIN 03');

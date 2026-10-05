@@ -9,6 +9,7 @@
 //               lanes 途中の1列に並ぶ部屋の数（列ごとにこの範囲で変わる。これが扉の選択肢の数になる）/
 //               specials 特殊部屋の数（別々の種類が入る。列の数より少ないと、足りないぶんが足される）/ crossChance 次の列が3部屋のとき、3部屋すべてへ進める確率
 // specialRooms: 特殊部屋の候補
+// gimmicks    : 部屋の仕掛け（省略できる）。[{ id, chance }] … 戦闘部屋に、その確率で付く
 // enemies     : 出る雑魚と出やすさ（weight）
 // eliteBases  : エリートになる雑魚
 // boss        : エリアの最後のボス
@@ -198,6 +199,41 @@ export const areas = [
       bossDefeated: [
         '@noise＞ ……止まった。排水区は、これで全部だ。',
         '@noise＞ 帰ってこい。礼を言いたい。',
+      ],
+    },
+  },
+  // ---- ここからマップ3「建設区」 ----
+  {
+    id: 'yard',
+    code: 'SITE 01',
+    name: '資材置き場',
+    theme: 'yard',
+    // 曲は、マップ3の曲を選ぶまでの仮
+    bgm: 'yard',
+    bossBgm: 'bossYard',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    // 部屋の仕掛け：戦闘部屋に、この確率で付く（src/data/gimmicks.js）
+    gimmicks: [{ id: 'girders', chance: 0.4 }],
+    enemies: [
+      { id: 'welder', weight: 3 },
+      { id: 'riveter', weight: 3 },
+      { id: 'carrier', weight: 2 },
+      { id: 'grunt', weight: 2 },
+      { id: 'bomber', weight: 2 },
+    ],
+    eliteBases: ['welder', 'riveter', 'grunt'],
+    boss: 'scraphound',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 鉄くずの山が動いた。それが標的だ。',
+        '@noise＞ 磁力で引き寄せてくる。逆らって歩け。冷却が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……探すのを、やめたようだ。',
+        '@noise＞ コアを回収しろ。この先に、作りかけの高架がある。',
       ],
     },
   },

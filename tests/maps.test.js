@@ -65,13 +65,14 @@ describe('マップの定義', () => {
 });
 
 describe('マップの解放と完了', () => {
-  it('最初はマップ1だけ選べる。マップ2は未解放、マップ3以降は準備中', () => {
+  it('最初はマップ1だけ選べる。マップ2・3は未解放、マップ4以降は準備中', () => {
     const save = createSave();
     expect(mapState(save, maps[0])).toBe('open');
     expect(canSortie(save, maps[0])).toBe(true);
     expect(mapState(save, maps[1])).toBe('locked');
     expect(canSortie(save, maps[1])).toBe(false);
-    for (const map of maps.slice(2)) {
+    expect(mapState(save, maps[2])).toBe('locked');
+    for (const map of maps.slice(3)) {
       expect(mapState(save, map)).toBe('notReady');
       expect(canSortie(save, map)).toBe(false);
     }
@@ -126,15 +127,16 @@ describe('周回', () => {
     const save = createSave();
     expect(save.cycle).toBe(1);
     expect(canSortieCycle(save, maps[0], 2)).toBe(false);
-    // マップ1だけでは、まだ進めない。マップ2も完了すると、2周目が選べる
-    expect(recordMapClear(save, 'map1', 1).nextCycle).toBeNull();
+    // 今あるマップ（中身のできているもの）を、すべて完了すると2周目が選べる。途中では、まだ進めない
+    const ready = maps.filter((m) => m.ready !== false).map((m) => m.id);
+    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 1).nextCycle).toBeNull());
     expect(save.cycle).toBe(1);
-    expect(recordMapClear(save, 'map2', 1).nextCycle).toBe(2);
+    expect(recordMapClear(save, ready.at(-1), 1).nextCycle).toBe(2);
     expect(canSortieCycle(save, maps[0], 2)).toBe(true);
     expect(recordMapClear(save, 'map1', 1).nextCycle).toBeNull();
     expect(save.cycle).toBe(2);
-    expect(recordMapClear(save, 'map1', 2).nextCycle).toBeNull();
-    expect(recordMapClear(save, 'map2', 2).nextCycle).toBe(3);
+    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 2).nextCycle).toBeNull());
+    expect(recordMapClear(save, ready.at(-1), 2).nextCycle).toBe(3);
     expect(save.maps.map1).toEqual({ clears: 3, clearedCycle: 2 });
     // 前の周も選べる
     expect(canSortieCycle(save, maps[0], 1)).toBe(true);
@@ -291,8 +293,7 @@ describe('セーブデータ（マップと周回）', () => {
 
   it('マップの記録と周は、保存して読み直しても残る', () => {
     const save = createSave();
-    recordMapClear(save, 'map1', 1);
-    recordMapClear(save, 'map2', 1);
+    for (const m of maps.filter((x) => x.ready !== false)) recordMapClear(save, m.id, 1);
     save.selectedCycle = 2;
     const loaded = loadSlot(fakeStorage({ [slotKey(2)]: JSON.stringify(save) }), 2);
     expect(loaded.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });

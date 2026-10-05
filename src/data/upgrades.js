@@ -61,6 +61,11 @@ export const upgrades = [
     costs: [{ hydraCore: 2 }],
     perLevel: { carrySlots: 1 },
   },
+  {
+    id: 'legs', name: '脚部強化', desc: '移動速度 +3%', max: 3,
+    costs: [{ houndCore: 1 }, { houndCore: 1 }, { houndCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.03 }] },
+  },
 ];
 
 // 武器の解放

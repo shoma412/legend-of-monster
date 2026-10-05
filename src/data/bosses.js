@@ -14,6 +14,7 @@
 //   leap      : プレイヤーの場所に着地点の予告 → 跳ぶ → 着地で周りを攻撃。ring を書くと衝撃波の輪も出る
 //   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
+//   magnet    : duration 秒のあいだ、プレイヤーを strength の速さで引き寄せる（ダッシュ中は引かれない）。最後に radius の範囲を叩く
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -303,6 +304,47 @@ export const bosses = [
         regrow: 9,
         sequence: ['dropHard', 'spiral', 'slam', 'mire', 'spawn', 'spiralHard'],
         announce: '再生開始',
+      },
+    ],
+  },
+  // ---- ここからマップ3「建設区」 ----
+  {
+    id: 'scraphound',
+    name: 'スクラップハウンド',
+    alias: '資材喰い', // 登場時に出す異名
+    shape: 'hound',
+    color: 'red',
+    weakness: 'cold',
+    material: 'houndCore',
+    radius: 34,
+    hp: 7400,
+    speed: 128,
+    contactDamage: 40,
+    xp: 400,
+    credits: 200,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 飛びかかり：短い予告で跳んでくる
+      pounce: { pattern: 'leap', telegraph: 0.65, lockTime: 0.25, air: 0.38, radius: 92, damage: 44, recover: 0.6 },
+      // 3連続の突進。壁に当たると隙ができる
+      triple: { pattern: 'charge', repeat: 3, repeatTelegraph: 0.35, telegraph: 0.6, lockTime: 0.18, speed: 660, duration: 0.5, damage: 42, recover: 0.8, wallStun: 1.2 },
+      // 鉄くずの弾：プレイヤーへ扇形に
+      scrap: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 5, spread: 56, waves: 2, interval: 0.35, track: true, shotSpeed: 330, shotRadius: 7, damage: 30, recover: 0.6 },
+      scrapHard: { pattern: 'barrage', telegraph: 0.45, lockTime: 0.15, count: 7, spread: 76, waves: 3, interval: 0.3, track: true, shotSpeed: 350, shotRadius: 7, damage: 30, recover: 0.6 },
+      // 周囲への一撃
+      howl: { pattern: 'slam', telegraph: 0.7, radius: 150, damage: 44, recover: 0.9 },
+      // 磁力：引き寄せてから、周りを叩く
+      magnet: { pattern: 'magnet', telegraph: 0.6, duration: 2.6, strength: 130, radius: 135, damage: 46, recover: 1.1 },
+      magnetHard: { pattern: 'magnet', telegraph: 0.5, duration: 2.4, strength: 175, radius: 150, damage: 46, recover: 1.0 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.5 }, sequence: ['pounce', 'scrap', 'triple', 'magnet', 'howl'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.1 },
+        speed: 1.2,
+        sequence: ['magnetHard', 'pounce', 'triple', 'scrapHard', 'pounce', 'howl'],
+        announce: '不足検知',
       },
     ],
   },

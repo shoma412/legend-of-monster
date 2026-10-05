@@ -694,6 +694,22 @@ BOSS_TELEGRAPHS.burrow = (g, b, act, world) => {
     g.lineStyle(2, hex(b.color), 0.5).lineBetween(act.tx + Math.cos(a) * 8, act.ty + Math.sin(a) * 8, act.tx + Math.cos(a) * def.radius * 0.6, act.ty + Math.sin(a + 0.3) * def.radius * 0.6);
   }
 };
+// 予告：磁力（引き寄せる範囲を示す輪が、内側へ縮んでいく。最後に叩く範囲は赤い円）
+BOSS_TELEGRAPHS.magnet = (g, b, act, world) => {
+  const def = act.def;
+  if (act.phase === 'telegraph') {
+    g.lineStyle(3, hex(b.color), 0.4 + 0.5 * Math.abs(Math.sin(world.time * 18))).strokeCircle(b.x, b.y, b.r + 26);
+  } else if (act.phase === 'active') {
+    for (let i = 0; i < 4; i++) {
+      const k = 1 - ((world.time * 0.9 + i / 4) % 1);
+      g.lineStyle(2, hex(b.color), 0.5 * (1 - k) + 0.1).strokeCircle(b.x, b.y, b.r + 20 + k * 260);
+    }
+    // 最後に叩く範囲。時間が近づくほど濃くなる
+    const near = 1 - Math.max(0, act.t) / def.duration;
+    g.fillStyle(hex(COLORS.red), 0.06 + 0.22 * near).fillCircle(b.x, b.y, def.radius);
+    g.lineStyle(2, hex(COLORS.red), 0.5 + 0.4 * near).strokeCircle(b.x, b.y, def.radius);
+  }
+};
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -864,6 +880,50 @@ SHAPES.hydra = (g, b, color, world) => {
   // 首が残っている間は硬い：体のまわりに膜
   if (b.armor > 0) {
     g.lineStyle(3, WHITE, 0.25 + 0.15 * Math.sin(world.time * 6)).strokeCircle(b.x, b.y, r * 1.28);
+  }
+};
+
+// スクラップハウンド：前に長い胴、とがった頭、四本の脚、背中に貼りついた鉄くず
+SHAPES.hound = (g, b, color, world) => {
+  const r = b.r;
+  const at = (forward, side) => local(b, forward, side);
+  // 脚（走っているように前後に振れる）
+  for (const side of [-1, 1]) {
+    for (const f of [-0.6, 0.55]) {
+      const swing = Math.sin(world.time * 14 + f * 4 + side) * r * 0.18;
+      const from = at(f * r, side * r * 0.5);
+      const to = at(f * r + swing, side * r * 1.0);
+      g.lineStyle(4, color, 0.85).lineBetween(from.x, from.y, to.x, to.y);
+    }
+  }
+  // 胴
+  const body = rotatedEllipse(b.x, b.y, r * 1.2, r * 0.62, b.angle);
+  g.fillStyle(BODY_FILL, 0.92).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  // 背中の鉄くず（とげ）
+  for (let i = 0; i < 5; i++) {
+    const f = -0.8 + i * 0.35;
+    const side = i % 2 === 0 ? 1 : -1;
+    const from = at(f * r, side * r * 0.2);
+    const to = at(f * r - r * 0.15, side * r * (0.85 + (i % 3) * 0.12));
+    g.lineStyle(2.5, color, 0.7).lineBetween(from.x, from.y, to.x, to.y);
+  }
+  // 頭（とがった三角）と、あご
+  const head = [at(r * 1.75, 0), at(r * 0.95, r * 0.42), at(r * 0.95, -r * 0.42)];
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(head, true);
+  neonStroke(g, color, 3, () => g.strokePoints(head, true, true));
+  // 耳
+  for (const side of [-1, 1]) {
+    const from = at(r * 1.0, side * r * 0.38);
+    const to = at(r * 0.75, side * r * 0.8);
+    neonStroke(g, color, 2.5, () => g.lineBetween(from.x, from.y, to.x, to.y));
+  }
+  // 目。壁に当たって止まっている間は消える
+  if (b.act?.phase !== 'stun') {
+    for (const side of [-1, 1]) {
+      const eye = at(r * 1.2, side * r * 0.18);
+      g.fillStyle(WHITE, 1).fillCircle(eye.x, eye.y, 3);
+    }
   }
 };
 

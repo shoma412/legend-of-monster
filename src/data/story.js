@@ -9,6 +9,7 @@ export const materials = [
   { id: 'serpentCore', name: 'サーペントコア', color: 'green' },
   { id: 'crabCore', name: 'クラブコア', color: 'amber' },
   { id: 'hydraCore', name: 'ハイドラコア', color: 'magenta' },
+  { id: 'houndCore', name: 'ハウンドコア', color: 'red' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -140,5 +141,22 @@ export const fragments = [
   {
     id: 'sh-core', area: 'purifier', source: 'boss', title: 'スラッジハイドラのコアログ',
     text: '浄水量：0。保管した汚泥：測定不能。命令：街の水をきれいに保て。命令は守られている、と機体は記録している。',
+  },
+  // ---- マップ3「建設区」 ----
+  {
+    id: 'sc-01', area: 'yard', source: 'vault', title: '資材管理 台帳',
+    text: 'ミカゲ重工 建設課。運搬機 SC シリーズは、足りない資材を見つけて、現場へ運ぶ。足りないものがなくなれば、止まる。そういう設計だった。',
+  },
+  {
+    id: 'sc-06', area: 'yard', source: 'vault', title: '現場監督の連絡',
+    text: '設計図が届かない。何を建てるのか分からないまま、資材の注文だけが出続けている。運搬機は「不足」としか言わない。',
+  },
+  {
+    id: 'sc-memo', area: 'yard', source: 'vault', title: '作業員の落書き',
+    text: 'あの犬、置き場の鉄くずまで背負っていった。自分の背中が、いちばん近い置き場だと気づいたらしい。',
+  },
+  {
+    id: 'sc-core', area: 'yard', source: 'boss', title: 'スクラップハウンドのコアログ',
+    text: '不足：鉄骨。不足：鋲。不足：設計図。不足：設計図。不足：設計図。——探索を続ける。',
   },
 ];

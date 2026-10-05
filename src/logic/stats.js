@@ -143,6 +143,7 @@ export function computeStats(build) {
     dashHaste: 0, // ダッシュの回復が速くなる割合（0.15 = 15% 速い）
     hurtInvincible: 0, // 被弾後の無敵時間に足す秒数
     hpRegen: 0, // 1秒あたりに戻る HP
+    dashDistance: 0, // ダッシュの距離が伸びる割合
     revive: 0, // 倒れたとき、出撃ごとに1回だけ起き上がる。そのときの HP の割合（0 なら起き上がらない）
     kitBonus: 0, // 修復キットの回復量が増える割合
     lowHealBonus: 0, // HPが半分以下のとき、回復が増える割合（1 = 2倍）

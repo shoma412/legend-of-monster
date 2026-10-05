@@ -244,7 +244,8 @@ export class BattleScene extends Phaser.Scene {
     const { width: W } = SCREEN;
     const color = COLORS[this.roomDef.color];
     const lap = this.run.cycle > 1 ? `${this.run.cycle}周目 // ` : '';
-    const text = `${lap}${this.area.code}-${this.run.plan.step + 1} // ${this.area.name} // ${this.roomDef.tag}`;
+    const gimmick = this.world.room.gimmick ? ` // ${this.world.room.gimmick.name}` : '';
+    const text = `${lap}${this.area.code}-${this.run.plan.step + 1} // ${this.area.name} // ${this.roomDef.tag}${gimmick}`;
     const banner = this.add.text(W / 2, ROOM.wallTop + 18, text, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '15px', color })
       .setOrigin(0.5).setShadow(0, 0, color, 10, false, true).setDepth(7).setAlpha(0);
     this.tweens.chain({

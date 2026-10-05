@@ -7,7 +7,7 @@ import { createBuild } from '../logic/stats.js';
 import { recalcStats } from './build.js';
 import { healPlayer, hitEnemy } from './combat.js';
 import { updateItemEffects } from './consumables.js';
-import { fire } from './effects.js';
+import { fire, statWith } from './effects.js';
 import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
 
 // carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
@@ -45,6 +45,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
     smokeRadius: 0,
     sinceDash: Infinity, // 最後にダッシュしてからの秒数
     sinceHurt: Infinity, // 最後に被弾してからの秒数
+    sinceKill: Infinity, // 最後に敵を倒してからの秒数
     stillT: 0, // 立ち止まっている秒数
     pull: null, // 引き寄せられている最中（密漁者の銛）{ vx, vy, t }
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
@@ -83,6 +84,7 @@ export function updatePlayer(world, dt, input) {
   p.attackBuffer -= dt;
   p.sinceDash += dt;
   p.sinceHurt += dt;
+  p.sinceKill += dt;
   // 再生組織（種族「多頭」）：少しずつ HP が戻る
   if (p.stats.hpRegen > 0 && world.mode !== 'dead' && p.hp < p.stats.maxHp) healPlayer(world, p.stats.hpRegen * dt);
   if (!p.attack) p.comboTimer -= dt;
@@ -137,8 +139,10 @@ export function updatePlayer(world, dt, input) {
     else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
     if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
-    p.x += mx * p.stats.moveSpeed * slow * dt;
-    p.y += my * p.stats.moveSpeed * slow * dt;
+    // 移動速度は、条件つきの効果（敵を倒した直後だけ速い、など）も合わせて決める
+    const moveSpeed = PLAYER.moveSpeed * statWith(world, 'moveSpeedMul');
+    p.x += mx * moveSpeed * slow * dt;
+    p.y += my * moveSpeed * slow * dt;
     updateAttack(world, dt, input);
   }
   clampToBounds(p, world.bounds);
@@ -159,8 +163,10 @@ function startDash(p, dx, dy) {
   p.sinceDash = 0;
   p.dashState = { hit: new Set(), lastFloor: null };
   p.inv = Math.max(p.inv, d.invincible);
-  p.dvx = (dx * d.distance) / d.duration;
-  p.dvy = (dy * d.distance) / d.duration;
+  // ダッシュの距離は、インプラントで伸びる（時間は同じなので、そのぶん速くなる）
+  const distance = d.distance * (1 + (p.stats.dashDistance ?? 0));
+  p.dvx = (dx * distance) / d.duration;
+  p.dvy = (dy * distance) / d.duration;
   // ダッシュは攻撃・溜め・構えを中断して出せる
   p.attack = null;
   p.charge = null;
@@ -281,7 +287,7 @@ function updateAttack(world, dt, input) {
   if (weapon.type === 'ranged') {
     // 銃：押している間、撃ち続ける
     if (input.attack && p.shotCd <= 0) {
-      p.shotCd = weapon.shot.interval / (1 + p.stats.attackSpeed);
+      p.shotCd = weapon.shot.interval / (1 + statWith(world, 'attackSpeed'));
       p.firingT = 0.15;
       fireShot(world, Math.atan2(p.fy, p.fx), weapon.shot);
     }
@@ -293,7 +299,7 @@ function updateAttack(world, dt, input) {
     p.attackBuffer = 0;
     const step = p.comboTimer > 0 ? p.comboStep : 0;
     const def = weapon.combo[step];
-    p.attack = makeAttack(p, def, def.damage, def.range, def.arc, { step });
+    p.attack = makeAttack(world, def, def.damage, def.range, def.arc, { step });
     p.comboStep = (step + 1) % weapon.combo.length;
   }
 }
@@ -348,7 +354,7 @@ function releaseCharge(world, stage) {
   // 溜めの段階ごとに、同じ段の通常攻撃より少し広い角度になる
   const combo = p.weapon.combo;
   const arc = combo[Math.min(stage, combo.length - 1)].arc * special.arcScale;
-  p.attack = makeAttack(p, def, special.damage * s.multiplier, s.range, arc, { charged: stage + 1 });
+  p.attack = makeAttack(world, def, special.damage * s.multiplier, s.range, arc, { charged: stage + 1 });
   p.attack.phase = 'swing';
   p.specialCd = special.cooldown;
   p.comboTimer = 0;
@@ -366,7 +372,7 @@ export function triggerCounter(world) {
   // 成功するとクールダウンが短くなる
   p.specialCd = Math.min(p.specialCd, special.successCooldown);
   const def = { windup: 0, swing: c.swing, recover: c.recover, knockback: c.knockback, lunge: 0, heavy: true };
-  p.attack = makeAttack(p, def, c.damage, c.range, c.arc, { charged: 1 });
+  p.attack = makeAttack(world, def, c.damage, c.range, c.arc, { charged: 1 });
   p.attack.phase = 'swing';
   // 反撃の角度は広角ブレードの影響を受けない（全方位のまま）
   p.attack.arc = c.arc * DEG;
@@ -379,8 +385,9 @@ export function triggerCounter(world) {
   resolveSwing(world, p.attack);
 }
 
-function makeAttack(p, def, damage, range, arcDeg, extra) {
-  const speed = 1 + p.stats.attackSpeed; // 攻撃速度が上がると全体が短くなる
+function makeAttack(world, def, damage, range, arcDeg, extra) {
+  const p = world.player;
+  const speed = 1 + statWith(world, 'attackSpeed'); // 攻撃速度が上がると全体が短くなる（ダッシュ直後だけ速い、などの条件つきの効果も合わせる）
   return {
     phase: 'windup',
     t: 0,

@@ -9,7 +9,8 @@
 // effect が返す形は、装備効果・レジェンド固有効果と共通で、2種類の書き方だけを使う
 //   mods     : ステータス補正。{ stat, add, when } … when を書くと条件を満たす間だけ効く
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
-//                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）
+//                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
+//                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
 //              do: 発動する効果の部品の名前（src/game/effects.js の ACTIONS）
@@ -178,6 +179,32 @@ export const implants = [
     desc: (k) => `HPが50%以下のとき、被ダメージ −${pct(0.15 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.15 * k, when: 'hpBelowHalf' }] }),
   },
+  // ---- 猟犬（スクラップハウンド由来・動き回る） ----
+  {
+    id: 'momentum', species: 'hound', name: '慣性',
+    desc: (k) => `動いている間、攻撃力 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'moving' }] }),
+  },
+  {
+    id: 'hunt', species: 'hound', name: '狩り',
+    desc: (k) => `HPが半分以下の敵へのダメージ +${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.25 * k, when: 'targetWeak' }] }),
+  },
+  {
+    id: 'sprint', species: 'hound', name: '疾走',
+    desc: (k) => `敵を倒すと3秒間、移動速度 +${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'moveSpeedMul', add: 0.25 * k, when: 'recentKill', window: 3 }] }),
+  },
+  {
+    id: 'longdash', species: 'hound', name: '跳躍',
+    desc: (k) => `ダッシュの距離 +${pct(0.2 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'dashDistance', add: 0.2 * k }] }),
+  },
+  {
+    id: 'pursuit', species: 'hound', name: '追い打ち',
+    desc: (k) => `ダッシュ後1.5秒間、攻撃速度 +${pct(0.2 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.2 * k, when: 'recentDash', window: 1.5 }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -268,6 +295,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '修復キットの回復量 +30%', effect: { mods: [{ stat: 'kitBonus', add: 0.3 }] } },
       { need: 3, desc: 'HPが半分以下のとき、回復が2倍', effect: { mods: [{ stat: 'lowHealBonus', add: 1 }] } },
+    ],
+  },
+  hound: {
+    name: '猟犬', color: 'red', boss: 'scraphound',
+    bonuses: [
+      { need: 2, desc: '移動速度 +10%', effect: { mods: [{ stat: 'moveSpeedMul', add: 0.1 }] } },
+      { need: 3, desc: 'ダッシュの回数 +1', effect: { mods: [{ stat: 'dashCharges', add: 1 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },

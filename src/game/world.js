@@ -11,6 +11,7 @@ import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { createFx, updateFx } from './fx.js';
+import { updateGimmick } from './gimmicks.js';
 import { canUseOugi, createPlayer, updatePlayer, updatePlayerShots } from './player.js';
 
 // room: 部屋の中身（src/game/rooms.js の buildRoom が作る）{ type, waves, objects, doors, clearCredits }
@@ -96,6 +97,7 @@ export function updateWorld(world, dt, input) {
     updateEnemies(world, dt);
     updatePlayerShots(world, dt);
     updateShots(world, dt);
+    updateGimmick(world, dt);
     updateHazards(world, dt);
     updateArena(world, dt);
     updateWaves(world, dt);

@@ -166,6 +166,7 @@ export function killEnemy(world, enemy) {
   world.pendingLevelUps += levelUps;
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
+  p.sinceKill = 0;
   eliteDeath(world, enemy);
   splitOnDeath(world, enemy);
   world.events.push({ type: 'kill', enemy: enemy.def.id });

@@ -35,6 +35,7 @@ export const AREA_THEMES = {
   sewer: { floor: 0x07100e, grid: 0x3fae7a, wall: 0x0f1f1a, edge: '#5dffa0' },
   tank: { floor: 0x060d16, grid: 0x3a8fd0, wall: 0x0d1a2b, edge: '#4fb8ff' },
   filter: { floor: 0x100a14, grid: 0xb05ad0, wall: 0x1e1226, edge: '#ff2bd6' },
+  yard: { floor: 0x12100a, grid: 0xc9a12e, wall: 0x241f12, edge: '#fff36b' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

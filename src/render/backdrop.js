@@ -374,6 +374,56 @@ const THEMES = {
     // 上の壁の表示灯
     for (let x = a.left + 50; x < a.right - 30; x += 120) block(g, x, a.top + 8, 10, PX, rng() < 0.3 ? 0xff4d5e : 0x5dffa0, 0.5);
   },
+  // 資材置き場：積まれた鉄骨、コンテナ、黄色と黒のしま模様、タイヤの跡、コーン
+  yard(g, rng, a) {
+    speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
+    // タイヤの跡（斜めに2本ずつ）
+    for (let i = 0; i < 3; i++) {
+      const x0 = a.left + rng() * a.w * 0.6;
+      const y0 = a.top + 40 + rng() * (a.h - 80);
+      const slope = (rng() - 0.5) * 0.5;
+      for (let x = 0; x < a.w * 0.5; x += PX) {
+        if ((x / PX) % 3 === 0) continue;
+        block(g, x0 + x, y0 + x * slope, PX, PX, 0x0a0805, 0.6);
+        block(g, x0 + x, y0 + x * slope + 14, PX, PX, 0x0a0805, 0.6);
+      }
+    }
+    // 積まれた鉄骨（H 形の束）
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 50 + rng() * (a.w - 200);
+      const y = a.top + 50 + rng() * (a.h - 110);
+      const len = 80 + rng() * 60;
+      for (let k = 0; k < 3; k++) {
+        block(g, x + k * 4, y + k * 9, len, 6, 0x3a3018, 0.8);
+        block(g, x + k * 4, y + k * 9, len, PX / 2, 0xc9a12e, 0.3);
+        block(g, x + k * 4, y + k * 9 + 5, len, PX / 2, 0x14110a, 0.8);
+      }
+    }
+    // コンテナ（四角い箱。側面に縦のすじ）
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + 80 + rng() * (a.w - 240);
+      const y = a.top + 60 + rng() * (a.h - 150);
+      const color = rng() < 0.5 ? 0x4a2a1a : 0x1e3340;
+      block(g, x, y, 84, 44, color, 0.45);
+      for (let c = 6; c < 84; c += 10) block(g, x + c, y, PX / 2, 44, 0x0a0805, 0.4);
+      block(g, x, y, 84, PX / 2, 0xc9a12e, 0.25);
+    }
+    // 上の壁ぎわの、黄色と黒のしま模様
+    for (let x = a.left, i = 0; x < a.right; x += 16, i++) block(g, x, a.top + 6, 16, 8, i % 2 === 0 ? 0xc9a12e : 0x14110a, i % 2 === 0 ? 0.3 : 0.6);
+    // コーン
+    for (let i = 0; i < 6; i++) {
+      const x = a.left + 40 + rng() * (a.w - 80);
+      const y = a.top + 50 + rng() * (a.h - 90);
+      block(g, x, y, 10, PX, 0xff7a3d, 0.5);
+      block(g, x + 2, y - 4, 6, PX, 0xff7a3d, 0.5);
+      block(g, x + 3, y - 8, PX, PX, 0xff7a3d, 0.5);
+    }
+    // 下の壁ぎわの、鉄筋の束
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 60 + rng() * (a.w - 160);
+      for (let k = 0; k < 4; k++) block(g, x + k * 3, a.bottom - 18 - k * 3, 70 + rng() * 30, PX / 2, 0x6a5a30, 0.6);
+    }
+  },
 };
 
 // 部屋の内側（壁の内側）に、エリアの背景を描く

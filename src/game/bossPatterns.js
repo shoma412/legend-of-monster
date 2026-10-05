@@ -6,7 +6,7 @@ import { FEEL, ROOM } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
-import { hurtPlayer, slowPlayer } from './combat.js';
+import { damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
@@ -457,6 +457,51 @@ PATTERNS.pools = {
   },
 };
 
+// 磁力：しばらくのあいだ、プレイヤーを引き寄せる。歩けば逆らえる速さで、ダッシュ中は引かれない。最後に周りを叩く
+PATTERNS.magnet = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'active') {
+      // 体に触れるほど近くまでは引かない
+      if (p.dashT <= 0 && d.dist > b.r + p.r + 6) {
+        p.x -= (d.dx / d.dist) * def.strength * dt;
+        p.y -= (d.dy / d.dist) * def.strength * dt;
+        clampToBounds(p, world.bounds);
+      }
+      if (world.rng() < 0.6) {
+        // 引き寄せられる鉄くず（見た目だけ）
+        const a = world.rng() * Math.PI * 2;
+        const r = 220 + world.rng() * 120;
+        world.fx.particles.push({ x: b.x + Math.cos(a) * r, y: b.y + Math.sin(a) * r, vx: -Math.cos(a) * 420, vy: -Math.sin(a) * 420, life: 0.5, max: 0.5, color: b.color, size: 3 });
+      }
+      if (act.t <= 0) {
+        if (circlesOverlap(b.x, b.y, def.radius, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+        ring(world, b.x, b.y, def.radius, b.color);
+        burst(world, b.x, b.y, b.color, 26, 300);
+        addShake(world, FEEL.shake.heavy);
+        sfx(world, 'explode');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 潜行：潜って姿を消し、予告の円から飛び出して周りを攻撃する。
 //   潜っている間は b.hidden が true で、攻撃が当たらない（画面の外に退避させる）。
 //   着地点はプレイヤーを追い、最後の lockTime 秒だけ固定される。repeat 回くり返す
@@ -544,6 +589,12 @@ export function updateHazards(world, dt) {
       h.t -= dt;
       if (h.t <= 0) {
         if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+        // 部屋の仕掛けの落下物は、敵にも当たる
+        if (h.enemyDamage > 0) {
+          for (const e of world.enemies) {
+            if (!e.dead && e.spawnT <= 0 && !e.hidden && circlesOverlap(h.x, h.y, h.r, e.x, e.y, e.r)) damageEnemy(world, e, h.enemyDamage, { color: h.color });
+          }
+        }
         burst(world, h.x, h.y, h.color, 12, 220);
         sfx(world, 'hit');
         h.dead = true;

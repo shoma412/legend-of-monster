@@ -186,7 +186,7 @@ const BEHAVIORS = {
     } else if (e.state === 'spray') {
       e.t -= dt;
       if (arcHitsCircle(e.x, e.y, e.angle, spray.arc * DEG, spray.range, p.x, p.y, p.r)) {
-        slowPlayer(world);
+        if (spray.slow !== false) slowPlayer(world);
         hurtPlayer(world, e.def.damage);
       }
       if (world.rng() < 0.7) {
@@ -194,6 +194,14 @@ const BEHAVIORS = {
         world.fx.particles.push({ x: e.x + Math.cos(a) * e.r, y: e.y + Math.sin(a) * e.r, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, life: 0.35, max: 0.35, color: e.color, size: 3 });
       }
       if (e.t <= 0) {
+        // 溶接ボット：噴いた先の床が、しばらく燃える
+        if (spray.pool) {
+          const reach = spray.range * 0.62;
+          world.hazards.push({
+            type: 'pool', x: e.x + Math.cos(e.angle) * reach, y: e.y + Math.sin(e.angle) * reach, r: spray.pool.radius, arm: spray.pool.arm, armMax: spray.pool.arm,
+            life: spray.pool.life, tick: spray.pool.tick, acc: spray.pool.tick, damage: spray.pool.damage, slow: false, color: e.color,
+          });
+        }
         e.state = 'chase';
         e.cd = spray.recover;
       }
@@ -397,22 +405,63 @@ const BEHAVIORS = {
     } else if (e.state === 'aim') {
       e.t -= dt;
       if (e.t <= 0) {
-        sfx(world, 'enemyShot');
-        world.shots.push({
-          x: e.x,
-          y: e.y,
-          vx: (d.dx / d.dist) * shot.speed,
-          vy: (d.dy / d.dist) * shot.speed,
-          r: shot.radius,
-          damage: e.def.damage,
-          life: shot.life,
-        });
-        e.state = 'chase';
-        e.cd = shot.interval;
+        fireShot(world, e, d, shot);
+        // 連射（リベッター）：残りを、少しずつ間を空けて撃つ
+        e.burstLeft = (shot.burst ?? 1) - 1;
+        if (e.burstLeft > 0) {
+          e.state = 'burst';
+          e.t = shot.burstGap;
+        } else {
+          e.state = 'chase';
+          e.cd = shot.interval;
+        }
+      }
+    } else if (e.state === 'burst') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        fireShot(world, e, d, shot);
+        e.burstLeft--;
+        e.t = shot.burstGap;
+        if (e.burstLeft <= 0) {
+          e.state = 'chase';
+          e.cd = shot.interval;
+        }
       }
     }
   },
+
+  // 運搬ドローン：ふらつきながらプレイヤーの近くまで来て、頭上から樽を落とす
+  bombardier(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const drop = e.def.drop;
+    const p = world.player;
+    const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+    const wob = Math.sin(world.time * 4 + e.seed) * (e.def.wobble ?? 0);
+    e.x += ((d.dx / d.dist) * want - (d.dy / d.dist) * wob) * e.def.speed * dt;
+    e.y += ((d.dy / d.dist) * want + (d.dx / d.dist) * wob) * e.def.speed * dt;
+    if (e.cd <= 0 && d.dist <= keep.max + 40) {
+      world.hazards.push({ type: 'mark', x: p.x, y: p.y, r: drop.radius, t: drop.delay, max: drop.delay, damage: e.def.damage, color: e.color });
+      sfx(world, 'enemyShot');
+      e.cd = drop.interval;
+      e.dropT = 0.25; // 描画用：落とした瞬間
+    }
+    if (e.dropT > 0) e.dropT -= dt;
+  },
 };
+
+// 弾を1発撃つ（プレイヤーのいる方向へ）
+function fireShot(world, e, d, shot) {
+  sfx(world, 'enemyShot');
+  world.shots.push({
+    x: e.x,
+    y: e.y,
+    vx: (d.dx / d.dist) * shot.speed,
+    vy: (d.dy / d.dist) * shot.speed,
+    r: shot.radius,
+    damage: e.def.damage,
+    life: shot.life,
+  });
+}
 
 // 状態異常の時間を進める。燃焼は一定間隔でダメージ
 function updateStatus(world, e, dt) {

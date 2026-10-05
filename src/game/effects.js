@@ -15,6 +15,9 @@ const CONDITIONS = {
   targetSlowed: (world, mod, target) => !!target && (target.slowT > 0 || target.stopT > 0),
   targetBurning: (world, mod, target) => !!target && target.burnT > 0,
   standing: (world) => world.player.stillT >= 0.25, // 少しの間、動いていない
+  moving: (world) => world.player.stillT <= 0,
+  targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
+  recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
 };
 

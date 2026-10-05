@@ -108,6 +108,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-scraphound',
+    trigger: { at: 'bossIntro', boss: 'scraphound' },
+    lines: [
+      { who: 'jin', text: '速い。……鉄くずの山が、こっちを見てる。' },
+      { who: 'noise', text: '資材の運搬機だ。足りないものを探し続けて、もう何が足りないのかも分かっていない。' },
+      { who: 'jin', mood: 'angry', text: '義体が引っ張られる。磁石か、あいつ。' },
+    ],
+  },
+  {
+    id: 'return-scraphound',
+    trigger: { at: 'hideout', bossKilled: 'scraphound' },
+    lines: [
+      { who: 'hal', text: 'ちょっと、ネジが全部こっち向いてるんだけど。磁気、抜いてから入ってよ。' },
+      { who: 'jin', text: 'あいつが最後まで探してたのは、設計図だった。何を建てるのか、誰も教えなかったんだ。' },
+      { who: 'hal', text: '……それは、探しても見つからないね。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [
@@ -195,6 +213,7 @@ export const talks = {
     { after: 'overload', lines: [{ who: 'noise', text: '次は排水区だ。街の下で、水を流し、ため、きれいにしていた者たちがいる。' }] },
     { after: 'pipeserpent', lines: [{ who: 'noise', text: '下水の流れが止まった。次は貯水槽だ。水門の前に、番をしている者がいる。' }] },
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
-    { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。……次の区画は、まだ準備ができていない。それまで、体を直しておけ。' }] },
+    { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
+    { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。……その先の区画は、まだ準備ができていない。体を直しておけ。' }] },
   ],
 };

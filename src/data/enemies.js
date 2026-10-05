@@ -4,15 +4,16 @@
 // behavior は動き方の種類（src/game/enemyAI.js にある部品の名前）
 //   swarm   : ふらつきながら突っ込む。体当たりでダメージ
 //   brawler : 近づいて、構えてから前方を殴る
-//   gunner  : 距離を取り、狙いをつけてから弾を撃つ
+//   gunner  : 距離を取り、狙いをつけてから弾を撃つ。shot.burst を書くと、その数だけ続けて撃つ
 //   bomber  : 近づいて、点滅してから自爆する。爆発の範囲は床に出る
-//   sprayer : 近づいて、構えてから前方に冷気を噴射する。当たると減速
+//   sprayer : 近づいて、構えてから前方に噴射する。spray.slow が false でなければ当たると減速。spray.pool を書くと、噴いた先に床が残る
 //   guardian: 盾を構えてゆっくり近づき、殴る。正面からの攻撃は盾で防ぐ（向きを変えるのは遅い）
 //   sniper  : 遠くから照準線を出し、少し後に高威力の一撃を撃つ
 //   roller  : 狙いをつけてから、まっすぐ転がってくる。通ったあとに汚水の床（踏むと減速）が残る
 //   leech   : 飛びついて張り付き、HP を吸い続ける。ダッシュで振り払える
 //   steamer : 動かない。予告の帯を出してから、蒸気を一直線に噴き続ける
 //   harpooner : 距離を取り、照準線を出してから銛を投げる。当たると引き寄せられる
+//   bombardier : プレイヤーの近くまで飛んできて、頭上から樽を落とす（落下地点を表示）
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
@@ -265,5 +266,62 @@ export const enemies = [
     dropChance: 0,
     knockbackResist: 1,
     shot: { interval: 2.6, aim: 0.6, speed: 250, radius: 7, life: 4 },
+  },
+  // ---- ここからマップ3「建設区」 ----
+  {
+    id: 'welder',
+    name: '溶接ボット',
+    behavior: 'sprayer',
+    shape: 'pentagon',
+    color: 'heat',
+    radius: 14,
+    hp: 48,
+    speed: 74,
+    damage: 6, // 火花が当たるたびのダメージ
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    // 火花を噴く（減速はしない）。噴き終わると、噴いた先の床がしばらく燃える
+    spray: {
+      triggerRange: 125, range: 150, arc: 50, windup: 0.5, duration: 0.9, recover: 1.5, slow: false,
+      pool: { radius: 36, arm: 0.2, life: 3.5, tick: 0.5, damage: 6 },
+    },
+  },
+  {
+    id: 'riveter',
+    name: 'リベッター',
+    behavior: 'gunner',
+    shape: 'circle',
+    color: 'red',
+    radius: 13,
+    hp: 44,
+    speed: 46,
+    damage: 7,
+    xp: 11,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    keepDistance: { min: 210, max: 330 },
+    shot: { interval: 2.3, aim: 0.55, speed: 300, radius: 4, life: 3, burst: 3, burstGap: 0.13 }, // 3連射
+  },
+  {
+    id: 'carrier',
+    name: '運搬ドローン',
+    behavior: 'bombardier',
+    shape: 'triangle',
+    color: 'amber',
+    radius: 13,
+    hp: 40,
+    speed: 105,
+    damage: 18,
+    xp: 11,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    wobble: 0.3,
+    keepDistance: { min: 90, max: 170 },
+    // 近くまで来ると、プレイヤーのいる場所に樽を落とす（delay 秒後に、半径 radius の範囲に当たる）
+    drop: { interval: 2.6, radius: 46, delay: 0.95 },
   },
 ];

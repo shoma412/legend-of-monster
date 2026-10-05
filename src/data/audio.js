@@ -81,6 +81,9 @@ export const BGM = {
   bossReservoir: { file: 'audio/bgm/maou_loop_bgm_neorock62.ogg', song: 'bossTower' },
   purifier: { file: 'audio/bgm/maou_loop_bgm_cyber08.ogg', song: 'slum' },
   bossPurifier: { file: 'audio/bgm/maou_loop_bgm_neorock59.ogg', song: 'bossSlum' },
+  // マップ3「建設区」。曲を選ぶまでの仮（ほかのマップの曲のファイルを指している）
+  yard: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossYard: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

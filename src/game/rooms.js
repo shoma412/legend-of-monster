@@ -11,9 +11,16 @@ function row(count, spacing, y) {
   return Array.from({ length: count }, (_, i) => ({ x: CX + (i - (count - 1) / 2) * spacing, y }));
 }
 
-// ctx: { area, step, build, rng, fragment, eliteTraits } → { waves, objects }
+// 部屋の仕掛けを抽選する（エリアの定義の gimmicks）。付かなければ null
+function rollGimmick(area, rng) {
+  for (const g of area.gimmicks ?? []) if (rng() < g.chance) return DATA.gimmicks.get(g.id);
+  return null;
+}
+
+// ctx: { area, step, build, rng, fragment, eliteTraits } → { waves, objects, gimmick }
 const BUILDERS = {
-  combat: ({ area, step, rng }) => ({ waves: generateWaves(area, step, rng) }),
+  // 戦闘：雑魚の波。エリアによっては、部屋の仕掛けが付く
+  combat: ({ area, step, rng }) => ({ waves: generateWaves(area, step, rng), gimmick: rollGimmick(area, rng) }),
   elite: ({ area, step, rng, eliteTraits }) => ({ waves: generateEliteWaves(area, step, rng, eliteTraits ?? 1) }),
   boss: ({ area }) => ({ waves: [{ boss: area.boss }] }),
   none: () => ({}),
@@ -54,6 +61,7 @@ export function buildRoom(type, ctx, doors = []) {
     type,
     waves: built.waves ?? [],
     objects: built.objects ?? [],
+    gimmick: built.gimmick ?? null, // 部屋の仕掛け（src/data/gimmicks.js。なければ null）
     doors,
     clearCredits: def.clearCredits ?? 0,
   };
