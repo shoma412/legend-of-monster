@@ -740,6 +740,16 @@ BOSS_TELEGRAPHS.girder = (g, b, act) => {
     g.lineStyle(1.5, hex(COLORS.red), 0.4 + 0.5 * k).strokeRect(s.x - 13, s.y - 13, 26, 26);
   }
 };
+// 予告：振り子（フックが通る線。時間が近づくほど濃くなる）
+BOSS_TELEGRAPHS.pendulum = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const k = 1 - Math.max(0, act.t) / def.telegraph;
+  for (const path of act.paths) {
+    g.lineStyle(def.radius * 2, hex(COLORS.red), 0.06 + 0.16 * k).lineBetween(path.x1, path.y1, path.x2, path.y2);
+    g.lineStyle(1.5, hex(COLORS.red), 0.5 + 0.4 * k).lineBetween(path.x1, path.y1, path.x2, path.y2);
+  }
+};
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -1000,6 +1010,39 @@ SHAPES.spider = (g, b, color, world) => {
   }
 };
 
+// クレーンタイタン：六角形の土台（積み上がった鉄骨）、運転台、プレイヤーのほうへ伸びる長い腕。本体は動かない
+SHAPES.titan = (g, b, color, world) => {
+  const r = b.r;
+  // 土台：二重の六角形と、筋交い
+  const outer = polygon(b.x, b.y, r * 1.1, 6, Math.PI / 6);
+  g.fillStyle(BODY_FILL, 0.94).fillPoints(outer, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(outer, true, true));
+  const inner = polygon(b.x, b.y, r * 0.68, 6, Math.PI / 6);
+  g.lineStyle(2, color, 0.6).strokePoints(inner, true, true);
+  for (let i = 0; i < 6; i++) g.lineStyle(1.5, color, 0.4).lineBetween(inner[i].x, inner[i].y, outer[(i + 1) % 6].x, outer[(i + 1) % 6].y);
+  // 腕（格子の入った長い梁。なぎ払いの間は、当たりの線が別に描かれる）
+  const sweeping = b.act?.def.pattern === 'laser' && b.act.phase === 'active';
+  if (!sweeping) {
+    const len = r * 2.4;
+    const ax = Math.cos(b.angle);
+    const ay = Math.sin(b.angle);
+    for (const side of [-1, 1]) {
+      const ox = -ay * side * r * 0.14;
+      const oy = ax * side * r * 0.14;
+      g.lineStyle(3, color, 0.9).lineBetween(b.x + ox, b.y + oy, b.x + ax * len + ox * 0.4, b.y + ay * len + oy * 0.4);
+    }
+    for (let i = 1; i < 6; i++) {
+      const k = (i / 6) * len;
+      const w = r * 0.14 * (1 - (i / 6) * 0.6);
+      g.lineStyle(1.5, color, 0.6).lineBetween(b.x + ax * k - ay * w, b.y + ay * k + ax * w, b.x + ax * (k + len / 12) + ay * w, b.y + ay * (k + len / 12) - ax * w);
+    }
+  }
+  // 運転台と、警告灯
+  g.fillStyle(BODY_FILL, 1).fillRect(b.x - r * 0.26, b.y - r * 0.26, r * 0.52, r * 0.52);
+  neonStroke(g, color, 2.5, () => g.strokeRect(b.x - r * 0.26, b.y - r * 0.26, r * 0.52, r * 0.52));
+  g.fillStyle(hex(COLORS.red), 0.5 + 0.5 * Math.abs(Math.sin(world.time * 5))).fillCircle(b.x, b.y, 5);
+};
+
 SHAPES.boar = (g, b, color) => {
   const r = b.r;
   const stunned = b.act?.phase === 'stun';
@@ -1051,6 +1094,18 @@ export function drawHazards(g, world) {
         const spin = k * 14;
         g.lineStyle(4, hex(h.color), 0.95).lineBetween(x - Math.cos(spin) * 12, y - Math.sin(spin) * 12, x + Math.cos(spin) * 12, y + Math.sin(spin) * 12);
       }
+    } else if (h.type === 'hook') {
+      // 吊ったフック：通り道の薄い線と、鎖でつながった重り
+      const color = hex(h.color);
+      g.lineStyle(1.5, hex(COLORS.red), 0.3).lineBetween(h.x1, h.y1, h.x2, h.y2);
+      // 鎖（部屋の上から吊っているように見せる）
+      g.lineStyle(2, color, 0.5).lineBetween(h.x, h.y - h.r, h.x, h.y - h.r - 60);
+      g.fillStyle(BODY_FILL, 0.9).fillCircle(h.x, h.y, h.r);
+      g.lineStyle(h.r * 0.5, color, 0.2).strokeCircle(h.x, h.y, h.r);
+      g.lineStyle(3, color, 1).strokeCircle(h.x, h.y, h.r);
+      // かぎ
+      g.lineStyle(4, color, 1);
+      arcPath(g, h.x, h.y + h.r * 0.1, h.r * 0.5, 0.2, Math.PI + 0.6);
     } else if (h.type === 'bar') {
       const dx = Math.cos(h.angle) * ROOM.barLength;
       const dy = Math.sin(h.angle) * ROOM.barLength;

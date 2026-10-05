@@ -12,8 +12,8 @@ export const maps = [
   { id: 'map1', code: 'MAP 01', name: '中枢区', areas: ['slum', 'plant', 'tower'] },
   // 排水区。enemyScale は、雑魚のHPと攻撃力にかかるマップごとの倍率
   { id: 'map2', code: 'MAP 02', name: '排水区', areas: ['sewer', 'reservoir', 'purifier'], enemyScale: 1.5 },
-  // 建設区：作っている途中（今はエリア2の高架の現場まで）
-  { id: 'map3', code: 'MAP 03', name: '建設区', areas: ['yard', 'viaduct'], enemyScale: 2.2 },
+  // 建設区
+  { id: 'map3', code: 'MAP 03', name: '建設区', areas: ['yard', 'viaduct', 'spire'], enemyScale: 2.2 },
   { id: 'map4', code: 'MAP 04', name: '？？？', areas: [], ready: false },
   { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },
   { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },

@@ -55,6 +55,7 @@ export function enemySpeedFactor(enemy) {
 
 // プレイヤーの武器による攻撃。(dirX, dirY) は吹き飛ばす向き
 // options.unblockable: シールド兵の盾を無視する（奥義など）
+// options.heavy: 重い攻撃（溜め斬り・締めの一撃・反撃・拡散射撃・奥義）。種族「巨人」の効果が乗る
 export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}) {
   // シールド兵：盾を向けている側からの攻撃は防がれる。止まっている間（凍結・EMP）は防げない
   const shield = enemy.def.shield;
@@ -80,7 +81,7 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   const comboMul = stats.comboBonus * Math.min(p.comboHits, stats.comboMax);
   p.comboHits++;
   const result = calcDamage({
-    base,
+    base: options.heavy ? base * (1 + stats.heavyBonus) : base,
     attackMul: statWith(world, 'attackMul', enemy) + comboMul,
     critChance: forceCrit ? 1 : statWith(world, 'critChance', enemy),
     critMul: stats.critMul,
@@ -91,8 +92,8 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   });
   // ボスはひるまず、吹き飛ばない
   if (!enemy.boss) {
-    // エリートはひるまない（吹き飛びにくいだけ）
-    if (!enemy.noStagger) {
+    // エリートはひるまない（吹き飛びにくいだけ）。種族ボーナスがあれば、重い攻撃ではひるむ
+    if (!enemy.noStagger || (options.heavy && stats.heavyStagger > 0 && !enemy.def.prop && !enemy.anchor)) {
       enemy.stagger = COMBAT.stagger;
       // ひるんだら構えは中断する
       if (enemy.state !== 'chase') {
@@ -101,7 +102,7 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
       }
     }
     const len = Math.hypot(dirX, dirY) || 1;
-    const kb = knockback * (1 - (enemy.def.knockbackResist ?? 0));
+    const kb = knockback * (1 + stats.knockbackBonus) * (1 - (enemy.def.knockbackResist ?? 0));
     enemy.vx += (dirX / len) * kb;
     enemy.vy += (dirY / len) * kb;
   }

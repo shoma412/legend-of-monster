@@ -10,7 +10,7 @@ import { statWith } from '../src/game/effects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { hasGimmickPart } from '../src/game/gimmicks.js';
 import { buildRoom } from '../src/game/rooms.js';
-import { createRun, enterRoom, handleEvents, skipToBoss } from '../src/game/run.js';
+import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { mapState, recordMapClear } from '../src/logic/maps.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
@@ -665,5 +665,206 @@ describe('種族「蜘蛛」', () => {
     expect(buyUpgrade(save, 'coproc')).toBe(true);
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.critChance).toBeCloseTo(PLAYER.critChance + 0.04);
+  });
+});
+
+// ===== エリア3：未完の塔（クレーンタイタン、種族「巨人」） =====
+
+describe('未完の塔の定義', () => {
+  it('色・背景・敵・ボス・素材・データ片がそろっている。マップ3は3エリア', () => {
+    expect(maps[2].areas).toEqual(['yard', 'viaduct', 'spire']);
+    const area = DATA.areas.get('spire');
+    expect(AREA_THEMES[area.theme]).toBeDefined();
+    expect(hasBackdrop(area.theme)).toBe(true);
+    for (const e of [...area.enemies.map((x) => x.id), ...area.eliteBases]) expect(DATA.enemies.has(e), e).toBe(true);
+    expect(MATERIAL_ICONS[DATA.bosses.get(area.boss).material]).toBeDefined();
+    for (const id of maps[2].areas) {
+      const frags = DATA.fragments.all().filter((f) => f.area === id);
+      expect(frags.filter((f) => f.source === 'vault'), id).toHaveLength(3);
+      expect(frags.filter((f) => f.source === 'boss'), id).toHaveLength(1);
+    }
+    expect(mapSpecies(maps[2]).sort()).toEqual(['hound', 'spider', 'titan']);
+  });
+
+  it('3体のボスを順に倒すと、マップ3が完了になる。今あるマップをすべて完了したので、2周目が選べる', () => {
+    const save = createSave();
+    recordMapClear(save, 'map1', 1);
+    recordMapClear(save, 'map2', 1);
+    const r = createRun({ rng: seeded(7), save, mapId: 'map3' });
+    const killBoss = () => {
+      skipToBoss(r, enterRoom(r));
+      const world = enterRoom(r);
+      while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+      world.player.inv = Infinity;
+      hitEnemy(world, world.boss, 99999999, 1, 0, 0, { unblockable: true });
+      handleEvents(r, world);
+      return world;
+    };
+    leaveRoom(r, killBoss(), NEXT_AREA);
+    expect(currentArea(r).id).toBe('viaduct');
+    leaveRoom(r, killBoss(), NEXT_AREA);
+    expect(currentArea(r).id).toBe('spire');
+    expect(mapState(save, maps[2])).toBe('open');
+    killBoss();
+    expect(save.materials.titanCore).toBeGreaterThan(0);
+    expect(save.achievements).toEqual(expect.arrayContaining(['scraphound', 'girderspider', 'cranetitan', 'map3']));
+    expect(mapState(save, maps[2])).toBe('done');
+    expect(save.cycle).toBe(2);
+  });
+});
+
+describe('クレーンタイタン', () => {
+  function titanWorld() {
+    const world = createWorld({ waves: [{ boss: 'cranetitan' }], rng: () => 0.5 });
+    while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+    world.boss.idleT = Infinity;
+    return world;
+  }
+  function startSwing(world, name = 'swing') {
+    const b = world.boss;
+    b.act = { name, def: b.def.attacks[name], phase: '', t: 0 };
+    PATTERNS.pendulum.start(world, b, b.act, { dx: -1, dy: 0, dist: 1 });
+    return b.act;
+  }
+  const hooks = (world) => world.hazards.filter((h) => h.type === 'hook');
+
+  it('本体は動かない', () => {
+    const world = titanWorld();
+    const b = world.boss;
+    world.player.inv = Infinity;
+    const at = { x: b.x, y: b.y };
+    b.idleT = 99;
+    run(world, 3);
+    expect(b.x).toBeCloseTo(at.x);
+    expect(b.y).toBeCloseTo(at.y);
+  });
+
+  it('振り子：予告の線が出てから、フックがプレイヤーのいた高さを行ったり来たりする。立ち止まっていると当たる', () => {
+    const world = titanWorld();
+    const p = world.player;
+    const act = startSwing(world);
+    expect(act.paths).toHaveLength(1);
+    expect(act.paths[0].y1).toBeCloseTo(p.y);
+    expect(hooks(world)).toHaveLength(0); // 予告の間は、まだ出ない
+    expect(p.hp).toBe(PLAYER.maxHp);
+    runUntil(world, () => hooks(world).length > 0);
+    world.boss.x = 900;
+    world.boss.y = 60;
+    expect(runUntil(world, () => p.hp < PLAYER.maxHp, 6)).toBe(true);
+    expect(p.hp).toBe(PLAYER.maxHp - act.def.damage);
+  });
+
+  it('線から離れれば当たらない。決まった回数だけ往復すると、フックは消える', () => {
+    const world = titanWorld();
+    const p = world.player;
+    const act = startSwing(world);
+    runUntil(world, () => hooks(world).length > 0);
+    world.boss.idleT = Infinity;
+    world.boss.x = 900;
+    world.boss.y = 60;
+    p.y += 120;
+    const hook = hooks(world)[0];
+    const xs = [];
+    for (let t = 0; t < act.def.passes * act.def.period + 0.5; t += DT) {
+      updateWorld(world, DT, idle);
+      xs.push(hook.x);
+    }
+    expect(p.hp).toBe(PLAYER.maxHp);
+    expect(hooks(world)).toHaveLength(0);
+    // 部屋の端から端まで動いた
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(700);
+  });
+
+  it('後半は、横と縦の2本になる', () => {
+    const world = titanWorld();
+    world.player.inv = Infinity;
+    const act = startSwing(world, 'swingHard');
+    expect(act.paths).toHaveLength(2);
+    expect(act.paths[1].x1).toBeCloseTo(world.player.x);
+    runUntil(world, () => hooks(world).length > 0);
+    expect(hooks(world)).toHaveLength(2);
+  });
+});
+
+describe('種族「巨人」', () => {
+  const dummy = (world) => {
+    const e = addEnemy(world, 'grunt', 60);
+    e.hp = e.maxHp = 100000;
+    return e;
+  };
+  const damage = (world, e, options) => {
+    const before = e.hp;
+    hitEnemy(world, e, 100, 1, 0, 0, options);
+    return before - e.hp;
+  };
+
+  it('剛腕：重い攻撃だけ、威力が上がる', () => {
+    const world = makeWorld(['heavyhand']);
+    const e = dummy(world);
+    expect(damage(world, e)).toBe(100);
+    expect(damage(world, e, { heavy: true })).toBe(125);
+    const plain = makeWorld();
+    expect(damage(plain, dummy(plain), { heavy: true })).toBe(100);
+  });
+
+  it('大剣の3段目（締めの一撃）と溜め斬りは、重い攻撃として数えられる', () => {
+    const world = makeWorld(['heavyhand']);
+    const combo = world.player.weapon.combo;
+    expect(combo.at(-1).heavy).toBe(true);
+    expect(combo[0].heavy).toBeFalsy();
+  });
+
+  it('初撃：HPが満タンの敵へのダメージが上がる。重圧：エリートとボスへのダメージが上がる', () => {
+    const world = makeWorld(['firstblow']);
+    const e = addEnemy(world, 'grunt', 60);
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1.4);
+    e.hp -= 1;
+    expect(statWith(world, 'attackMul', e)).toBeCloseTo(1);
+
+    const w2 = makeWorld(['pressure']);
+    const normal = addEnemy(w2, 'grunt', 60);
+    expect(statWith(w2, 'attackMul', normal)).toBeCloseTo(1);
+    expect(statWith(w2, 'attackMul', { ...normal, elite: {} })).toBeCloseTo(1.15);
+    expect(statWith(w2, 'attackMul', { ...normal, boss: true })).toBeCloseTo(1.15);
+  });
+
+  it('震動：敵を吹き飛ばす力が上がる。長腕：近接範囲が広がる', () => {
+    const push = (ids) => {
+      const world = makeWorld(ids);
+      const e = addEnemy(world, 'drone', 60);
+      e.hp = e.maxHp = 100000;
+      hitEnemy(world, e, 1, 1, 0, 400);
+      return e.vx;
+    };
+    expect(push(['tremor'])).toBeCloseTo(push([]) * 1.5);
+    expect(makeWorld(['longarm']).player.stats.meleeRange).toBeCloseTo(1.12);
+  });
+
+  it('種族ボーナス：2種類で近接範囲 +15%。3種類で、重い攻撃ならエリートもひるむ', () => {
+    expect(makeWorld(['heavyhand', 'tremor']).player.stats.meleeRange).toBeCloseTo(1.15);
+    const world = makeWorld(['heavyhand', 'tremor', 'pressure']);
+    const elite = dummy(world);
+    elite.noStagger = true;
+    elite.stagger = 0;
+    hitEnemy(world, elite, 1, 1, 0, 0);
+    expect(elite.stagger).toBeLessThanOrEqual(0); // ふつうの攻撃では、ひるまない
+    hitEnemy(world, elite, 1, 1, 0, 0, { heavy: true });
+    expect(elite.stagger).toBeGreaterThan(0);
+
+    const two = makeWorld(['heavyhand', 'tremor']);
+    const e2 = dummy(two);
+    e2.noStagger = true;
+    e2.stagger = 0;
+    hitEnemy(two, e2, 1, 1, 0, 0, { heavy: true });
+    expect(e2.stagger).toBeLessThanOrEqual(0);
+  });
+
+  it('恒久強化「基礎補強」：タイタンコアで買え、最大HPが1段ごとに 20 増える', () => {
+    const save = createSave();
+    save.materials.titanCore = 2;
+    expect(buyUpgrade(save, 'foundation')).toBe(true);
+    expect(buyUpgrade(save, 'foundation')).toBe(true);
+    const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
+    expect(world.player.stats.maxHp).toBe(PLAYER.maxHp + 40);
   });
 });

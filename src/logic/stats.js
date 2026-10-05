@@ -144,6 +144,10 @@ export function computeStats(build) {
     hurtInvincible: 0, // 被弾後の無敵時間に足す秒数
     hpRegen: 0, // 1秒あたりに戻る HP
     dashDistance: 0, // ダッシュの距離が伸びる割合
+    // 重い攻撃（種族「巨人」）：威力が増える割合、吹き飛ばす力が増える割合、エリートもひるませるか（0 より大きければ）
+    heavyBonus: 0,
+    knockbackBonus: 0,
+    heavyStagger: 0,
     // 設置物（種族「蜘蛛」）：地雷と小型タレットの1発のダメージ（0 なら置かない）、ダメージの倍率、同じ種類を置ける数
     mineDamage: 0,
     sentryDamage: 0,

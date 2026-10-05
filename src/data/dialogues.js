@@ -144,6 +144,25 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-cranetitan',
+    trigger: { at: 'bossIntro', boss: 'cranetitan' },
+    lines: [
+      { who: 'jin', text: 'でかすぎる。……塔じゃない。こいつ自身が、塔なんだ。' },
+      { who: 'noise', text: '建設機だ。資材が尽きて、自分を積んだ。階数の指示は、最後まで届かなかった。' },
+      { who: 'jin', text: '動かないなら、こっちが動く。フックに気をつける。' },
+    ],
+  },
+  {
+    id: 'return-cranetitan',
+    trigger: { at: 'hideout', bossKilled: 'cranetitan' },
+    lines: [
+      { who: 'hal', text: 'おかえり。建設区、止まったんだね。ここからでも、塔のてっぺんの灯りが消えたのが見えた。' },
+      { who: 'jin', text: '何階まで建てればいいのか、誰も教えなかった。だから、やめられなかった。' },
+      { who: 'noise', text: '……私も同じだ。いつまで保守すればいいのか、誰も教えてくれなかった。' },
+      { who: 'noise', text: 'だが、お前が止めてくれる。それが、今の私の「完成」だ。' },
+    ],
+  },
+  {
     id: 'return-boltboar',
     trigger: { at: 'hideout', bossKilled: 'boltboar' },
     lines: [
@@ -208,6 +227,15 @@ export const talks = {
         { who: 'hal', text: '守るものがなくなっても、守り方だけは忘れないんだね。' },
       ],
     },
+    { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
+    { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
+    {
+      after: 'cranetitan',
+      lines: [
+        { who: 'hal', text: '三つの区画、止めたんだね。動かす、流す、建てる。' },
+        { who: 'hal', text: '街って、こんなにたくさんの「やめられなかった」でできてたんだ。' },
+      ],
+    },
     {
       after: 'sludgehydra',
       lines: [
@@ -233,6 +261,7 @@ export const talks = {
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
     { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
-    { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。……塔の区画は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
+    { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },
   ],
 };

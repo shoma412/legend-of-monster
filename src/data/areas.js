@@ -270,4 +270,38 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'spire',
+    code: 'SITE 03',
+    name: '未完の塔',
+    theme: 'frame',
+    // 曲は、マップ3の曲を選ぶまでの仮
+    bgm: 'spire',
+    bossBgm: 'bossSpire',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    gimmicks: [{ id: 'girders', chance: 0.45 }],
+    enemies: [
+      { id: 'scaffolder', weight: 2 },
+      { id: 'lobber', weight: 3 },
+      { id: 'welder', weight: 2 },
+      { id: 'riveter', weight: 3 },
+      { id: 'carrier', weight: 3 },
+      { id: 'sniper', weight: 2 },
+    ],
+    eliteBases: ['lobber', 'riveter', 'scaffolder'],
+    boss: 'cranetitan',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 最上階だ。塔そのものが、標的だ。',
+        '@noise＞ 本体は動かない。吊ったフックと、腕のなぎ払いを避けろ。電撃が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……積むのを、やめた。建設区は、これで全部だ。',
+        '@noise＞ 帰ってこい。',
+      ],
+    },
+  },
 ];

@@ -37,6 +37,7 @@ export const AREA_THEMES = {
   filter: { floor: 0x100a14, grid: 0xb05ad0, wall: 0x1e1226, edge: '#ff2bd6' },
   yard: { floor: 0x12100a, grid: 0xc9a12e, wall: 0x241f12, edge: '#fff36b' },
   bridge: { floor: 0x0a0d12, grid: 0x7f9ab8, wall: 0x161c26, edge: '#8fd8ff' },
+  frame: { floor: 0x100c0a, grid: 0xd07a3a, wall: 0x241812, edge: '#ff7a3d' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

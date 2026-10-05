@@ -14,6 +14,7 @@
 //   leap      : プレイヤーの場所に着地点の予告 → 跳ぶ → 着地で周りを攻撃。ring を書くと衝撃波の輪も出る
 //   lines     : 部屋を横切る線を count 本、順に光らせる。orient: aim / horizontal / vertical / cross
 //   pools     : その場に残る危険な床を count 個置く。slow: true なら踏むと減速
+//   pendulum  : 吊ったフックが、予告の線の上を passes 回、行ったり来たりする。lines 本（1本目は横、2本目は縦）。プレイヤーのいる場所を通る
 //   girder    : 予告の線に沿って、杭の列（壁）を張る。lines 本。杭は post の敵（置かれたもの）で、gap の幅の隙間が gaps か所ある。部屋に残せるのは max 本まで
 //   magnet    : duration 秒のあいだ、プレイヤーを strength の速さで引き寄せる（ダッシュ中は引かれない）。最後に radius の範囲を叩く
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
@@ -386,6 +387,45 @@ export const bosses = [
         idle: { min: 0.8, max: 1.2 },
         sequence: ['girderHard', 'leap', 'web', 'rush', 'brood', 'stab'],
         announce: '架設続行',
+      },
+    ],
+  },
+  {
+    id: 'cranetitan',
+    name: 'クレーンタイタン',
+    alias: '未完の巨人', // 登場時に出す異名
+    shape: 'titan',
+    color: 'heat',
+    weakness: 'shock',
+    material: 'titanCore',
+    radius: 58,
+    hp: 9600,
+    speed: 0, // 本体は動かない
+    contactDamage: 44,
+    xp: 520,
+    credits: 260,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 腕のなぎ払い：長い腕が、プレイヤーのいる側へ回る
+      sweep: { pattern: 'laser', telegraph: 0.9, lead: 50, turn: 170, speed: 105, width: 34, range: 400, damage: 48, recover: 0.8 },
+      // 鉄骨の落下
+      drop: { pattern: 'rain', telegraph: 0.4, count: 8, interval: 0.28, delay: 0.9, radius: 42, spread: 90, damage: 36, recover: 0.8 },
+      dropHard: { pattern: 'rain', telegraph: 0.3, count: 14, interval: 0.18, delay: 0.85, radius: 42, spread: 130, damage: 36, recover: 0.7 },
+      // 衝撃波：部屋の端まで届く輪
+      quake: { pattern: 'shockwave', telegraph: 0.9, damage: 34, ringSpeed: 330, ringMax: 980, ringWidth: 16, recover: 0.8 },
+      // 鋲の弾：向きをずらしながら全方向に
+      rivets: { pattern: 'barrage', telegraph: 0.7, count: 9, spread: 360, waves: 5, interval: 0.3, rotate: 12, shotSpeed: 220, shotRadius: 7, damage: 30, recover: 0.8 },
+      // 振り子：吊ったフックが、部屋を行ったり来たりする
+      swing: { pattern: 'pendulum', telegraph: 1.0, lines: 1, passes: 3, period: 1.5, radius: 36, damage: 46, recover: 0.6 },
+      swingHard: { pattern: 'pendulum', telegraph: 0.8, lines: 2, passes: 4, period: 1.3, radius: 36, damage: 46, recover: 0.5 },
+    },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, sequence: ['sweep', 'drop', 'swing', 'quake', 'rivets'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        sequence: ['swingHard', 'sweep', 'dropHard', 'quake', 'rivets', 'sweep'],
+        announce: '増築再開',
       },
     ],
   },

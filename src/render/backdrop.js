@@ -465,6 +465,52 @@ const THEMES = {
       block(g, x + 6, y - 3, 6, PX, 0x8fd8ff, 0.3);
     }
   },
+  // 未完の塔：骨組みだけの最上階。鉄骨の梁、床の抜けたところから見える空、資材、赤い航空灯
+  frame(g, rng, a) {
+    speckles(g, rng, a, 220, [0x1a120e, 0x241814, 0x120c0a, 0x30201a], 0.7);
+    // 太い梁（縦横の格子）
+    for (let x = a.left + 110; x < a.right - 40; x += 180) {
+      block(g, x - 5, a.top, 10, a.h, 0x2e1e16, 0.8);
+      block(g, x - 5, a.top, PX / 2, a.h, 0xd07a3a, 0.2);
+    }
+    for (let y = a.top + 100; y < a.bottom - 40; y += 150) {
+      block(g, a.left, y - 5, a.w, 10, 0x2e1e16, 0.8);
+      block(g, a.left, y - 5, a.w, PX / 2, 0xd07a3a, 0.2);
+    }
+    // 梁の交わるところのボルト
+    for (let x = a.left + 110; x < a.right - 40; x += 180) {
+      for (let y = a.top + 100; y < a.bottom - 40; y += 150) {
+        for (const [dx, dy] of [[-8, -8], [6, -8], [-8, 6], [6, 6]]) block(g, x + dx, y + dy, PX / 2, PX / 2, 0xd07a3a, 0.6);
+      }
+    }
+    // 床の抜けたところ：遠い空と、下の階の灯り
+    for (let i = 0; i < 5; i++) {
+      const x = a.left + 60 + rng() * (a.w - 200);
+      const y = a.top + 50 + rng() * (a.h - 130);
+      const w = 60 + rng() * 50;
+      const h = 34 + rng() * 26;
+      block(g, x, y, w, h, 0x05060c, 0.8);
+      for (let k = 0; k < 5; k++) block(g, x + 4 + rng() * (w - 8), y + 4 + rng() * (h - 8), PX / 2, PX / 2, 0xe9e6ff, 0.4);
+      block(g, x, y, w, PX / 2, 0x4a3024, 0.9);
+    }
+    // 積まれた資材（短い鉄骨の束）
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 50 + rng() * (a.w - 160);
+      const y = a.top + 60 + rng() * (a.h - 110);
+      for (let k = 0; k < 3; k++) block(g, x + k * 3, y + k * 7, 56 + rng() * 30, 5, 0x4a3024, 0.75);
+    }
+    // 上の壁ぎわの航空灯（赤く光る）
+    for (let x = a.left + 70; x < a.right - 30; x += 150) {
+      block(g, x, a.top + 8, 8, 8, 0xff4d5e, 0.55);
+      blob(g, x + 4, a.top + 12, 22, 12, 0xff4d5e, 0.05);
+    }
+    // 垂れた鎖
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + 90 + rng() * (a.w - 180);
+      const len = 50 + rng() * 80;
+      for (let y = 0; y < len; y += PX * 2) block(g, x, a.top + y, PX / 2, PX, 0x6a4a3a, 0.6);
+    }
+  },
 };
 
 // 部屋の内側（壁の内側）に、エリアの背景を描く

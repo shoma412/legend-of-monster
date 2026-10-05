@@ -91,6 +91,15 @@ export const MATERIAL_ICONS = {
     }
     g.strokePoints(ngon(x, y, s * 0.4, 6, Math.PI / 6), true, true);
   },
+  // タイタンコア：クレーン
+  titanCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    g.lineBetween(x - s * 0.35, y + s * 0.55, x - s * 0.35, y - s * 0.5);
+    g.lineBetween(x - s * 0.35, y - s * 0.5, x + s * 0.5, y - s * 0.5);
+    g.lineBetween(x + s * 0.35, y - s * 0.5, x + s * 0.35, y + s * 0.1);
+    g.strokeRect(x + s * 0.2, y + s * 0.1, s * 0.3, s * 0.25);
+  },
 };
 
 export function drawMaterialIcon(g, id, x, y, s, c) {

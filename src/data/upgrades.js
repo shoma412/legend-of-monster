@@ -71,6 +71,11 @@ export const upgrades = [
     costs: [{ spiderCore: 1 }, { spiderCore: 1 }, { spiderCore: 1 }],
     perLevel: { mods: [{ stat: 'critChance', add: 0.02 }] },
   },
+  {
+    id: 'foundation', name: '基礎補強', desc: '最大HP +20', max: 2,
+    costs: [{ titanCore: 1 }, { titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 20 }] },
+  },
 ];
 
 // 武器の解放

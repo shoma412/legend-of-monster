@@ -86,6 +86,8 @@ export const BGM = {
   bossYard: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
   viaduct: { file: 'audio/bgm/maou_loop_bgm_cyber19.ogg', song: 'plant' },
   bossViaduct: { file: 'audio/bgm/maou_loop_bgm_neorock65.ogg', song: 'bossPlant' },
+  spire: { file: 'audio/bgm/maou_loop_bgm_cyber24.ogg', song: 'tower' },
+  bossSpire: { file: 'audio/bgm/maou_loop_bgm_cyber39.ogg', song: 'bossTower' },
 };
 
 // ---- コードで鳴らす曲 ----

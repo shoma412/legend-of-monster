@@ -457,6 +457,40 @@ PATTERNS.pools = {
   },
 };
 
+// 振り子：吊ったフックが、予告の線の上を行ったり来たりする。線はプレイヤーのいる場所を通る（1本目は横、2本目は縦）
+PATTERNS.pendulum = {
+  start(world, b, act) {
+    const def = act.def;
+    const p = world.player;
+    const bounds = world.bounds;
+    act.phase = 'telegraph';
+    act.t = def.telegraph;
+    act.paths = [];
+    for (let i = 0; i < def.lines; i++) {
+      if (i % 2 === 0) act.paths.push({ x1: bounds.left + def.radius, y1: p.y, x2: bounds.right - def.radius, y2: p.y });
+      else act.paths.push({ x1: p.x, y1: bounds.top + def.radius, x2: p.x, y2: bounds.bottom - def.radius });
+    }
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.paths.forEach((path, i) => {
+          // 2本目は、半周ぶんずらして動かす（同時に同じ場所へ来ないように）
+          world.hazards.push({ type: 'hook', ...path, r: def.radius, period: def.period, t: i * 0.5, total: def.passes, damage: def.damage, color: b.color, x: path.x1, y: path.y1 });
+        });
+        sfx(world, 'bossCharge');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 橋げた：予告の線に沿って、部屋を横切る杭の列（壁）を張る。
 //   1本目は縦、2本目は横…と交互に、プレイヤーの少し横を通る。ところどころに隙間がある
 PATTERNS.girder = {
@@ -657,6 +691,14 @@ export function updateHazards(world, dt) {
         sfx(world, 'hit');
         h.dead = true;
       }
+    } else if (h.type === 'hook') {
+      // 吊ったフック：線の上を行ったり来たりする（端でゆっくり、真ん中で速い）。触れると当たる
+      h.t += dt / h.period;
+      const k = (1 - Math.cos(h.t * Math.PI)) / 2; // 0 → 1 → 0 …
+      h.x = h.x1 + (h.x2 - h.x1) * k;
+      h.y = h.y1 + (h.y2 - h.y1) * k;
+      if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+      if (h.t >= h.total) h.dead = true;
     } else if (h.type === 'bar') {
       // 部屋を横切る線。予告の時間が来たら一瞬だけ光り、そのとき線の上にいると当たる
       if (h.flash > 0) {

@@ -259,7 +259,7 @@ const SPECIALS = {
     const base = Math.atan2(p.fy, p.fx);
     for (let i = 0; i < special.count; i++) {
       const a = base + (special.count > 1 ? (i / (special.count - 1) - 0.5) * total : 0);
-      fireShot(world, a, { ...p.weapon.shot, damage: special.damage });
+      fireShot(world, a, { ...p.weapon.shot, damage: special.damage, heavy: true }); // 拡散射撃は「重い攻撃」
     }
     p.firingT = 0.2;
     p.shotCd = Math.max(p.shotCd, special.recover);
@@ -326,7 +326,7 @@ function useOugi(world) {
   for (const e of world.enemies) {
     if (e.dead || e.spawnT > 0) continue;
     if (Math.hypot(e.x - p.x, e.y - p.y) > ougi.radius + e.r) continue;
-    hitEnemy(world, e, ougi.damage * ougi.multiplier, e.x - p.x, e.y - p.y, ougi.knockback, { unblockable: true });
+    hitEnemy(world, e, ougi.damage * ougi.multiplier, e.x - p.x, e.y - p.y, ougi.knockback, { unblockable: true, heavy: true });
   }
   // 敵の弾も吹き飛ばす
   world.shots = world.shots.filter((s) => Math.hypot(s.x - p.x, s.y - p.y) > ougi.radius);
@@ -413,7 +413,7 @@ function resolveSwing(world, a) {
   for (const e of world.enemies) {
     if (e.dead || e.spawnT > 0) continue;
     if (!arcHitsCircle(p.x, p.y, a.angle, a.arc, a.range, e.x, e.y, e.r, p.r + 6)) continue;
-    hitEnemy(world, e, a.damage, e.x - p.x, e.y - p.y, a.knockback);
+    hitEnemy(world, e, a.damage, e.x - p.x, e.y - p.y, a.knockback, { heavy: a.heavy || a.charged > 0 });
     hits++;
   }
   const kind = a.charged ? 'charged' : a.heavy ? 'heavy' : 'normal';
@@ -442,6 +442,7 @@ function fireShot(world, angle, shot) {
     damage: shot.damage,
     knockback: shot.knockback,
     pierce: p.stats.pierce, // あと何体貫通できるか
+    heavy: !!shot.heavy,
     hit: new Set(),
     life: shot.life,
   });
@@ -462,7 +463,7 @@ export function updatePlayerShots(world, dt) {
       if (e.dead || e.spawnT > 0 || s.hit.has(e)) continue;
       if (!circlesOverlap(s.x, s.y, s.r, e.x, e.y, e.r)) continue;
       s.hit.add(e);
-      hitEnemy(world, e, s.damage, s.vx, s.vy, s.knockback);
+      hitEnemy(world, e, s.damage, s.vx, s.vy, s.knockback, { heavy: s.heavy });
       if (s.pierce-- <= 0) {
         s.life = 0;
         break;

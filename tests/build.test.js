@@ -73,11 +73,11 @@ describe('定義データのつじつま', () => {
     }
   });
 
-  it('仕様どおり、インプラント48種（種族8つ×5、汎用8）・固有効果4種・装備効果10種がある', () => {
-    expect(DATA.implants.all()).toHaveLength(48);
+  it('仕様どおり、インプラント53種（種族9つ×5、汎用8）・固有効果4種・装備効果10種がある', () => {
+    expect(DATA.implants.all()).toHaveLength(53);
     expect(DATA.legendEffects.all()).toHaveLength(4);
     expect(DATA.gearEffects.all()).toHaveLength(10);
-    for (const id of ['boar', 'wyvern', 'core', 'serpent', 'crab', 'hydra', 'hound', 'spider']) expect(DATA.implants.all().filter((d) => d.species === id)).toHaveLength(5);
+    for (const id of ['boar', 'wyvern', 'core', 'serpent', 'crab', 'hydra', 'hound', 'spider', 'titan']) expect(DATA.implants.all().filter((d) => d.species === id)).toHaveLength(5);
   });
 });
 

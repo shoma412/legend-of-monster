@@ -16,6 +16,8 @@ const CONDITIONS = {
   targetSlowed: (world, mod, target) => !!target && (target.slowT > 0 || target.stopT > 0),
   targetBurning: (world, mod, target) => !!target && target.burnT > 0,
   targetStopped: (world, mod, target) => !!target && target.stopT > 0,
+  targetFull: (world, mod, target) => !!target && target.hp >= target.maxHp,
+  targetBig: (world, mod, target) => !!target && (!!target.boss || !!target.elite),
   standing: (world) => world.player.stillT >= 0.25, // 少しの間、動いていない
   moving: (world) => world.player.stillT <= 0,
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,

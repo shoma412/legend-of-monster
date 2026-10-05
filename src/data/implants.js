@@ -11,7 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
-//                    targetStopped（相手が足止め・凍結・停止で動けない）
+//                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
 //              do: 発動する効果の部品の名前（src/game/effects.js の ACTIONS）
@@ -232,6 +232,33 @@ export const implants = [
     desc: (k) => `設置物（地雷・小型タレット）のダメージ +${pct(0.3 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'deviceMul', add: 0.3 * k }] }),
   },
+  // ---- 巨人（クレーンタイタン由来・重い一撃） ----
+  // 「重い攻撃」は、溜め斬り・コンボの締めの一撃・反撃・拡散射撃・奥義のこと
+  {
+    id: 'heavyhand', species: 'titan', name: '剛腕',
+    desc: (k) => `重い攻撃（溜め斬り・締めの一撃・反撃・拡散射撃）の威力 +${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'heavyBonus', add: 0.25 * k }] }),
+  },
+  {
+    id: 'firstblow', species: 'titan', name: '初撃',
+    desc: (k) => `HPが満タンの敵へのダメージ +${pct(0.4 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.4 * k, when: 'targetFull' }] }),
+  },
+  {
+    id: 'tremor', species: 'titan', name: '震動',
+    desc: (k) => `攻撃で敵を吹き飛ばす力 +${pct(0.5 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'knockbackBonus', add: 0.5 * k }] }),
+  },
+  {
+    id: 'longarm', species: 'titan', name: '長腕',
+    desc: (k) => `近接範囲 +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'meleeRange', add: 0.12 * k }] }),
+  },
+  {
+    id: 'pressure', species: 'titan', name: '重圧',
+    desc: (k) => `エリートとボスへのダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'targetBig' }] }),
+  },
   // ---- 汎用の義体部品 ----
   {
     id: 'overclock', species: 'general', name: 'オーバークロック',
@@ -336,6 +363,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '設置物のダメージ +25%', effect: { mods: [{ stat: 'deviceMul', add: 0.25 }] } },
       { need: 3, desc: '設置物が2つ置ける', effect: { mods: [{ stat: 'deviceCount', add: 1 }] } },
+    ],
+  },
+  titan: {
+    name: '巨人', color: 'heat', boss: 'cranetitan',
+    bonuses: [
+      { need: 2, desc: '近接範囲 +15%', effect: { mods: [{ stat: 'meleeRange', add: 0.15 }] } },
+      { need: 3, desc: '重い攻撃で、エリートもひるむ', effect: { mods: [{ stat: 'heavyStagger', add: 1 }] } },
     ],
   },
   general: { name: '汎用', color: 'ink', bonuses: [] },

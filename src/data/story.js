@@ -11,6 +11,7 @@ export const materials = [
   { id: 'hydraCore', name: 'ハイドラコア', color: 'magenta' },
   { id: 'houndCore', name: 'ハウンドコア', color: 'red' },
   { id: 'spiderCore', name: 'スパイダーコア', color: 'ice' },
+  { id: 'titanCore', name: 'タイタンコア', color: 'heat' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -175,5 +176,21 @@ export const fragments = [
   {
     id: 'gs-core', area: 'viaduct', source: 'boss', title: 'ガーダースパイダーのコアログ',
     text: '架設：完了。接続先：なし。架設：完了。接続先：なし。……つながるまで、張り続ける。',
+  },
+  {
+    id: 'ct-01', area: 'spire', source: 'vault', title: '塔 建設計画書',
+    text: '街でいちばん高い塔を建てる。階数は「追って指示する」。建設機 CT は、指示があるまで積み上げを続けること。',
+  },
+  {
+    id: 'ct-05', area: 'spire', source: 'vault', title: '資材課への苦情',
+    text: '塔のクレーンが、現場の資材を使い切った。次に、足場を外して積んだ。その次に、隣のクレーンを外して積んだ。',
+  },
+  {
+    id: 'ct-memo', area: 'spire', source: 'vault', title: '最上階の落書き',
+    text: 'ここが何階なのか、もう誰も数えていない。あいつは、自分の腕を一本外して、梁にした。完成したら、どうするつもりなんだろう。',
+  },
+  {
+    id: 'ct-core', area: 'spire', source: 'boss', title: 'クレーンタイタンのコアログ',
+    text: '階数の指示：未着。積み上げ：継続。資材：自機。階数の指示：未着。——完成まで、あと不明階。',
   },
 ];

@@ -17,6 +17,7 @@ export const achievements = [
   { id: 'sludgehydra', icon: 'skull', color: 'heat', name: '汚泥の多頭狩り', desc: 'スラッジハイドラを倒した', on: 'bossKill', check: 'bossIs', boss: 'sludgehydra' },
   { id: 'scraphound', icon: 'skull', color: 'red', name: '資材喰い狩り', desc: 'スクラップハウンドを倒した', on: 'bossKill', check: 'bossIs', boss: 'scraphound' },
   { id: 'girderspider', icon: 'skull', color: 'cold', name: '橋げた張り狩り', desc: 'ガーダースパイダーを倒した', on: 'bossKill', check: 'bossIs', boss: 'girderspider' },
+  { id: 'cranetitan', icon: 'skull', color: 'heat', name: '未完の巨人狩り', desc: 'クレーンタイタンを倒した', on: 'bossKill', check: 'bossIs', boss: 'cranetitan' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },
@@ -36,6 +37,7 @@ export const achievements = [
   { id: 'kills-500', icon: 'tally', name: '五百体処理', desc: '累計で500体倒した', on: 'kill', check: 'totalKills', count: 500 },
   { id: 'map1', icon: 'flag', color: 'green', name: '中枢区停止', desc: 'マップ1を完了した', on: 'mapClear', check: 'mapIs', map: 'map1' },
   { id: 'map2', icon: 'flag', color: 'cold', name: '排水区停止', desc: 'マップ2を完了した', on: 'mapClear', check: 'mapIs', map: 'map2' },
+  { id: 'map3', icon: 'flag', color: 'heat', name: '建設区停止', desc: 'マップ3を完了した', on: 'mapClear', check: 'mapIs', map: 'map3' },
   { id: 'cycle-3', icon: 'repeat', color: 'red', name: '異物認定', desc: '3周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 3 },
   { id: 'cycle-5', icon: 'crown', color: 'red', name: '修繕不能', desc: '5周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 5 },
 ];
