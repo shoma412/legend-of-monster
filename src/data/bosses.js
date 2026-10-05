@@ -25,9 +25,9 @@ export const bosses = [
     weakness: 'cold',
     material: 'boarCore', // 倒すと持ち帰れるボス素材（src/data/story.js の materials）
     radius: 42,
-    hp: 1100,
+    hp: 2100,
     speed: 70,
-    contactDamage: 22,
+    contactDamage: 26,
     xp: 120,
     credits: 60,
     drops: { count: 3, rarityBonus: 1 }, // 倒すと必ず落とす装備の数と、レア度の底上げ
@@ -38,7 +38,7 @@ export const bosses = [
         lockTime: 0.25, // 予告の最後のこの時間は向きを変えない
         speed: 560,
         duration: 0.9,
-        damage: 32,
+        damage: 38,
         recover: 0.7,
         wallStun: 1.6, // 壁に当たったときのスタン（秒）
       },
@@ -50,14 +50,14 @@ export const bosses = [
         lockTime: 0.2,
         speed: 600,
         duration: 0.9,
-        damage: 32,
+        damage: 38,
         recover: 0.8,
         wallStun: 1.6,
       },
       stomp: {
         pattern: 'shockwave',
         telegraph: 0.8,
-        damage: 18,
+        damage: 22,
         ringSpeed: 330, // 輪が広がる速さ（px/秒）
         ringMax: 320, // 輪が消える半径
         ringWidth: 14,
@@ -78,20 +78,20 @@ export const bosses = [
     weakness: 'heat',
     material: 'cryoCore',
     radius: 38,
-    hp: 1800,
+    hp: 3400,
     speed: 96,
-    contactDamage: 26,
+    contactDamage: 31,
     xp: 200,
     credits: 90,
     drops: { count: 3, rarityBonus: 1 },
     attacks: {
       // 冷気ブレス
-      breath: { pattern: 'cone', telegraph: 0.9, lockTime: 0.3, range: 400, arc: 54, duration: 1.1, damage: 22, slow: true, recover: 0.7 },
+      breath: { pattern: 'cone', telegraph: 0.9, lockTime: 0.3, range: 400, arc: 54, duration: 1.1, damage: 26, slow: true, recover: 0.7 },
       // 尻尾なぎ払い
-      sweep: { pattern: 'slam', telegraph: 0.65, radius: 135, damage: 30, recover: 0.6 },
+      sweep: { pattern: 'slam', telegraph: 0.65, radius: 135, damage: 36, recover: 0.6 },
       // 氷柱の雨
-      icicles: { pattern: 'rain', telegraph: 0.4, count: 7, interval: 0.28, delay: 0.85, radius: 36, spread: 60, damage: 24, recover: 0.7 },
-      iciclesHard: { pattern: 'rain', telegraph: 0.3, count: 11, interval: 0.2, delay: 0.8, radius: 36, spread: 80, damage: 24, recover: 0.6 },
+      icicles: { pattern: 'rain', telegraph: 0.4, count: 7, interval: 0.28, delay: 0.85, radius: 36, spread: 60, damage: 29, recover: 0.7 },
+      iciclesHard: { pattern: 'rain', telegraph: 0.3, count: 11, interval: 0.2, delay: 0.8, radius: 36, spread: 80, damage: 29, recover: 0.6 },
     },
     phases: [
       { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, sequence: ['breath', 'icicles', 'sweep'] },
@@ -113,19 +113,19 @@ export const bosses = [
     weakness: 'shock',
     material: 'overCore',
     radius: 48,
-    hp: 2900,
+    hp: 5500,
     speed: 34,
-    contactDamage: 30,
+    contactDamage: 36,
     xp: 300,
     credits: 150,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
       // レーザーの回転掃射
-      laser: { pattern: 'laser', telegraph: 0.9, lead: 55, turn: 190, speed: 95, width: 22, range: 1100, damage: 28, recover: 0.7 },
+      laser: { pattern: 'laser', telegraph: 0.9, lead: 55, turn: 190, speed: 95, width: 22, range: 1100, damage: 34, recover: 0.7 },
       // ドローン召喚
       summon: { pattern: 'summon', telegraph: 0.7, enemy: 'drone', count: 3, max: 6, recover: 0.6 },
       // 全体衝撃波（部屋の端まで届く輪。ダッシュの無敵ですり抜ける）
-      nova: { pattern: 'shockwave', telegraph: 0.9, damage: 24, ringSpeed: 340, ringMax: 980, ringWidth: 16, recover: 0.8 },
+      nova: { pattern: 'shockwave', telegraph: 0.9, damage: 29, ringSpeed: 340, ringMax: 980, ringWidth: 16, recover: 0.8 },
       // 冷却：数秒の大きな隙
       vent: { pattern: 'vent', duration: 3.6 },
     },

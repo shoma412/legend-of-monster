@@ -21,7 +21,7 @@ import {
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView, shakeView } from '../render/view.js';
-import { createBuildList, createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
+import { createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
 import { createDialogueBox } from './dialogueBox.js';
 import { createResultPanel } from './resultPanel.js';
 import { MenuOverlay } from './menuOverlay.js';
@@ -177,7 +177,8 @@ export class BattleScene extends Phaser.Scene {
     this.ougiText = this.add.text(W / 2, H - 78, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.amber })
       .setOrigin(0.5).setShadow(0, 0, COLORS.amber, 12, false, true).setDepth(7).setVisible(false);
     this.tweens.add({ targets: this.ougiText, alpha: 0.4, duration: 350, yoyo: true, repeat: -1 });
-    this.buildList = createBuildList(this);
+    // 画面上の帯の右端：装備のアイコン（3つ）と、インプラントの数。くわしい中身はポーズ画面で見る
+    this.implantText = this.add.text(W - 112, 9, '', { ...label, fontFamily: FONTS.body, color: COLORS.magenta, fontStyle: '700' }).setOrigin(1, 0);
     this.comparePanel = createComparePanel(this);
     this.choicePanel = createChoicePanel(this, (i) => this.choose(i));
     this.commLog = createCommLog(this);
@@ -361,13 +362,14 @@ export class BattleScene extends Phaser.Scene {
     this.levelText.setText(`Lv ${p.build.level}`);
     this.xpText.setText(`${p.build.xp} / ${xpToNext(p.build.level)}`);
     p.build.items.forEach((slot, i) => this.itemTexts[i].setText(slot && slot.count > 1 ? `×${slot.count}` : ''));
-    drawGearIcons(this.hud, world, SCREEN.width - 44, ROOM.wallTop + 15, 15);
+    drawGearIcons(this.hud, world, SCREEN.width - 92, 15, 24);
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
     const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.length}`);
 
-    this.buildList.update(p.build);
+    const implantCount = Object.keys(p.build.implants).length;
+    this.implantText.setText(implantCount > 0 ? `インプラント ${implantCount}` : '');
     this.comparePanel.update(world.choice ? null : focusGear(world), p.build.gear);
     this.choicePanel.update(world.choice, p.build);
     const prompt = world.choice ? null : focusPrompt(world);

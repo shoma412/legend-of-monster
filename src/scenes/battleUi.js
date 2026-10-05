@@ -1,11 +1,9 @@
 // 戦闘画面の上に重ねるパネル（装備の比較、インプラント3択、装備とインプラントの一覧）
-import { LOOT, ROOM, SCREEN } from '../data/balance.js';
-import { DATA } from '../data/index.js';
+import { LEVEL, LOOT, ROOM, SCREEN } from '../data/balance.js';
 import { families } from '../data/implants.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { describeItem } from '../logic/loot.js';
-import { LEVEL } from '../data/balance.js';
-import { activeFamilyBonuses, familyCounts, implantDesc } from '../logic/stats.js';
+import { familyCounts, implantDesc } from '../logic/stats.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -146,30 +144,6 @@ export function createChoicePanel(scene, onChoose) {
         card.note.setText(notes.join('\n')).setColor(bonusNow ? COLORS.amber : owned > 0 ? COLORS.green : COLORS.dim);
       });
       c.setVisible(true);
-    },
-  };
-}
-
-// ---- 装備とインプラントの一覧（画面右上） ----
-
-export function createBuildList(scene) {
-  const x = W - 56; // 右端にスロットのアイコンが入る
-  const gearTexts = LOOT.slots.map((s, i) => scene.add.text(x, ROOM.wallTop + 8 + i * 15, '', body(11)).setOrigin(1, 0).setAlpha(0.9).setDepth(6));
-  const implantText = scene.add.text(x, ROOM.wallTop + 8 + LOOT.slots.length * 15 + 6, '', body(11, COLORS.dim, { align: 'right', lineSpacing: 2 })).setOrigin(1, 0).setAlpha(0.9).setDepth(6);
-  let key = '';
-  return {
-    update(build) {
-      // 中身が変わったときだけ書き直す
-      const next = JSON.stringify([build.gear, build.implants]);
-      if (next === key) return;
-      key = next;
-      LOOT.slots.forEach((s, i) => {
-        const item = build.gear[s.id];
-        gearTexts[i].setText(item ? `${s.name}：${item.name}` : `${s.name}：なし`).setColor(item ? rarityColor(item) : '#4a4470');
-      });
-      const lines = Object.entries(build.implants).map(([id, n]) => DATA.implants.get(id).name + (n > 1 ? ` Lv${n}` : ''));
-      for (const f of activeFamilyBonuses(build)) lines.push(`◆ ${families[f].name}系統：${families[f].bonus.desc}`);
-      implantText.setText(lines.join('\n'));
     },
   };
 }

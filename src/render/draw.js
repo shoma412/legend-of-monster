@@ -416,11 +416,12 @@ function drawItemSlots(g, world) {
 }
 
 // 装備の一覧（画面右上）の横に出す、スロットのアイコン
-export function drawGearIcons(g, world, x, y, lineHeight) {
+// 身につけている装備のアイコンを、横に並べる（色はレア度。空のスロットは暗い色）
+export function drawGearIcons(g, world, x, y, gap) {
   LOOT.slots.forEach((s, i) => {
     const item = world.player.build.gear[s.id];
     const color = item ? hex(RARITY_COLORS[LOOT.rarities[item.rarity].id]) : 0x4a4470;
-    drawSlotIcon(g, s.id, x, y + i * lineHeight, 5, color);
+    drawSlotIcon(g, s.id, x + i * gap, y, 6, color);
   });
 }
 
