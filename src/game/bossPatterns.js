@@ -664,6 +664,185 @@ PATTERNS.burrow = {
   },
 };
 
+// 耐える（大技）：力を溜める。溜めている間に break（最大HPに対する割合）のダメージを与えると中断でき、長いスタンになる。
+//   中断できないと、部屋の端まで届く輪が blast.count 回広がる。
+//   pulse: { move, interval } を書くと、溜めている間、その技が重ねて出る
+//   heal: 中断できなかったときに回復する割合。regrow: true なら首がすべて生え直す
+PATTERNS.endure = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'charge';
+        act.t = def.duration;
+        act.startHp = b.hp;
+        act.need = Math.max(1, Math.round(b.maxHp * def.break));
+        act.dealt = 0;
+        act.pulseT = def.pulse?.first ?? 0.5;
+        sfx(world, 'bossCharge');
+        floatText(world, b.x, b.y - b.r - 44, '攻撃して止めろ', COLORS.amber, 18);
+      }
+    } else if (act.phase === 'charge') {
+      act.dealt = Math.max(0, act.startHp - b.hp);
+      if (act.dealt >= act.need) {
+        act.phase = 'stun';
+        act.t = def.stun;
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        burst(world, b.x, b.y, COLORS.amber, 40, 340);
+        floatText(world, b.x, b.y - b.r - 12, 'ブレイク!', COLORS.amber, 24);
+        return false;
+      }
+      if (def.pulse) {
+        act.pulseT -= dt;
+        if (act.pulseT <= 0) {
+          act.pulseT = def.pulse.interval;
+          b.sideRequest = def.pulse.move;
+        }
+      }
+      if (act.t <= 0) {
+        act.phase = 'blast';
+        act.left = def.blast.count;
+        act.next = 0;
+        if (def.heal) {
+          b.hp = Math.min(b.maxHp, b.hp + Math.round(b.maxHp * def.heal));
+          floatText(world, b.x, b.y - b.r - 12, '再生', COLORS.green, 22);
+        }
+        if (def.regrow) b.regrowAll = true;
+      }
+    } else if (act.phase === 'blast') {
+      act.next -= dt;
+      if (act.next <= 0 && act.left > 0) {
+        act.left--;
+        act.next = def.blast.interval;
+        world.hazards.push({
+          type: 'ring', x: b.x, y: b.y, r: b.r, speed: def.blast.ringSpeed, max: def.blast.ringMax, width: def.blast.ringWidth,
+          damage: def.blast.damage, color: b.color, done: false,
+        });
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        burst(world, b.x, b.y, b.color, 30, 300);
+      }
+      if (act.left <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 安全地帯（大技）：部屋全体が危険になり、zones 個の円の中だけが助かる。場所を変えて waves 回くり返す。
+//   1つ目の円は、プレイヤーから within px 以内に必ず出る
+function pickZones(world, b, def) {
+  const bounds = world.bounds;
+  const p = world.player;
+  const zones = [];
+  for (let i = 0; i < def.zones; i++) {
+    let spot;
+    for (let tries = 0; tries < 24; tries++) {
+      if (i === 0) {
+        const a = world.rng() * Math.PI * 2;
+        const r = def.within * (0.5 + 0.5 * world.rng());
+        spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: def.radius };
+      } else {
+        spot = { x: bounds.left + world.rng() * (bounds.right - bounds.left), y: bounds.top + world.rng() * (bounds.bottom - bounds.top), r: def.radius };
+      }
+      clampToBounds(spot, bounds);
+      const clearOfBoss = Math.hypot(spot.x - b.x, spot.y - b.y) > b.r + def.radius + 12;
+      if (clearOfBoss && zones.every((z) => Math.hypot(spot.x - z.x, spot.y - z.y) > def.radius * 2)) break;
+    }
+    zones.push(spot);
+  }
+  return zones;
+}
+
+PATTERNS.safezone = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.total = act.def.telegraph;
+    act.wave = 0;
+    act.zones = pickZones(world, b, act.def);
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.active;
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+      }
+    } else if (act.phase === 'active') {
+      if (!act.zones.some((z) => Math.hypot(p.x - z.x, p.y - z.y) <= z.r)) hurtPlayer(world, def.damage);
+      if (act.t <= 0) {
+        act.wave++;
+        if (act.wave < def.waves) {
+          act.phase = 'telegraph';
+          act.t = act.total = def.waveTelegraph ?? def.telegraph;
+          act.zones = pickZones(world, b, def);
+        } else {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 追尾（大技）：照準の円が count 個、interval 秒おきに現れる。follow 秒のあいだプレイヤーを追い、lock 秒止まってから、その場所を攻撃する。
+//   pool を書くと、攻撃した場所に床が残る
+PATTERNS.chase = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.left = act.def.count;
+    act.next = 0;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) act.phase = 'active';
+    } else if (act.phase === 'active') {
+      act.next -= dt;
+      if (act.next <= 0 && act.left > 0) {
+        act.next = def.interval;
+        act.left--;
+        // プレイヤーから少し離れた場所に現れて、追いかけてくる
+        const a = world.rng() * Math.PI * 2;
+        const spot = { x: p.x + Math.cos(a) * def.spawn, y: p.y + Math.sin(a) * def.spawn, r: 0 };
+        clampToBounds(spot, world.bounds);
+        world.hazards.push({
+          type: 'seeker', x: spot.x, y: spot.y, r: def.radius, speed: def.speed, follow: def.follow, lock: def.lock, lockMax: def.lock,
+          damage: def.damage, pool: def.pool, color: b.color, owner: b,
+        });
+        sfx(world, 'enemyShot');
+      }
+      if (act.left <= 0 && !world.hazards.some((h) => h.type === 'seeker' && h.owner === b)) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -690,6 +869,34 @@ export function updateHazards(world, dt) {
         burst(world, h.x, h.y, h.color, 12, 220);
         sfx(world, 'hit');
         h.dead = true;
+      }
+    } else if (h.type === 'seeker') {
+      // 追尾の照準：しばらくプレイヤーを追い、止まってから、その場所を攻撃する
+      if (h.follow > 0) {
+        h.follow -= dt;
+        const dx = p.x - h.x;
+        const dy = p.y - h.y;
+        const dist = Math.hypot(dx, dy);
+        const step = Math.min(dist, h.speed * dt);
+        if (dist > 0) {
+          h.x += (dx / dist) * step;
+          h.y += (dy / dist) * step;
+        }
+      } else {
+        h.lock -= dt;
+        if (h.lock <= 0) {
+          if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+          if (h.pool) {
+            world.hazards.push({
+              type: 'pool', x: h.x, y: h.y, r: h.pool.radius, arm: h.pool.arm, armMax: h.pool.arm, life: h.pool.life,
+              tick: h.pool.tick, acc: h.pool.tick, damage: h.pool.damage, slow: !!h.pool.slow, color: h.color,
+            });
+          }
+          burst(world, h.x, h.y, h.color, 16, 260);
+          sfx(world, 'zap');
+          addShake(world, FEEL.shake.hit);
+          h.dead = true;
+        }
       }
     } else if (h.type === 'hook') {
       // 吊ったフック：線の上を行ったり来たりする（端でゆっくり、真ん中で速い）。触れると当たる

@@ -33,7 +33,7 @@ describe('ボスの定義', () => {
   it('どのボスも、使う攻撃と部品が定義されている', () => {
     for (const boss of DATA.bosses.all()) {
       for (const phase of boss.phases) {
-        for (const name of phase.sequence) {
+        for (const name of phase.moves) {
           expect(boss.attacks[name], `${boss.id} の ${name}`).toBeDefined();
           expect(PATTERNS[boss.attacks[name].pattern], `${boss.id} の ${name} の部品`).toBeDefined();
         }
@@ -44,7 +44,7 @@ describe('ボスの定義', () => {
 });
 
 describe('ボルトボア', () => {
-  it('前半は、定義に書いた順番どおりに攻撃する', () => {
+  it('前半は、使える技の中から選び、同じ技を続けて出さない', () => {
     const world = bossWorld();
     const b = world.boss;
     world.player.inv = Infinity; // 行動順だけを見る
@@ -55,13 +55,18 @@ describe('ボルトボア', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    const seq = DATA.bosses.get('boltboar').phases[0].sequence;
-    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
+    const moves = DATA.bosses.get('boltboar').phases[0].moves;
+    expect(seen).toHaveLength(4);
+    seen.forEach((name, i) => {
+      expect(moves).toContain(name);
+      if (i > 0) expect(name).not.toBe(seen[i - 1]);
+    });
   });
 
   it('突進は予告の間は動かず、予告のあとに当たるとダメージ', () => {
     const world = bossWorld();
     const b = world.boss;
+    b.next = 'charge';
     expect(runUntil(world, () => b.act?.name === 'charge')).toBe(true);
     world.player.x = b.x - 250;
     const x0 = b.x;
@@ -95,7 +100,7 @@ describe('ボルトボア', () => {
     const world = bossWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = DATA.bosses.get('boltboar').phases[0].sequence.indexOf('stomp'); // 次が踏みつけ
+    b.next = 'stomp'; // 次が踏みつけ
     p.x = b.x - 200;
     p.y = b.y;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
@@ -107,7 +112,7 @@ describe('ボルトボア', () => {
     expect(p.hp).toBe(hp - def.attacks.stomp.damage);
 
     // もう一度。今度は輪が届く間ずっと無敵
-    b.seqIndex = DATA.bosses.get('boltboar').phases[0].sequence.indexOf('stomp');
+    b.next = 'stomp';
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
     b.idleT = 99;
@@ -122,6 +127,7 @@ describe('ボルトボア', () => {
     const b = world.boss;
     world.player.inv = Infinity;
     b.hp = b.maxHp * 0.5;
+    b.next = 'doubleCharge';
     expect(runUntil(world, () => b.act?.name === 'doubleCharge')).toBe(true);
     let charges = 0;
     let wasActive = false;

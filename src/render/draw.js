@@ -750,6 +750,60 @@ BOSS_TELEGRAPHS.pendulum = (g, b, act) => {
     g.lineStyle(1.5, hex(COLORS.red), 0.5 + 0.4 * k).lineBetween(path.x1, path.y1, path.x2, path.y2);
   }
 };
+// 耐える：溜めの残り時間（外の輪）と、中断までのダメージ（内の輪）
+BOSS_TELEGRAPHS.endure = (g, b, act, world) => {
+  const def = act.def;
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / def.telegraph;
+    g.lineStyle(3, hex(COLORS.amber), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 40 - 22 * k);
+  } else if (act.phase === 'charge') {
+    const time = 1 - Math.max(0, act.t) / def.duration;
+    const pulse = 0.5 + 0.5 * Math.abs(Math.sin(world.time * (6 + 10 * time)));
+    g.fillStyle(hex(COLORS.red), 0.08 + 0.14 * time * pulse).fillCircle(b.x, b.y, b.r + 34);
+    g.lineStyle(2, hex(COLORS.red), 0.35).strokeCircle(b.x, b.y, b.r + 34);
+    g.lineStyle(5, hex(COLORS.red), 0.95);
+    arcPath(g, b.x, b.y, b.r + 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * time);
+    // 中断までのダメージ
+    const dealt = Math.min(1, (act.dealt ?? 0) / act.need);
+    g.lineStyle(2, hex(COLORS.amber), 0.35).strokeCircle(b.x, b.y, b.r + 20);
+    if (dealt > 0) {
+      g.lineStyle(6, hex(COLORS.amber), 1);
+      arcPath(g, b.x, b.y, b.r + 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * dealt);
+    }
+  }
+};
+
+// 安全地帯：部屋全体が赤くなっていき、光る円の中だけが助かる
+BOSS_TELEGRAPHS.safezone = (g, b, act, world) => {
+  if (act.phase !== 'telegraph' && act.phase !== 'active') return;
+  const bounds = world.bounds;
+  const active = act.phase === 'active';
+  const k = active ? 1 : 1 - Math.max(0, act.t) / act.total;
+  const w = bounds.right - bounds.left;
+  const h = bounds.bottom - bounds.top;
+  if (active) g.fillStyle(hex(b.color), 0.5).fillRect(bounds.left, bounds.top, w, h);
+  g.fillStyle(hex(COLORS.red), active ? 0.25 : 0.05 + 0.2 * k).fillRect(bounds.left, bounds.top, w, h);
+  for (const z of act.zones) {
+    g.fillStyle(BODY_FILL, active ? 0.95 : 0.6 + 0.3 * k).fillCircle(z.x, z.y, z.r);
+    g.lineStyle(z.r * 0.3, hex(COLORS.green), 0.15).strokeCircle(z.x, z.y, z.r);
+    g.lineStyle(3, hex(COLORS.green), 1).strokeCircle(z.x, z.y, z.r);
+    if (!active) g.lineStyle(2, hex(COLORS.green), 0.7).strokeCircle(z.x, z.y, z.r * (1 + 1.2 * (1 - k)));
+  }
+};
+
+// 追尾：出てくる前に、プレイヤーの上に照準が点滅する
+BOSS_TELEGRAPHS.chase = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const p = world.player;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const r = act.def.radius * (1.6 - 0.6 * k);
+  g.lineStyle(2, hex(COLORS.red), 0.4 + 0.5 * Math.abs(Math.sin(world.time * 16))).strokeCircle(p.x, p.y, r);
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2 + world.time * 2;
+    g.lineBetween(p.x + Math.cos(a) * r * 0.7, p.y + Math.sin(a) * r * 0.7, p.x + Math.cos(a) * r * 1.3, p.y + Math.sin(a) * r * 1.3);
+  }
+};
+
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -1070,8 +1124,10 @@ SHAPES.boar = (g, b, color) => {
 
 export function drawBossTelegraph(g, world) {
   const b = world.boss;
-  if (!b || b.dead || b.spawnT > 0 || !b.act) return;
-  BOSS_TELEGRAPHS[b.act.def.pattern]?.(g, b, b.act, world);
+  if (!b || b.dead || b.spawnT > 0) return;
+  if (b.act) BOSS_TELEGRAPHS[b.act.def.pattern]?.(g, b, b.act, world);
+  // 重ねて出している攻撃の予告
+  if (b.side) BOSS_TELEGRAPHS[b.side.def.pattern]?.(g, b, b.side, world);
 }
 
 export function drawHazards(g, world) {
@@ -1093,6 +1149,22 @@ export function drawHazards(g, world) {
         const y = h.from.y + (h.y - h.from.y) * k - Math.sin(k * Math.PI) * 90;
         const spin = k * 14;
         g.lineStyle(4, hex(h.color), 0.95).lineBetween(x - Math.cos(spin) * 12, y - Math.sin(spin) * 12, x + Math.cos(spin) * 12, y + Math.sin(spin) * 12);
+      }
+    } else if (h.type === 'seeker') {
+      // 追尾の照準：追っている間は細い輪と十字。止まると塗りが濃くなり、内側の輪が広がりきった瞬間に攻撃
+      const red = hex(COLORS.red);
+      if (h.follow > 0) {
+        g.fillStyle(red, 0.08).fillCircle(h.x, h.y, h.r);
+        g.lineStyle(2, red, 0.5 + 0.4 * Math.abs(Math.sin(world.time * 14))).strokeCircle(h.x, h.y, h.r);
+        for (let i = 0; i < 4; i++) {
+          const a = (i * Math.PI) / 2 + world.time * 3;
+          g.lineBetween(h.x + Math.cos(a) * h.r * 0.6, h.y + Math.sin(a) * h.r * 0.6, h.x + Math.cos(a) * h.r * 1.2, h.y + Math.sin(a) * h.r * 1.2);
+        }
+      } else {
+        const k = 1 - Math.max(0, h.lock) / h.lockMax;
+        g.fillStyle(red, 0.15 + 0.25 * k).fillCircle(h.x, h.y, h.r);
+        g.lineStyle(3, red, 1).strokeCircle(h.x, h.y, h.r);
+        g.lineStyle(2, hex(h.color), 0.95).strokeCircle(h.x, h.y, h.r * k);
       }
     } else if (h.type === 'hook') {
       // 吊ったフック：通り道の薄い線と、鎖でつながった重り

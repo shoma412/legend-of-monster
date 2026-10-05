@@ -766,6 +766,7 @@ describe('クレーンタイタン', () => {
     const hook = hooks(world)[0];
     const xs = [];
     for (let t = 0; t < act.def.passes * act.def.period + 0.5; t += DT) {
+      world.boss.idleT = Infinity; // フックだけを見る
       updateWorld(world, DT, idle);
       xs.push(hook.x);
     }

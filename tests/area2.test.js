@@ -77,7 +77,7 @@ describe('定義データのつじつま', () => {
 
   it('ボスが使う攻撃は、どれも部品がある', () => {
     for (const boss of DATA.bosses.all()) {
-      for (const phase of boss.phases) for (const name of phase.sequence) expect(PATTERNS[boss.attacks[name].pattern], `${boss.id} の ${name}`).toBeDefined();
+      for (const phase of boss.phases) for (const name of phase.moves) expect(PATTERNS[boss.attacks[name].pattern], `${boss.id} の ${name}`).toBeDefined();
     }
     expect(DATA.bosses.get('cryowyvern')).toMatchObject({ weakness: 'heat', material: 'cryoCore' });
   });
@@ -203,7 +203,7 @@ describe('フロストスプレイヤー', () => {
 describe('クライオ・ワイバーン', () => {
   const def = DATA.bosses.get('cryowyvern');
 
-  it('前半は、定義に書いた順番どおりに攻撃する', () => {
+  it('前半は、使える技の中から選び、同じ技を続けて出さない', () => {
     const world = wyvernWorld();
     const b = world.boss;
     world.player.inv = Infinity;
@@ -214,14 +214,19 @@ describe('クライオ・ワイバーン', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    const seq = DATA.bosses.get('cryowyvern').phases[0].sequence;
-    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
+    const moves = DATA.bosses.get('cryowyvern').phases[0].moves;
+    expect(seen).toHaveLength(4);
+    seen.forEach((name, i) => {
+      expect(moves).toContain(name);
+      if (i > 0) expect(name).not.toBe(seen[i - 1]);
+    });
   });
 
   it('冷気ブレス：予告のあと、扇の中にいるとダメージと減速。扇の外なら当たらない', () => {
     const world = wyvernWorld();
     const b = world.boss;
     const p = world.player;
+    b.next = 'breath';
     expect(runUntil(world, () => b.act?.name === 'breath')).toBe(true);
     p.x = b.x - 200;
     p.y = b.y;
@@ -233,6 +238,7 @@ describe('クライオ・ワイバーン', () => {
 
     const world2 = wyvernWorld();
     const b2 = world2.boss;
+    b2.next = 'breath';
     runUntil(world2, () => b2.act?.name === 'breath' && b2.act.phase === 'active');
     world2.player.x = b2.x - b2.act.dirX * 200; // 真後ろ
     world2.player.y = b2.y - b2.act.dirY * 200;
@@ -245,8 +251,9 @@ describe('クライオ・ワイバーン', () => {
       const world = wyvernWorld();
       const b = world.boss;
       const p = world.player;
-      b.seqIndex = DATA.bosses.get('cryowyvern').phases[0].sequence.indexOf('sweep');
+      b.next = 'sweep';
       b.idleT = 0;
+      b.next = 'sweep';
       expect(runUntil(world, () => b.act?.name === 'sweep')).toBe(true);
       b.x = 480;
       b.y = 270;
@@ -261,7 +268,7 @@ describe('クライオ・ワイバーン', () => {
     const world = wyvernWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = DATA.bosses.get('cryowyvern').phases[0].sequence.indexOf('icicles');
+    b.next = 'icicles';
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.some((h) => h.type === 'mark'))).toBe(true);
     const mark = world.hazards.find((h) => h.type === 'mark');

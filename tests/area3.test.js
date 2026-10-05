@@ -146,7 +146,7 @@ describe('スナイパー', () => {
 });
 
 describe('オーバーロード', () => {
-  it('前半は、定義に書いた順番どおりに攻撃する', () => {
+  it('前半は、使える技の中から選び、同じ技を続けて出さない', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
@@ -157,14 +157,19 @@ describe('オーバーロード', () => {
       if (b.act && b.act !== last) seen.push(b.act.name);
       last = b.act;
     }
-    const seq = DATA.bosses.get('overload').phases[0].sequence;
-    expect(seen).toEqual([0, 1, 2, 3].map((i) => seq[i % seq.length]));
+    const moves = DATA.bosses.get('overload').phases[0].moves;
+    expect(seen).toHaveLength(4);
+    seen.forEach((name, i) => {
+      expect(moves).toContain(name);
+      if (i > 0) expect(name).not.toBe(seen[i - 1]);
+    });
   });
 
   it('レーザー：予告の線が出てから回り始め、当たるとダメージ。予告の間は当たらない', () => {
     const world = overloadWorld();
     const b = world.boss;
     const p = world.player;
+    b.next = 'laser';
     expect(runUntil(world, () => b.act?.name === 'laser')).toBe(true);
     const act = b.act;
     const start = act.angle;
@@ -181,13 +186,13 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
-    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
+    b.next = 'summon';
     b.idleT = 0;
     expect(runUntil(world, () => world.enemies.length > 1)).toBe(true);
     expect(world.enemies.filter((e) => !e.boss)).toHaveLength(def.attacks.summon.count);
     for (let i = 0; i < 6; i++) {
       b.act = null;
-      b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
+      b.next = 'summon';
       b.idleT = 0;
       runUntil(world, () => b.act?.name === 'summon' && b.act.phase === 'recover', 5);
     }
@@ -198,7 +203,7 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     const p = world.player;
-    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('nova');
+    b.next = 'nova';
     b.idleT = 0;
     expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
     b.idleT = 99;
@@ -217,6 +222,7 @@ describe('オーバーロード', () => {
     expect(runUntil(world, () => b.phaseIndex === 1)).toBe(true);
     expect(def.phases[1].speed).toBeGreaterThan(1);
     // 予告が短くなる（速さの倍率ぶん）
+    b.next = 'laser';
     expect(runUntil(world, () => b.act?.name === 'laser')).toBe(true);
     let frames = 0;
     while (b.act?.phase === 'telegraph') {
@@ -241,7 +247,7 @@ describe('オーバーロード', () => {
     const world = overloadWorld();
     const b = world.boss;
     world.player.inv = Infinity;
-    b.seqIndex = DATA.bosses.get('overload').phases[0].sequence.indexOf('summon');
+    b.next = 'summon';
     b.idleT = 0;
     runUntil(world, () => world.enemies.length > 1);
     run(world, 1);

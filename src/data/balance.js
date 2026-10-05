@@ -68,6 +68,20 @@ export const ROOM = {
   startCountdown: { count: 3, step: 0.7 }, // ランの最初の部屋のカウントダウン（3, 2, 1）と、1つあたりの秒数
 };
 
+// ボスの行動の選び方（src/logic/bossAi.js、src/game/boss.js）
+export const BOSS_AI = {
+  near: 210, // これより近いと「近い」（px）
+  far: 340, // これより遠いと「遠い」（px）
+  match: 3, // 距離が合う技の出やすさ（倍率）
+  mismatch: 0.3, // 距離が合わない技の出やすさ（倍率）
+  repeatPenalty: 0.35, // 2つ前に使った技の出やすさ（倍率）。直前の技は出ない
+  comboWeight: 1.2, // 連携の出やすさ（ふつうの技を 1 として）
+  comboRecover: 0.15, // 連携の途中の技の硬直（秒）。これより長い硬直は、ここまで縮む
+  comboRest: 1.3, // 連携の締めのあと、立ち止まる時間（秒）
+  behindAngle: 2.2, // 正面からこの角度（ラジアン）より後ろにいると「背後」
+  ultimateAt: 0.25, // HP の割合がこれ以下になると、大技を1回使う
+};
+
 // まだ実装していない仕組み。true にすると、それを必要とする装備効果やインプラントが出るようになる
 export const FEATURES = {
   credits: true, // クレジット（M4 で実装）

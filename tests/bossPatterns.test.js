@@ -39,14 +39,26 @@ function runUntil(world, cond, limit = 12) {
 describe('ボスの攻撃の数', () => {
   it('どのボスも、前半で4種類以上、後半で5種類以上の攻撃を使う', () => {
     for (const boss of DATA.bosses.all()) {
-      expect(new Set(boss.phases[0].sequence).size, boss.id).toBeGreaterThanOrEqual(4);
-      expect(new Set(boss.phases.at(-1).sequence).size, boss.id).toBeGreaterThanOrEqual(5);
+      expect(new Set(boss.phases[0].moves).size, boss.id).toBeGreaterThanOrEqual(4);
+      expect(new Set(boss.phases.at(-1).moves).size, boss.id).toBeGreaterThanOrEqual(5);
     }
   });
 
   it('オーバーロードの後半は、3回攻撃するごとに冷却の隙がある', () => {
-    const seq = DATA.bosses.get('overload').phases.at(-1).sequence;
-    seq.forEach((name, i) => expect(name === 'vent', `${i}: ${name}`).toBe(i % 4 === 3));
+    const world = bossWorld('overload');
+    const b = world.boss;
+    world.player.inv = Infinity;
+    b.hp = b.maxHp * 0.4;
+    b.idleT = 0;
+    const seen = [];
+    let last = null;
+    for (let t = 0; t < 120 && seen.length < 12; t += DT) {
+      updateWorld(world, DT, idle);
+      if (b.act && b.act !== last) seen.push(b.act.name);
+      last = b.act;
+    }
+    expect(seen).toHaveLength(12);
+    seen.forEach((name, i) => expect(name === 'vent', `${i}: ${seen.join(',')}`).toBe(i % 4 === 3));
   });
 });
 
