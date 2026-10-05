@@ -9,7 +9,7 @@ import { NEXT_AREA, createRun, enterRoom, finishRun, handleEvents, leaveRoom, sk
 import { updateWorld } from '../src/game/world.js';
 import { hasCheck } from '../src/logic/achievements.js';
 import { buyUpgrade, nextUpgradeCost, permanentBonuses, pickFragment, processEvent, unlockWeapon } from '../src/logic/meta.js';
-import { SAVE_KEY, SAVE_VERSION, createSave, loadSave, storeSave } from '../src/logic/save.js';
+import { SAVE_VERSION, SLOT_COUNT, createSave, deleteSlot, listSlots, loadSlot, slotKey, storeSlot } from '../src/logic/save.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -87,34 +87,69 @@ describe('セーブデータ', () => {
     save.fragments.push('bb-01');
     save.achievements.push('boltboar');
     save.records.kills = 77;
-    expect(storeSave(storage, save)).toBe(true);
-    expect(JSON.parse(storage.getItem(SAVE_KEY)).version).toBe(SAVE_VERSION);
-    expect(loadSave(storage)).toEqual(save);
+    save.tutorialSeen = true;
+    expect(storeSlot(storage, 1, save)).toBe(true);
+    expect(JSON.parse(storage.getItem(slotKey(1))).version).toBe(SAVE_VERSION);
+    expect(loadSlot(storage, 1)).toEqual(save);
   });
 
-  it('セーブがない・壊れている・新しすぎる版のときは、最初の状態で始まる', () => {
+  it('セーブ枠は3つで、それぞれ別に保存される。消すと空に戻る', () => {
     const storage = fakeStorage();
-    expect(loadSave(storage)).toEqual(createSave());
-    storage.setItem(SAVE_KEY, '{こわれた');
-    expect(loadSave(storage)).toEqual(createSave());
-    storage.setItem(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION + 1, materials: { boarCore: 99 } }));
-    expect(loadSave(storage)).toEqual(createSave());
-    expect(loadSave(null)).toEqual(createSave());
+    expect(SLOT_COUNT).toBe(3);
+    expect(listSlots(storage)).toEqual([null, null, null]);
+    const a = createSave();
+    a.records.runs = 5;
+    const c = createSave();
+    c.records.runs = 9;
+    storeSlot(storage, 1, a);
+    storeSlot(storage, 3, c);
+    expect(listSlots(storage).map((s) => s?.records.runs ?? null)).toEqual([5, null, 9]);
+    deleteSlot(storage, 1);
+    expect(listSlots(storage).map((s) => s?.records.runs ?? null)).toEqual([null, null, 9]);
+  });
+
+  it('セーブ枠ができる前のデータは、枠1に引き継がれる（枠1が空のときだけ）', () => {
+    const storage = fakeStorage();
+    const old = createSave();
+    old.records.runs = 12;
+    storage.setItem('legend-of-monster/save', JSON.stringify(old));
+    expect(listSlots(storage)[0].records.runs).toBe(12);
+    expect(storage.getItem('legend-of-monster/save')).toBe(null);
+
+    // 枠1にすでにデータがあるときは、上書きしない
+    const storage2 = fakeStorage();
+    const mine = createSave();
+    mine.records.runs = 3;
+    storeSlot(storage2, 1, mine);
+    storage2.setItem('legend-of-monster/save', JSON.stringify(old));
+    expect(listSlots(storage2)[0].records.runs).toBe(3);
+  });
+
+  it('壊れている・新しすぎる版のデータは、空の枠として扱う', () => {
+    const storage = fakeStorage();
+    storage.setItem(slotKey(1), '{こわれた');
+    expect(loadSlot(storage, 1)).toBe(null);
+    storage.setItem(slotKey(2), JSON.stringify({ version: SAVE_VERSION + 1, materials: { boarCore: 99 } }));
+    expect(loadSlot(storage, 2)).toBe(null);
+    expect(loadSlot(null, 1)).toBe(null);
   });
 
   it('項目が足りないセーブは、足りないところだけ初期値で埋める', () => {
     const storage = fakeStorage();
-    storage.setItem(SAVE_KEY, JSON.stringify({ version: 1, materials: { boarCore: 2 } }));
-    const save = loadSave(storage);
+    storage.setItem(slotKey(1), JSON.stringify({ version: 1, materials: { boarCore: 2 } }));
+    const save = loadSlot(storage, 1);
     expect(save.materials.boarCore).toBe(2);
     expect(save.weapons).toEqual(['greatsword']);
     expect(save.records.runs).toBe(0);
+    expect(save.tutorialSeen).toBe(false);
   });
 
   it('保存できない環境でも止まらない', () => {
-    const broken = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); } };
-    expect(loadSave(broken)).toEqual(createSave());
-    expect(storeSave(broken, createSave())).toBe(false);
+    const broken = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); }, removeItem: () => { throw new Error('x'); } };
+    expect(loadSlot(broken, 1)).toBe(null);
+    expect(storeSlot(broken, 1, createSave())).toBe(false);
+    expect(listSlots(broken)).toEqual([null, null, null]);
+    deleteSlot(broken, 1);
   });
 });
 

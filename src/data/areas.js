@@ -2,7 +2,8 @@
 // 1件 = { id, ... } の形で足す。
 //
 // code / name : 区画名の表示に使う（例：「SECTOR 01 // 下層スラム」）
-// theme       : 床と壁の色（src/data/theme.js の AREA_THEMES）
+// theme       : 床と壁の色（src/data/theme.js の AREA_THEMES）と、背景の模様（src/render/backdrop.js）
+// bgm / bossBgm : このエリアの曲と、ボス戦の曲（src/data/audio.js の BGM のキー）
 // first       : 最初に入る部屋の種類
 // map         : 地図の作り方。columns 途中の列の数（各列は上下2部屋）/ elites エリート部屋の数 /
 //               specials 特殊部屋の数（別々の種類が入る）/ crossChance 斜めの線が引かれる確率
@@ -17,6 +18,8 @@ export const areas = [
     code: 'SECTOR 01',
     name: '下層スラム',
     theme: 'slum',
+    bgm: 'slum',
+    bossBgm: 'bossSlum',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault'],
@@ -44,6 +47,8 @@ export const areas = [
     code: 'SECTOR 02',
     name: '冷却プラント',
     theme: 'plant',
+    bgm: 'plant',
+    bossBgm: 'bossPlant',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault'],
@@ -73,6 +78,8 @@ export const areas = [
     code: 'SECTOR 03',
     name: '企業タワー',
     theme: 'tower',
+    bgm: 'tower',
+    bossBgm: 'bossTower',
     first: 'combat',
     map: { columns: 3, elites: { min: 1, max: 2 }, specials: 2, crossChance: 0.5 },
     specialRooms: ['supply', 'market', 'vault'],

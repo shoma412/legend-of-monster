@@ -72,7 +72,8 @@ export function createComparePanel(scene) {
       const bottom = 44 + Math.max(left.lines.height, right.lines.height, 16) + 8;
       divider.setSize(1, bottom - 12);
       const base = focus.hint ?? (equipped ? 'E：付け替える' : 'E：装備する');
-      hint.setText(equipped ? `${base}（外した装備はその場に落ちる）` : base).setY(bottom);
+      const swap = equipped ? `${base}（外した装備はバッグへ）` : base;
+      hint.setText(focus.stash ? `${swap}　　F：バッグに入れる` : swap).setY(bottom);
       bg.setSize(500, bottom + 26);
       c.setVisible(true);
     },

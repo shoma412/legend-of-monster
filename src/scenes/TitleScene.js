@@ -2,8 +2,9 @@ import * as Phaser from 'phaser';
 import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { setupView } from '../render/view.js';
 
-// タイトル画面。何かキーを押すと隠れ家へ。
+// タイトル画面。何かキーを押すと、セーブ枠の選択へ。
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('Title');
@@ -11,6 +12,7 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     const { width: W, height: H } = SCREEN;
+    setupView(this);
     this.drawBackdrop(W, H);
 
     const titleStyle = { fontFamily: FONTS.display, fontStyle: '700', fontSize: '64px' };
@@ -40,7 +42,7 @@ export class TitleScene extends Phaser.Scene {
     playBgm('title');
     const start = () => {
       playSe('confirm');
-      this.scene.start('Hideout');
+      this.scene.start('SaveSelect');
     };
     this.input.keyboard.once('keydown', start);
     this.input.once('pointerdown', start);

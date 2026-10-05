@@ -265,7 +265,8 @@ describe('部屋の中身', () => {
     useObject(world, pick);
     expect(p.build.gear.armor).toBe(pick.item);
     expect(world.objects.filter((o) => o.kind === 'vault')).toHaveLength(0);
-    expect(world.loot.map((l) => l.item)).toEqual([old]);
+    expect(p.build.bag).toEqual([old]);
+    expect(world.loot).toHaveLength(0);
   });
 
   it('ボスを倒すと全回復する', () => {

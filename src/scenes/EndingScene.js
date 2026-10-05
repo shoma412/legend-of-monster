@@ -3,6 +3,7 @@ import { playBgm, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { ending } from '../data/story.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { setupView } from '../render/view.js';
 
 const LINE_INTERVAL = 900; // 1行ずつ出す間隔（ミリ秒）
 
@@ -19,6 +20,7 @@ export class EndingScene extends Phaser.Scene {
 
   create() {
     const { width: W, height: H } = SCREEN;
+    setupView(this);
     this.cameras.main.fadeIn(600, 7, 6, 13);
     unlockAudio(this);
     playBgm('ending');
@@ -50,7 +52,9 @@ export class EndingScene extends Phaser.Scene {
 
     const thanks = this.add.text(W / 2, H - 78, 'THANK YOU FOR PLAYING', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '22px', color: COLORS.cyan })
       .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 12, false, true).setAlpha(0);
-    const prompt = this.add.text(W / 2, H - 44, 'ENTER：隠れ家へ', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.amber }).setOrigin(0.5).setAlpha(0);
+    // 隠れ家に戻るボタン（クリック。Enter でも進める）
+    const prompt = this.add.text(W / 2, H - 44, '［ 隠れ家に戻る ］', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.amber }).setOrigin(0.5).setAlpha(0);
+    prompt.setInteractive({ useHandCursor: true }).on('pointerdown', () => prompt.alpha > 0.9 && this.scene.start('Hideout'));
     this.tweens.add({ targets: [thanks, prompt], alpha: 1, duration: 600, delay: storyDone + 700 });
 
     // 文章が出きる前でも、Enter を2回押せば先へ進める（1回目で全部表示）

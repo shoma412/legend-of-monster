@@ -261,7 +261,7 @@ export function focusPrompt(world) {
 
 // 比較パネルに出す装備（落ちている装備、闇市の装備、データ金庫の装備）と、その案内文
 export function focusGear(world) {
-  if (world.focusLoot) return { item: world.focusLoot.item, head: '落ちている装備', hint: null };
+  if (world.focusLoot) return { item: world.focusLoot.item, head: '落ちている装備', hint: null, stash: true };
   const o = world.focusObject;
   if (o?.kind === 'shop' && o.goods.type === 'gear') return { item: o.goods.item, head: '売り物', hint: `E：買う（${o.goods.price} c）` };
   if (o?.kind === 'vault') return { item: o.item, head: 'データ金庫', hint: 'E：これを持っていく（残りは消える）' };

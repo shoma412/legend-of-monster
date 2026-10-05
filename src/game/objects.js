@@ -2,7 +2,7 @@
 import { LOOT, PLAYER, ROOMGEN } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
-import { addImplant, equipFocusLoot, equipItem } from './build.js';
+import { addImplant, equipFocusLoot, equipItem, stashFocusLoot } from './build.js';
 import { addItem } from './consumables.js';
 import { floatText, ring, sfx } from './fx.js';
 
@@ -81,6 +81,8 @@ const HANDLERS = {
       say(world, `${DATA.consumables.get(g.id).name} を買った`, COLORS.ink);
     }
     world.objects = world.objects.filter((x) => x !== o);
+    sfx(world, 'buy');
+    world.events.push({ type: 'buy' });
   },
 
   // 落ちている消耗品：拾って持ち物に入れる
@@ -101,8 +103,6 @@ const HANDLERS = {
     sfx(world, 'fragment');
     ring(world, o.x, o.y, 50, COLORS.cyan);
     world.objects = world.objects.filter((x) => x !== o);
-    sfx(world, 'buy');
-    world.events.push({ type: 'buy' });
   },
 
   // データ金庫：1つ取ると残りは消える
@@ -121,6 +121,11 @@ export function interact(world) {
   HANDLERS[o.kind](world, o);
   updateFocus(world);
   return true;
+}
+
+// F キー：足元の装備を、身につけずにバッグに入れる
+export function stash(world) {
+  return stashFocusLoot(world);
 }
 
 // Q キー：修復キットを使う

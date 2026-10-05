@@ -1,26 +1,37 @@
 // 画面いっぱいに重ねるメニュー。戦闘中のポーズ画面と、隠れ家の端末で同じものを使う。
-//   タブ：ステータス／恒久強化／記録／データ片／実績（どれを出すかは使う側が選ぶ）
+//   タブ：ステータス／装備／地図／恒久強化／記録／データ片／実績／操作／設定（どれを出すかは使う側が選ぶ）
 //   下のボタン：再開、隠れ家に戻る、など（使う側が渡す）
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
-import { isMuted, playSe, toggleMute } from '../audio/audio.js';
-import { LOOT, SCREEN } from '../data/balance.js';
+import { applyVolume, playSe } from '../audio/audio.js';
+import { BAG, LOOT, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { families } from '../data/implants.js';
-import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
+import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
+import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
 import { AREA_ORDER } from '../game/run.js';
+import { applyDisplaySize, getSettings, saveSettings } from '../game/settingsStore.js';
+import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyUpgrade, canAfford, nextUpgradeCost, upgradeLevel } from '../logic/meta.js';
+import { DISPLAY_SIZES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeFamilyBonuses } from '../logic/stats.js';
+import { drawAreaMap, nodePosition } from '../render/areaMap.js';
+import { drawSlotIcon } from '../render/icons.js';
+import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
+import { renderControls } from './controlsPanel.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
 const PANEL = 0x110f1d;
 const LOCKED = '#4a4470';
 
-const TAB_LABELS = { status: 'ステータス', upgrade: '恒久強化', record: '記録', fragment: 'データ片', achievement: '実績' };
+const TAB_LABELS = {
+  status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
+  fragment: 'データ片', achievement: '実績', controls: '操作', settings: '設定',
+};
 
-function materialColor(def) {
+export function materialColor(def) {
   return ELEMENT_COLORS[def.color] ?? COLORS[def.color];
 }
 
@@ -29,12 +40,14 @@ export function costText(cost) {
 }
 
 const percent = (v) => `${Math.round(v * 100)}%`;
+const rarityColor = (item) => RARITY_COLORS[LOOT.rarities[item.rarity].id];
 
 export class MenuOverlay {
   // options: {
   //   title, tabs: ['status', ...], actions: [{ label, color, run }],
-  //   context: () => ({ save, player }),   今のセーブデータと（ステータス用の）プレイヤー
+  //   context: () => ({ save, player, world, run }),  今のセーブデータ・プレイヤー・部屋・ラン（使うタブに必要なものだけ）
   //   canOpen: () => boolean,              Esc・Tab で開いてよいか
+  //   readOnlyUpgrades: true,              恒久強化を見るだけにする
   //   onBuy: () => void,                   恒久強化を買ったあとに呼ぶ
   //   onClose: () => void,
   // }
@@ -45,6 +58,7 @@ export class MenuOverlay {
     this.tab = 0;
     this.cursor = 0;
     this.dialog = null; // 確認の案内 { message, yes }
+    this.iconLayers = [];
     this.root = scene.add.container(0, 0).setDepth(30).setVisible(false);
     scene.input.keyboard.addCapture('TAB');
     scene.input.keyboard.on('keydown', (event) => this.onKey(event));
@@ -165,46 +179,73 @@ export class MenuOverlay {
     return r;
   }
 
+  // 押せるボタン（枠と文字）
+  button(x, y, w, h, label, color, onClick, size = 12) {
+    this.panel(x, y, w, h, color, onClick);
+    return this.text(x + w / 2, y + h / 2, label, size, color, { fontStyle: '700' }).setOrigin(0.5);
+  }
+
+  // アイコンなどを描くための Graphics（メニューを描き直すたびに作り直す）
+  graphics() {
+    const g = this.scene.add.graphics();
+    this.root.add(g);
+    this.iconLayers.push(g);
+    return g;
+  }
+
   render() {
-    const { save, player } = this.options.context();
+    const ctx = this.options.context();
+    const { save } = ctx;
     this.root.removeAll(true);
+    this.iconLayers = [];
     // 後ろの画面を暗くして、クリックも通さない
-    const dim = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.9).setInteractive();
+    const dim = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.92).setInteractive();
     this.root.add(dim);
 
     this.text(40, 28, this.options.title, 26, COLORS.cyan, { fontFamily: FONTS.display, fontStyle: '700' }).setShadow(0, 0, COLORS.cyan, 12, false, true);
-    // 持っているボス素材
+    // 持っているボス素材（アイコンつき）
+    const g = this.graphics();
     let x = W - 40;
     for (const def of [...DATA.materials.all()].reverse()) {
-      const t = this.text(x, 38, `${def.name} ×${save.materials[def.id] ?? 0}`, 14, materialColor(def), { fontStyle: '700' }).setOrigin(1, 0);
-      x -= t.width + 22;
+      const color = materialColor(def);
+      const t = this.text(x, 38, `${def.name} ×${save.materials[def.id] ?? 0}`, 13, color, { fontStyle: '700' }).setOrigin(1, 0);
+      drawMaterialIcon(g, def.id, x - t.width - 12, 47, 7, hex(color));
+      x -= t.width + 38;
     }
-    // タブ
-    this.options.tabs.forEach((id, i) => {
+    // タブ（数が多いときは幅を詰める）
+    const tabs = this.options.tabs;
+    const gap = 6;
+    const tw = Math.min(140, Math.floor((W - 80 - gap * (tabs.length - 1)) / tabs.length));
+    tabs.forEach((id, i) => {
       const on = i === this.tab;
-      const tx = 40 + i * 150;
-      const r = this.scene.add.rectangle(tx, 78, 140, 30, on ? 0x1b1631 : PANEL, 0.95).setOrigin(0).setStrokeStyle(on ? 2 : 1, hex(on ? COLORS.cyan : COLORS.line));
+      const tx = 40 + i * (tw + gap);
+      const r = this.scene.add.rectangle(tx, 78, tw, 30, on ? 0x1b1631 : PANEL, 0.95).setOrigin(0).setStrokeStyle(on ? 2 : 1, hex(on ? COLORS.cyan : COLORS.line));
       r.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.setTab(i));
       this.root.add(r);
-      this.text(tx + 70, 93, `${i + 1}  ${TAB_LABELS[id]}`, 14, on ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
+      this.text(tx + tw / 2, 93, `${i + 1} ${TAB_LABELS[id]}`, tw < 110 ? 12 : 14, on ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
     });
 
-    if (this.tabId === 'status') this.renderStatus(player);
-    else if (this.tabId === 'upgrade') this.renderUpgrades(save);
-    else if (this.tabId === 'record') this.renderRecords(save);
-    else if (this.tabId === 'fragment') this.renderFragments(save);
-    else this.renderAchievements(save);
+    const id = this.tabId;
+    if (id === 'status') this.renderStatus(ctx.player);
+    else if (id === 'gear') this.renderGear(ctx.world);
+    else if (id === 'map') this.renderMap(ctx.run);
+    else if (id === 'upgrade') this.renderUpgrades(save);
+    else if (id === 'record') this.renderRecords(save);
+    else if (id === 'fragment') this.renderFragments(save);
+    else if (id === 'achievement') this.renderAchievements(save);
+    else if (id === 'controls') renderControls(this, ctx.player?.weapon ?? null);
+    else if (id === 'settings') this.renderSettings();
 
-    // 下のボタン。最後に「音：ON/OFF」が付く
-    const sound = { label: `音：${isMuted() ? 'OFF' : 'ON'}`, color: COLORS.dim, run: () => { toggleMute(); this.render(); } };
-    const actions = [...this.options.actions, sound];
+    // アイコンは、あとから足した枠に隠れないよう、いちばん手前に出す
+    for (const layer of this.iconLayers) this.root.bringToTop(layer);
+
+    // 下のボタン
+    const actions = this.options.actions;
     actions.forEach((action, i) => {
       const bx = W / 2 + (i - (actions.length - 1) / 2) * 226;
-      const color = action.color ?? COLORS.ink;
-      this.panel(bx - 105, 470, 210, 34, color, action.run);
-      this.text(bx, 487, action.label, 14, color, { fontStyle: '700' }).setOrigin(0.5);
+      this.button(bx - 105, 470, 210, 34, action.label, action.color ?? COLORS.ink, action.run, 14);
     });
-    this.text(W / 2, H - 20, `1〜${this.options.tabs.length} / A・D：切り替え　W・S：選ぶ　Enter：決定　Esc：閉じる`, 12, COLORS.dim).setOrigin(0.5);
+    this.text(W / 2, H - 20, `1〜${tabs.length} / A・D：切り替え　W・S：選ぶ　Enter：決定　Esc：閉じる`, 12, COLORS.dim).setOrigin(0.5);
 
     if (this.dialog) this.renderDialog();
   }
@@ -212,8 +253,8 @@ export class MenuOverlay {
   renderDialog() {
     const cover = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.8).setInteractive();
     this.root.add(cover);
-    this.panel(W / 2 - 250, H / 2 - 80, 500, 160, COLORS.amber);
-    this.text(W / 2, H / 2 - 40, this.dialog.message, 16, COLORS.ink, { fontStyle: '700', align: 'center', lineSpacing: 8 }).setOrigin(0.5);
+    this.panel(W / 2 - 270, H / 2 - 90, 540, 180, COLORS.amber);
+    this.text(W / 2, H / 2 - 42, this.dialog.message, 15, COLORS.ink, { fontStyle: '700', align: 'center', lineSpacing: 8 }).setOrigin(0.5);
     const yes = () => {
       const run = this.dialog.yes;
       this.dialog = null;
@@ -223,10 +264,8 @@ export class MenuOverlay {
       this.dialog = null;
       this.render();
     };
-    this.panel(W / 2 - 190, H / 2 + 20, 170, 36, COLORS.amber, yes);
-    this.text(W / 2 - 105, H / 2 + 38, 'はい（Enter）', 14, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
-    this.panel(W / 2 + 20, H / 2 + 20, 170, 36, COLORS.dim, no);
-    this.text(W / 2 + 105, H / 2 + 38, 'いいえ（Esc）', 14, COLORS.ink, { fontStyle: '700' }).setOrigin(0.5);
+    this.button(W / 2 - 190, H / 2 + 30, 170, 36, 'はい（Enter）', COLORS.amber, yes, 14);
+    this.button(W / 2 + 20, H / 2 + 30, 170, 36, 'いいえ（Esc）', COLORS.ink, no, 14);
   }
 
   // ---- ステータス：数値、装備の詳細、インプラント ----
@@ -250,29 +289,31 @@ export class MenuOverlay {
       ['クレジット', `${b.credits} c（獲得 ${percent(s.creditMul)}）`],
       ['修復キット', `${b.kits}`],
       ...(b.ougi.includes(player.weapon.id) ? [['奥義', b.ougiUsed ? 'このエリアでは使用済み' : 'HP20%以下で使える']] : []),
-      ['消耗品', b.items.filter(Boolean).map((s) => `${DATA.consumables.get(s.id).name}×${s.count}`).join('、') || 'なし'],
+      ['消耗品', b.items.filter(Boolean).map((it) => `${DATA.consumables.get(it.id).name}×${it.count}`).join('、') || 'なし'],
     ];
     this.panel(40, 122, 270, 336);
     this.text(54, 130, `${player.weapon.name}`, 14, COLORS.cyan, { fontStyle: '700' });
     rows.forEach(([label, value], i) => {
-      this.text(54, 154 + i * 21.5, label, 12, COLORS.dim);
-      this.text(296, 154 + i * 21.5, value, value.length > 14 ? 10 : 12, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(54, 154 + i * 20, label, 12, COLORS.dim);
+      this.text(296, 154 + i * 20, value, value.length > 14 ? 10 : 12, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
     });
 
-    // 装備
+    // 装備（付け替えは「装備」タブで）
     this.panel(322, 122, 290, 336);
     this.text(336, 130, '装備', 14, COLORS.cyan, { fontStyle: '700' });
+    const g = this.graphics();
     let y = 156;
     for (const slot of LOOT.slots) {
       const item = b.gear[slot.id];
-      this.text(336, y, slot.name, 11, COLORS.dim);
+      drawSlotIcon(g, slot.id, 344, y + 8, 6, item ? hex(rarityColor(item)) : 0x4a4470);
+      this.text(358, y, slot.name, 11, COLORS.dim);
       if (item) {
-        this.text(336, y + 15, item.name, 13, RARITY_COLORS[LOOT.rarities[item.rarity].id], { fontStyle: '700' });
-        const lines = this.text(336, y + 33, describeItem(item).join('\n'), 11, COLORS.ink, { lineSpacing: 2, wordWrap: { width: 262, useAdvancedWrap: true } });
-        y += 40 + lines.height;
+        this.text(336, y + 17, item.name, 13, rarityColor(item), { fontStyle: '700' });
+        const lines = this.text(336, y + 35, describeItem(item).join('\n'), 11, COLORS.ink, { lineSpacing: 2, wordWrap: { width: 262, useAdvancedWrap: true } });
+        y += 42 + lines.height;
       } else {
-        this.text(336, y + 15, 'なし', 13, LOCKED);
-        y += 40;
+        this.text(336, y + 17, 'なし', 13, LOCKED);
+        y += 42;
       }
     }
 
@@ -302,6 +343,69 @@ export class MenuOverlay {
     }
   }
 
+  // ---- 装備：身につけている装備と、バッグの中身。付ける・外す・捨てる ----
+  renderGear(world) {
+    if (!world) return;
+    const p = world.player;
+    const b = p.build;
+    const g = this.graphics();
+    const act = (fn, ok = 'equip') => () => {
+      playSe(fn() ? ok : 'deny');
+      this.render();
+    };
+
+    this.panel(40, 122, 420, 336);
+    this.text(54, 130, '身につけている装備', 14, COLORS.cyan, { fontStyle: '700' });
+    LOOT.slots.forEach((slot, i) => {
+      const y = 158 + i * 98;
+      const item = b.gear[slot.id];
+      drawSlotIcon(g, slot.id, 66, y + 12, 9, item ? hex(rarityColor(item)) : 0x4a4470);
+      this.text(86, y, slot.name, 11, COLORS.dim);
+      if (item) {
+        this.text(86, y + 15, item.name, 14, rarityColor(item), { fontStyle: '700' });
+        this.text(54, y + 38, describeItem(item).join('　'), 11, COLORS.ink, { lineSpacing: 3, wordWrap: { width: 390, useAdvancedWrap: true } });
+        const full = b.bag.length >= BAG.size;
+        this.button(380, y, 66, 24, '外す', full ? LOCKED : COLORS.amber, act(() => unequipToBag(world, slot.id), 'pickup'));
+      } else {
+        this.text(86, y + 15, 'なし', 14, LOCKED);
+      }
+    });
+
+    this.panel(472, 122, 448, 336);
+    this.text(486, 130, `バッグ　${b.bag.length} / ${BAG.size}`, 14, COLORS.cyan, { fontStyle: '700' });
+    this.text(906, 132, '「付ける」で今の装備と入れ替え。「捨てる」と足元に落ちる', 10, COLORS.dim).setOrigin(1, 0);
+    if (b.bag.length === 0) this.text(486, 162, '空。落ちている装備の上で F を押すと、ここに入る', 12, LOCKED);
+    b.bag.forEach((item, i) => {
+      const y = 156 + i * 50;
+      this.panel(482, y, 428, 46, COLORS.line);
+      drawSlotIcon(g, item.slot, 500, y + 23, 8, hex(rarityColor(item)));
+      this.text(518, y + 4, item.name, 13, rarityColor(item), { fontStyle: '700' });
+      this.text(518, y + 24, describeItem(item).join('　'), 10, COLORS.ink, { wordWrap: { width: 262, useAdvancedWrap: true }, maxLines: 2 });
+      this.button(790, y + 11, 54, 24, '付ける', COLORS.green, act(() => equipFromBag(world, i)));
+      this.button(850, y + 11, 54, 24, '捨てる', COLORS.dim, act(() => discardFromBag(world, i), 'pickup'));
+    });
+  }
+
+  // ---- 地図：今のエリアの全体 ----
+  renderMap(run) {
+    if (!run) return;
+    const plan = run.plan;
+    const area = DATA.areas.get(AREA_ORDER[run.areaIndex]);
+    this.panel(40, 122, 880, 336);
+    this.text(W / 2, 140, `${area.code} // ${area.name} — MAP`, 15, AREA_THEMES[area.theme].edge, { fontStyle: '700' }).setOrigin(0.5);
+    const layout = { x: W / 2 - ((plan.columns - 1) * 150) / 2, y: 290, colGap: 150, rowGap: 130, icon: 14, line: 2, bg: PANEL };
+    drawAreaMap(this.graphics(), plan, layout);
+    for (const node of Object.values(plan.nodes)) {
+      const pos = nodePosition(node, layout);
+      const room = DATA.rooms.get(node.type);
+      // 通った部屋と、もう行けない部屋の名前は暗くする
+      const state = nodeState(plan, node.id);
+      const color = state === 'off' ? LOCKED : state === 'done' ? '#2f6b4c' : COLORS[room.color];
+      this.text(pos.x, pos.y + 28, room.label, 12, color, { fontStyle: '700' }).setOrigin(0.5);
+    }
+    this.text(W / 2, 440, '白い枠＝今いる部屋　明るい線＝進める道　暗い部屋＝もう行けない', 12, COLORS.dim).setOrigin(0.5);
+  }
+
   // ---- 恒久強化 ----
   renderUpgrades(save) {
     const readOnly = this.options.readOnlyUpgrades;
@@ -320,7 +424,7 @@ export class MenuOverlay {
       this.text(56, y + 5, def.name, 15, ready ? COLORS.ink : LOCKED, { fontStyle: '700' });
       this.text(56, y + 26, def.desc, 12, ready ? COLORS.dim : LOCKED);
       for (let k = 0; k < def.max; k++) {
-        const pip = this.scene.add.rectangle(430 + k * 20, y + 23, 14, 14, k < level ? hex(COLORS.green) : PANEL, 1).setStrokeStyle(1, hex(k < level ? COLORS.green : COLORS.dim));
+        const pip = this.scene.add.rectangle(560 + k * 20, y + 23, 14, 14, k < level ? hex(COLORS.green) : PANEL, 1).setStrokeStyle(1, hex(k < level ? COLORS.green : COLORS.dim));
         this.root.add(pip);
       }
       let status = '';
@@ -357,41 +461,124 @@ export class MenuOverlay {
   // ---- データ片 ----
   renderFragments(save) {
     const list = DATA.fragments.all();
+    const g = this.graphics();
     this.panel(40, 122, 300, 336);
     list.forEach((f, i) => {
       const have = save.fragments.includes(f.id);
       const selected = i === this.cursor;
       const color = selected ? COLORS.cyan : have ? COLORS.ink : LOCKED;
-      this.text(56, 132 + i * 26, `${selected ? '▶ ' : '　 '}${have ? f.title : '？？？'}`, 13, color, { fontStyle: have ? '700' : '400' }, () => {
+      // エリアの色のアイコン。未回収は中身のない暗いアイコン
+      drawFragmentIcon(g, 60, 141 + i * 26, 6, have ? hex(AREA_THEMES[DATA.areas.get(f.area).theme].edge) : 0x4a4470, !have);
+      this.text(76, 132 + i * 26, have ? f.title : '？？？', 13, color, { fontStyle: have ? '700' : '400' }, () => {
         this.cursor = i;
         this.render();
       });
+      if (selected) this.text(46, 132 + i * 26, '▶', 9, COLORS.cyan).setY(135 + i * 26);
     });
     this.panel(356, 122, 564, 336);
     const f = list[this.cursor];
     if (!f) return;
+    const area = DATA.areas.get(f.area);
     if (save.fragments.includes(f.id)) {
-      this.text(376, 140, f.title, 16, COLORS.cyan, { fontStyle: '700' });
-      this.text(376, 176, f.text, 14, COLORS.ink, { lineSpacing: 10, wordWrap: { width: 524, useAdvancedWrap: true } });
+      drawFragmentIcon(g, 388, 152, 12, hex(AREA_THEMES[area.theme].edge));
+      this.text(412, 140, f.title, 16, COLORS.cyan, { fontStyle: '700' });
+      this.text(376, 182, f.text, 14, COLORS.ink, { lineSpacing: 10, wordWrap: { width: 524, useAdvancedWrap: true } });
     } else {
       const where = f.source === 'boss' ? 'ボスを倒すと手に入る' : 'データ金庫で見つかる';
-      this.text(376, 140, '未回収', 16, LOCKED, { fontStyle: '700' });
-      this.text(376, 176, `${DATA.areas.get(f.area).name}の${where}。`, 14, COLORS.dim);
+      drawFragmentIcon(g, 388, 152, 12, 0x4a4470, true);
+      this.text(412, 140, '未回収', 16, LOCKED, { fontStyle: '700' });
+      this.text(376, 182, `${area.name}の${where}。`, 14, COLORS.dim);
     }
   }
 
   // ---- 実績 ----
   renderAchievements(save) {
     const list = DATA.achievements.all();
+    const g = this.graphics();
     this.text(40, 114, `解除 ${save.achievements.length} / ${list.length}`, 12, COLORS.dim);
     list.forEach((def, i) => {
       // 3列に並べる
       const x = 40 + (i % 3) * 297;
       const y = 134 + Math.floor(i / 3) * 47;
       const done = save.achievements.includes(def.id);
+      const color = done ? (ELEMENT_COLORS[def.color] ?? COLORS.amber) : LOCKED;
       this.panel(x, y, 287, 42, done ? COLORS.amber : COLORS.line);
-      this.text(x + 10, y + 4, `${done ? '◆' : '◇'} ${def.name}`, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
-      this.text(x + 10, y + 24, def.desc, 10, done ? COLORS.ink : LOCKED);
+      drawAchievementIcon(g, def.icon, x + 21, y + 21, 10, hex(color));
+      this.text(x + 42, y + 4, def.name, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
+      this.text(x + 42, y + 24, def.desc, 10, done ? COLORS.ink : LOCKED);
     });
+  }
+
+  // ---- 設定：音量、表示の大きさ、画質 ----
+  renderSettings() {
+    const s = getSettings();
+    const game = this.scene.game;
+    const changed = () => {
+      saveSettings();
+      applyVolume();
+      this.render();
+    };
+    this.panel(40, 122, 880, 336);
+
+    // 音量のゲージ。[−][＋] か、ゲージを直接クリックして変える
+    const volumeRow = (y, label, key) => {
+      const value = s.volume[key];
+      this.text(64, y + 4, label, 14, COLORS.ink, { fontStyle: '700' });
+      const set = (v) => () => {
+        s.volume[key] = v;
+        changed();
+        playSe('select');
+      };
+      this.button(220, y, 30, 26, '−', COLORS.ink, set(stepVolume(value, -1)), 16);
+      const filled = Math.round(value * VOLUME_STEPS);
+      for (let i = 0; i < VOLUME_STEPS; i++) {
+        const cell = this.scene.add.rectangle(262 + i * 24, y + 3, 20, 20, i < filled ? hex(COLORS.cyan) : PANEL, 1).setOrigin(0).setStrokeStyle(1, hex(i < filled ? COLORS.cyan : COLORS.dim));
+        cell.setInteractive({ useHandCursor: true }).on('pointerdown', set((i + 1) / VOLUME_STEPS));
+        this.root.add(cell);
+      }
+      this.button(510, y, 30, 26, '＋', COLORS.ink, set(stepVolume(value, 1)), 16);
+      this.text(556, y + 4, `${Math.round(value * 100)}%`, 14, COLORS.dim);
+    };
+    this.text(64, 134, '音', 12, COLORS.cyan, { fontStyle: '700' });
+    volumeRow(156, '全体の音量', 'master');
+    volumeRow(190, 'BGM', 'bgm');
+    volumeRow(224, '効果音', 'se');
+    this.button(660, 156, 150, 26, s.muted ? '消音：ON' : '消音：OFF', s.muted ? COLORS.red : COLORS.dim, () => {
+      s.muted = !s.muted;
+      changed();
+    });
+
+    // 選択肢を横に並べる
+    const choiceRow = (y, label, options, current, pick) => {
+      this.text(64, y + 4, label, 14, COLORS.ink, { fontStyle: '700' });
+      options.forEach((opt, i) => {
+        const on = opt.id === current;
+        this.button(220 + i * 156, y, 148, 26, opt.label, on ? COLORS.cyan : COLORS.dim, () => pick(opt));
+      });
+    };
+    this.text(64, 270, '画面', 12, COLORS.cyan, { fontStyle: '700' });
+    choiceRow(292, '表示の大きさ', DISPLAY_SIZES, s.displaySize, (opt) => {
+      s.displaySize = opt.id;
+      saveSettings();
+      applyDisplaySize(game);
+      playSe('select');
+      this.render();
+    });
+    choiceRow(326, '画質', QUALITIES, s.quality, (opt) => {
+      if (opt.id === s.quality) return;
+      // 画質は起動時に決まるので、変えるには読み込み直す必要がある
+      this.confirm('画質を変えるには、ゲームを読み込み直します。\nランの途中なら、今回の進捗は失われます。よろしいですか？', () => {
+        s.quality = opt.id;
+        saveSettings();
+        window.location.reload();
+      });
+    });
+    this.text(540, 331, '「高」は線や文字がくっきりするが、動作が重くなることがある', 11, COLORS.dim);
+    this.text(64, 364, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
+    this.button(220, 360, 148, 26, game.scale.isFullscreen ? '解除する' : '切り替える', COLORS.dim, () => {
+      game.scale.toggleFullscreen();
+      this.scene.time.delayedCall(200, () => this.isOpen && this.render());
+    });
+    this.text(64, 414, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
   }
 }

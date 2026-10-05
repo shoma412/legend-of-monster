@@ -12,6 +12,7 @@ export function createBuild(bonus = null) {
     level: 1,
     xp: 0,
     gear: { mod: null, armor: null, acc: null }, // スロットごとの装備
+    bag: [], // バッグにしまってある装備（ポーズ画面で付け替えられる）
     implants: {}, // { インプラントのid: 持っている数 }
     credits: 0,
     items: Array(ITEMS.slots).fill(null), // 消耗品の枠。{ id, count } か null

@@ -133,7 +133,7 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
   }
   enemy.hp -= amount;
   enemy.hit = 0.1;
-  const label = (crit ? '会心 ' : '') + amount + (weak ? ' 弱点' : '');
+  const label = amount + (crit ? '!' : '') + (weak ? ' 弱点' : '');
   const textColor = color ?? (crit ? COLORS.amber : weak ? ELEMENT_COLORS[enemy.def.weakness] : COLORS.ink);
   floatText(world, enemy.x + (world.rng() - 0.5) * 14, enemy.y - enemy.r - 6, label, textColor, small ? 12 : crit || weak ? 20 : 15);
   if (enemy.hp <= 0) killEnemy(world, enemy);

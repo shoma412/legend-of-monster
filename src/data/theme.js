@@ -32,6 +32,7 @@ export const AREA_THEMES = {
   slum: { floor: 0x0b0914, grid: 0x785aff, wall: 0x16122a, edge: '#ff2bd6' },
   plant: { floor: 0x08101a, grid: 0x4fb8ff, wall: 0x101e30, edge: '#8fd8ff' },
   tower: { floor: 0x120a0a, grid: 0xff7a3d, wall: 0x241414, edge: '#ffc23a' },
+  hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 
 export const FONTS = {

@@ -1,5 +1,5 @@
-// ラン中のビルド（装備・インプラント・レベル）の操作
-import { LOOT } from '../data/balance.js';
+// ラン中のビルド（装備・バッグ・インプラント・レベル）の操作
+import { BAG, LOOT } from '../data/balance.js';
 import { COLORS, RARITY_COLORS } from '../data/theme.js';
 import { rollImplantChoices } from '../logic/level.js';
 import { computeStats } from '../logic/stats.js';
@@ -13,6 +13,11 @@ export function recalcStats(player) {
   player.hp = Math.min(player.hp, player.stats.maxHp);
 }
 
+function say(world, text, color) {
+  const p = world.player;
+  floatText(world, p.x, p.y - 30, text, color, 14);
+}
+
 function announceEquip(world, item) {
   const p = world.player;
   world.events.push({ type: 'equip', rarity: item.rarity });
@@ -22,17 +27,28 @@ function announceEquip(world, item) {
   ring(world, p.x, p.y, 40, color);
 }
 
-// 装備を身につける（闇市やデータ金庫で手に入れたとき）。外した装備は足元に落ちる
+export function bagHasRoom(build) {
+  return build.bag.length < BAG.size;
+}
+
+// 外した装備の行き先：バッグに空きがあればバッグへ、なければ足元に落ちる
+function putAway(world, item) {
+  const p = world.player;
+  if (bagHasRoom(p.build)) p.build.bag.push(item);
+  else world.loot.push({ x: p.x, y: p.y, item, t: 0 });
+}
+
+// 装備を身につける（闇市やデータ金庫で手に入れたとき）。外した装備はバッグへ（いっぱいなら足元へ）
 export function equipItem(world, item) {
   const p = world.player;
   const old = p.build.gear[item.slot];
   p.build.gear[item.slot] = item;
-  if (old) world.loot.push({ x: p.x, y: p.y, item: old, t: 0 });
+  if (old) putAway(world, old);
   recalcStats(p);
   announceEquip(world, item);
 }
 
-// 足元の装備と付け替える。外した装備はその場に落ちるので、付け直せる
+// E キー：足元の装備を身につける。外した装備はバッグへ（いっぱいなら、その場に落ちる）
 export function equipFocusLoot(world) {
   const l = world.focusLoot;
   if (!l || world.mode === 'dead' || world.choice) return false;
@@ -40,7 +56,10 @@ export function equipFocusLoot(world) {
   const item = l.item;
   const old = p.build.gear[item.slot];
   p.build.gear[item.slot] = item;
-  if (old) {
+  if (old && bagHasRoom(p.build)) {
+    p.build.bag.push(old);
+    world.loot = world.loot.filter((x) => x !== l);
+  } else if (old) {
     l.item = old;
     l.t = 0;
   } else {
@@ -48,6 +67,57 @@ export function equipFocusLoot(world) {
   }
   recalcStats(p);
   announceEquip(world, item);
+  return true;
+}
+
+// F キー：足元の装備を、身につけずにバッグへ入れる
+export function stashFocusLoot(world) {
+  const l = world.focusLoot;
+  if (!l || world.mode === 'dead' || world.choice) return false;
+  const p = world.player;
+  if (!bagHasRoom(p.build)) {
+    say(world, 'バッグがいっぱい', COLORS.red);
+    sfx(world, 'deny');
+    return false;
+  }
+  p.build.bag.push(l.item);
+  world.loot = world.loot.filter((x) => x !== l);
+  say(world, `バッグへ：${l.item.name}`, RARITY_COLORS[LOOT.rarities[l.item.rarity].id]);
+  sfx(world, 'pickup');
+  return true;
+}
+
+// ポーズ画面：バッグの装備を身につける。今の装備は、バッグの同じ場所に入れ替わる
+export function equipFromBag(world, index) {
+  const p = world.player;
+  const item = p.build.bag[index];
+  if (!item) return false;
+  const old = p.build.gear[item.slot];
+  p.build.gear[item.slot] = item;
+  if (old) p.build.bag[index] = old;
+  else p.build.bag.splice(index, 1);
+  recalcStats(p);
+  world.events.push({ type: 'equip', rarity: item.rarity });
+  return true;
+}
+
+// ポーズ画面：装備を外してバッグへ。バッグがいっぱいなら外せない
+export function unequipToBag(world, slot) {
+  const p = world.player;
+  const item = p.build.gear[slot];
+  if (!item || !bagHasRoom(p.build)) return false;
+  p.build.gear[slot] = null;
+  p.build.bag.push(item);
+  recalcStats(p);
+  return true;
+}
+
+// ポーズ画面：バッグの装備を捨てる。足元に落ちるので、その部屋にいる間は拾い直せる
+export function discardFromBag(world, index) {
+  const p = world.player;
+  const [item] = p.build.bag.splice(index, 1);
+  if (!item) return false;
+  world.loot.push({ x: p.x, y: p.y, item, t: 0 });
   return true;
 }
 

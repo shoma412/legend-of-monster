@@ -28,6 +28,7 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     hp: null, // 前の部屋を出たときのHP（null は満タン）
     kills: 0,
     started: false,
+    visualSeed: Math.floor(Math.random() * 1e9), // 背景の模様を決める数（見た目だけに使う）
     startChoice: bonus.startChoice, // 恒久強化「起動プログラム」：最初にインプラントを1つ選べる
     firstClear: false,
     outcome: null, // 終わり方：dead（死亡）/ areaClear（今あるエリアを最後まで進んだ）/ clear（最後のボスを倒した）

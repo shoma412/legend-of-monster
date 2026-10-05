@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LOOT, PLAYER, STATUS } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { families } from '../src/data/implants.js';
-import { chooseImplant, equipFocusLoot, recalcStats } from '../src/game/build.js';
+import { chooseImplant, discardFromBag, equipFocusLoot, equipFromBag, equipItem, recalcStats, stashFocusLoot, unequipToBag } from '../src/game/build.js';
 import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
 import { hasAction, hasCondition, statWith } from '../src/game/effects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
@@ -155,7 +155,9 @@ describe('装備ドロップ', () => {
     expect(p.build.gear.armor).toBe(b);
     expect(p.stats.maxHp).toBe(130);
     expect(p.stats.attackMul).toBeCloseTo(1.1);
-    expect(world.loot.map((l) => l.item)).toEqual([a]);
+    // 外した装備はバッグに入る
+    expect(world.loot).toHaveLength(0);
+    expect(p.build.bag).toEqual([a]);
   });
 
   it('ドロップ率どおりに落とす（乱数が確率より小さいときだけ）', () => {
@@ -439,5 +441,109 @@ describe('装備効果', () => {
     e.def = { ...e.def, weakness: 'cold' };
     e.hp = e.maxHp = 1000;
     expect(hitEnemy(world, e, 40, 1, 0, 0)).toMatchObject({ amount: 60, weak: true });
+  });
+});
+
+describe('バッグ', () => {
+  const item = (slot, name, extra = {}) => ({ slot, rarity: 0, effects: [], unique: null, name, ...extra });
+
+  it('F で足元の装備をバッグに入れる（身につけない）。6個まで', () => {
+    const world = makeWorld();
+    const p = world.player;
+    for (let i = 0; i < 7; i++) world.loot.push({ x: p.x, y: p.y, item: item('acc', `i${i}`), t: 0 });
+    for (let i = 0; i < 7; i++) {
+      run(world, 0.05);
+      stashFocusLoot(world);
+    }
+    expect(p.build.bag).toHaveLength(6);
+    expect(p.build.gear.acc).toBe(null);
+    expect(world.loot).toHaveLength(1); // 7個目は入らず、その場に残る
+  });
+
+  it('バッグがいっぱいのとき、E で付け替えた装備はその場に落ちる', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const old = item('armor', 'old');
+    const next = item('armor', 'next');
+    p.build.gear.armor = old;
+    p.build.bag = Array.from({ length: 6 }, (_, i) => item('acc', `b${i}`));
+    world.loot.push({ x: p.x, y: p.y, item: next, t: 0 });
+    run(world, 0.05);
+    equipFocusLoot(world);
+    expect(p.build.gear.armor).toBe(next);
+    expect(world.loot.map((l) => l.item)).toEqual([old]);
+    expect(p.build.bag).toHaveLength(6);
+  });
+
+  it('ポーズ画面：バッグの装備を付けると、今の装備と入れ替わる', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const a = item('armor', 'A', { effects: [{ id: 'maxHp', value: 20 }] });
+    const b = item('armor', 'B', { effects: [{ id: 'maxHp', value: 40 }] });
+    p.build.gear.armor = a;
+    p.build.bag = [item('acc', 'x'), b];
+    recalcStats(p);
+    expect(equipFromBag(world, 1)).toBe(true);
+    expect(p.build.gear.armor).toBe(b);
+    expect(p.build.bag.map((i) => i.name)).toEqual(['x', 'A']);
+    expect(p.stats.maxHp).toBe(140);
+    // 空のスロットに付けたときは、バッグから1つ減る
+    equipFromBag(world, 0);
+    expect(p.build.gear.acc.name).toBe('x');
+    expect(p.build.bag.map((i) => i.name)).toEqual(['A']);
+  });
+
+  it('ポーズ画面：装備を外すとバッグに入る。バッグがいっぱいなら外せない', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const a = item('armor', 'A', { effects: [{ id: 'maxHp', value: 20 }] });
+    p.build.gear.armor = a;
+    recalcStats(p);
+    p.hp = p.stats.maxHp;
+    expect(unequipToBag(world, 'armor')).toBe(true);
+    expect(p.build.gear.armor).toBe(null);
+    expect(p.build.bag).toEqual([a]);
+    expect(p.stats.maxHp).toBe(100);
+    expect(p.hp).toBe(100); // 最大HPが下がったぶん、現在HPも収まる
+    expect(unequipToBag(world, 'armor')).toBe(false);
+
+    p.build.gear.mod = item('mod', 'M');
+    p.build.bag = Array.from({ length: 6 }, (_, i) => item('acc', `b${i}`));
+    expect(unequipToBag(world, 'mod')).toBe(false);
+    expect(p.build.gear.mod).not.toBe(null);
+  });
+
+  it('ポーズ画面：バッグの装備を捨てると足元に落ちる（その部屋にいる間は拾い直せる）', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const a = item('acc', 'A');
+    p.build.bag = [a];
+    expect(discardFromBag(world, 0)).toBe(true);
+    expect(p.build.bag).toHaveLength(0);
+    expect(world.loot.map((l) => l.item)).toEqual([a]);
+  });
+
+  it('闇市やデータ金庫で装備を取ると、外した装備はバッグに入る', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const old = item('mod', 'old');
+    p.build.gear.mod = old;
+    equipItem(world, item('mod', 'new'));
+    expect(p.build.bag).toEqual([old]);
+    expect(world.loot).toHaveLength(0);
+  });
+});
+
+describe('会心の表示', () => {
+  it('「会心」の文字は出さず、数字の横に「!」を付ける', () => {
+    const world = makeWorld();
+    const e = addEnemy(world, 'grunt', 60);
+    e.hp = e.maxHp = 1000;
+    world.rng = () => 0.01;
+    hitEnemy(world, e, 30, 1, 0, 0);
+    expect(world.fx.texts.at(-1).text).toBe('60!');
+    world.rng = () => 0.99;
+    hitEnemy(world, e, 30, 1, 0, 0);
+    expect(world.fx.texts.at(-1).text).toBe('30');
   });
 });

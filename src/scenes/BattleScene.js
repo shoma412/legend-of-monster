@@ -5,7 +5,7 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { chooseImplant } from '../game/build.js';
 import { useItem } from '../game/consumables.js';
-import { interact, useKit } from '../game/objects.js';
+import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist } from '../game/saveStore.js';
 import { updateWorld } from '../game/world.js';
@@ -17,7 +17,9 @@ import {
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawObjects, focusGear, focusPrompt, objectLabels } from '../render/objects.js';
+import { renderScale, setupView, shakeView } from '../render/view.js';
 import { createBuildList, createChoicePanel, createCommLog, createComparePanel, createToasts } from './battleUi.js';
+import { createResultPanel } from './resultPanel.js';
 import { MenuOverlay } from './menuOverlay.js';
 
 const MAX_STEP = 1 / 30; // 処理落ちしても1コマでこれ以上は進めない
@@ -43,25 +45,27 @@ export class BattleScene extends Phaser.Scene {
     this.world = enterRoom(run);
     this.roomDef = DATA.rooms.get(this.world.room.type);
     if (import.meta.env.DEV) window.__world = this.world;
-    // 部屋に入るたびに、短く暗転から明ける。曲は部屋の種類で決まる
+    // 部屋に入るたびに、短く暗転から明ける。曲はエリアごとに違い、ボス部屋ではボス戦の曲になる
+    setupView(this);
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);
     const bossRoom = !!this.world.room.waves[0]?.boss;
-    playBgm(bossRoom ? 'boss' : 'battle');
+    playBgm(bossRoom ? this.area.bossBgm : this.area.bgm);
     if (bossRoom) playSe('warning');
 
     this.floor = this.add.graphics();
-    drawFloor(this.floor, this.area.theme);
+    // 背景の模様は、ランと部屋ごとに決まる（同じ部屋にいる間は変わらない）
+    drawFloor(this.floor, this.area.theme, run.visualSeed + run.areaIndex * 97 + run.plan.step * 13 + (run.plan.nodes[run.plan.current].row ?? 0) * 5);
     this.gfx = this.add.graphics();
     // 部屋の枠は、戦闘の描画より手前に重ねる（攻撃の予告などが枠の外にはみ出さないように）
     drawFrame(this.add.graphics(), this.area.theme);
-    this.hud = this.add.graphics().setScrollFactor(0);
+    this.hud = this.add.graphics();
     this.floatTexts = [];
     this.labelTexts = [];
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,Q,M,ONE,TWO,THREE,B,N,O');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,F,Q,M,ONE,TWO,THREE,B,N,O');
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
@@ -76,6 +80,7 @@ export class BattleScene extends Phaser.Scene {
     // ポーズ画面が開いている間は、ゲームの操作を受け付けない
     const playing = () => !this.menu.isOpen;
     this.keys.E.on('down', () => playing() && interact(this.world));
+    this.keys.F.on('down', () => playing() && stash(this.world));
     this.keys.Q.on('down', () => playing() && useKit(this.world));
     this.keys.M.on('down', () => playing() && this.bigMap.setVisible(!this.bigMap.visible));
     // 1・2・3：レベルアップの3択が出ていればその選択、出ていなければ 1・2 で消耗品を使う
@@ -90,16 +95,13 @@ export class BattleScene extends Phaser.Scene {
     this.keys.ENTER.on('down', () => {
       const world = this.world;
       if (world.choice || this.menu.isOpen) return;
-      // ランが終わっていたら、リザルトを見てから隠れ家へ帰る
-      if (!this.run.outcome) return;
-      if (this.overlay.visible) this.scene.start('Hideout');
-      else if (this.run.outcome === 'clear' && this.run.firstClear) this.scene.start('Ending', { lines: this.resultLines() });
-      else this.showResult();
+      // 最後まで進んだあと：Enter でリザルトへ（リザルトの「隠れ家に戻る」は、画面のボタンを押す）
+      this.goToResult();
     });
     // Esc（または Tab）：ポーズ画面。ステータスや装備の詳細を見られる。隠れ家に戻るのもここから
     this.menu = new MenuOverlay(this, {
       title: 'PAUSE',
-      tabs: ['status', 'upgrade', 'record', 'fragment', 'achievement'],
+      tabs: ['status', 'gear', 'map', 'upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
       readOnlyUpgrades: true,
       actions: [
         { label: '再開する（Esc）', color: COLORS.green, run: () => this.menu.close() },
@@ -109,9 +111,10 @@ export class BattleScene extends Phaser.Scene {
           run: () => this.menu.confirm('今回の進捗はリセットされますが、よろしいですか？\n（装備・レベル・インプラント・クレジットを失います）', () => this.scene.start('Hideout')),
         },
       ],
-      context: () => ({ save: this.run.save, player: this.world.player }),
+      context: () => ({ save: this.run.save, player: this.world.player, world: this.world, run: this.run }),
       // レベルアップの3択が出ているときと、リザルトが出ているときは開かない
-      canOpen: () => !this.world.choice && !this.overlay.visible,
+      canOpen: () => !this.world.choice && !this.result.visible,
+      // 装備を付け替えたときの出来事（レジェンド装備の実績など）は、閉じたあとの更新で処理される
     });
     // 確認用のキー（開発中の画面だけ。公開版では効かない）：ボス部屋へ飛ぶ
     if (import.meta.env.DEV) {
@@ -156,7 +159,7 @@ export class BattleScene extends Phaser.Scene {
     this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     const devHelp = import.meta.env.DEV ? '　｜　確認用：B ボス部屋　N 次のエリア　O 奥義' : '';
-    const help = this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・拾う　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
+    const help = this.add.text(W / 2, H - 14, `WASD 移動　左クリック 攻撃　${weapon.special.hint}　Shift ダッシュ　E 調べる・付ける　F バッグへ　Q 修復キット　1・2 アイテム　M 地図　Esc ポーズ${devHelp}`, {
       fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim,
     }).setOrigin(0.5);
     // 長くて画面からはみ出すときは、収まるように縮める
@@ -194,17 +197,19 @@ export class BattleScene extends Phaser.Scene {
     this.clearShown = false;
 
     // リザルト（死亡したとき、最後まで進んだとき）
-    this.overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.7).setVisible(false).setDepth(10);
-    this.resultTitle = this.add.text(W / 2, H / 2 - 40, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '44px' }).setOrigin(0.5).setVisible(false).setDepth(11);
-    this.resultTitle.setY(96);
-    this.resultSub = this.add.text(W / 2, 150, '', { fontFamily: FONTS.body, fontSize: '15px', color: COLORS.ink, align: 'center', lineSpacing: 9 }).setOrigin(0.5, 0).setVisible(false).setDepth(11);
+    this.result = createResultPanel(this);
+    // 最後のボスを倒したあとに出す「帰還する」ボタン（装備を見終わってから押す）
+    this.returnButton = this.add.container(W / 2, 214).setDepth(7).setVisible(false);
+    const rb = this.add.rectangle(0, 0, 260, 36, 0x110f1d, 0.95).setStrokeStyle(2, hex(COLORS.green)).setInteractive({ useHandCursor: true });
+    rb.on('pointerdown', () => this.goToResult());
+    this.returnButton.add([rb, this.add.text(0, 0, '帰還する（リザルトへ）', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.green }).setOrigin(0.5)]);
   }
 
   // 線画をぼかして重ね、ネオンがにじんで光るように見せる。対応していない環境ではそのまま描く
   addBloom() {
     try {
       const bloom = this.gfx.enableFilters().filters.internal.addParallelFilters();
-      bloom.top.addBlur(1, 2, 2, 1.4);
+      bloom.top.addBlur(1, 2 * renderScale(), 2 * renderScale(), 1.4);
       bloom.blend.blendMode = Phaser.BlendModes.ADD;
     } catch (err) {
       console.warn('bloom unavailable', err);
@@ -344,8 +349,12 @@ export class BattleScene extends Phaser.Scene {
     this.updateBossPresentation(boss);
     this.commLog.update(delta);
 
+    // 画面の揺れ。上の表示（HUD）は揺らさないよう、同じぶんだけ動かして打ち消す
     const shake = reduceMotion ? 0 : world.fx.shake;
-    this.cameras.main.setScroll((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    const sx = (Math.random() - 0.5) * shake;
+    const sy = (Math.random() - 0.5) * shake;
+    shakeView(this, sx, sy);
+    this.hud.setPosition(sx, sy);
 
     if (world.mode === 'dead' && !this.run.outcome) {
       finishRun(this.run, world, 'dead');
@@ -377,7 +386,8 @@ export class BattleScene extends Phaser.Scene {
         finishRun(this.run, world, this.area.final ? 'clear' : 'areaClear');
         persist();
         const note = this.area.final ? '' : '（この先のエリアは準備中）';
-        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\n装備を見終わったら ENTER：帰還する${note}`).setVisible(true);
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\n装備を見終わったら、下のボタンか Enter で帰還する${note}`).setVisible(true);
+        this.returnButton.setVisible(true);
       }
     } else if (world.room.waves.length > 0) {
       const bonus = world.room.clearCredits > 0 ? `　+${Math.round(world.room.clearCredits * world.player.stats.creditMul)} c` : '';
@@ -468,19 +478,28 @@ export class BattleScene extends Phaser.Scene {
     ];
   }
 
+  // 最後まで進んだあと、リザルト（初めてのクリアならエンディング）へ進む
+  goToResult() {
+    if (!this.run.outcome || this.result.visible || this.world.choice || this.menu.isOpen) return;
+    if (this.run.outcome === 'clear' && this.run.firstClear) this.scene.start('Ending', { lines: this.resultLines() });
+    else this.showResult();
+  }
+
+  // リザルト：到達した場所、撃破数、持ち帰ったもの（ボス素材・データ片・実績）。「隠れ家に戻る」は画面のボタン
   showResult() {
-    const dead = this.run.outcome === 'dead';
-    const color = dead ? COLORS.red : COLORS.green;
-    const lines = [
-      ...this.resultLines(),
-      '',
-      dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
-      'ENTER：隠れ家へ',
-    ];
+    const run = this.run;
+    const dead = run.outcome === 'dead';
     this.bigMap.setVisible(false);
-    this.overlay.setVisible(true).setFillStyle(0x07060d, 0.86);
     this.clearText.setVisible(false);
-    this.resultTitle.setText(dead ? 'SIGNAL LOST' : 'MISSION COMPLETE').setColor(color).setShadow(0, 0, color, 16, false, true).setVisible(true);
-    this.resultSub.setText(lines.join('\n')).setVisible(true);
+    this.returnButton.setVisible(false);
+    this.result.show({
+      title: dead ? 'SIGNAL LOST' : 'MISSION COMPLETE',
+      color: dead ? COLORS.red : COLORS.green,
+      reach: `${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
+      kills: run.kills,
+      gained: run.gained,
+      note: dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
+      onDone: () => this.scene.start('Hideout'),
+    });
   }
 }

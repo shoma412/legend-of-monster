@@ -8,12 +8,14 @@ import { weaponUnlocks } from '../data/upgrades.js';
 import { recalcStats } from '../game/build.js';
 import { floatText, ring } from '../game/fx.js';
 import { interact } from '../game/objects.js';
-import { getSave, persist } from '../game/saveStore.js';
+import { currentSlot, getSave, persist } from '../game/saveStore.js';
 import { createWorld, updateWorld } from '../game/world.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
 import { createBuild } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
+import { drawMaterialIcon } from '../render/metaIcons.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
+import { renderScale, setupView } from '../render/view.js';
 import { MenuOverlay, costText } from './menuOverlay.js';
 
 const W = SCREEN.width;
@@ -39,24 +41,26 @@ export class HideoutScene extends Phaser.Scene {
     const room = { type: 'hideout', waves: [], objects: this.buildStations(), doors: [], clearCredits: 0 };
     this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
     if (import.meta.env.DEV) window.__world = this.world;
+    setupView(this);
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);
     playBgm('hideout');
 
-    drawFloor(this.add.graphics());
+    drawFloor(this.add.graphics(), 'hideout', 7);
     this.gfx = this.add.graphics();
     this.frame = this.add.graphics();
     this.labelTexts = [];
     this.floatTexts = [];
     try {
       const bloom = this.gfx.enableFilters().filters.internal.addParallelFilters();
-      bloom.top.addBlur(1, 2, 2, 1.4);
+      bloom.top.addBlur(1, 2 * renderScale(), 2 * renderScale(), 1.4);
       bloom.blend.blendMode = Phaser.BlendModes.ADD;
     } catch (err) {
       console.warn('bloom unavailable', err);
     }
 
-    drawFrame(this.frame);
+    drawFrame(this.frame, 'hideout');
+    this.materialGfx = this.add.graphics();
 
     const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
     this.add.text(40, 7, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
@@ -100,10 +104,15 @@ export class HideoutScene extends Phaser.Scene {
 
     this.menu = new MenuOverlay(this, {
       title: 'HIDEOUT',
-      tabs: ['upgrade', 'record', 'fragment', 'achievement'],
+      tabs: ['upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
       actions: [
         { label: '閉じる（Esc）', run: () => this.menu.close() },
-        { label: 'タイトルへ戻る', color: COLORS.dim, run: () => this.scene.start('Title') },
+        {
+          label: 'タイトルへ戻る',
+          color: COLORS.dim,
+          // 進行状況は自動で保存されているが、戻る前に一度確かめる
+          run: () => this.menu.confirm(`タイトルに戻りますか？\n進行状況は DATA ${currentSlot()} に保存されています。`, () => this.scene.start('Title')),
+        },
       ],
       context: () => ({ save: this.save, player: this.world.player }),
       onBuy: () => {
@@ -112,6 +121,13 @@ export class HideoutScene extends Phaser.Scene {
       },
       onClose: () => this.refreshStations(),
     });
+
+    // このセーブデータで初めて隠れ家に来たときは、操作説明を出す
+    if (!this.save.tutorialSeen) {
+      this.save.tutorialSeen = true;
+      persist();
+      this.time.delayedCall(350, () => this.menu.open('controls'));
+    }
   }
 
   usable(weaponId) {
@@ -145,8 +161,20 @@ export class HideoutScene extends Phaser.Scene {
         o.prompt = `E：出撃する（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }
     }
-    const parts = DATA.materials.all().map((m) => `${m.name} ×${save.materials[m.id] ?? 0}`);
-    this.materialText.setText(parts.join('　　'));
+    // 持っているボス素材（アイコンつき）。右から順に並べる
+    this.materialText.setText('');
+    this.materialLabels?.forEach((t) => t.destroy());
+    this.materialLabels = [];
+    const mg = this.materialGfx;
+    mg.clear();
+    let mx = W - 40;
+    for (const m of [...DATA.materials.all()].reverse()) {
+      const color = materialColor(m);
+      const t = this.add.text(mx, 8, `${m.name} ×${save.materials[m.id] ?? 0}`, { fontFamily: FONTS.body, fontSize: '13px', fontStyle: '700', color }).setOrigin(1, 0);
+      this.materialLabels.push(t);
+      drawMaterialIcon(mg, m.id, mx - t.width - 12, 16, 7, hex(color));
+      mx -= t.width + 38;
+    }
   }
 
   // 買った恒久強化を、隠れ家の中のキャラにもすぐ反映する（二重ダッシュなどを試せる）

@@ -73,6 +73,11 @@ export const LOOT = {
   pickupRadius: 36, // この距離まで近づくと比較が出る（px）
 };
 
+// バッグ（ラン中に装備をしまっておく場所）
+export const BAG = {
+  size: 6, // しまえる装備の数
+};
+
 // 消耗品（ラン中に拾って使うアイテム）
 export const ITEMS = {
   slots: 2, // 持てる枠の数（1・2 キー）

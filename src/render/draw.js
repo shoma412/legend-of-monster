@@ -3,6 +3,7 @@ import { LOOT, PLAYER, ROOM, SCREEN } from '../data/balance.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { xpToNext } from '../logic/level.js';
+import { drawBackdrop } from './backdrop.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { DEG } from '../logic/geometry.js';
 
@@ -45,13 +46,15 @@ export function drawFrame(g, theme = 'slum') {
 }
 
 // theme: エリアごとの床と壁の色（src/data/theme.js の AREA_THEMES の名前）
-export function drawFloor(g, theme = 'slum') {
+// seed: 背景の模様の置き場所を決める数（部屋ごとに変える）
+export function drawFloor(g, theme = 'slum', seed = 1) {
   const { width: W, height: H } = SCREEN;
   const wall = ROOM.wall;
   const top = ROOM.wallTop;
   const t = AREA_THEMES[theme] ?? AREA_THEMES.slum;
   g.fillStyle(t.floor, 1).fillRect(0, 0, W, H);
-  g.lineStyle(1, t.grid, 0.1);
+  drawBackdrop(g, theme, seed);
+  g.lineStyle(1, t.grid, 0.06);
   for (let x = wall; x < W; x += 40) g.lineBetween(x, 0, x, H);
   for (let y = top; y < H; y += 40) g.lineBetween(0, y, W, y);
   g.fillStyle(t.wall, 1);

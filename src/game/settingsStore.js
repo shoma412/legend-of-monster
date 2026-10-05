@@ -1,0 +1,33 @@
+// 設定をブラウザの localStorage に読み書きする窓口。ゲーム中はここの1つを共有する。
+import { DISPLAY_SIZES, loadSettings, storeSettings } from '../logic/settings.js';
+
+function storage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+let current = null;
+
+export function getSettings() {
+  current ??= loadSettings(storage());
+  return current;
+}
+
+export function saveSettings() {
+  return storeSettings(storage(), getSettings());
+}
+
+// 表示の大きさを反映する。ゲームの入れ物（#game）の大きさを決めると、Phaser がその中いっぱいに合わせる
+export function applyDisplaySize(game) {
+  const size = DISPLAY_SIZES.find((d) => d.id === getSettings().displaySize) ?? DISPLAY_SIZES[0];
+  const parent = document.getElementById('game');
+  if (!parent) return;
+  // フルスクリーン中は、選んだ大きさに関係なく画面いっぱいにする
+  const full = !!document.fullscreenElement;
+  parent.style.width = size.width && !full ? `${size.width}px` : '100%';
+  parent.style.height = size.height && !full ? `${size.height}px` : '100%';
+  game.scale.refresh();
+}
