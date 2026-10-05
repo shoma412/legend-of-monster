@@ -6,8 +6,10 @@
 
 | 素材 | 使っている場所 | 出典 | ライセンス | 追加日 |
 |---|---|---|---|---|
-| Chakra Petch（500 / 700） | 見出し・英数字。`index.html` から Google Fonts を読み込み | https://fonts.google.com/specimen/Chakra+Petch | SIL Open Font License 1.1 | 2026-10-04 |
-| Noto Sans JP（400 / 700） | 日本語の文字。`index.html` から Google Fonts を読み込み | https://fonts.google.com/noto/specimen/Noto+Sans+JP | SIL Open Font License 1.1 | 2026-10-04 |
+| DotGothic16（400） | ゲーム中のすべての文字（ドット文字）。`index.html` から Google Fonts を読み込み | https://fonts.google.com/specimen/DotGothic16 | SIL Open Font License 1.1 | 2026-10-05 |
+| Noto Sans JP（400 / 700） | DotGothic16 に無い字の補い。`index.html` から Google Fonts を読み込み | https://fonts.google.com/noto/specimen/Noto+Sans+JP | SIL Open Font License 1.1 | 2026-10-04 |
+
+2026-10-05 まで見出しに使っていた Chakra Petch は、DotGothic16 への切り替えで使わなくなった。
 
 ## 絵
 
