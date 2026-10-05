@@ -1,7 +1,7 @@
 // 音を鳴らす窓口。SE も BGM も、src/data/audio.js の対応表のキーで呼ぶ。
 // 今は Web Audio でその場で合成している。対応表に file を書けば、そのファイルを鳴らす。
 // 音量は設定（src/game/settingsStore.js）の値を使う。
-import { BGM, SE } from '../data/audio.js';
+import { BGM, BGM_FILE_GAIN, SE } from '../data/audio.js';
 import { getSettings } from '../game/settingsStore.js';
 import { startSong } from './music.js';
 
@@ -144,7 +144,10 @@ async function startBgmFile(def) {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
-    source.connect(bgmBus);
+    const gain = ctx.createGain();
+    gain.gain.value = BGM_FILE_GAIN;
+    source.connect(gain);
+    gain.connect(bgmBus);
     source.start();
     bgmSource = source;
   } catch {

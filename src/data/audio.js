@@ -57,6 +57,9 @@ export const SE = {
 // 曲を差し替えるときは、ここの file を書き換えるだけでよい。
 // 今のファイルは、すべて「魔王魂」のループ用の曲（出典とライセンスは CREDITS.md）。
 // エリアごとの曲とボス戦の曲は、エリアの定義（src/data/areas.js の bgm / bossBgm）からこのキーで選ぶ。
+// ファイルの曲の、元の音量に対する倍率（設定の BGM ゲージとは別にかかる）
+export const BGM_FILE_GAIN = 0.7;
+
 export const BGM = {
   title: { file: 'audio/bgm/maou_loop_bgm_cyber33.ogg', song: 'title' },
   hideout: { file: 'audio/bgm/maou_loop_bgm_cyber34.ogg', song: 'hideout' },
