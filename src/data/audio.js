@@ -17,6 +17,8 @@ export const SE = {
   charge: [{ wave: 'sine', freq: [520, 880], dur: 0.12, vol: 0.14 }],
   guard: [{ wave: 'square', freq: [1400, 2200], dur: 0.08, vol: 0.2 }, { wave: 'triangle', freq: [700, 1400], dur: 0.25, vol: 0.2, delay: 0.04 }],
   ougi: [{ wave: 'sawtooth', freq: [90, 30], dur: 0.7, vol: 0.34 }, { wave: 'noise', freq: [3000, 200], dur: 0.6, vol: 0.3 }, { wave: 'sine', freq: [880, 220], dur: 0.5, vol: 0.16 }],
+  // HP が少ないときの鼓動（低い音が2回）
+  heartbeat: [{ wave: 'sine', freq: [78, 46], dur: 0.13, vol: 0.34 }, { wave: 'sine', freq: [64, 40], dur: 0.16, vol: 0.26, delay: 0.17 }],
   hurt: [{ wave: 'sawtooth', freq: [300, 90], dur: 0.2, vol: 0.26 }, { wave: 'noise', freq: [1200, 300], dur: 0.14, vol: 0.2 }],
   death: [{ wave: 'sawtooth', freq: [260, 30], dur: 0.9, vol: 0.3 }, { wave: 'noise', freq: [2000, 100], dur: 0.8, vol: 0.24 }],
   heal: [{ wave: 'sine', freq: [520, 780], dur: 0.14, vol: 0.16 }, { wave: 'sine', freq: [780, 1040], dur: 0.2, vol: 0.14, delay: 0.1 }],

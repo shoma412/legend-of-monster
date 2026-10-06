@@ -162,6 +162,8 @@ export const FEEL = {
   hitstop: { normal: 0.04, heavy: 0.08, charged: 0.12, bossKill: 0.5 }, // 当てた瞬間に一瞬止める（秒）
   shake: { hit: 2.5, heavy: 6, charged: 12, kill: 3, bossKill: 20, hurt: 8, death: 14 },
   critTextSize: 24, // クリティカルのダメージ数字の大きさ（ふつうは 15）
+  // HP が少ないときの警告。ratio 以下で「警告」、critical 以下で「危険」（HP の割合）。beat は鼓動の音の間隔（秒）
+  lowHp: { ratio: 0.3, critical: 0.15, beat: 1.05, beatCritical: 0.6 },
 };
 
 // 持ち帰り要素

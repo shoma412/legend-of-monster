@@ -8,6 +8,7 @@ import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist, saveSuspend } from '../game/saveStore.js';
+import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -16,7 +17,7 @@ import { choiceBlocked, chooseEncounter } from '../game/encounters.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  ITEM_SLOT_POS, drawArena, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  ITEM_SLOT_POS, drawArena, drawLowHp, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawDevices, drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -271,6 +272,22 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  // HP が少ない間、鼓動の音を鳴らす（戦っている間だけ。危険なほど速い）
+  updateHeartbeat(delta) {
+    const world = this.world;
+    const p = world.player;
+    const interval = world.mode === 'play' && !world.choice ? heartbeatInterval(lowHpLevel(p.hp, p.stats.maxHp)) : null;
+    if (interval === null) {
+      this.beatT = 0;
+      return;
+    }
+    this.beatT = (this.beatT ?? 0) - delta / 1000;
+    if (this.beatT <= 0) {
+      this.beatT = interval;
+      playSe('heartbeat');
+    }
+  }
+
   // 部屋に入ったときの区画名（例：SECTOR 01-2 // 下層スラム // 闇市）
   showSectorBanner() {
     const { width: W } = SCREEN;
@@ -388,6 +405,8 @@ export class BattleScene extends Phaser.Scene {
     this.hud.clear();
     drawHud(this.hud, world);
     drawBossBar(this.hud, world);
+    drawLowHp(this.hud, world);
+    this.updateHeartbeat(delta);
     this.syncTexts(this.floatTexts, world.fx.texts, 5);
     this.syncTexts(this.labelTexts, objectLabels(world), 6);
 

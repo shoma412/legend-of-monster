@@ -7,6 +7,7 @@ import { drawBackdrop } from './backdrop.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
+import { lowHpLevel } from '../logic/lowHp.js';
 
 const BODY_FILL = 0x0a0814;
 const WHITE = 0xffffff;
@@ -539,8 +540,11 @@ export function drawHud(g, world) {
   const hpW = 180;
   g.fillStyle(0x1b1631, 1).fillRect(hpX, 5, hpW, 9);
   const ratio = p.hp / p.stats.maxHp;
-  g.fillStyle(hex(ratio > 0.3 ? COLORS.green : COLORS.red), 1).fillRect(hpX, 5, hpW * ratio, 9);
-  g.lineStyle(1, hex(COLORS.line), 1).strokeRect(hpX, 5, hpW, 9);
+  // HP が少ないときは、棒が赤くなって点滅し、枠も赤くなる
+  const low = lowHpLevel(p.hp, p.stats.maxHp);
+  const blink = low > 0 && Math.sin(world.time * (low === 2 ? 16 : 9)) > 0;
+  g.fillStyle(blink ? WHITE : hex(low > 0 ? COLORS.red : COLORS.green), 1).fillRect(hpX, 5, hpW * ratio, 9);
+  g.lineStyle(low > 0 ? 2 : 1, hex(low > 0 ? COLORS.red : COLORS.line), 1).strokeRect(hpX, 5, hpW, 9);
   // 経験値（下の段。左に「Lv」の表記が付く）
   const xpX = 86;
   const xpW = 156;
@@ -1388,6 +1392,27 @@ export function drawArena(g, world) {
   g.fillRect(base.left, b.top, a.inset, b.bottom - b.top);
   g.fillRect(b.right, b.top, a.inset, b.bottom - b.top);
   g.lineStyle(2, ice, 0.9).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+}
+
+// HP が少ないとき：画面の縁が赤く脈打つ（危険なほど濃く、速く）
+export function drawLowHp(g, world) {
+  const p = world.player;
+  const level = world.mode === 'dead' ? 0 : lowHpLevel(p.hp, p.stats.maxHp);
+  if (level === 0) return;
+  const W = SCREEN.width;
+  const H = SCREEN.height;
+  const pulse = 0.5 + 0.5 * Math.sin(world.time * (level === 2 ? 9 : 5));
+  const strength = (level === 2 ? 0.2 : 0.11) * (0.45 + 0.55 * pulse);
+  const red = hex(COLORS.red);
+  // 縁から内側へ、だんだん薄くなる帯を重ねる
+  const steps = 7;
+  const depth = level === 2 ? 96 : 70;
+  for (let i = 0; i < steps; i++) {
+    const t = (depth * (steps - i)) / steps;
+    g.fillStyle(red, strength / (steps * 0.42));
+    g.fillRect(0, 0, W, t).fillRect(0, H - t, W, t).fillRect(0, t, t, H - t * 2).fillRect(W - t, t, t, H - t * 2);
+  }
+  g.lineStyle(3, red, 0.25 + 0.45 * pulse).strokeRect(2, 2, W - 4, H - 4);
 }
 
 export function drawBossBar(g, world) {
