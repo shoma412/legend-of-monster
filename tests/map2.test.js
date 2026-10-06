@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { grantUpgrade } from './helpers/upgrades.js';
 import { COMBO, PLAYER, STATUS } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { species } from '../src/data/implants.js';
@@ -15,7 +16,7 @@ import { createWorld, updateWorld } from '../src/game/world.js';
 import { bestReachText, mapState, recordMapClear } from '../src/logic/maps.js';
 import { useKit } from '../src/game/objects.js';
 import { SAVE_VERSION, loadSlot, slotKey } from '../src/logic/save.js';
-import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
+import { permanentBonuses } from '../src/logic/meta.js';
 import { createSave } from '../src/logic/save.js';
 import { carryOptions, createBuild, mapSpecies } from '../src/logic/stats.js';
 import { hasBackdrop } from '../src/render/backdrop.js';
@@ -354,11 +355,8 @@ describe('種族「大蛇」', () => {
 describe('恒久強化「関節強化」', () => {
   it('サーペントコアで買え、ダッシュの回復が1段ごとに 10% 速くなる', () => {
     const save = createSave();
-    expect(buyUpgrade(save, 'joints')).toBe(false); // 素材がない
-    save.materials.serpentCore = 2;
-    expect(buyUpgrade(save, 'joints')).toBe(true);
-    expect(buyUpgrade(save, 'joints')).toBe(true);
-    expect(save.materials.serpentCore).toBe(0);
+    grantUpgrade(save, 'joints');
+    grantUpgrade(save, 'joints');
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(dashCooldown(world.player)).toBeCloseTo(PLAYER.dash.cooldown * 0.8);
   });
@@ -571,8 +569,8 @@ describe('種族「大蟹」', () => {
   it('恒久強化「装甲板」：クラブコアで買え、被ダメージが1段ごとに 3% 減る', () => {
     const save = createSave();
     save.materials.crabCore = 2;
-    expect(buyUpgrade(save, 'armorplate')).toBe(true);
-    expect(buyUpgrade(save, 'armorplate')).toBe(true);
+    grantUpgrade(save, 'armorplate');
+    grantUpgrade(save, 'armorplate');
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.damageTaken).toBeCloseTo(0.94);
   });
@@ -749,9 +747,8 @@ describe('恒久強化（ハイドラコア）', () => {
     const save = createSave();
     expect(permanentBonuses(save).carrySlots).toBe(1);
     save.materials.hydraCore = 3;
-    expect(buyUpgrade(save, 'regentank')).toBe(true);
-    expect(buyUpgrade(save, 'carryslot')).toBe(true);
-    expect(save.materials.hydraCore).toBe(0);
+    grantUpgrade(save, 'regentank');
+    grantUpgrade(save, 'carryslot');
     const bonus = permanentBonuses(save);
     expect(bonus.carrySlots).toBe(2);
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(bonus) } });

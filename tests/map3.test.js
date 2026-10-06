@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { grantUpgrade } from './helpers/upgrades.js';
 import { DEVICE, PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
@@ -13,7 +14,7 @@ import { buildRoom } from '../src/game/rooms.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { mapState, recordMapClear } from '../src/logic/maps.js';
-import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
+import { permanentBonuses } from '../src/logic/meta.js';
 import { createSave } from '../src/logic/save.js';
 import { createBuild, mapSpecies } from '../src/logic/stats.js';
 import { hasBackdrop } from '../src/render/backdrop.js';
@@ -362,8 +363,8 @@ describe('種族「猟犬」', () => {
   it('恒久強化「脚部強化」：ハウンドコアで買え、移動速度が1段ごとに 3% 上がる', () => {
     const save = createSave();
     save.materials.houndCore = 2;
-    expect(buyUpgrade(save, 'legs')).toBe(true);
-    expect(buyUpgrade(save, 'legs')).toBe(true);
+    grantUpgrade(save, 'legs');
+    grantUpgrade(save, 'legs');
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.moveSpeedMul).toBeCloseTo(1.06);
   });
@@ -661,8 +662,8 @@ describe('種族「蜘蛛」', () => {
   it('恒久強化「補助演算」：スパイダーコアで買え、会心率が1段ごとに 2% 上がる', () => {
     const save = createSave();
     save.materials.spiderCore = 2;
-    expect(buyUpgrade(save, 'coproc')).toBe(true);
-    expect(buyUpgrade(save, 'coproc')).toBe(true);
+    grantUpgrade(save, 'coproc');
+    grantUpgrade(save, 'coproc');
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.critChance).toBeCloseTo(PLAYER.critChance + 0.04);
   });
@@ -863,8 +864,8 @@ describe('種族「巨人」', () => {
   it('恒久強化「基礎補強」：タイタンコアで買え、最大HPが1段ごとに 20 増える', () => {
     const save = createSave();
     save.materials.titanCore = 2;
-    expect(buyUpgrade(save, 'foundation')).toBe(true);
-    expect(buyUpgrade(save, 'foundation')).toBe(true);
+    grantUpgrade(save, 'foundation');
+    grantUpgrade(save, 'foundation');
     const world = createWorld({ waves: [{}], rng: () => 0.5, carry: { hp: null, build: createBuild(permanentBonuses(save)) } });
     expect(world.player.stats.maxHp).toBe(PLAYER.maxHp + 40);
   });

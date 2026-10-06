@@ -22,7 +22,10 @@ export function getSlots() {
 // その枠で遊ぶ。空の枠なら、新しいデータで始める
 export function selectSlot(n) {
   slot = n;
-  current = loadSlot(storage(), n) ?? createSave();
+  const loaded = loadSlot(storage(), n);
+  current = loaded ?? createSave();
+  // 読み込んだデータは、今の形に直した状態ですぐ保存し直す（版が上がったときの変換や、スキルツリーの配置が、次に開いたときに変わらないように）
+  if (loaded) storeSlot(storage(), n, current);
   return current;
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { grantUpgrade } from './helpers/upgrades.js';
 import { FEEL, ITEMS, LOOT, PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { recalcStats } from '../src/game/build.js';
@@ -8,7 +9,7 @@ import { NEXT_AREA, createRun, enterRoom, hasNextArea, leaveRoom, skipToBoss } f
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { doorOptions, generateVault } from '../src/logic/areaGen.js';
 import { makeItem, rarityWeights, rollRarity } from '../src/logic/loot.js';
-import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
+import { permanentBonuses } from '../src/logic/meta.js';
 import { SAVE_VERSION, createSave } from '../src/logic/save.js';
 import { CODE_PREFIX, exportSaveText, importSaveText } from '../src/logic/saveTransfer.js';
 import { computeStats, createBuild, weaponTraitText } from '../src/logic/stats.js';
@@ -150,15 +151,10 @@ describe('恒久強化「携行ポーチ」', () => {
   it('1段ごとに消耗品の枠が1つ増え、最大4枠', () => {
     const save = createSave();
     expect(createBuild(permanentBonuses(save)).items).toHaveLength(ITEMS.slots);
-    save.materials.boarCore = 2;
-    save.materials.cryoCore = 2;
-    expect(buyUpgrade(save, 'pouch')).toBe(true);
+    grantUpgrade(save, 'pouch');
     expect(createBuild(permanentBonuses(save)).items).toHaveLength(3);
-    expect(buyUpgrade(save, 'pouch')).toBe(true);
+    grantUpgrade(save, 'pouch');
     expect(createBuild(permanentBonuses(save)).items).toHaveLength(4);
-    expect(buyUpgrade(save, 'pouch')).toBe(false);
-    expect(save.materials.boarCore).toBe(0);
-    expect(save.materials.cryoCore).toBe(0);
   });
 });
 
@@ -318,8 +314,8 @@ describe('中断セーブ', () => {
 describe('セーブデータの書き出し／読み込み', () => {
   const sample = () => {
     const save = createSave();
+    save.tree.seed = 12345; // スキルツリーの種は、作るたびに変わるので固定する
     save.materials.boarCore = 4;
-    save.upgrades.frame = 2;
     save.achievements.push('firstRun');
     save.records.runs = 12;
     save.seenDialogues.push('会話・その1');

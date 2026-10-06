@@ -3,6 +3,7 @@ import { META } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { weaponUnlocks } from '../data/upgrades.js';
 import { unlockAchievements } from './achievements.js';
+import { buildTree, isReachable } from './skillTree.js';
 
 // ---- 恒久強化 ----
 
@@ -10,11 +11,6 @@ export function upgradeLevel(save, id) {
   return save.upgrades[id] ?? 0;
 }
 
-// 次の段階に必要な素材。最大まで上げていたら null
-export function nextUpgradeCost(save, def) {
-  const level = upgradeLevel(save, def.id);
-  return level >= def.max ? null : def.costs[level];
-}
 
 export function canAfford(save, cost) {
   return Object.entries(cost).every(([id, n]) => (save.materials[id] ?? 0) >= n);
@@ -24,12 +20,26 @@ function pay(save, cost) {
   for (const [id, n] of Object.entries(cost)) save.materials[id] -= n;
 }
 
-export function buyUpgrade(save, id) {
-  const def = DATA.upgrades.get(id);
-  const cost = nextUpgradeCost(save, def);
-  if (def.ready === false || !cost || !canAfford(save, cost)) return false;
-  pay(save, cost);
-  save.upgrades[id] = upgradeLevel(save, id) + 1;
+// そのセーブデータのスキルツリー（配置は save.tree.seed で決まる）
+export function saveTree(save) {
+  return buildTree(save.tree.seed);
+}
+
+// スキルツリーのマスの状態：owned（取った）/ open（手前を取ってあり、素材も足りる）/ short（手前は取ってあるが、素材が足りない）/ locked（手前をまだ取っていない）
+export function treeNodeState(save, id) {
+  const tree = saveTree(save);
+  if (save.tree.owned.includes(id)) return 'owned';
+  if (!isReachable(tree, save.tree.owned, id)) return 'locked';
+  return canAfford(save, tree.byId[id].cost) ? 'open' : 'short';
+}
+
+// スキルツリーのマスを取る。手前のマスを取ってあり、素材が足りるときだけ。取れたら true
+export function buyNode(save, id) {
+  if (treeNodeState(save, id) !== 'open') return false;
+  const node = saveTree(save).byId[id];
+  pay(save, node.cost);
+  save.tree.owned.push(id);
+  save.upgrades[node.upgrade] = upgradeLevel(save, node.upgrade) + 1;
   return true;
 }
 

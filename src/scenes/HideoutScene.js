@@ -146,6 +146,14 @@ export class HideoutScene extends Phaser.Scene {
       this.save.tutorialSeen = true;
       persist();
       this.time.delayedCall(350, () => this.menu.open('controls'));
+    } else if (this.save.notices?.includes('treeRefund')) {
+      // 恒久強化がスキルツリーになったときの、1回だけのお知らせ（素材の払い戻し）
+      this.save.notices = this.save.notices.filter((n) => n !== 'treeRefund');
+      persist();
+      this.time.delayedCall(350, () => {
+        this.menu.open('upgrade');
+        this.menu.confirm('恒久強化が「スキルツリー」になりました。\n今までに買った強化はいったん外し、使った素材はすべて返しました。\nこの画面で、中心から順に取り直してください。', () => this.menu.render());
+      });
     } else {
       // 帰ってきたときの会話（ボスを初めて倒したあとなど）
       this.time.delayedCall(450, () => this.playPending('hideout'));

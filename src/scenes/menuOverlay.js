@@ -15,7 +15,8 @@ import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscr
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
-import { buyUpgrade, canAfford, nextUpgradeCost, upgradeLevel } from '../logic/meta.js';
+import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
+import { layoutTree } from '../logic/skillTree.js';
 import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -144,7 +145,7 @@ export class MenuOverlay {
   }
 
   rowCount() {
-    if (this.tabId === 'upgrade') return DATA.upgrades.all().length;
+    if (this.tabId === 'upgrade') return this.treeOrder().length;
     if (this.tabId === 'fragment') return DATA.fragments.all().length;
     return 0;
   }
@@ -191,13 +192,13 @@ export class MenuOverlay {
   }
 
   confirmRow() {
-    if (this.tabId === 'upgrade') this.buy(DATA.upgrades.all()[this.cursor].id);
+    if (this.tabId === 'upgrade') this.buy(this.treeOrder()[this.cursor].id);
   }
 
   buy(id) {
     if (this.options.readOnlyUpgrades) return;
     const { save } = this.options.context();
-    if (buyUpgrade(save, id)) {
+    if (buyNode(save, id)) {
       playSe('buy');
       this.options.onBuy?.();
     } else {
@@ -504,42 +505,95 @@ export class MenuOverlay {
     return (Math.min(line, maxLines - 1) + 1) * 20;
   }
 
-  // ---- 恒久強化 ----
+  // ---- 恒久強化（スキルツリー） ----
+
+  // ツリーのマスを、画面での並び順（上の段から、左から）にしたもの。W・S で選ぶ順番
+  treeOrder() {
+    const { save } = this.options.context();
+    const tree = saveTree(save);
+    const { pos } = layoutTree(tree);
+    return [...tree.nodes].sort((n1, n2) => n1.depth - n2.depth || pos[n1.id].row - pos[n2.id].row);
+  }
+
   renderUpgrades(save) {
     const readOnly = this.options.readOnlyUpgrades;
-    this.text(40, 114, readOnly ? '買った恒久強化（買うのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を買う。行をクリックするか、W・S で選んで Enter', 12, COLORS.dim);
+    this.text(40, 114, readOnly ? '取った恒久強化（取るのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を取る。中心から線でつながったマスを、順に取っていく', 12, COLORS.dim);
     // 持っているボス素材（ここで使うので、ここに出す）
-    this.panel(40, 132, 880, 48);
-    this.renderMaterials(save, 54, 138, 852);
-    const upgradeRows = 5; // 一度に出す行の数（下のボタンに重ならない範囲）
-    const top = 190;
-    const first = this.window(DATA.upgrades.all().length, upgradeRows, { x: 926, y: top, h: upgradeRows * 54 - 8 });
-    DATA.upgrades.all().forEach((def, i) => {
-      if (i < first || i >= first + upgradeRows) return;
-      const y = top + (i - first) * 54;
-      const level = upgradeLevel(save, def.id);
-      const cost = nextUpgradeCost(save, def);
-      const ready = def.ready !== false;
-      const buyable = ready && cost && canAfford(save, cost);
-      const selected = i === this.cursor && !readOnly;
-      this.panel(40, y, 880, 46, selected ? COLORS.cyan : COLORS.line, () => {
-        this.cursor = i;
-        this.buy(def.id);
+    this.panel(40, 132, 880, 28);
+    this.renderMaterials(save, 54, 138, 852, 1);
+
+    const tree = saveTree(save);
+    const { pos, rootRow } = layoutTree(tree);
+    const order = this.treeOrder();
+    this.cursor = Math.max(0, Math.min(order.length - 1, this.cursor));
+    const picked = order[this.cursor];
+    // 位置：上が中心、下へ行くほど奥の段。横は、枝ごとに並べる
+    const LEFT = 64;
+    const WIDTH = 832;
+    const TOP = 178;
+    const STEP = 37;
+    const at = (id) => ({ x: LEFT + pos[id].row * WIDTH, y: TOP + pos[id].col * STEP });
+    const root = { x: LEFT + rootRow * WIDTH, y: TOP };
+    const CATEGORY = { body: { label: '体', color: COLORS.green }, skill: { label: '技', color: COLORS.red }, gear: { label: '備', color: COLORS.cyan } };
+    const state = Object.fromEntries(tree.nodes.map((n) => [n.id, treeNodeState(save, n.id)]));
+
+    // マスの中の文字が隠れないよう、いちばん手前に出す層（this.graphics()）ではなく、ふつうの層に描く
+    const g = this.scene.add.graphics();
+    this.root.add(g);
+    // 線：取ってあるマス同士は明るく、これから取れるマスへは少し明るく
+    for (const n of tree.nodes) {
+      const to = at(n.id);
+      const from = n.parent ? at(n.parent) : root;
+      const lit = state[n.id] === 'owned';
+      const near = state[n.id] === 'open' || state[n.id] === 'short';
+      g.lineStyle(lit ? 2.5 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.line), lit ? 0.9 : near ? 0.7 : 0.9).lineBetween(from.x, from.y, to.x, to.y);
+    }
+    // 中心
+    g.fillStyle(hex(COLORS.cyan), 1).fillCircle(root.x, root.y, 5);
+    g.lineStyle(2, hex(COLORS.cyan), 0.5).strokeCircle(root.x, root.y, 9);
+    // マス
+    order.forEach((n, i) => {
+      const p = at(n.id);
+      const def = DATA.upgrades.get(n.upgrade);
+      const cat = CATEGORY[def.category] ?? CATEGORY.body;
+      const st = state[n.id];
+      const color = st === 'owned' ? COLORS.green : st === 'open' ? COLORS.amber : st === 'short' ? COLORS.dim : LOCKED;
+      const r = 10;
+      g.fillStyle(st === 'owned' ? hex(COLORS.green) : PANEL, st === 'owned' ? 0.35 : 1).fillCircle(p.x, p.y, r);
+      g.lineStyle(st === 'open' ? 2.5 : 1.5, hex(color), 1).strokeCircle(p.x, p.y, r);
+      if (st === 'open') g.lineStyle(4, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, r + 3);
+      if (i === this.cursor) g.lineStyle(2, hex(COLORS.cyan), 1).strokeCircle(p.x, p.y, r + 5);
+      this.text(p.x, p.y, cat.label, 11, st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
+      // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る
+      const hit = this.scene.add.circle(p.x, p.y, r + 5, 0x000000, 0.001).setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => {
+        if (this.cursor === i) this.buy(n.id);
+        else {
+          this.cursor = i;
+          playSe('select');
+          this.render();
+        }
       });
-      this.text(56, y + 5, def.name, 15, ready ? COLORS.ink : LOCKED, { fontStyle: '700' });
-      this.text(56, y + 26, def.desc, 12, ready ? COLORS.dim : LOCKED);
-      for (let k = 0; k < def.max; k++) {
-        const pip = this.scene.add.rectangle(560 + k * 20, y + 23, 14, 14, k < level ? hex(COLORS.green) : PANEL, 1).setStrokeStyle(1, hex(k < level ? COLORS.green : COLORS.dim));
-        this.root.add(pip);
-      }
-      let status = '';
-      let color = COLORS.dim;
-      if (!ready) status = '準備中';
-      else if (!cost) [status, color] = ['最大', COLORS.green];
-      else if (readOnly) status = `次：${costText(cost)}`;
-      else [status, color] = [`${costText(cost)}${buyable ? '　— 買える' : ''}`, buyable ? COLORS.amber : COLORS.red];
-      this.text(904, y + 14, status, 13, color, { fontStyle: '700' }).setOrigin(1, 0);
+      this.root.add(hit);
     });
+
+    // 選んでいるマスの中身
+    const def = DATA.upgrades.get(picked.upgrade);
+    const cat = CATEGORY[def.category] ?? CATEGORY.body;
+    const st = state[picked.id];
+    const have = save.upgrades[picked.upgrade] ?? 0;
+    this.panel(40, 412, 880, 50, st === 'open' ? COLORS.amber : COLORS.line);
+    this.text(56, 418, `［${cat.label}］${def.name}`, 15, cat.color, { fontStyle: '700' });
+    this.text(56, 440, `${def.desc}　（この強化を取った数 ${have} / ${def.max}）`, 12, COLORS.dim);
+    const need = Object.entries(picked.cost).map(([id, n]) => `${DATA.materials.get(id).name} ${save.materials[id] ?? 0}/${n}`).join('　');
+    const status = {
+      owned: ['取得済み', COLORS.green],
+      open: [readOnly ? '取れる（隠れ家の強化端末で）' : 'Enter か、もう一度クリックで取る', COLORS.amber],
+      short: ['素材が足りない', COLORS.red],
+      locked: ['手前のマスを取ると、取れるようになる', LOCKED],
+    }[st];
+    this.text(904, 418, st === 'owned' ? '' : `必要：${need}`, 13, st === 'short' ? COLORS.red : COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+    this.text(904, 440, status[0], 12, status[1], { fontStyle: '700' }).setOrigin(1, 0);
   }
 
   // ---- 記録 ----

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { grantUpgrade } from './helpers/upgrades.js';
 import { META, PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { weaponUnlocks } from '../src/data/upgrades.js';
@@ -8,7 +9,7 @@ import { interact } from '../src/game/objects.js';
 import { NEXT_AREA, createRun, enterRoom, finishRun, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { updateWorld } from '../src/game/world.js';
 import { hasCheck } from '../src/logic/achievements.js';
-import { buyUpgrade, nextUpgradeCost, permanentBonuses, pickFragment, processEvent, unlockWeapon } from '../src/logic/meta.js';
+import { permanentBonuses, pickFragment, processEvent, unlockWeapon } from '../src/logic/meta.js';
 import { SAVE_VERSION, SLOT_COUNT, createSave, deleteSlot, listSlots, loadSlot, slotKey, storeSlot } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -72,8 +73,11 @@ describe('定義データのつじつま', () => {
     const get = (id) => DATA.upgrades.get(id);
     expect(get('frame').costs).toEqual(Array(5).fill({ boarCore: 1 }));
     expect(get('nerve').costs).toEqual([{ boarCore: 1 }, { boarCore: 1 }, { cryoCore: 1 }, { cryoCore: 1 }, { cryoCore: 1 }]);
-    expect(get('kitslot').costs).toEqual([{ cryoCore: 2 }, { cryoCore: 2 }]);
-    expect(get('doubledash').costs).toEqual([{ cryoCore: 3 }]);
+    // スキルツリーにしたとき（2026-10-07）に、素材の種類を混ぜた。前の値段は、払い戻し用に残してある
+    expect(get('kitslot').legacyCosts).toEqual([{ cryoCore: 2 }, { cryoCore: 2 }]);
+    expect(get('kitslot').costs).toEqual([{ cryoCore: 1, boarCore: 1 }, { cryoCore: 1, boarCore: 1 }]);
+    expect(get('doubledash').legacyCosts).toEqual([{ cryoCore: 3 }]);
+    expect(get('doubledash').costs).toEqual([{ cryoCore: 2, boarCore: 1 }]);
     expect(get('bootprogram').costs).toEqual([{ overCore: 1 }]);
   });
 });
@@ -83,7 +87,6 @@ describe('セーブデータ', () => {
     const storage = fakeStorage();
     const save = createSave();
     save.materials.boarCore = 4;
-    save.upgrades.frame = 2;
     save.fragments.push('bb-01');
     save.achievements.push('boltboar');
     save.records.kills = 77;
@@ -176,27 +179,6 @@ describe('ボス素材', () => {
 });
 
 describe('恒久強化', () => {
-  it('素材が足りないと買えない。買うと素材が減り、段階が上がる', () => {
-    const save = createSave();
-    expect(buyUpgrade(save, 'frame')).toBe(false);
-    save.materials.boarCore = 2;
-    expect(buyUpgrade(save, 'frame')).toBe(true);
-    expect(buyUpgrade(save, 'frame')).toBe(true);
-    expect(buyUpgrade(save, 'frame')).toBe(false);
-    expect(save.upgrades.frame).toBe(2);
-    expect(save.materials.boarCore).toBe(0);
-  });
-
-  it('最大まで上げると、それ以上は買えない', () => {
-    const save = createSave();
-    save.materials = { boarCore: 99, cryoCore: 99, overCore: 99 };
-    for (let i = 0; i < 10; i++) buyUpgrade(save, 'frame');
-    expect(save.upgrades.frame).toBe(5);
-    expect(nextUpgradeCost(save, DATA.upgrades.get('frame'))).toBe(null);
-    expect(buyUpgrade(save, 'ougi-greatsword')).toBe(true);
-    expect(buyUpgrade(save, 'ougi-greatsword')).toBe(false);
-  });
-
   it('武器の解放：片手剣はボアコア2個、銃はクライオコア2個。足りないと解放できない', () => {
     const save = createSave();
     save.materials = { boarCore: 1 };
@@ -212,12 +194,12 @@ describe('恒久強化', () => {
   it('買った強化は次のランに乗る：最大HP、攻撃力、修復キット、二重ダッシュ、起動プログラム', () => {
     const save = createSave();
     save.materials = { boarCore: 99, cryoCore: 99, overCore: 99 };
-    buyUpgrade(save, 'frame');
-    buyUpgrade(save, 'frame');
-    buyUpgrade(save, 'nerve');
-    buyUpgrade(save, 'kitslot');
-    buyUpgrade(save, 'doubledash');
-    buyUpgrade(save, 'bootprogram');
+    grantUpgrade(save, 'frame');
+    grantUpgrade(save, 'frame');
+    grantUpgrade(save, 'nerve');
+    grantUpgrade(save, 'kitslot');
+    grantUpgrade(save, 'doubledash');
+    grantUpgrade(save, 'bootprogram');
     expect(permanentBonuses(save)).toMatchObject({ kits: 1, startChoice: true });
 
     const r = createRun({ rng: seeded(5), save });
@@ -262,7 +244,7 @@ describe('恒久強化', () => {
   it('大剣の奥義：買うとランで使えるようになり、次のエリアに進むと使用回数が戻る', () => {
     const save = createSave();
     save.materials = { overCore: 1 };
-    expect(buyUpgrade(save, 'ougi-greatsword')).toBe(true);
+    grantUpgrade(save, 'ougi-greatsword');
     const r = createRun({ rng: seeded(5), save });
     expect(r.build.ougi).toEqual(['greatsword']);
     const world = enterRoom(r);

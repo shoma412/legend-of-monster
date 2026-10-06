@@ -1,7 +1,9 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
+import { upgrades } from '../data/upgrades.js';
+import { buildTree, cleanOwned, newTreeSeed, upgradeCounts } from './skillTree.js';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -14,7 +16,7 @@ export function createSave() {
   return {
     version: SAVE_VERSION,
     materials: {}, // { 素材のid: 個数 }
-    upgrades: {}, // { 恒久強化のid: 段階 }
+    upgrades: {}, // { 恒久強化のid: 段階 }。スキルツリーで取ったマス（tree.owned）から数える
     weapons: ['greatsword'], // 解放済みの武器
     selected: 'greatsword', // 隠れ家で選んでいる武器
     bossKills: {}, // { ボスのid: 倒した回数 }
@@ -31,6 +33,9 @@ export function createSave() {
     carrySpecies: null, // 持ち込みの種族の id（版4で追加。選んでいなければ null）
     carrySpecies2: null, // 持ち込みの2つ目の枠（版5で追加。恒久強化で枠を増やすと使える）
     passes: [], // 持っている通行証（隠しボスを倒したマップの id。版6で追加）
+    // スキルツリー（版7で追加）。seed は配置を決める種（セーブデータごとに違う）、owned は取ったマスの id
+    tree: { seed: newTreeSeed(), owned: [] },
+    notices: [], // 次に隠れ家へ入ったときに、1回だけ出すお知らせ（版7で追加）
   };
 }
 
@@ -67,7 +72,28 @@ function migrate(data) {
     data.passes = [];
     data.version = 6;
   }
+  // 版6 → 版7：恒久強化がスキルツリーになった。買ってあった強化をすべて外し、使った素材を全部返す
+  if (data.version === 6) {
+    const refund = refundUpgrades(data.upgrades ?? {});
+    data.materials = { ...(data.materials ?? {}) };
+    for (const [id, n] of Object.entries(refund)) data.materials[id] = (data.materials[id] ?? 0) + n;
+    data.upgrades = {};
+    data.tree = { seed: newTreeSeed(), owned: [] };
+    data.notices = Object.keys(refund).length > 0 ? ['treeRefund'] : [];
+    data.version = 7;
+  }
   return data;
+}
+
+// スキルツリーにする前の値段で、買ってあった強化に使った素材を数える（{ 素材のid: 個数 }）
+export function refundUpgrades(owned) {
+  const refund = {};
+  for (const def of upgrades) {
+    const costs = def.legacyCosts ?? def.costs;
+    const level = Math.min(costs.length, owned[def.id] ?? 0);
+    for (let i = 0; i < level; i++) for (const [id, n] of Object.entries(costs[i])) refund[id] = (refund[id] ?? 0) + n;
+  }
+  return refund;
 }
 
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
@@ -75,10 +101,14 @@ export function normalizeSave(data) {
   const base = createSave();
   if (!data || typeof data !== 'object' || typeof data.version !== 'number' || data.version > SAVE_VERSION) return null;
   const d = migrate(data);
+  // スキルツリー：種が読めなければ作り直す。取ったマスは、手前を取っていないものなどを除く。強化の段数は、取ったマスから数える
+  const seed = Number.isInteger(d.tree?.seed) && d.tree.seed >= 0 ? d.tree.seed : newTreeSeed();
+  const tree = buildTree(seed);
+  const owned = cleanOwned(tree, Array.isArray(d.tree?.owned) ? d.tree.owned : []);
   return {
     version: SAVE_VERSION,
     materials: { ...base.materials, ...(d.materials ?? {}) },
-    upgrades: { ...(d.upgrades ?? {}) },
+    upgrades: upgradeCounts(tree, owned),
     weapons: Array.isArray(d.weapons) && d.weapons.length > 0 ? [...new Set(d.weapons)] : base.weapons,
     selected: typeof d.selected === 'string' ? d.selected : base.selected,
     bossKills: { ...(d.bossKills ?? {}) },
@@ -94,6 +124,8 @@ export function normalizeSave(data) {
     carrySpecies: typeof d.carrySpecies === 'string' ? d.carrySpecies : null,
     carrySpecies2: typeof d.carrySpecies2 === 'string' ? d.carrySpecies2 : null,
     passes: Array.isArray(d.passes) ? [...new Set(d.passes)] : [],
+    tree: { seed, owned },
+    notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
   };
 }
 
