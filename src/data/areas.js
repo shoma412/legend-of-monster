@@ -208,7 +208,6 @@ export const areas = [
     code: 'SITE 01',
     name: '資材置き場',
     theme: 'yard',
-    // 曲は、マップ3の曲を選ぶまでの仮
     bgm: 'yard',
     bossBgm: 'bossYard',
     first: 'combat',
@@ -242,7 +241,6 @@ export const areas = [
     code: 'SITE 02',
     name: '高架の現場',
     theme: 'bridge',
-    // 曲は、マップ3の曲を選ぶまでの仮
     bgm: 'viaduct',
     bossBgm: 'bossViaduct',
     first: 'combat',
@@ -275,7 +273,6 @@ export const areas = [
     code: 'SITE 03',
     name: '未完の塔',
     theme: 'frame',
-    // 曲は、マップ3の曲を選ぶまでの仮
     bgm: 'spire',
     bossBgm: 'bossSpire',
     first: 'combat',

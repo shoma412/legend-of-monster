@@ -48,6 +48,12 @@ BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている�
 | maou_loop_bgm_neorock82.ogg | マップ2 ボス1 パイプサーペント | ネオロック82 | https://maou.audio/bgm_neorock82/ | 2026-10-06 |
 | maou_loop_bgm_neorock62.ogg | マップ2 ボス2 タンククラブ | ネオロック62 | https://maou.audio/bgm_neorock62/ | 2026-10-06 |
 | maou_loop_bgm_neorock59.ogg | マップ2 ボス3 スラッジハイドラ | ネオロック59 | https://maou.audio/bgm_neorock59/ | 2026-10-06 |
+| maou_loop_bgm_cyber14.ogg | マップ3 エリア1 資材置き場 | サイバー14 | https://maou.audio/bgm_cyber14/ | 2026-10-07 |
+| maou_loop_bgm_cyber28.ogg | マップ3 エリア2 高架の現場 | サイバー28 | https://maou.audio/bgm_cyber28/ | 2026-10-07 |
+| maou_loop_bgm_cyber26.ogg | マップ3 エリア3 未完の塔 | サイバー26 | https://maou.audio/bgm_cyber26/ | 2026-10-07 |
+| maou_loop_bgm_neorock68.ogg | マップ3 ボス1 スクラップハウンド | ネオロック68 | https://maou.audio/bgm_neorock68/ | 2026-10-07 |
+| maou_loop_bgm_neorock66.ogg | マップ3 ボス2 ガーダースパイダー | ネオロック66 | https://maou.audio/bgm_neorock66/ | 2026-10-07 |
+| maou_loop_bgm_neorock77.ogg | マップ3 ボス3 クレーンタイタン（隠しボスも、見つけたエリアのボス曲が流れる） | ネオロック77 | https://maou.audio/bgm_neorock77/ | 2026-10-07 |
 
 曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。
 
