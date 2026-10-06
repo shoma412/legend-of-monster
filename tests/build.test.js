@@ -149,7 +149,7 @@ describe('装備ドロップ', () => {
     expect(equipFocusLoot(world)).toBe(true);
     expect(p.build.gear.armor).toBe(a);
     expect(p.stats.maxHp).toBe(120);
-    expect(p.hp).toBe(120);
+    expect(p.hp).toBe(100); // 最大HPが増えても、今のHPは増えない（2026-10-07 に変更）
     expect(world.loot).toHaveLength(0);
 
     world.loot.push({ x: p.x, y: p.y, item: b, t: 0 });

@@ -406,3 +406,46 @@ describe('武器ごとのステータス', () => {
     expect(weaponTraitText(null)).toBe('');
   });
 });
+
+describe('最大HPが変わっても、HPは回復しない（2026-10-07 のバグ修正）', () => {
+  // 最大HPが増える装備（効果は「最大HP +40」だけ）
+  const hpGear = () => ({ slot: 'armor', rarity: 1, effects: [{ id: 'maxHp', value: 40 }], unique: null, name: 'テスト用の防具' });
+
+  it('最大HPが増える装備を付け外ししても、HPは増えない（付け外しをくり返して全回復、ができない）', () => {
+    const world = makeWorld();
+    const p = world.player;
+    expect(DATA.gearEffects.has('maxHp')).toBe(true);
+    p.hp = 10;
+    for (let i = 0; i < 5; i++) {
+      p.build.gear.armor = hpGear();
+      recalcStats(p);
+      expect(p.stats.maxHp).toBe(PLAYER.maxHp + 40);
+      expect(p.hp).toBe(10);
+      p.build.gear.armor = null;
+      recalcStats(p);
+      expect(p.stats.maxHp).toBe(PLAYER.maxHp);
+      expect(p.hp).toBe(10);
+    }
+  });
+
+  it('最大HPが減って、今のHPより小さくなったときだけ、HPは最大HPまで下がる', () => {
+    const world = makeWorld();
+    const p = world.player;
+    p.build.gear.armor = hpGear();
+    recalcStats(p);
+    p.hp = PLAYER.maxHp + 40;
+    p.build.gear.armor = null;
+    recalcStats(p);
+    expect(p.hp).toBe(PLAYER.maxHp);
+  });
+
+  it('最大HPが増えるインプラントを取っても、HPはそのまま', () => {
+    const world = makeWorld();
+    const p = world.player;
+    p.hp = 25;
+    p.build.permanent.push({ mods: [{ stat: 'maxHp', add: 30 }] });
+    recalcStats(p);
+    expect(p.stats.maxHp).toBe(PLAYER.maxHp + 30);
+    expect(p.hp).toBe(25);
+  });
+});

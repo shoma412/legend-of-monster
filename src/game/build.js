@@ -5,11 +5,10 @@ import { rollImplantChoices } from '../logic/level.js';
 import { computeStats, nextImplantLevel } from '../logic/stats.js';
 import { floatText, ring, sfx } from './fx.js';
 
-// ビルドが変わったらステータスを計算し直す。最大HPが増えたぶんは現在HPにも足す
+// ビルドが変わったらステータスを計算し直す
 export function recalcStats(player) {
-  const before = player.stats?.maxHp ?? null;
   player.stats = computeStats(player.build);
-  if (before != null && player.stats.maxHp > before) player.hp += player.stats.maxHp - before;
+  // 最大HPが変わっても、今のHPは増やさない（装備の付け外しをくり返して回復できてしまうため）。最大HPを超えたぶんだけ切り捨てる
   player.hp = Math.min(player.hp, player.stats.maxHp);
 }
 
