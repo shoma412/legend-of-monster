@@ -17,6 +17,7 @@ import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
+import { TREE_VIEW, centerOn, clipSegment, createTreeView, inRect, panBy, toScreen, zoomAt } from '../logic/treeView.js';
 import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -28,6 +29,11 @@ const W = SCREEN.width;
 const H = SCREEN.height;
 const PANEL = 0x110f1d;
 const LOCKED = '#4a4470';
+
+// スキルツリーの円を出す枠と、その真ん中
+const TREE_RECT = { left: 40, top: 166, right: 500, bottom: 462 };
+const TREE_CENTER = { x: 270, y: 314 };
+const TREE_RINGS = [0, 30, 58, 86, 105, 122, 139]; // 段ごとの、中心からの距離（拡大していないとき）
 
 const TAB_LABELS = {
   status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
@@ -72,10 +78,50 @@ export class MenuOverlay {
     this.scrollMax = 0; // 今のタブで動かせる上限（描くたびに決まる）
     scene.input.keyboard.addCapture('TAB');
     scene.input.keyboard.on('keydown', (event) => this.onKey(event));
-    // マウスのホイールで、長い一覧を上下に動かす
-    scene.input.on('wheel', (_pointer, _over, _dx, dy) => {
-      if (this.isOpen && !this.dialog && dy !== 0) this.scrollBy(dy > 0 ? 1 : -1);
+    this.treeView = createTreeView(); // スキルツリーの円の、拡大と位置
+    this.treeDrag = null; // 円を引っぱって動かしている最中の、前のマウスの位置
+    // マウスのホイール：スキルツリーの円の上では拡大・縮小（上に回すと拡大）。それ以外では、長い一覧を上下に動かす
+    scene.input.on('wheel', (pointer, _over, _dx, dy) => {
+      if (!this.isOpen || this.dialog || dy === 0) return;
+      if (this.overTree(pointer)) {
+        this.treeView = zoomAt(this.treeView, TREE_CENTER, { x: pointer.worldX, y: pointer.worldY }, dy < 0 ? 1 : -1);
+        this.render();
+        return;
+      }
+      this.scrollBy(dy > 0 ? 1 : -1);
     });
+    // スキルツリーの円は、拡大しているとき、引っぱって動かせる
+    scene.input.on('pointerdown', (pointer) => {
+      this.treeDrag = this.overTree(pointer) ? { x: pointer.worldX, y: pointer.worldY, moved: false } : null;
+    });
+    scene.input.on('pointerup', () => {
+      this.treeDrag = null;
+    });
+    scene.input.on('pointermove', (pointer) => {
+      const drag = this.treeDrag;
+      if (!drag || !pointer.isDown || !this.isOpen || this.tabId !== 'upgrade' || this.treeView.zoom <= TREE_VIEW.min) return;
+      const dx = pointer.worldX - drag.x;
+      const dy = pointer.worldY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 4) return; // クリックのつもりの、小さなぶれは無視する
+      drag.moved = true;
+      drag.x = pointer.worldX;
+      drag.y = pointer.worldY;
+      this.treeView = panBy(this.treeView, dx, dy);
+      this.render();
+    });
+  }
+
+  // マウスが、スキルツリーの円の枠の上にあるか
+  overTree(pointer) {
+    return this.isOpen && !this.dialog && this.tabId === 'upgrade' && inRect(pointer.worldX, pointer.worldY, TREE_RECT);
+  }
+
+  // スキルツリーのマスの、円の中での位置（中心が 0,0。拡大していないときの長さ）
+  treeLocal(layout, id) {
+    const p = layout.pos[id];
+    const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
+    const radius = TREE_RINGS[Math.min(TREE_RINGS.length - 1, p.col)];
+    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
   }
 
   get tabId() {
@@ -159,6 +205,7 @@ export class MenuOverlay {
     }
     this.cursor = (this.cursor + delta + n) % n;
     this.followCursor = true; // 選んだ行が見える位置まで、一覧を動かす
+    this.treeFollow = true; // スキルツリーでは、選んだマスが枠の外なら、見える位置まで動かす
     playSe('select');
     this.render();
   }
@@ -523,45 +570,64 @@ export class MenuOverlay {
     this.renderMaterials(save, 54, 138, 852, 1);
 
     const tree = saveTree(save);
-    const { pos, leaves } = layoutTree(tree);
+    const layout = layoutTree(tree);
     const order = this.treeOrder();
     this.cursor = Math.max(0, Math.min(order.length - 1, this.cursor));
     const picked = order[this.cursor];
-    // 位置：円の真ん中が中心で、外の輪ほど奥の段。枝は、中心から放射状に広がる
-    const CX = 270;
-    const CY = 314;
-    const RINGS = [0, 30, 58, 86, 105, 122, 139]; // 段ごとの、中心からの距離
-    const R = 8; // マスの大きさ
-    const at = (id) => {
-      const p = pos[id];
-      const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, leaves - 1)) / leaves;
-      const radius = RINGS[Math.min(RINGS.length - 1, p.col)];
-      return { x: CX + Math.cos(angle) * radius, y: CY + Math.sin(angle) * radius };
-    };
-    const root = { x: CX, y: CY };
+    // 位置：円の真ん中が中心で、外の輪ほど奥の段。枝は、中心から放射状に広がる。ホイールで拡大・縮小、引っぱって動かせる
+    if (this.treeFollow) {
+      this.treeFollow = false;
+      const p = toScreen(this.treeView, TREE_CENTER, this.treeLocal(layout, picked.id));
+      if (!inRect(p.x, p.y, TREE_RECT, 16)) this.treeView = centerOn(this.treeView, this.treeLocal(layout, picked.id));
+    }
+    const view = this.treeView;
+    const zoom = view.zoom;
+    const at = (id) => toScreen(view, TREE_CENTER, this.treeLocal(layout, id));
+    const root = toScreen(view, TREE_CENTER, { x: 0, y: 0 });
+    const R = 8 * Math.min(2, zoom ** 0.7); // マスの大きさ（寄ると、少し大きくなる）
     const CATEGORY = { body: { label: '体', color: COLORS.green }, skill: { label: '技', color: COLORS.red }, gear: { label: '備', color: COLORS.cyan } };
     const state = Object.fromEntries(tree.nodes.map((n) => [n.id, treeNodeState(save, n.id)]));
 
-    this.panel(40, 166, 460, 296);
+    this.panel(TREE_RECT.left, TREE_RECT.top, TREE_RECT.right - TREE_RECT.left, TREE_RECT.bottom - TREE_RECT.top);
     // マスの中の文字が隠れないよう、いちばん手前に出す層（this.graphics()）ではなく、ふつうの層に描く
     const g = this.scene.add.graphics();
     this.root.add(g);
-    // 段の目安の輪（薄く）
-    for (let d = 1; d < RINGS.length; d++) g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.5 : 0.3).strokeCircle(CX, CY, RINGS[d]);
+    // 枠からはみ出さないように、線は枠の中だけに切りつめて描く
+    const inner = { left: TREE_RECT.left + 2, top: TREE_RECT.top + 2, right: TREE_RECT.right - 2, bottom: TREE_RECT.bottom - 2 };
+    const line = (x1, y1, x2, y2) => {
+      const c = clipSegment(x1, y1, x2, y2, inner);
+      if (c) g.lineBetween(c.x1, c.y1, c.x2, c.y2);
+    };
+    // 段の目安の輪（薄く）。枠の中に見えているところだけ、短い線をつないで描く
+    for (let d = 1; d < TREE_RINGS.length; d++) {
+      g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.5 : 0.3);
+      const parts = 72;
+      for (let k = 0; k < parts; k++) {
+        const a1 = (k / parts) * Math.PI * 2;
+        const a2 = ((k + 1) / parts) * Math.PI * 2;
+        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * TREE_RINGS[d], y: Math.sin(a1) * TREE_RINGS[d] });
+        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * TREE_RINGS[d], y: Math.sin(a2) * TREE_RINGS[d] });
+        line(p1.x, p1.y, p2.x, p2.y);
+      }
+    }
     // 線：取ってあるマス同士は明るく、これから取れるマスへは少し明るく
     for (const n of tree.nodes) {
       const to = at(n.id);
       const from = n.parent ? at(n.parent) : root;
       const lit = state[n.id] === 'owned';
       const near = state[n.id] === 'open' || state[n.id] === 'short';
-      g.lineStyle(lit ? 2.5 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.dim), lit ? 0.9 : near ? 0.75 : 0.45).lineBetween(from.x, from.y, to.x, to.y);
+      g.lineStyle(lit ? 2.5 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.dim), lit ? 0.9 : near ? 0.75 : 0.45);
+      line(from.x, from.y, to.x, to.y);
     }
     // 中心
-    g.fillStyle(hex(COLORS.cyan), 1).fillCircle(root.x, root.y, 5);
-    g.lineStyle(2, hex(COLORS.cyan), 0.5).strokeCircle(root.x, root.y, 9);
-    // マス
+    if (inRect(root.x, root.y, TREE_RECT, 10)) {
+      g.fillStyle(hex(COLORS.cyan), 1).fillCircle(root.x, root.y, 5);
+      g.lineStyle(2, hex(COLORS.cyan), 0.5).strokeCircle(root.x, root.y, 9);
+    }
+    // マス（枠の中に見えているものだけ）
     order.forEach((n, i) => {
       const p = at(n.id);
+      if (!inRect(p.x, p.y, TREE_RECT, R + 5)) return;
       const def = DATA.upgrades.get(n.upgrade);
       const cat = CATEGORY[def.category] ?? CATEGORY.body;
       const st = state[n.id];
@@ -571,10 +637,13 @@ export class MenuOverlay {
       g.lineStyle(st === 'open' ? 2.5 : 1.5, hex(color), 1).strokeCircle(p.x, p.y, R);
       if (st === 'open') g.lineStyle(4, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, R + 3);
       if (i === this.cursor) g.lineStyle(2, hex(COLORS.cyan), 1).strokeCircle(p.x, p.y, R + 4);
-      this.text(p.x, p.y, cat.label, 10, st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
-      // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る
+      this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
+      // 十分に寄ったら、マスの下に強化の名前も出す
+      if (zoom >= 1.9 && inRect(p.x, p.y + R + 12, TREE_RECT, 8)) this.text(p.x, p.y + R + 3, def.name, 10, st === 'locked' ? LOCKED : COLORS.ink).setOrigin(0.5, 0);
+      // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る（引っぱって動かした直後は、何もしない）
       const hit = this.scene.add.circle(p.x, p.y, R + 3, 0x000000, 0.001).setInteractive({ useHandCursor: true });
-      hit.on('pointerdown', () => {
+      hit.on('pointerup', () => {
+        if (this.treeDrag?.moved) return;
         if (this.cursor === i) this.buy(n.id);
         else {
           this.cursor = i;
@@ -584,6 +653,11 @@ export class MenuOverlay {
       });
       this.root.add(hit);
     });
+    // 操作の案内と、今の倍率（マスや線と重ならないよう、下に帯を敷く）
+    const strip = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.bottom - 25, TREE_RECT.right - TREE_RECT.left - 2, 24, PANEL, 0.96).setOrigin(0);
+    this.root.add(strip);
+    this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）', 11, COLORS.dim);
+    this.text(TREE_RECT.right - 10, TREE_RECT.bottom - 20, `×${zoom.toFixed(1)}`, 11, zoom > TREE_VIEW.min ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(1, 0);
 
     // 右側：選んでいるマスの中身
     const def = DATA.upgrades.get(picked.upgrade);
@@ -611,9 +685,11 @@ export class MenuOverlay {
     }[st];
     this.text(X + 18, 372, status[0], 14, status[1], { fontStyle: '700' });
     // 凡例
-    this.text(X + 18, 408, 'マスの種類', 11, COLORS.dim);
-    Object.values(CATEGORY).forEach((c, k) => this.text(X + 96 + k * 46, 407, c.label, 12, c.color, { fontStyle: '700' }));
-    this.text(X + 240, 408, '体＝耐久　技＝攻撃　備＝装備・移動', 11, COLORS.dim);
+    this.text(X + 18, 408, '文字', 11, COLORS.dim);
+    [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]].forEach(([mark, meaning, color], k) => {
+      this.text(X + 50 + k * 96, 407, mark, 12, color, { fontStyle: '700' });
+      this.text(X + 66 + k * 96, 408, meaning, 11, COLORS.dim);
+    });
     this.text(X + 18, 432, '色', 11, COLORS.dim);
     [['取得済み', COLORS.green], ['取れる', COLORS.amber], ['素材不足', COLORS.dim], ['まだ', LOCKED]].forEach(([label, color], k) => this.text(X + 50 + k * 86, 431, `● ${label}`, 12, color, { fontStyle: '700' }));
   }
