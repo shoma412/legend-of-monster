@@ -197,6 +197,16 @@ const STATION_ICONS = {
 };
 
 const DRAWERS = {
+  // 落ちている修復キット（緑の十字の入った箱）
+  kit(g, o, world, focused) {
+    const c = hex(COLORS.green);
+    const y = o.y + Math.sin(world.time * 4 + o.x) * 3;
+    const s = focused ? 10 : 8;
+    g.fillStyle(BODY_FILL, 0.9).fillRect(o.x - s, y - s, s * 2, s * 2);
+    glowLine(g, c, 2, () => g.strokeRect(o.x - s, y - s, s * 2, s * 2));
+    ICONS.cross(g, o.x, y, s * 0.6, c);
+    if (focused) g.lineStyle(1, c, 0.5).strokeCircle(o.x, o.y, LOOT.pickupRadius * 0.7);
+  },
   // 落ちている消耗品
   pickup(g, o, world, focused) {
     const def = DATA.consumables.get(o.id);
@@ -359,6 +369,7 @@ export function focusPrompt(world) {
   if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
   if (o.kind === 'secretDoor') return { text: 'E：隠し扉に入る（強い反応がある。入ると、倒すまで出られない）', color: COLORS.amber };
+  if (o.kind === 'kit') return { text: `E：修復キットを拾う（所持 ${p.build.kits}）`, color: COLORS.green };
   if (o.kind === 'pickup') {
     const def = DATA.consumables.get(o.id);
     return { text: `E：${def.name} を拾う — ${def.desc}`, color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink };

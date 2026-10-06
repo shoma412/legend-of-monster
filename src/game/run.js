@@ -105,8 +105,9 @@ export function enterRoom(run) {
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex * (run.map.enemyScale ?? 1);
   // 周回による変化（敵の HP、受けるダメージ、装備のレア度、ボスの行動、補給の回復量）
-  room.hpScale = run.mods.hpScale;
-  room.damageScale = run.mods.damageScale;
+  // 敵ぜんたいの強さ（ENEMY_SCALING.base）は、周回の倍率に掛け算する
+  room.hpScale = run.mods.hpScale * ENEMY_SCALING.base;
+  room.damageScale = run.mods.damageScale * ENEMY_SCALING.base;
   room.rarityChance = run.mods.rarityChance;
   room.bossHard = run.mods.bossHard;
   room.healScale = run.mods.healScale;

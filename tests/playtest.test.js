@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { grantUpgrade } from './helpers/upgrades.js';
-import { FEEL, ITEMS, LOOT, PLAYER } from '../src/data/balance.js';
+import { CYCLE, ENEMY_SCALING, FEEL, ITEMS, LOOT, PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { recalcStats } from '../src/game/build.js';
-import { hitEnemy } from '../src/game/combat.js';
+import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
+import { interact } from '../src/game/objects.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { NEXT_AREA, createRun, enterRoom, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
@@ -447,5 +448,99 @@ describe('最大HPが変わっても、HPは回復しない（2026-10-07 のバ�
     recalcStats(p);
     expect(p.stats.maxHp).toBe(PLAYER.maxHp + 30);
     expect(p.hp).toBe(25);
+  });
+});
+
+describe('敵ぜんたいの強さ（2026-10-07：0.65倍に下げた）', () => {
+  it('出撃すると、敵の HP と、受けるダメージが、どちらも 0.65倍になる', () => {
+    expect(ENEMY_SCALING.base).toBeCloseTo(0.65);
+    const world = enterRoom(createRun({ rng: seeded(5), save: createSave(), mapId: 'map1', weaponId: 'sword' }));
+    expect(world.room.hpScale).toBeCloseTo(0.65);
+    expect(world.room.damageScale).toBeCloseTo(0.65);
+    world.countdown = 0;
+    while (world.enemies.length === 0) updateWorld(world, DT, idle);
+    const e = world.enemies[0];
+    expect(e.maxHp).toBe(Math.round(DATA.enemies.get(e.def.id).hp * 0.65)); // もとの定義の 0.65倍
+    hurtPlayer(world, 100);
+    expect(PLAYER.maxHp - world.player.hp).toBe(65);
+  });
+
+  it('ボスの HP にも掛かる', () => {
+    const run = createRun({ rng: seeded(5), save: createSave(), mapId: 'map1', weaponId: 'sword' });
+    skipToBoss(run, enterRoom(run));
+    const world = enterRoom(run);
+    while (!world.boss) updateWorld(world, DT, idle);
+    expect(world.boss.maxHp).toBe(Math.round(world.boss.def.hp * 0.65));
+  });
+
+  it('周回の倍率は、この値に掛け算される（2周目以降も、同じ割合で弱くなる）', () => {
+    const world = enterRoom(createRun({ rng: seeded(5), save: createSave(), mapId: 'map1', cycle: 3, weaponId: 'sword' }));
+    expect(world.room.hpScale).toBeCloseTo(0.65 * (1 + 2 * CYCLE.hpPerCycle));
+    expect(world.room.damageScale).toBeCloseTo(0.65 * (1 + 2 * CYCLE.damagePerCycle));
+  });
+});
+
+describe('修復キットのドロップ', () => {
+  const kits = (world) => world.objects.filter((o) => o.kind === 'kit');
+
+  it('雑魚は、決まった確率で修復キットを落とす。落とさないこともある', () => {
+    const world = makeWorld();
+    world.rng = () => 0.999;
+    hitEnemy(world, addEnemy(world, 'grunt', 60), 99999, 1, 0, 0);
+    expect(kits(world)).toHaveLength(0);
+    // 最後の抽選（修復キット）だけ当たるようにする
+    let calls = [];
+    world.rng = () => {
+      calls.push(1);
+      return 0.999;
+    };
+    hitEnemy(world, addEnemy(world, 'grunt', 60), 99999, 1, 0, 0);
+    const total = calls.length;
+    calls = [];
+    world.rng = () => {
+      calls.push(1);
+      return calls.length === total ? ITEMS.kitDrop.chance - 0.001 : 0.999;
+    };
+    hitEnemy(world, addEnemy(world, 'grunt', 60), 99999, 1, 0, 0);
+    expect(kits(world)).toHaveLength(1);
+  });
+
+  it('たくさん倒すと、だいたい 4% の割合で落ちる', () => {
+    const world = makeWorld();
+    world.rng = seeded(31);
+    const n = 3000;
+    for (let i = 0; i < n; i++) {
+      hitEnemy(world, addEnemy(world, 'drone', 60), 99999, 1, 0, 0);
+      world.enemies = [];
+      world.choice = null;
+      world.pendingLevelUps = 0;
+    }
+    const rate = kits(world).length / n;
+    expect(rate).toBeGreaterThan(ITEMS.kitDrop.chance * 0.6);
+    expect(rate).toBeLessThan(ITEMS.kitDrop.chance * 1.5);
+  });
+
+  it('近づいて E で拾うと、修復キットが1個増える', () => {
+    const world = makeWorld();
+    const p = world.player;
+    const before = p.build.kits;
+    world.objects.push({ kind: 'kit', x: p.x + 10, y: p.y, r: LOOT.pickupRadius });
+    updateWorld(world, DT, idle);
+    expect(world.focusObject?.kind).toBe('kit');
+    interact(world);
+    expect(p.build.kits).toBe(before + 1);
+    expect(kits(world)).toHaveLength(0);
+  });
+
+  it('ボスは落とさない。エリートは、雑魚よりずっと落としやすい', () => {
+    expect(ITEMS.kitDrop.eliteChance).toBeGreaterThan(ITEMS.kitDrop.chance * 5);
+    const run = createRun({ rng: seeded(7), save: createSave(), mapId: 'map1', weaponId: 'sword' });
+    skipToBoss(run, enterRoom(run));
+    const world = enterRoom(run);
+    while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+    world.rng = () => 0; // どの抽選も当たる
+    world.player.inv = Infinity;
+    hitEnemy(world, world.boss, 99999999, 1, 0, 0, { unblockable: true });
+    expect(kits(world)).toHaveLength(0);
   });
 });

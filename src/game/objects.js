@@ -101,6 +101,15 @@ const HANDLERS = {
   },
 
   // 落ちている消耗品：拾って持ち物に入れる
+  // 落ちている修復キット
+  kit(world, o) {
+    const p = world.player;
+    p.build.kits++;
+    say(world, `修復キット +1（所持 ${p.build.kits}）`, COLORS.green);
+    sfx(world, 'pickup');
+    world.objects = world.objects.filter((x) => x !== o);
+  },
+
   pickup(world, o) {
     const p = world.player;
     if (!addItem(p.build, o.id)) {

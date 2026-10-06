@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CYCLE, META, PLAYER, ROOMGEN } from '../src/data/balance.js';
+import { CYCLE, META, PLAYER, ROOMGEN, ENEMY_SCALING } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
 import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
@@ -182,7 +182,7 @@ describe('周回', () => {
     const a = sample(first, id);
     const b = sample(third, id);
     expect(b).toBeDefined();
-    expect(b.maxHp).toBe(Math.round(a.maxHp * (1 + 2 * CYCLE.hpPerCycle)));
+    expect(b.maxHp / a.maxHp).toBeCloseTo(1 + 2 * CYCLE.hpPerCycle, 1); // 敵ぜんたいの強さ（0.65倍）が掛かっても、周ごとの割合は同じ
     expect(b.def.damage).toBe(a.def.damage);
 
     const boss = (cycle) => {
@@ -192,7 +192,7 @@ describe('周回', () => {
       while (!world.boss) updateWorld(world, DT, idle);
       return world.boss;
     };
-    expect(boss(3).maxHp).toBe(Math.round(boss(1).maxHp * (1 + 2 * CYCLE.hpPerCycle)));
+    expect(boss(3).maxHp / boss(1).maxHp).toBeCloseTo(1 + 2 * CYCLE.hpPerCycle, 2);
   });
 
   it('周が進むと、受けるダメージが増える', () => {
@@ -202,8 +202,8 @@ describe('周回', () => {
       hurtPlayer(world, 20);
       return PLAYER.maxHp - world.player.hp;
     };
-    expect(take(1)).toBe(20);
-    expect(take(4)).toBe(Math.round(20 * (1 + 3 * CYCLE.damagePerCycle)));
+    expect(take(1)).toBe(Math.round(20 * ENEMY_SCALING.base));
+    expect(take(4)).toBe(Math.round(20 * ENEMY_SCALING.base * (1 + 3 * CYCLE.damagePerCycle)));
   });
 
   it('周が進むと、1部屋の敵の量が増える', () => {

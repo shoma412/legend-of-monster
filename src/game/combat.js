@@ -239,6 +239,10 @@ function dropLoot(world, enemy) {
   if (drops || world.rng() < ITEMS.dropChance) {
     world.objects.push({ kind: 'pickup', id: rollConsumable(world.rng), x: enemy.x, y: enemy.y + (drops ? 44 : 26), r: LOOT.pickupRadius });
   }
+  // 修復キット。雑魚はたまに、エリートはよく落とす。ボスは落とさない（倒すと全回復するため）。近づいて E で拾う
+  if (!enemy.boss && world.rng() < (enemy.elite ? ITEMS.kitDrop.eliteChance : ITEMS.kitDrop.chance)) {
+    world.objects.push({ kind: 'kit', x: enemy.x - 28, y: enemy.y + (drops ? 44 : 26), r: LOOT.pickupRadius });
+  }
 }
 
 // ---- プレイヤーの回復 ----

@@ -167,7 +167,8 @@ describe('隠しボスの部屋', () => {
     expect(boss.room.secret).toBeUndefined();
     while (!boss.boss) updateWorld(boss, DT, idle);
     expect(boss.boss.def.id).toBe('architect');
-    expect(boss.boss.maxHp).toBeGreaterThan(DATA.bosses.get('cranetitan').hp * 1.2);
+    // 出撃中の HP には、敵ぜんたいの強さ（0.65倍）が掛かる。定義どうしで比べる
+    expect(boss.boss.def.hp).toBeGreaterThan(DATA.bosses.get('cranetitan').hp * 1.2);
     expect(DATA.bosses.get('architect').phases).toHaveLength(3);
   });
 
