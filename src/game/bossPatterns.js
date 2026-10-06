@@ -6,7 +6,8 @@ import { FEEL, ROOM } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
-import { damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
+import { cellHot, orbitBlades } from '../logic/bossShapes.js';
+import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
@@ -843,6 +844,214 @@ PATTERNS.chase = {
   },
 };
 
+// ---- ここから、ボスごとの固有の攻撃（2026-10-07 追加） ----
+
+// 刃の渦（スクラップハウンド）：体のまわりを count 枚の刃が回る。その間も、ボスは chase の速さでプレイヤーを追う。
+//   刃に当たると、ダメージと持続ダメージ（dot）
+PATTERNS.orbit = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.angle = 0;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'active') {
+      act.angle += def.spin * DEG * dt;
+      // 回しながら追いかけてくる
+      if (d.dist > b.r + p.r) {
+        b.x += (d.dx / d.dist) * b.def.speed * def.chase * dt;
+        b.y += (d.dy / d.dist) * b.def.speed * def.chase * dt;
+      }
+      for (const blade of orbitBlades(b, act)) {
+        if (circlesOverlap(blade.x, blade.y, def.bladeRadius, p.x, p.y, p.r) && hurtPlayer(world, def.damage)) {
+          if (def.dot) afflictPlayer(world, def.dot);
+          break;
+        }
+      }
+      if (act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 張り糸（ガーダースパイダー）：部屋を横切る糸を count 本張る。しばらく残り、触れている間は減速して、tick 秒ごとにダメージ。
+//   1本目はプレイヤーのいる場所を通る。残りは、その近くを別の向きで通る
+PATTERNS.wires = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const base = world.rng() * Math.PI;
+        for (let i = 0; i < def.count; i++) {
+          const angle = base + (i * Math.PI) / def.count + (world.rng() - 0.5) * 0.3;
+          const off = i === 0 ? 0 : (world.rng() - 0.5) * 2 * def.spread;
+          world.hazards.push({
+            type: 'wire', x: p.x - Math.sin(angle) * off, y: p.y + Math.cos(angle) * off, angle, width: def.width,
+            arm: def.arm, armMax: def.arm, life: def.life, tick: def.tick, acc: def.tick, damage: def.damage, color: b.color,
+          });
+        }
+        sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 溶接ビーム（クレーンタイタン）：ビームが、プレイヤーをゆっくり追って回る（turn 度/秒）。当たるとダメージと持続ダメージ。
+//   通ったあとに、燃える床（trail）が残る
+PATTERNS.weld = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.angle = Math.atan2(d.dy, d.dx);
+    act.dirX = Math.cos(act.angle);
+    act.dirY = Math.sin(act.angle);
+    act.trailT = 0;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    // プレイヤーのいる向きへ、決まった速さで回る（予告の間は、少し速く向き直る）
+    const want = Math.atan2(d.dy, d.dx);
+    let diff = want - act.angle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    const step = def.turn * DEG * dt * (act.phase === 'telegraph' ? 2 : 1);
+    if (act.phase !== 'recover') act.angle += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+    act.dirX = Math.cos(act.angle);
+    act.dirY = Math.sin(act.angle);
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        sfx(world, 'laser');
+      }
+    } else if (act.phase === 'active') {
+      const x2 = b.x + act.dirX * def.range;
+      const y2 = b.y + act.dirY * def.range;
+      if (distToSegment(p.x, p.y, b.x, b.y, x2, y2) <= p.r + def.width / 2 && hurtPlayer(world, def.damage) && def.dot) afflictPlayer(world, def.dot);
+      // ビームの先（プレイヤーと同じ距離のあたり）に、燃える床を残していく
+      if (def.trail) {
+        act.trailT -= dt;
+        if (act.trailT <= 0) {
+          act.trailT = def.trail.every;
+          const reach = Math.min(def.range, Math.max(b.r + 40, d.dist));
+          const spot = { x: b.x + act.dirX * reach, y: b.y + act.dirY * reach, r: 0 };
+          clampToBounds(spot, world.bounds);
+          world.hazards.push({
+            type: 'pool', x: spot.x, y: spot.y, r: def.trail.radius, arm: def.trail.arm, armMax: def.trail.arm, life: def.trail.life,
+            tick: def.trail.tick, acc: def.trail.tick, damage: def.trail.damage, slow: false, dot: def.dot, color: b.color,
+          });
+        }
+      }
+      if (act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 方眼（アーキテクト）：部屋を cols × rows のマスに分け、市松模様の半分が光って攻撃する。続けて、残りの半分が光る（waves 回）
+PATTERNS.cells = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.total = act.def.telegraph;
+    act.wave = 0;
+    act.parity = world.rng() < 0.5 ? 0 : 1;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const bounds = world.bounds;
+        const col = Math.max(0, Math.min(def.cols - 1, Math.floor(((p.x - bounds.left) / (bounds.right - bounds.left)) * def.cols)));
+        const row = Math.max(0, Math.min(def.rows - 1, Math.floor(((p.y - bounds.top) / (bounds.bottom - bounds.top)) * def.rows)));
+        if (cellHot(act, col, row)) hurtPlayer(world, def.damage);
+        sfx(world, 'zap');
+        addShake(world, FEEL.shake.heavy);
+        act.phase = 'active';
+        act.t = def.active;
+      }
+    } else if (act.phase === 'active') {
+      if (act.t <= 0) {
+        act.wave++;
+        if (act.wave < def.waves) {
+          act.phase = 'telegraph';
+          act.t = act.total = def.second;
+        } else {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// インク流し（アーキテクト）：プレイヤーの足元から、広がっていく床を置く（count 個。2個目からはボスの足元）。
+//   中にいると、tick 秒ごとにダメージと持続ダメージ
+PATTERNS.ink = {
+  start(world, b, act) {
+    const p = world.player;
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.spots = Array.from({ length: act.def.count }, (_, i) => (i === 0 ? { x: p.x, y: p.y } : { x: b.x, y: b.y }));
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const spot of act.spots) {
+          world.hazards.push({
+            type: 'pool', x: spot.x, y: spot.y, r: def.start, grow: def.grow, rMax: def.maxRadius, arm: def.arm, armMax: def.arm, life: def.life,
+            tick: def.tick, acc: def.tick, damage: def.damage, slow: false, dot: def.dot, color: b.color,
+          });
+        }
+        sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -922,6 +1131,24 @@ export function updateHazards(world, dt) {
           addShake(world, FEEL.shake.hit);
         }
       }
+    } else if (h.type === 'wire') {
+      // 張り糸：張られてから arm 秒後に効き始める。触れている間は減速して、tick 秒ごとに当たる
+      if (h.arm > 0) {
+        h.arm -= dt;
+      } else {
+        h.life -= dt;
+        h.acc += dt;
+        const dx = Math.cos(h.angle) * ROOM.barLength;
+        const dy = Math.sin(h.angle) * ROOM.barLength;
+        if (distToSegment(p.x, p.y, h.x - dx, h.y - dy, h.x + dx, h.y + dy) <= p.r + h.width / 2) {
+          slowPlayer(world);
+          if (h.acc >= h.tick) {
+            h.acc = 0;
+            hurtPlayer(world, h.damage);
+          }
+        }
+        if (h.life <= 0) h.dead = true;
+      }
     } else if (h.type === 'pool') {
       // その場に残る床。効き始めてからは、中にいる間 tick 秒ごとに当たる
       if (h.arm > 0) {
@@ -929,11 +1156,13 @@ export function updateHazards(world, dt) {
       } else {
         h.life -= dt;
         h.acc += dt;
+        // 広がっていく床（インク）
+        if (h.grow && h.r < h.rMax) h.r = Math.min(h.rMax, h.r + h.grow * dt);
         if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) {
           if (h.slow) slowPlayer(world);
           if (h.damage > 0 && h.acc >= h.tick) {
             h.acc = 0;
-            hurtPlayer(world, h.damage);
+            if (hurtPlayer(world, h.damage) && h.dot) afflictPlayer(world, h.dot);
           }
         }
         if (h.life <= 0) h.dead = true;

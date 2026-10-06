@@ -242,6 +242,40 @@ export function healPlayer(world, amount) {
 // ---- プレイヤーへのダメージ ----
 
 // 冷気を浴びたときの減速。無敵中（ダッシュ中など）は付かない
+// 持続ダメージを付ける（炎上・裂傷・腐食）。付け直すと、時間が元に戻る。ダッシュすると消える（src/game/player.js）
+export function afflictPlayer(world, id) {
+  const p = world.player;
+  const def = STATUS.dots[id];
+  if (!def || world.mode !== 'play') return;
+  const color = ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.red;
+  if (!p.dot || p.dot.id !== id) floatText(world, p.x, p.y - 42, `${def.name}!`, color, 16);
+  p.dot = { id, name: def.name, color, damage: def.damage, tick: def.tick, acc: 0, t: def.duration };
+}
+
+// 持続ダメージの進行。被弾後の無敵は関係なく効く。これで倒れることはない（HP は 1 残る）
+export function updatePlayerDot(world, dt) {
+  const p = world.player;
+  const d = p.dot;
+  if (!d) return;
+  if (world.mode !== 'play') {
+    p.dot = null;
+    return;
+  }
+  d.t -= dt;
+  d.acc += dt;
+  if (d.acc >= d.tick) {
+    d.acc -= d.tick;
+    const taken = Math.max(PLAYER.minDamageTaken, statWith(world, 'damageTaken'));
+    const amount = Math.min(Math.max(0, p.hp - 1), Math.max(1, Math.round(d.damage * taken * (world.room.damageScale ?? 1))));
+    if (amount > 0) {
+      p.hp -= amount;
+      world.damageTaken += amount;
+      floatText(world, p.x + (world.rng() - 0.5) * 16, p.y - 20, '-' + amount, d.color, 13);
+    }
+  }
+  if (d.t <= 0) p.dot = null;
+}
+
 export function slowPlayer(world) {
   const p = world.player;
   if (p.inv > 0 || world.mode !== 'play') return;

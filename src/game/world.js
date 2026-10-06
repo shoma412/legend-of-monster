@@ -10,6 +10,7 @@ import { updateFocus } from './objects.js';
 import { SECRET_IN, doorObjects } from './rooms.js';
 import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
+import { updatePlayerDot } from './combat.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { addShake, burst, createFx, floatText, sfx, updateFx } from './fx.js';
 import { updateDevices } from './devices.js';
@@ -103,6 +104,7 @@ export function updateWorld(world, dt, input) {
     updateGimmick(world, dt);
     updateDevices(world, dt);
     updateHazards(world, dt);
+    updatePlayerDot(world, dt);
     updateArena(world, dt);
     updateWaves(world, dt);
   }
@@ -164,6 +166,7 @@ function updateArena(world, dt) {
 function clearRoom(world) {
   const p = world.player;
   world.mode = 'clear';
+  p.dot = null;
   world.shots = [];
   world.hazards = [];
   world.zones = [];

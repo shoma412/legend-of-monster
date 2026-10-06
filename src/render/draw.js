@@ -5,6 +5,7 @@ import { DATA } from '../data/index.js';
 import { xpToNext } from '../logic/level.js';
 import { drawBackdrop } from './backdrop.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
+import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
 
 const BODY_FILL = 0x0a0814;
@@ -412,6 +413,15 @@ export function drawPlayer(g, world) {
   const p = world.player;
   const special = p.weapon.special;
   const cyan = hex(COLORS.cyan);
+  // 持続ダメージ（炎上・裂傷・腐食）を受けている間は、体のまわりにその色の輪と粒が出る
+  if (p.dot) {
+    const c = hex(p.dot.color);
+    g.lineStyle(2, c, 0.5 + 0.4 * Math.abs(Math.sin(world.time * 10))).strokeCircle(p.x, p.y, p.r + 7);
+    for (let i = 0; i < 3; i++) {
+      const a = world.time * 5 + (i * Math.PI * 2) / 3;
+      g.fillStyle(c, 0.9).fillCircle(p.x + Math.cos(a) * (p.r + 7), p.y + Math.sin(a) * (p.r + 7), 2.5);
+    }
+  }
 
   // 斬撃の軌跡
   const a = p.attack;
@@ -804,6 +814,77 @@ BOSS_TELEGRAPHS.chase = (g, b, act, world) => {
   }
 };
 
+// 刃の渦：予告では刃の通り道の輪、始まると回る刃
+BOSS_TELEGRAPHS.orbit = (g, b, act) => {
+  const def = act.def;
+  const red = hex(COLORS.red);
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / def.telegraph;
+    g.lineStyle(def.bladeRadius * 2, red, 0.08 + 0.14 * k).strokeCircle(b.x, b.y, def.radius);
+    g.lineStyle(1.5, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, def.radius + def.bladeRadius).strokeCircle(b.x, b.y, def.radius - def.bladeRadius);
+  } else if (act.phase === 'active') {
+    const color = hex(b.color);
+    g.lineStyle(1, red, 0.3).strokeCircle(b.x, b.y, def.radius);
+    for (const blade of orbitBlades(b, act)) {
+      const spin = act.angle * 4;
+      const pts = [0, 1, 2, 3, 4, 5].map((i) => {
+        const r = def.bladeRadius * (i % 2 === 0 ? 1.15 : 0.5);
+        return { x: blade.x + Math.cos(spin + (i * Math.PI) / 3) * r, y: blade.y + Math.sin(spin + (i * Math.PI) / 3) * r };
+      });
+      g.fillStyle(BODY_FILL, 0.9).fillPoints(pts, true);
+      g.lineStyle(def.bladeRadius, color, 0.18).strokeCircle(blade.x, blade.y, def.bladeRadius * 0.6);
+      g.lineStyle(2.5, color, 1).strokePoints(pts, true, true);
+    }
+  }
+};
+
+// 溶接ビーム：予告は細い線、撃っている間は太い帯と白い芯
+BOSS_TELEGRAPHS.weld = (g, b, act) => {
+  const def = act.def;
+  const x2 = b.x + act.dirX * def.range;
+  const y2 = b.y + act.dirY * def.range;
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / def.telegraph;
+    g.lineStyle(def.width, hex(COLORS.red), 0.06 + 0.16 * k).lineBetween(b.x, b.y, x2, y2);
+    g.lineStyle(1.5, hex(COLORS.red), 0.5 + 0.4 * k).lineBetween(b.x, b.y, x2, y2);
+  } else if (act.phase === 'active') {
+    const color = hex(b.color);
+    g.lineStyle(def.width + 16, color, 0.22).lineBetween(b.x, b.y, x2, y2);
+    g.lineStyle(def.width, color, 0.95).lineBetween(b.x, b.y, x2, y2);
+    g.lineStyle(def.width * 0.3, WHITE, 0.9).lineBetween(b.x, b.y, x2, y2);
+  }
+};
+
+// 方眼：攻撃されるマスが赤く濃くなっていき、時間が来ると光る
+BOSS_TELEGRAPHS.cells = (g, b, act, world) => {
+  if (act.phase !== 'telegraph' && act.phase !== 'active') return;
+  const def = act.def;
+  const active = act.phase === 'active';
+  const k = active ? 1 : 1 - Math.max(0, act.t) / act.total;
+  for (let col = 0; col < def.cols; col++) {
+    for (let row = 0; row < def.rows; row++) {
+      const cell = cellRect(world, act, col, row);
+      g.lineStyle(1, hex(COLORS.red), 0.25).strokeRect(cell.x, cell.y, cell.w, cell.h);
+      if (!cellHot(act, col, row)) continue;
+      if (active) g.fillStyle(hex(b.color), 0.7).fillRect(cell.x, cell.y, cell.w, cell.h);
+      else g.fillStyle(hex(COLORS.red), 0.06 + 0.3 * k).fillRect(cell.x, cell.y, cell.w, cell.h);
+      g.lineStyle(2, hex(COLORS.red), 0.5 + 0.4 * k).strokeRect(cell.x + 3, cell.y + 3, cell.w - 6, cell.h - 6);
+    }
+  }
+};
+
+// インク流し：床が出る場所の予告
+BOSS_TELEGRAPHS.ink = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const k = 1 - Math.max(0, act.t) / def.telegraph;
+  for (const spot of act.spots) {
+    g.fillStyle(hex(COLORS.red), 0.1 + 0.2 * k).fillCircle(spot.x, spot.y, def.start);
+    g.lineStyle(2, hex(COLORS.red), 0.9).strokeCircle(spot.x, spot.y, def.start);
+    g.lineStyle(1, hex(COLORS.red), 0.35).strokeCircle(spot.x, spot.y, def.maxRadius);
+  }
+};
+
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -1165,6 +1246,23 @@ export function drawHazards(g, world) {
         g.fillStyle(red, 0.15 + 0.25 * k).fillCircle(h.x, h.y, h.r);
         g.lineStyle(3, red, 1).strokeCircle(h.x, h.y, h.r);
         g.lineStyle(2, hex(h.color), 0.95).strokeCircle(h.x, h.y, h.r * k);
+      }
+    } else if (h.type === 'wire') {
+      // 張り糸：効き始める前は赤い予告、効いている間は細く光る線
+      const dx = Math.cos(h.angle) * ROOM.barLength;
+      const dy = Math.sin(h.angle) * ROOM.barLength;
+      if (h.arm > 0) {
+        const k = 1 - h.arm / h.armMax;
+        g.lineStyle(h.width, hex(COLORS.red), 0.08 + 0.2 * k).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        g.lineStyle(1.5, hex(COLORS.red), 0.5 + 0.4 * k).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+      } else {
+        const fade = Math.min(1, h.life / 0.6);
+        const color = hex(h.color);
+        g.lineStyle(h.width, color, 0.16 * fade).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        g.lineStyle(2, color, 0.95 * fade).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        // 糸の上を走る光
+        const s = ((world.time * 0.6 + h.angle) % 1) * 2 - 1;
+        g.fillStyle(WHITE, 0.9 * fade).fillCircle(h.x + dx * s * 0.5, h.y + dy * s * 0.5, 2.5);
       }
     } else if (h.type === 'hook') {
       // 吊ったフック：通り道の薄い線と、鎖でつながった重り

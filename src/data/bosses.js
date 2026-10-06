@@ -20,6 +20,12 @@
 //   endure    : 大技「耐える」。duration 秒溜める。その間に最大HPの break の割合だけダメージを与えると中断でき、stun 秒のスタン。中断できないと、輪が blast.count 回広がる
 //   safezone  : 大技「安全地帯」。部屋全体が危険になり、zones 個の円（radius）の中だけが助かる。waves 回くり返す
 //   chase     : 大技「追尾」。照準の円が count 個、プレイヤーを follow 秒追い、lock 秒止まってから攻撃する
+//   orbit     : 固有（スクラップハウンド）。体のまわりを刃が count 枚回り、その間もプレイヤーを追う。当たると持続ダメージ（dot）
+//   wires     : 固有（ガーダースパイダー）。部屋を横切る糸を count 本張る。life 秒残り、触れている間は減速と、tick 秒ごとのダメージ
+//   weld      : 固有（クレーンタイタン）。ビームがプレイヤーをゆっくり追って回る（turn 度/秒）。通ったあとに燃える床（trail）が残る
+//   cells     : 固有（アーキテクト）。部屋をマスに分け、市松模様の半分 → 残りの半分の順に攻撃する（waves 回）
+//   ink       : 固有（アーキテクト）。足元から広がっていく床を置く。中にいると持続ダメージ
+//   dot       : 持続ダメージの種類（balance の STATUS.dots：burn 炎上 / bleed 裂傷 / corrode 腐食）。ダッシュすると消える
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -400,18 +406,21 @@ export const bosses = [
       // 磁力：引き寄せてから、周りを叩く
       magnet: { pattern: 'magnet', telegraph: 0.6, duration: 2.6, strength: 130, radius: 135, damage: 46, recover: 1.1 },
       magnetHard: { pattern: 'magnet', telegraph: 0.5, duration: 2.4, strength: 175, radius: 150, damage: 46, recover: 1.0 },
+      // 固有「刃の渦」：鉄くずの刃を体のまわりで回しながら、追いかけてくる。当たると裂傷（持続ダメージ）
+      shred: { pattern: 'orbit', telegraph: 0.7, duration: 3.2, count: 3, radius: 92, bladeRadius: 16, spin: 200, chase: 0.75, damage: 30, dot: 'bleed', recover: 0.9 },
+      shredHard: { pattern: 'orbit', telegraph: 0.6, duration: 3.6, count: 4, radius: 96, bladeRadius: 16, spin: 230, chase: 0.9, damage: 30, dot: 'bleed', recover: 0.9 },
       // 大技「鉄くず嵐」：照準の円が次々に現れ、同時に何個も追ってくる
       storm: { pattern: 'chase', telegraph: 0.9, count: 8, interval: 0.6, spawn: 170, speed: 300, follow: 1.0, lock: 0.5, radius: 52, damage: 42, recover: 1.2 },
     },
     reactions: [{ when: 'far', seconds: 3.5, move: 'pounce' }],
     ultimate: { move: 'storm', announce: '鉄くず嵐' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 0.9, max: 1.5 }, moves: ['pounce', 'scrap', 'triple', 'magnet', 'howl'] },
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.5 }, moves: ['pounce', 'scrap', 'triple', 'magnet', 'shred'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.1 },
         speed: 1.2,
-        moves: ['magnetHard', 'pounce', 'triple', 'scrapHard', 'howl'],
+        moves: ['magnetHard', 'pounce', 'triple', 'scrapHard', 'shredHard', 'howl'],
         combos: [{ moves: ['pounce', 'howl'] }, { moves: ['scrapHard', 'triple'] }],
         announce: '不足検知',
       },
@@ -446,17 +455,20 @@ export const bosses = [
       girderHard: { pattern: 'girder', telegraph: 0.8, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.7 },
       // 突進（後半）：2連続
       rush: { pattern: 'charge', repeat: 2, repeatTelegraph: 0.4, telegraph: 0.6, lockTime: 0.2, speed: 620, duration: 0.6, damage: 44, recover: 0.8, wallStun: 1.2, reach: 'far' },
+      // 固有「張り糸」：部屋を横切る糸を張る。しばらく残り、触れている間は減速とダメージ
+      wires: { pattern: 'wires', telegraph: 0.5, count: 3, spread: 130, arm: 0.9, life: 7, width: 10, damage: 18, tick: 0.5, recover: 0.7 },
+      wiresHard: { pattern: 'wires', telegraph: 0.4, count: 5, spread: 170, arm: 0.8, life: 8, width: 10, damage: 18, tick: 0.5, recover: 0.6 },
       // 大技「全面架設」：部屋じゅうに鉄骨が降る。光る円の中だけが助かる
       overbuild: { pattern: 'safezone', telegraph: 1.9, waveTelegraph: 1.4, zones: 2, radius: 78, within: 180, waves: 3, active: 0.35, damage: 48, recover: 1.5 },
     },
     reactions: [{ when: 'far', seconds: 4, move: 'leap' }],
     ultimate: { move: 'overbuild', announce: '全面架設' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['web', 'girder', 'leap', 'stab', 'brood'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['web', 'girder', 'leap', 'stab', 'wires'] },
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.2 },
-        moves: ['girderHard', 'leap', 'web', 'rush', 'stab'],
+        moves: ['girderHard', 'leap', 'wiresHard', 'rush', 'stab', 'web'],
         combos: [{ moves: ['leap', 'stab'] }, { moves: ['web', 'rush'] }],
         side: { moves: ['brood'], every: { min: 13, max: 17 } },
         announce: '架設続行',
@@ -491,6 +503,9 @@ export const bosses = [
       // 振り子：吊ったフックが、部屋を行ったり来たりする
       swing: { pattern: 'pendulum', telegraph: 1.0, lines: 1, passes: 3, period: 1.5, radius: 36, damage: 46, recover: 0.6 },
       swingHard: { pattern: 'pendulum', telegraph: 0.8, lines: 2, passes: 4, period: 1.3, radius: 36, damage: 46, recover: 0.5 },
+      // 固有「溶接ビーム」：ビームがゆっくり追ってくる。当たると炎上（持続ダメージ）。通ったあとに燃える床が残る
+      weld: { pattern: 'weld', telegraph: 0.9, duration: 3.2, turn: 38, width: 26, range: 900, damage: 40, dot: 'burn', trail: { every: 0.35, radius: 34, arm: 0.15, life: 4, tick: 0.5, damage: 10 }, recover: 1.0 },
+      weldHard: { pattern: 'weld', telegraph: 0.75, duration: 4, turn: 46, width: 26, range: 900, damage: 40, dot: 'burn', trail: { every: 0.3, radius: 34, arm: 0.15, life: 5, tick: 0.5, damage: 10 }, recover: 0.9 },
       // 大技「増築」：溜めている間、鉄骨が落ちる。溜めきると、部屋の端まで届く輪が3回広がる
       extend: {
         pattern: 'endure', telegraph: 0.8, duration: 5.5, break: 0.05, stun: 4.5, recover: 1.2,
@@ -500,11 +515,11 @@ export const bosses = [
     },
     ultimate: { move: 'extend', announce: '増築' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['sweep', 'drop', 'swing', 'quake', 'rivets'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['sweep', 'drop', 'swing', 'quake', 'weld'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['sweep', 'dropHard', 'quake', 'rivets', 'swingHard'],
+        moves: ['sweep', 'dropHard', 'weldHard', 'rivets', 'swingHard', 'quake'],
         combos: [{ moves: ['quake', 'rivets'] }, { moves: ['sweep', 'dropHard'] }],
         side: { moves: ['swing'], every: { min: 10, max: 14 } },
         announce: '増築再開',
@@ -557,18 +572,24 @@ export const bosses = [
       blueprintHard: { pattern: 'girder', telegraph: 0.75, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.6 },
       // 照準：追尾の円が追いかけてきて、止まった場所を攻撃する
       lock: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 320, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
+      // 固有「方眼」：部屋をマスに分け、市松模様の半分が光る。続けて、残りの半分が光る
+      cells: { pattern: 'cells', telegraph: 1.1, second: 0.85, cols: 6, rows: 4, waves: 2, active: 0.2, damage: 50, recover: 0.8 },
+      cellsHard: { pattern: 'cells', telegraph: 0.95, second: 0.7, cols: 6, rows: 4, waves: 3, active: 0.2, damage: 50, recover: 0.7 },
+      // 固有「インク流し」：足元から広がっていく床。中にいると腐食（持続ダメージ）
+      ink: { pattern: 'ink', telegraph: 0.7, count: 1, start: 44, grow: 55, maxRadius: 185, arm: 0.5, life: 6, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
+      inkHard: { pattern: 'ink', telegraph: 0.6, count: 2, start: 44, grow: 70, maxRadius: 170, arm: 0.45, life: 6.5, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
       // 大技「竣工」：部屋全体が危険になる。光る円の中だけが助かる
       completion: { pattern: 'safezone', telegraph: 1.8, waveTelegraph: 1.25, zones: 2, radius: 74, within: 180, waves: 4, active: 0.35, damage: 54, recover: 1.5 },
     },
     reactions: [{ when: 'far', seconds: 3.5, move: 'dash' }],
     ultimate: { move: 'completion', announce: '竣工' },
     phases: [
-      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['survey', 'piles', 'stamp', 'bolts', 'dash'] },
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['survey', 'cells', 'stamp', 'ink', 'dash'] },
       {
         hpAbove: 0.3,
         idle: { min: 0.8, max: 1.3 },
-        moves: ['surveyHard', 'piles', 'blueprint', 'lock', 'stamp', 'dash'],
-        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['blueprint', 'piles'] }],
+        moves: ['surveyHard', 'cells', 'blueprint', 'lock', 'ink', 'stamp', 'dash'],
+        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['blueprint', 'ink'] }],
         side: { moves: ['piles'], every: { min: 11, max: 15 } },
         announce: '設計変更',
       },
@@ -576,8 +597,8 @@ export const bosses = [
         hpAbove: 0,
         idle: { min: 0.6, max: 1.0 },
         speed: 1.15,
-        moves: ['surveyHard', 'pilesHard', 'blueprintHard', 'lock', 'bolts', 'dash', 'stamp'],
-        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['lock', 'surveyHard'] }, { moves: ['bolts', 'dash'] }],
+        moves: ['cellsHard', 'surveyHard', 'blueprintHard', 'lock', 'inkHard', 'dash', 'stamp'],
+        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['inkHard', 'cellsHard'] }, { moves: ['bolts', 'dash'] }],
         side: { moves: ['lock'], every: { min: 9, max: 12 } },
         announce: '最終図面',
       },

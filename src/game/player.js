@@ -162,6 +162,7 @@ function startDash(p, dx, dy) {
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
   p.sinceDash = 0;
   p.dashState = { hit: new Set(), lastFloor: null };
+  p.dot = null; // 持続ダメージ（炎上など）は、ダッシュで振り払える
   p.inv = Math.max(p.inv, d.invincible);
   // ダッシュの距離は、インプラントで伸びる（時間は同じなので、そのぶん速くなる）
   const distance = d.distance * (1 + (p.stats.dashDistance ?? 0));

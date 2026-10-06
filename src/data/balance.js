@@ -149,6 +149,12 @@ export const STATUS = {
   freeze: { duration: 1.5 }, // 凍結：動けない
   bossSlowScale: 0.5, // ボスへの減速はこの倍率に弱まる。ボスは凍結・停止しない
   playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
+  // プレイヤーが受ける持続ダメージ。tick 秒ごとに damage を、duration 秒のあいだ受ける。ダッシュすると消える。これで HP が 0 になることはない（1 残る）
+  dots: {
+    burn: { name: '炎上', color: 'heat', damage: 5, tick: 0.5, duration: 3 },
+    bleed: { name: '裂傷', color: 'red', damage: 4, tick: 0.4, duration: 3 },
+    corrode: { name: '腐食', color: 'green', damage: 6, tick: 0.5, duration: 3.5 },
+  },
 };
 
 // 手触りの演出
