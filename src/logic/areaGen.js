@@ -176,11 +176,11 @@ export function gearPrice(item) {
   return ECONOMY.prices.gear[item.rarity];
 }
 
-// 闇市の品ぞろえ：毎回ちがう。装備・修復キット・インプラントは必ず1つずつ入り、残りは抽選（装備・消耗品・インプラント）
+// 闇市の品ぞろえ：毎回ちがう。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、残りは抽選（装備・消耗品・インプラント）
 export function generateShop(build, rng, tier = null) {
   const shop = ECONOMY.shop;
-  // 種類を決める：装備・回復（修復キット）・インプラントは必ず1つずつ。残りは抽選
-  const types = ['gear', 'kit', 'implant'];
+  // 種類を決める：装備・回復（修復キット）・消耗品・インプラントは必ず1つずつ。残りは抽選
+  const types = ['gear', 'kit', 'item', 'implant'];
   const pool = Object.entries(shop.extras);
   const total = pool.reduce((sum, [, weight]) => sum + weight, 0);
   while (types.length < shop.count) {

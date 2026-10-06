@@ -269,7 +269,7 @@ describe('部屋の中身', () => {
     expect(p.hp).toBe(50);
   });
 
-  it('闇市の品ぞろえは毎回ちがう。装備・修復キット・インプラントは必ず1つずつ入り、修復キットは1つだけ。同じものは並ばない', () => {
+  it('闇市の品ぞろえは毎回ちがう。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、修復キットは1つだけ。同じものは並ばない', () => {
     const shapes = new Set();
     const counts = { gear: 0, kit: 0, item: 0, implant: 0 };
     for (let seed = 1; seed <= 300; seed++) {
@@ -279,6 +279,7 @@ describe('部屋の中身', () => {
       expect(goods).toHaveLength(ECONOMY.shop.count);
       expect(types).toContain('gear');
       expect(types).toContain('implant');
+      expect(types).toContain('item');
       expect(types.filter((t) => t === 'kit')).toHaveLength(1);
       // 種類ごとにまとめて並ぶ
       expect(types).toEqual([...types].sort((x, y) => ['gear', 'kit', 'item', 'implant'].indexOf(x) - ['gear', 'kit', 'item', 'implant'].indexOf(y)));
@@ -294,10 +295,11 @@ describe('部屋の中身', () => {
       }
       shapes.add(types.join(','));
     }
-    // 内訳の形が何通りも出る。消耗品が並ばない店もあれば、装備が3つ並ぶ店もある
-    expect(shapes.size).toBeGreaterThanOrEqual(5);
-    expect(counts.item).toBeGreaterThan(0);
+    // 残りの1つが何になるかで、内訳は3通り（装備2・消耗品2・インプラント2）
+    expect(shapes.size).toBe(3);
+    expect(counts.item).toBeGreaterThan(300);
     expect(counts.gear).toBeGreaterThan(300);
+    expect(counts.implant).toBeGreaterThan(300);
   });
 
   it('闇市：クレジットで買える。足りないと買えない', () => {
