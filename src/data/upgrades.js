@@ -9,6 +9,7 @@
 //   startChoice : true なら、ラン開始時にインプラントを1つ選べる
 //   ougi        : その武器の奥義が使えるようになる（武器の id）
 //   carrySlots  : 持ち込みの種族の枠を増やす数
+//   itemSlots   : 消耗品の枠を増やす数
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
 export const upgrades = [
   {
@@ -25,6 +26,11 @@ export const upgrades = [
     id: 'kitslot', name: '修復キット増設', desc: 'ラン開始時の修復キット +1', max: 2,
     costs: [{ cryoCore: 2 }, { cryoCore: 2 }],
     perLevel: { kits: 1 },
+  },
+  {
+    id: 'pouch', name: '携行ポーチ', desc: '消耗品の枠 +1（最大4枠。3・4 キーで使う）', max: 2,
+    costs: [{ boarCore: 2 }, { cryoCore: 2 }],
+    perLevel: { itemSlots: 1 },
   },
   {
     id: 'doubledash', name: '二重ダッシュ', desc: 'ダッシュを2回連続で使える', max: 1,

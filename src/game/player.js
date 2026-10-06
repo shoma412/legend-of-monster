@@ -179,7 +179,11 @@ function updateSwing(world, dt) {
   const a = p.attack;
   a.t += dt;
   if (a.phase === 'windup') {
-    // 踏み込み
+    // 踏み込み。出始めに、もう届く敵がいるなら踏み込まない（敵を押し込んだり、敵の攻撃に突っ込んだりしないように）
+    if (a.lungeChecked !== true) {
+      a.lungeChecked = true;
+      if (a.lunge > 0 && enemyInReach(world, a)) a.lunge = 0;
+    }
     if (a.windup > 0) {
       p.x += (Math.cos(a.angle) * a.lunge * dt) / a.windup;
       p.y += (Math.sin(a.angle) * a.lunge * dt) / a.windup;
@@ -404,6 +408,12 @@ function makeAttack(world, def, damage, range, arcDeg, extra) {
     charged: 0,
     ...extra,
   };
+}
+
+// その攻撃の範囲に、当てられる敵がいるか
+function enemyInReach(world, a) {
+  const p = world.player;
+  return world.enemies.some((e) => !e.dead && e.spawnT <= 0 && !e.hidden && arcHitsCircle(p.x, p.y, a.angle, a.arc, a.range, e.x, e.y, e.r, p.r + 6));
 }
 
 function resolveSwing(world, a) {

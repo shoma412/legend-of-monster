@@ -177,10 +177,10 @@ export function gearPrice(item) {
 }
 
 // 闇市の品ぞろえ：装備2つ・修復キット・消耗品1つ・インプラント1つ
-export function generateShop(build, rng) {
+export function generateShop(build, rng, tier = null) {
   const goods = [];
   for (let i = 0; i < ECONOMY.shop.gearCount; i++) {
-    const item = makeItem(rng, { rarityBonus: ECONOMY.shop.rarityBonus });
+    const item = makeItem(rng, { rarityBonus: ECONOMY.shop.rarityBonus, tier });
     goods.push({ type: 'gear', item, price: gearPrice(item) });
   }
   goods.push({ type: 'kit', price: ECONOMY.prices.kit });
@@ -191,7 +191,7 @@ export function generateShop(build, rng) {
 }
 
 // データ金庫：装備3つ（スロットはなるべく別々）
-export function generateVault(rng) {
+export function generateVault(rng, tier = null) {
   const slots = ['mod', 'armor', 'acc'];
-  return slots.slice(0, ROOMGEN.vault.count).map((slot) => makeItem(rng, { slot, rarityBonus: ROOMGEN.vault.rarityBonus }));
+  return slots.slice(0, ROOMGEN.vault.count).map((slot) => makeItem(rng, { slot, rarityBonus: ROOMGEN.vault.rarityBonus, tier }));
 }

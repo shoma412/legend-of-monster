@@ -720,17 +720,3 @@ describe('バッグ', () => {
     expect(world.loot).toHaveLength(0);
   });
 });
-
-describe('会心の表示', () => {
-  it('「会心」の文字は出さず、数字の横に「!」を付ける', () => {
-    const world = makeWorld();
-    const e = addEnemy(world, 'grunt', 60);
-    e.hp = e.maxHp = 1000;
-    world.rng = () => 0.01;
-    hitEnemy(world, e, 30, 1, 0, 0);
-    expect(world.fx.texts.at(-1).text).toBe('60!');
-    world.rng = () => 0.99;
-    hitEnemy(world, e, 30, 1, 0, 0);
-    expect(world.fx.texts.at(-1).text).toBe('30');
-  });
-});

@@ -43,7 +43,7 @@ export function unlockWeapon(save, weaponId) {
 
 // ラン開始時に乗る恒久強化。{ effects: ステータス補正の並び, kits: 修復キットの追加, startChoice: 最初にインプラントを選べるか }
 export function permanentBonuses(save) {
-  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [], carrySlots: 1 };
+  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [], carrySlots: 1, itemSlots: 0 };
   for (const def of DATA.upgrades.all()) {
     const level = upgradeLevel(save, def.id);
     for (let i = 0; i < level; i++) {
@@ -52,6 +52,7 @@ export function permanentBonuses(save) {
       if (def.perLevel.startChoice) bonus.startChoice = true;
       if (def.perLevel.ougi) bonus.ougi.push(def.perLevel.ougi);
       bonus.carrySlots += def.perLevel.carrySlots ?? 0;
+      bonus.itemSlots += def.perLevel.itemSlots ?? 0;
     }
   }
   return bonus;

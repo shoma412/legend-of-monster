@@ -63,7 +63,7 @@ export function enterRoom(run) {
   // 奥のエリアほど、敵の数が増える（部屋数ぶん先に進んだものとして数える）
   // 周が進むと、さらに敵が増え、エリートの特性も増える
   const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea + run.mods.stepBonus;
-  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits };
+  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits, tier: run.areaIndex };
   const type = currentNode(plan).type;
   // 遭遇部屋で装備を拾ったあと：次の戦闘部屋は、敵が増える
   if (run.build.ambush && (type === 'combat' || type === 'elite')) {
@@ -82,6 +82,9 @@ export function enterRoom(run) {
   room.rarityChance = run.mods.rarityChance;
   room.bossHard = run.mods.bossHard;
   room.healScale = run.mods.healScale;
+  // 装備のレア度は、奥のエリアほど良くなる。マップの最後のボスは、装備と消耗品を落とさない（倒すと隠れ家に戻るため）
+  room.lootTier = run.areaIndex;
+  room.noBossLoot = plan.current === 'boss' && !hasNextArea(run);
   const first = !run.started;
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
   if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;

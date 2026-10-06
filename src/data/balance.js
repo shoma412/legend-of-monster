@@ -106,6 +106,14 @@ export const LOOT = {
     { id: 'epic', name: 'エピック', weight: 10, effects: 3, roll: [0.4, 0.8] },
     { id: 'legend', name: 'レジェンド', weight: 2, effects: 4, roll: [0.7, 1], unique: true },
   ],
+  // マップの中の何番目のエリアかで変わる、レア度の出やすさ（コモン, レア, エピック, レジェンド）。奥のエリアほど良いものが出る
+  //   上の rarities の weight は、エリアが分からないとき（テストなど）に使う。2番目のエリアと同じ値
+  areaWeights: [
+    [70, 26, 3.7, 0.3],
+    [60, 28, 10, 2],
+    [50, 30, 15, 5],
+  ],
+  bossMinRarity: 1, // ボスが落とす装備の、最低のレア度（1 = レア）
   slots: [
     { id: 'mod', name: '武器モッド', noun: '武器モッド' },
     { id: 'armor', name: '防具', noun: '装甲ジャケット' },
@@ -121,7 +129,7 @@ export const BAG = {
 
 // 消耗品（ラン中に拾って使うアイテム）
 export const ITEMS = {
-  slots: 2, // 持てる枠の数（1・2 キー）
+  slots: 2, // 持てる枠の数（1・2 キー）。恒久強化「携行ポーチ」で最大4枠（3・4 キー）
   stack: 3, // 同じ種類を1枠に重ねられる数
   dropChance: 0.05, // 雑魚が倒されたときに落とす確率（装備のドロップとは別に抽選）
   price: 25, // 闇市での値段
@@ -140,6 +148,7 @@ export const STATUS = {
 export const FEEL = {
   hitstop: { normal: 0.04, heavy: 0.08, charged: 0.12, bossKill: 0.5 }, // 当てた瞬間に一瞬止める（秒）
   shake: { hit: 2.5, heavy: 6, charged: 12, kill: 3, bossKill: 20, hurt: 8, death: 14 },
+  critTextSize: 24, // クリティカルのダメージ数字の大きさ（ふつうは 15）
 };
 
 // 持ち帰り要素

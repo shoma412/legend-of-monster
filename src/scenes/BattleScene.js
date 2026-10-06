@@ -71,7 +71,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,F,Q,M,ONE,TWO,THREE,B,N,O');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,F,Q,M,ONE,TWO,THREE,FOUR,B,N,O');
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
@@ -89,10 +89,12 @@ export class BattleScene extends Phaser.Scene {
     this.keys.F.on('down', () => playing() && stash(this.world));
     this.keys.Q.on('down', () => playing() && useKit(this.world));
     this.keys.M.on('down', () => playing() && this.bigMap.setVisible(!this.bigMap.visible));
-    // 1・2・3：レベルアップの3択が出ていればその選択、出ていなければ 1・2 で消耗品を使う
-    ['ONE', 'TWO', 'THREE'].forEach((name, i) => this.keys[name].on('down', () => {
+    // 1〜4：レベルアップの3択が出ていればその選択（1〜3）、出ていなければ消耗品を使う（枠の数だけ）
+    ['ONE', 'TWO', 'THREE', 'FOUR'].forEach((name, i) => this.keys[name].on('down', () => {
       if (!playing()) return;
-      if (this.world.choice) this.choose(i);
+      if (this.world.choice) {
+        if (i < 3) this.choose(i);
+      }
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
         useItem(this.world, i, { x: pointer.worldX, y: pointer.worldY });

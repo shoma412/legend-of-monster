@@ -10,19 +10,28 @@ function pick(list, rng) {
   return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 }
 
-// レア度の番号（0=コモン … 3=レジェンド）。bonus ぶんだけ上の段にずらす
-export function rollRarity(rng, bonus = 0) {
-  const total = LOOT.rarities.reduce((s, r) => s + r.weight, 0);
+// そのエリアでの、レア度ごとの出やすさ。tier はマップの中の何番目のエリアか（0 から）。null なら基本の値
+export function rarityWeights(tier = null) {
+  if (tier == null) return LOOT.rarities.map((r) => r.weight);
+  return LOOT.areaWeights[Math.max(0, Math.min(LOOT.areaWeights.length - 1, tier))];
+}
+
+function rollOnce(rng, weights) {
+  const total = weights.reduce((s, w) => s + w, 0);
   let roll = rng() * total;
-  let index = 0;
-  for (let i = 0; i < LOOT.rarities.length; i++) {
-    roll -= LOOT.rarities[i].weight;
-    if (roll < 0) {
-      index = i;
-      break;
-    }
+  for (let i = 0; i < weights.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) return i;
   }
-  return Math.min(LOOT.rarities.length - 1, index + bonus);
+  return 0;
+}
+
+// レア度の番号（0=コモン … 3=レジェンド）。bonus の回数だけ引き直して、いちばん良いものを取る
+export function rollRarity(rng, bonus = 0, tier = null) {
+  const weights = rarityWeights(tier);
+  let best = rollOnce(rng, weights);
+  for (let i = 0; i < bonus; i++) best = Math.max(best, rollOnce(rng, weights));
+  return best;
 }
 
 function rollLine(def, rarity, rng) {
@@ -34,8 +43,9 @@ function rollLine(def, rarity, rng) {
 }
 
 // 装備を1つ作る。{ slot, rarity, effects: [{ id, value } | { id, element }], unique, name }
-export function makeItem(rng, { rarityBonus = 0, minRarity = 0, slot = null, rarity = null } = {}) {
-  const rarityIndex = rarity ?? Math.max(minRarity, rollRarity(rng, rarityBonus));
+//   tier: マップの中の何番目のエリアか（レア度の出やすさが変わる）
+export function makeItem(rng, { rarityBonus = 0, minRarity = 0, slot = null, rarity = null, tier = null } = {}) {
+  const rarityIndex = rarity ?? Math.max(minRarity, rollRarity(rng, rarityBonus, tier));
   const rar = LOOT.rarities[rarityIndex];
   const slotDef = slot ? LOOT.slots.find((s) => s.id === slot) : pick(LOOT.slots, rng);
   const pool = DATA.gearEffects.all().filter(isAvailable);

@@ -16,7 +16,7 @@ export function createBuild(bonus = null) {
     implants: {}, // { インプラントのid: レベル }
     species: null, // このランで選択肢に出る種族の id（null はすべて。隠れ家やテスト用）
     credits: 0,
-    items: Array(ITEMS.slots).fill(null), // 消耗品の枠。{ id, count } か null
+    items: Array(ITEMS.slots + (bonus?.itemSlots ?? 0)).fill(null), // 消耗品の枠。{ id, count } か null
     kits: PLAYER.kit.start + (bonus?.kits ?? 0), // 修復キットの数
     permanent: bonus?.effects ?? [], // 恒久強化のステータス補正
     ougi: bonus?.ougi ?? [], // 奥義が使える武器の id

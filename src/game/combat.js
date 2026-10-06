@@ -146,9 +146,10 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
   if (enemy.armor > 0) amount = Math.max(1, Math.round(amount * (1 - enemy.armor)));
   enemy.hp -= amount;
   enemy.hit = 0.1;
-  const label = amount + (crit ? '!' : '') + (weak ? ' 弱点' : '');
+  // クリティカルは、数字を大きく・黄色にして見分ける（「!」は数字の 1 に見えるので付けない）
+  const label = amount + (weak ? ' 弱点' : '');
   const textColor = color ?? (crit ? COLORS.amber : weak ? ELEMENT_COLORS[enemy.def.weakness] : COLORS.ink);
-  floatText(world, enemy.x + (world.rng() - 0.5) * 14, enemy.y - enemy.r - 6, label, textColor, small ? 12 : crit || weak ? 20 : 15);
+  floatText(world, enemy.x + (world.rng() - 0.5) * 14, enemy.y - enemy.r - 6, label, textColor, small ? 12 : crit ? FEEL.critTextSize : weak ? 20 : 15);
   if (enemy.hp <= 0) killEnemy(world, enemy);
 }
 
@@ -209,14 +210,17 @@ function dropLoot(world, enemy) {
   const drops = enemy.def.drops;
   // 周が進むと、ときどきレア度が1段上がる
   const lucky = () => (world.rng() < (world.room.rarityChance ?? 0) ? 1 : 0);
+  const tier = world.room.lootTier;
+  // マップの最後のボスは、装備も消耗品も落とさない
+  if (enemy.boss && world.room.noBossLoot) return;
   if (drops) {
     // ボスなどの確定ドロップ
     for (let i = 0; i < drops.count; i++) {
       const offset = (i - (drops.count - 1) / 2) * 44;
-      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: (drops.rarityBonus ?? 0) + lucky(), minRarity: drops.minRarity ?? 0 }), t: 0 });
+      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: (drops.rarityBonus ?? 0) + lucky(), minRarity: drops.minRarity ?? (enemy.boss ? LOOT.bossMinRarity : 0), tier }), t: 0 });
     }
   } else if (world.rng() < (enemy.def.dropChance ?? 0)) {
-    world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng, { rarityBonus: lucky() }), t: 0 });
+    world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng, { rarityBonus: lucky(), tier }), t: 0 });
   }
   // 消耗品。エリートとボスは確定で1つ、雑魚はたまに落とす。装備と同じく、近づいて E で拾う
   if (drops || world.rng() < ITEMS.dropChance) {
