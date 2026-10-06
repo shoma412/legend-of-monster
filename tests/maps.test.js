@@ -8,7 +8,7 @@ import { buildRoom } from '../src/game/rooms.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { generateEliteWaves } from '../src/logic/areaGen.js';
-import { allMapsCleared, canSortie, canSortieCycle, cycleMods, cycleNotes, mapState, recordMapClear } from '../src/logic/maps.js';
+import { allMapsCleared, canSortie, canSortieCycle, cycleMods, cycleNotes, lockReason, mapState, recordMapClear } from '../src/logic/maps.js';
 import { SAVE_VERSION, createSave, loadSlot, slotKey } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -121,6 +121,50 @@ describe('マップの解放と完了', () => {
     } finally {
       originals.forEach((m, i) => { maps[i] = m; });
     }
+  });
+});
+
+describe('マップの解放：画面から渡されるマップ（DATA.maps）でも、同じ判定になる（2026-10-07 の不具合の再発防止）', () => {
+  const live = () => DATA.maps.all(); // マップを選ぶ画面が使っているもの。定義（maps）を複製した別の物
+
+  it('画面のマップは、定義とは別の物（複製）。それでも、何番目かは id で正しく分かる', () => {
+    expect(live()[1]).not.toBe(maps[1]);
+    expect(live()[1].id).toBe(maps[1].id);
+  });
+
+  it('新しいセーブデータでは、マップ1だけ選べる。マップ2・3・4は選べない', () => {
+    const save = createSave();
+    const [m1, m2, m3, m4] = live();
+    expect(mapState(save, m1)).toBe('open');
+    for (const map of [m2, m3, m4]) {
+      expect(mapState(save, map), map.id).toBe('locked');
+      expect(canSortie(save, map), map.id).toBe(false);
+      expect(canSortieCycle(save, map, 1), map.id).toBe(false);
+      expect(lockReason(save, map), map.id).toContain('前のマップ');
+    }
+  });
+
+  it('マップ1を完了するとマップ2だけが開く。マップ2を完了するとマップ3が開く。順番を飛ばせない', () => {
+    const save = createSave();
+    const [, m2, m3, m4] = live();
+    recordMapClear(save, 'map1', 1);
+    expect(mapState(save, m2)).toBe('open');
+    expect(mapState(save, m3)).toBe('locked');
+    recordMapClear(save, 'map2', 1);
+    expect(mapState(save, m3)).toBe('open');
+    expect(mapState(save, m4)).toBe('locked');
+    recordMapClear(save, 'map3', 1);
+    expect(mapState(save, m4)).toBe('locked'); // 通行証がまだ
+    expect(lockReason(save, m4)).toContain('隠しボス');
+    save.passes.push('map3');
+    expect(mapState(save, m4)).toBe('open');
+  });
+
+  it('出撃の記録（最高到達）も、マップの番号が正しく残る', () => {
+    const save = createSave();
+    recordMapClear(save, 'map1', 1);
+    enterRoom(createRun({ rng: seeded(3), save, mapId: 'map2' }));
+    expect(save.records.bestMap).toBe(1);
   });
 });
 

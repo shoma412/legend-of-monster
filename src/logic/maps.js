@@ -4,6 +4,10 @@ import { maps } from '../data/maps.js';
 
 const isReady = (map) => map.ready !== false;
 
+// そのマップが、並びの何番目か。画面からは、定義を複製したもの（DATA.maps）が渡されるので、id で探す
+//   （同じ物かどうかで探すと、複製されたものは見つからず、「前のマップを完了していなくても選べる」不具合になっていた。2026-10-07 修正）
+const indexOfMap = (map) => maps.findIndex((m) => m.id === map.id);
+
 // そのマップをクリアした最高の周（まだなら 0）
 export function clearedCycle(save, mapId) {
   return save.maps[mapId]?.clearedCycle ?? 0;
@@ -12,7 +16,7 @@ export function clearedCycle(save, mapId) {
 // マップの状態：notReady（準備中）/ locked（前のマップを完了していない）/ open（選べる）/ done（完了済み。選べる）
 export function mapState(save, map) {
   if (!isReady(map)) return 'notReady';
-  const index = maps.indexOf(map);
+  const index = indexOfMap(map);
   if (index > 0 && clearedCycle(save, maps[index - 1].id) < 1) return 'locked';
   if (!hasPassFor(save, map)) return 'locked';
   return clearedCycle(save, map.id) >= 1 ? 'done' : 'open';
@@ -26,7 +30,7 @@ export function hasPassFor(save, map) {
 // 選べないマップの、理由の文（マップを選ぶ画面に出す）
 export function lockReason(save, map) {
   if (!isReady(map)) return 'このマップは、まだ準備中';
-  const index = maps.indexOf(map);
+  const index = indexOfMap(map);
   if (index > 0 && clearedCycle(save, maps[index - 1].id) < 1) return '前のマップを完了すると、選べるようになる';
   if (!hasPassFor(save, map)) return `${maps.find((m) => m.id === map.requiresPass).name}の隠しボスを倒すと、選べるようになる`;
   return '';
