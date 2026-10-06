@@ -55,11 +55,10 @@ export function recordMapClear(save, mapId, cycle) {
   const firstClear = entry.clearedCycle < 1;
   entry.clears++;
   entry.clearedCycle = Math.max(entry.clearedCycle, cycle);
-  // 今あるマップを、今選べる最高の周ですべて完了したら、次の周が選べるようになる
-  // （開発中の扱い。マップが7つそろったら、「7つすべて」と同じ意味になる）
+  // 7つのマップすべて（最後はマップ7）を、今選べる最高の周で完了したら、次の周が選べるようになる。
+  // まだ中身のできていないマップがある間は、次の周には進めない（2026-10-07 に、「今あるマップをすべて」から変えた）
   let nextCycle = null;
-  const ready = maps.filter(isReady);
-  if (ready.every((map) => clearedCycle(save, map.id) >= save.cycle)) {
+  if (maps.every((map) => clearedCycle(save, map.id) >= save.cycle)) {
     save.cycle++;
     nextCycle = save.cycle;
   }

@@ -687,7 +687,7 @@ describe('未完の塔の定義', () => {
     expect(mapSpecies(maps[2]).sort()).toEqual(['hound', 'spider', 'titan']);
   });
 
-  it('3体のボスを順に倒すと、マップ3が完了になる。マップ4が残っているので、2周目はまだ選べない', () => {
+  it('3体のボスを順に倒すと、マップ3が完了になる。7つすべてを完了するまで、2周目は選べない', () => {
     const save = createSave();
     recordMapClear(save, 'map1', 1);
     recordMapClear(save, 'map2', 1);

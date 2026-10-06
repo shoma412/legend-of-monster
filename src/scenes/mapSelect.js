@@ -201,7 +201,7 @@ export function createMapSelect(scene, options) {
         const notes = cycleNotes(cycle);
         text(cx + 230, cy - 2, notes.length > 0 ? notes.join('\n') : '敵の強さは、最初と同じ', 12, notes.length > 0 ? COLORS.red : COLORS.dim, { lineSpacing: 4 });
       } else {
-        text(80, py + 128, 'いま選べるマップをすべて完了すると、次の周（敵が強くなる）に進めるようになる', 12, COLORS.dim);
+        text(80, py + 128, '7つのマップをすべて完了すると、次の周（敵が強くなる）に進めるようになる', 12, COLORS.dim);
       }
     } else {
       const why = lockReason(save, map);

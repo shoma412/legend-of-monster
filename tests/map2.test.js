@@ -142,7 +142,7 @@ describe('マップ2の定義', () => {
     expect(save.materials.hydraCore).toBeGreaterThan(0);
     expect(save.achievements).toEqual(expect.arrayContaining(['sludgehydra', 'map2']));
     expect(mapState(save, maps[1])).toBe('done');
-    // 2周目は、今あるマップをすべて完了するまで選べない（マップ3が残っている）
+    // 2周目は、7つのマップをすべて完了するまで選べない
     expect(save.cycle).toBe(1);
     expect(mapState(save, maps[2])).toBe('open');
     // 最高到達は、マップ2の3つ目のエリアまで

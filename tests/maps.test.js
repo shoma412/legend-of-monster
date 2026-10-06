@@ -125,12 +125,18 @@ describe('マップの解放と完了', () => {
 });
 
 describe('周回', () => {
-  it('今あるマップをすべて完了すると、次の周が選べる。同じ周をもう一度クリアしても増えない', () => {
+  it('7つのマップをすべて完了すると、次の周が選べる（マップ7まで）。同じ周をもう一度クリアしても増えない', () => {
     const save = createSave();
     expect(save.cycle).toBe(1);
     expect(canSortieCycle(save, maps[0], 2)).toBe(false);
-    // 今あるマップ（中身のできているもの）を、すべて完了すると2周目が選べる。途中では、まだ進めない
-    const ready = maps.filter((m) => m.ready !== false).map((m) => m.id);
+    // 7つすべてを完了すると2周目が選べる。途中（今できているマップを全部終えただけ）では、まだ進めない
+    const ready = maps.map((m) => m.id);
+    expect(ready).toHaveLength(7);
+    {
+      const partial = createSave();
+      for (const m of maps.filter((x) => x.ready !== false)) expect(recordMapClear(partial, m.id, 1).nextCycle).toBeNull();
+      expect(partial.cycle).toBe(1);
+    }
     ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 1).nextCycle).toBeNull());
     expect(save.cycle).toBe(1);
     expect(recordMapClear(save, ready.at(-1), 1).nextCycle).toBe(2);
@@ -296,7 +302,7 @@ describe('セーブデータ（マップと周回）', () => {
 
   it('マップの記録と周は、保存して読み直しても残る', () => {
     const save = createSave();
-    for (const m of maps.filter((x) => x.ready !== false)) recordMapClear(save, m.id, 1);
+    for (const m of maps) recordMapClear(save, m.id, 1); // 7つすべてを完了して、2周目が開いた状態
     save.selectedCycle = 2;
     const loaded = loadSlot(fakeStorage({ [slotKey(2)]: JSON.stringify(save) }), 2);
     expect(loaded.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });
