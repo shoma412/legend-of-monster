@@ -173,6 +173,10 @@ export function computeStats(build) {
     comboBonus: 0, // 同じ敵に続けて当てるたびに上がるダメージの割合
     comboMax: COMBO.max, // その重なる回数の上限
     freezeChance: 0,
+    // 環境「暗闇」に関わるもの（種族「蛾」）：見える範囲が広がる割合、攻撃の光が大きくなる割合、倒した場所に光が残るか（0 より大きければ）
+    visionBonus: 0,
+    lightBonus: 0,
+    killLight: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

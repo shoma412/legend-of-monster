@@ -9,6 +9,7 @@ import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist, saveSuspend } from '../game/saveStore.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
+import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -17,7 +18,7 @@ import { choiceBlocked, chooseEncounter } from '../game/encounters.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import {
-  ITEM_SLOT_POS, drawArena, drawLowHp, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
+  ITEM_SLOT_POS, drawArena, drawEnemyTelegraphs, drawLowHp, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawDevices, drawZones,
 } from '../render/draw.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -68,6 +69,7 @@ export class BattleScene extends Phaser.Scene {
     // 背景の模様は、ランと部屋ごとに決まる（同じ部屋にいる間は変わらない）
     drawFloor(this.floor, this.area.theme, run.visualSeed + run.areaIndex * 97 + run.plan.step * 13 + (run.plan.nodes[run.plan.current].row ?? 0) * 5);
     this.gfx = this.add.graphics();
+    this.darkLayer = this.add.graphics(); // 環境「暗闇」：暗い場所を塗る層（戦闘の描画より手前、表示より奥）
     // 部屋の枠は、戦闘の描画より手前に重ねる（攻撃の予告などが枠の外にはみ出さないように）
     drawFrame(this.add.graphics(), this.area.theme);
     this.hud = this.add.graphics();
@@ -394,6 +396,7 @@ export class BattleScene extends Phaser.Scene {
     drawBossTelegraph(g, world);
     drawZones(g, world);
     drawDevices(g, world);
+    drawLamps(g, world);
     drawObjects(g, world);
     drawLoot(g, world);
     drawFx(g, world);
@@ -404,6 +407,17 @@ export class BattleScene extends Phaser.Scene {
     drawBeams(g, world);
     drawBolts(g, world);
     drawPlayer(g, world);
+    // 暗闇：暗い場所を塗り、その上に「暗闇でも見えるもの」をもう一度描く（目の光、攻撃の予告、残る攻撃、敵の弾）
+    const dark = this.darkLayer;
+    dark.clear();
+    if (world.room.environment?.dark) {
+      drawDarkness(dark, world);
+      drawEyes(dark, world);
+      drawHazards(dark, world);
+      drawEnemyTelegraphs(dark, world);
+      drawBossTelegraph(dark, world);
+      drawShots(dark, world);
+    }
     this.hud.clear();
     drawHud(this.hud, world);
     drawBossBar(this.hud, world);

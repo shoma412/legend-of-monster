@@ -31,6 +31,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
     firingT: 0, // 撃っている最中の残り時間（銃。この間は移動が少し遅い）
     specialCd: 0,
     siege: null, // 徹甲砲撃の溜め中（大砲）
+    blindT: 0, // 目くらみの残り時間（環境「暗闇」。見える範囲が狭くなる）
     gauge: 0, // バーストブローのゲージ（ナックル）
     gaugeIdle: 0, // 最後に敵に当ててからの秒数（ナックル）
     dashT: 0,

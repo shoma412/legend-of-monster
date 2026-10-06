@@ -17,6 +17,7 @@ import { characters } from './characters.js';
 import { dialogues } from './dialogues.js';
 import { encounters } from './encounters.js';
 import { maps } from './maps.js';
+import { environments } from './environments.js';
 import { gimmicks } from './gimmicks.js';
 
 export const DATA = {
@@ -39,4 +40,5 @@ export const DATA = {
   encounters: defineRegistry('遭遇', encounters),
   maps: defineRegistry('マップ', maps),
   gimmicks: defineRegistry('部屋の仕掛け', gimmicks),
+  environments: defineRegistry('環境', environments),
 };

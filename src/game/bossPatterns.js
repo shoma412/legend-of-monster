@@ -7,6 +7,7 @@ import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
+import { blindPlayer, breakLamp } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
@@ -1052,6 +1053,120 @@ PATTERNS.ink = {
   },
 };
 
+// 消灯（ランプイーター）：点いている非常灯をすべて消し、1本（breakAll なら全部）を食べて壊す。
+//   そのあと暗闇にまぎれて位置を変え（その間は触れても当たらない）、予告つきの突進を lunges 回くり返す。blind なら、プレイヤーを目くらみにする
+PATTERNS.douse = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.remaining = act.def.lunges;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    const shift = () => {
+      // プレイヤーから少し離れた場所へ、暗闇の中を移る
+      const a = world.rng() * Math.PI * 2;
+      const spot = { x: p.x + Math.cos(a) * def.reposition.distance, y: p.y + Math.sin(a) * def.reposition.distance, r: b.r };
+      clampToBounds(spot, world.bounds);
+      act.sx = b.x;
+      act.sy = b.y;
+      act.tx = spot.x;
+      act.ty = spot.y;
+      act.phase = 'air';
+      act.t = def.reposition.time;
+    };
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        const lamps = world.lamps ?? [];
+        const lit = lamps.filter((l) => l.on > 0);
+        for (const lamp of lamps) lamp.on = 0;
+        // 食べるのは、いちばん近い1本（なければ、壊れていないもの）
+        const eat = def.breakAll ? lamps : [...(lit.length > 0 ? lit : lamps.filter((l) => l.broken <= 0))].sort((l1, l2) => Math.hypot(l1.x - b.x, l1.y - b.y) - Math.hypot(l2.x - b.x, l2.y - b.y)).slice(0, 1);
+        for (const lamp of eat) breakLamp(world, lamp, def.breakTime);
+        if (def.blind) blindPlayer(world);
+        sfx(world, 'bossCharge');
+        shift();
+      }
+    } else if (act.phase === 'air') {
+      const k = 1 - Math.max(0, act.t) / def.reposition.time;
+      b.x = act.sx + (act.tx - act.sx) * k;
+      b.y = act.sy + (act.ty - act.sy) * k;
+      if (act.t <= 0) {
+        act.phase = 'aim';
+        act.t = def.lungeTelegraph;
+        aimAt(act, { dx: p.x - b.x, dy: p.y - b.y, dist: Math.hypot(p.x - b.x, p.y - b.y) || 1 });
+      }
+    } else if (act.phase === 'aim') {
+      if (act.t > def.lockTime) aimAt(act, d);
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'active') {
+      b.x += act.dirX * def.speed * dt;
+      b.y += act.dirY * def.speed * dt;
+      if (circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+      if (clampToBounds(b, world.bounds)) {
+        act.phase = 'stun';
+        act.t = def.wallStun;
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        floatText(world, b.x, b.y - b.r - 12, 'スタン!', COLORS.amber, 20);
+      } else if (act.t <= 0) {
+        act.remaining--;
+        if (act.remaining > 0) shift();
+        else {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 鱗粉（ランプイーター）：プレイヤーのまわりに、鱗粉の雲を count 個まく。しばらく残り、中にいると目くらみになる
+PATTERNS.scales = {
+  start(world, b, act) {
+    const def = act.def;
+    const p = world.player;
+    act.phase = 'telegraph';
+    act.t = def.telegraph;
+    act.spots = Array.from({ length: def.count }, (_, i) => {
+      const a = world.rng() * Math.PI * 2;
+      const r = i === 0 ? 0 : def.radius * 0.8 + world.rng() * def.spread;
+      const spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: 0 };
+      clampToBounds(spot, world.bounds);
+      return spot;
+    });
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const spot of act.spots) {
+          world.hazards.push({
+            type: 'pool', x: spot.x, y: spot.y, r: def.radius, arm: def.arm, armMax: def.arm, life: def.life,
+            tick: 1, acc: 0, damage: 0, slow: false, blind: true, color: b.color,
+          });
+        }
+        sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -1160,6 +1275,7 @@ export function updateHazards(world, dt) {
         if (h.grow && h.r < h.rMax) h.r = Math.min(h.rMax, h.r + h.grow * dt);
         if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) {
           if (h.slow) slowPlayer(world);
+          if (h.blind) blindPlayer(world); // 鱗粉の雲
           if (h.damage > 0 && h.acc >= h.tick) {
             h.acc = 0;
             if (hurtPlayer(world, h.damage) && h.dot) afflictPlayer(world, h.dot);

@@ -5,6 +5,7 @@
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyBurn, applySlow, applyStop, effectDamage } from './combat.js';
+import { isVisible } from './darkness.js';
 import { placeMine } from './devices.js';
 import { burst, ring } from './fx.js';
 
@@ -23,6 +24,8 @@ const CONDITIONS = {
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
   recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
+  // 照らされている敵（見えている敵）。明るいマップでは、いつも満たされる
+  targetLit: (world, mod, target) => !!target && isVisible(world, target.x, target.y),
 };
 
 // 条件つき補正も含めた、今のステータスの値。target は攻撃する相手（相手による条件があるとき）

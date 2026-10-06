@@ -19,7 +19,8 @@ export const maps = [
     secretBoss: { boss: 'architect', hint: ['@noise＞ ……壁の向こうに、反応がある。'] },
   },
   // requiresPass: このマップに入るのに必要な通行証（そのマップの id）
-  { id: 'map4', code: 'MAP 04', name: '？？？', areas: [], ready: false, requiresPass: 'map3' },
+  // 停電区。environment は、このマップのすべての部屋に効く決まり（src/data/environments.js）。エリア2・3は、これから足す
+  { id: 'map4', code: 'MAP 04', name: '停電区', areas: ['darkstreet'], enemyScale: 3, environment: 'dark', requiresPass: 'map3' },
   { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },
   { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },
   { id: 'map7', code: 'MAP 07', name: '？？？', areas: [], ready: false },

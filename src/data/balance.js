@@ -149,6 +149,7 @@ export const STATUS = {
   freeze: { duration: 1.5 }, // 凍結：動けない
   bossSlowScale: 0.5, // ボスへの減速はこの倍率に弱まる。ボスは凍結・停止しない
   playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
+  killLight: { radius: 120, life: 6 }, // インプラント「誘蛾灯」：敵を倒した場所に残る光（暗闇のマップだけ）
   // プレイヤーが受ける持続ダメージ。tick 秒ごとに damage を、duration 秒のあいだ受ける。ダッシュすると消える。これで HP が 0 になることはない（1 残る）
   dots: {
     burn: { name: '炎上', color: 'heat', damage: 5, tick: 0.5, duration: 3 },

@@ -12,6 +12,7 @@ export const materials = [
   { id: 'houndCore', name: 'ハウンドコア', color: 'red' },
   { id: 'spiderCore', name: 'スパイダーコア', color: 'ice' },
   { id: 'titanCore', name: 'タイタンコア', color: 'heat' },
+  { id: 'mothCore', name: 'モスコア', color: 'magenta' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -143,6 +144,23 @@ export const fragments = [
   {
     id: 'sh-core', area: 'purifier', source: 'boss', title: 'スラッジハイドラのコアログ',
     text: '浄水量：0。保管した汚泥：測定不能。命令：街の水をきれいに保て。命令は守られている、と機体は記録している。',
+  },
+  // ---- マップ4「停電区」 ----
+  {
+    id: 'le-01', area: 'darkstreet', source: 'vault', title: '送電停止の通知',
+    text: '第四区への送電を、本日をもって停止する。居住者の退去は完了済み。なお、区内の保守機は回収しない。電源が切れれば、止まるはずである。',
+  },
+  {
+    id: 'le-04', area: 'darkstreet', source: 'vault', title: '街灯保守機 仕様書',
+    text: 'LE シリーズは、切れた灯りを見つけて、取り替える。古い灯りは体内に回収する。灯りが点いていれば、次の灯りへ向かう。',
+  },
+  {
+    id: 'le-memo', area: 'darkstreet', source: 'vault', title: '最後の住人の書き置き',
+    text: '非常灯だけは、電池で点く。あいつはそれを「切れかけ」だと思って、外して持っていく。持っていった先で、灯りは消える。それでまた、探しに行く。',
+  },
+  {
+    id: 'le-core', area: 'darkstreet', source: 'boss', title: 'ランプイーターのコアログ',
+    text: '点検：消灯。交換：在庫なし。回収：完了。点検：消灯。交換：在庫なし。回収：完了。——灯りを、探している。',
   },
   // ---- マップ3「建設区」 ----
   {

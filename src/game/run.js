@@ -1,5 +1,7 @@
 // 1回のラン（出撃から死亡またはクリアまで）の進行。部屋をまたいで持ち越すものをまとめる。
-import { ENEMY_SCALING, ROOM, ROOMGEN } from '../data/balance.js';
+import { ENEMY_SCALING, ROOM, ROOMGEN, SCREEN } from '../data/balance.js';
+import { roomBounds } from '../logic/geometry.js';
+import { placeLamps } from './darkness.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
@@ -109,6 +111,11 @@ export function enterRoom(run) {
   room.bossHard = run.mods.bossHard;
   room.healScale = run.mods.healScale;
   // 装備のレア度は、奥のエリアほど良くなる。マップの最後のボスは、装備と消耗品を落とさない（倒すと隠れ家に戻るため）
+  // 環境（そのマップのすべての部屋に効く決まり）。暗闇のマップでは、戦闘のある部屋に非常灯を置く
+  if (run.map.environment) {
+    room.environment = DATA.environments.get(run.map.environment);
+    if (room.environment.dark && room.waves.length > 0) room.lamps = placeLamps(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
+  }
   room.lootTier = run.areaIndex;
   room.noBossLoot = !run.inSecret && plan.current === 'boss' && !hasNextArea(run);
   const first = !run.started;

@@ -108,6 +108,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-lampeater',
+    trigger: { at: 'bossIntro', boss: 'lampeater' },
+    lines: [
+      { who: 'jin', text: '……灯りが、ひとつずつ消えていく。' },
+      { who: 'noise', text: '街灯の保守機だ。切れた灯りを取り替えるはずが、取り替える灯りが、もうどこにもない。' },
+      { who: 'jin', mood: 'angry', text: 'それで、点いてる灯りまで持っていくのか。' },
+    ],
+  },
+  {
+    id: 'return-lampeater',
+    trigger: { at: 'hideout', bossKilled: 'lampeater' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……目、細めてるね。ここ、まぶしい？' },
+      { who: 'jin', text: '暗い所に長くいた。あいつの腹の中は、消えた灯りでいっぱいだった。' },
+      { who: 'hal', text: '集めても、点かないのにね。……いくつか、直して点けておくよ。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -227,6 +245,7 @@ export const talks = {
         { who: 'hal', text: '守るものがなくなっても、守り方だけは忘れないんだね。' },
       ],
     },
+    { after: 'lampeater', lines: [{ who: 'hal', text: '蛾の羽、粉を落としたら、ただの薄い鉄板だった。光に寄っていくのは、取り替えるためだったんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -260,6 +279,7 @@ export const talks = {
     { after: 'pipeserpent', lines: [{ who: 'noise', text: '下水の流れが止まった。次は貯水槽だ。水門の前に、番をしている者がいる。' }] },
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
     { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
+    { after: 'lampeater', lines: [{ who: 'noise', text: '消灯街が静かになった。次は、地下の変電所だ。止められた電気を、まだ見張っている者がいる。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },

@@ -26,6 +26,8 @@
 //   cells     : 固有（アーキテクト）。部屋をマスに分け、市松模様の半分 → 残りの半分の順に攻撃する（waves 回）
 //   ink       : 固有（アーキテクト）。足元から広がっていく床を置く。中にいると持続ダメージ
 //   dot       : 持続ダメージの種類（balance の STATUS.dots：burn 炎上 / bleed 裂傷 / corrode 腐食）。ダッシュすると消える
+//   douse     : 固有（ランプイーター）。非常灯を消して1本を壊し（breakAll なら全部）、暗闇の中で位置を変えてから、突進を lunges 回
+//   scales    : 固有（ランプイーター）。鱗粉の雲を count 個まく。中にいると「目くらみ」（見える範囲が狭くなる）
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -523,6 +525,60 @@ export const bosses = [
         combos: [{ moves: ['quake', 'rivets'] }, { moves: ['sweep', 'dropHard'] }],
         side: { moves: ['swing'], every: { min: 10, max: 14 } },
         announce: '増築再開',
+      },
+    ],
+  },
+  // ---- ここからマップ4「停電区」 ----
+  {
+    id: 'lampeater',
+    name: 'ランプイーター',
+    alias: '灯り喰い', // 登場時に出す異名
+    shape: 'moth',
+    color: 'magenta',
+    weakness: 'heat',
+    material: 'mothCore',
+    radius: 40,
+    hp: 11000,
+    speed: 82,
+    contactDamage: 46,
+    xp: 600,
+    credits: 300,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「消灯」：非常灯をすべて消して1本を食べ、暗闇にまぎれて位置を変えてから、突進する
+      douse: {
+        pattern: 'douse', telegraph: 1.0, breakTime: 14, reposition: { distance: 250, time: 0.45 },
+        lunges: 1, lungeTelegraph: 0.6, lockTime: 0.2, speed: 640, duration: 0.55, damage: 50, wallStun: 1.2, recover: 0.8,
+      },
+      douseHard: {
+        pattern: 'douse', telegraph: 0.9, breakTime: 14, reposition: { distance: 250, time: 0.4 },
+        lunges: 2, lungeTelegraph: 0.5, lockTime: 0.18, speed: 680, duration: 0.55, damage: 50, wallStun: 1.2, recover: 0.8,
+      },
+      // 固有「鱗粉」：プレイヤーのまわりに雲をまく。中にいると、見える範囲が狭くなる
+      scales: { pattern: 'scales', telegraph: 0.6, count: 3, radius: 62, spread: 120, arm: 0.6, life: 6, recover: 0.6 },
+      scalesHard: { pattern: 'scales', telegraph: 0.5, count: 5, radius: 62, spread: 160, arm: 0.5, life: 7, recover: 0.6 },
+      // 急降下：予告線つきの突進。壁に当たると隙ができる
+      dive: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 660, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.2, reach: 'far' },
+      // 羽ばたき：足元からの衝撃波の輪
+      gust: { pattern: 'shockwave', telegraph: 0.8, damage: 34, ringSpeed: 320, ringMax: 340, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 鱗片：プレイヤーへ扇形に弾を撃つ（後半）
+      flakes: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 64, waves: 3, interval: 0.35, track: true, shotSpeed: 310, shotRadius: 7, damage: 32, recover: 0.6, reach: 'far' },
+      // 大技「全消灯」：非常灯をすべて壊し、目くらみにしたうえで、暗闇からの突進を4回
+      blackout: {
+        pattern: 'douse', telegraph: 1.3, breakAll: true, breakTime: 22, blind: true, reposition: { distance: 240, time: 0.4 },
+        lunges: 4, lungeTelegraph: 0.55, lockTime: 0.18, speed: 680, duration: 0.5, damage: 52, wallStun: 1.6, recover: 1.5,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'dive' }],
+    ultimate: { move: 'blackout', announce: '全消灯' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['douse', 'scales', 'dive', 'gust'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['douseHard', 'scalesHard', 'dive', 'gust', 'flakes'],
+        combos: [{ moves: ['scalesHard', 'dive'] }, { moves: ['gust', 'flakes'] }],
+        announce: '灯りを寄こせ',
       },
     ],
   },

@@ -6,6 +6,7 @@ import { calcDamage } from '../logic/damage.js';
 import { DEG, angleDiff } from '../logic/geometry.js';
 import { addXp } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
+import { addLight, flashLight } from './darkness.js';
 import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
@@ -118,6 +119,7 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   const sparkColor = stats.elements.length > 0 ? ELEMENT_COLORS[stats.elements[0]] : enemy.color;
   burst(world, enemy.x, enemy.y, sparkColor, result.crit ? 10 : 5);
   damageEnemy(world, enemy, result.amount, result);
+  flashLight(world, enemy.x, enemy.y); // 暗闇では、当たった場所が一瞬照らされる
   applyElementStatus(world, enemy, stats.elements);
   fire(world, 'hit', { target: enemy, elements: stats.elements, primary: true });
   // 「必ず会心」で出た会心は数えない（そうしないとゼロデイで永久に会心が続く）
@@ -183,6 +185,9 @@ export function killEnemy(world, enemy) {
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   p.sinceKill = 0;
+  // 倒すと光が残る敵（発光虫）と、インプラント「誘蛾灯」
+  if (enemy.def.deathLight) addLight(world, enemy.x, enemy.y, enemy.def.deathLight.radius, enemy.def.deathLight.life);
+  else if (p.stats.killLight > 0) addLight(world, enemy.x, enemy.y, STATUS.killLight.radius, STATUS.killLight.life);
   eliteDeath(world, enemy);
   splitOnDeath(world, enemy);
   world.events.push({ type: 'kill', enemy: enemy.def.id });

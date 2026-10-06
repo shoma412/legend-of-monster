@@ -375,6 +375,46 @@ const THEMES = {
     for (let x = a.left + 50; x < a.right - 30; x += 120) block(g, x, a.top + 8, 10, PX, rng() < 0.3 ? 0xff4d5e : 0x5dffa0, 0.5);
   },
   // 資材置き場：積まれた鉄骨、コンテナ、黄色と黒のしま模様、タイヤの跡、コーン
+  night(g, rng, a) {
+    speckles(g, rng, a, 260, [0x0b0b16, 0x10101e, 0x070710, 0x15152a], 0.7);
+    // 濡れた路面の水たまり（横に長い、鈍い反射）
+    for (let i = 0; i < 6; i++) {
+      const x = a.left + 30 + rng() * (a.w - 160);
+      const y = a.top + 40 + rng() * (a.h - 80);
+      const w = 50 + rng() * 80;
+      block(g, x, y, w, PX, 0x24244a, 0.5);
+      block(g, x + 8, y + PX, w - 20, PX / 2, 0x3a3a70, 0.35);
+    }
+    // 道路の中央線（かすれている）
+    for (let x = a.left + 20; x < a.right - 20; x += 44) {
+      if (rng() < 0.3) continue;
+      block(g, x, a.cy - 2, 22, PX, 0x4a4a7a, 0.3);
+    }
+    // 消えた街灯（上と下の壁ぎわに並ぶ。柱と、暗い灯具）
+    for (const y of [a.top + 14, a.bottom - 30]) {
+      for (let x = a.left + 70; x < a.right - 40; x += 170) {
+        block(g, x, y, PX, 18, 0x1c1c34, 0.95);
+        block(g, x - 6, y - 2, 16, PX, 0x26264a, 0.95);
+        block(g, x - 4, y + 2, 12, PX / 2, 0x0a0a14, 0.9);
+      }
+    }
+    // 割れた看板（枠だけ残り、中は暗い。ところどころ、文字のかけら）
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 60 + rng() * (a.w - 200);
+      const y = a.top + 50 + rng() * (a.h - 130);
+      const w = 60 + rng() * 40;
+      block(g, x, y, w, 26, 0x0c0c1a, 0.8);
+      for (const [bx, by, bw, bh] of [[x, y, w, PX / 2], [x, y + 24, w, PX / 2], [x, y, PX / 2, 26], [x + w - 2, y, PX / 2, 26]]) block(g, bx, by, bw, bh, 0x3a3a70, 0.5);
+      for (let k = 0; k < 3; k++) if (rng() < 0.6) block(g, x + 8 + k * 16, y + 9, 8, PX, 0x785aff, 0.22);
+    }
+    // 垂れ下がった電線
+    for (let i = 0; i < 3; i++) {
+      const x0 = a.left + rng() * a.w * 0.5;
+      const len = 160 + rng() * 200;
+      const y0 = a.top + 30 + rng() * 60;
+      for (let x = 0; x < len; x += PX) block(g, x0 + x, y0 + Math.sin((x / len) * Math.PI) * 22, PX, PX / 2, 0x05050c, 0.85);
+    }
+  },
   yard(g, rng, a) {
     speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
     // タイヤの跡（斜めに2本ずつ）

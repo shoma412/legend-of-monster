@@ -687,7 +687,7 @@ describe('未完の塔の定義', () => {
     expect(mapSpecies(maps[2]).sort()).toEqual(['hound', 'spider', 'titan']);
   });
 
-  it('3体のボスを順に倒すと、マップ3が完了になる。今あるマップをすべて完了したので、2周目が選べる', () => {
+  it('3体のボスを順に倒すと、マップ3が完了になる。マップ4が残っているので、2周目はまだ選べない', () => {
     const save = createSave();
     recordMapClear(save, 'map1', 1);
     recordMapClear(save, 'map2', 1);
@@ -710,7 +710,7 @@ describe('未完の塔の定義', () => {
     expect(save.materials.titanCore).toBeGreaterThan(0);
     expect(save.achievements).toEqual(expect.arrayContaining(['scraphound', 'girderspider', 'cranetitan', 'map3']));
     expect(mapState(save, maps[2])).toBe('done');
-    expect(save.cycle).toBe(2);
+    expect(save.cycle).toBe(1);
   });
 });
 

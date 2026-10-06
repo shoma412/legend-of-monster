@@ -906,6 +906,36 @@ BOSS_TELEGRAPHS.ink = (g, b, act) => {
   }
 };
 
+// 消灯：予告では、点いている非常灯へ伸びる線。突進の前は、狙っている線
+BOSS_TELEGRAPHS.douse = (g, b, act, world) => {
+  const def = act.def;
+  const red = hex(COLORS.red);
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / def.telegraph;
+    for (const lamp of world.lamps ?? []) {
+      if (lamp.broken > 0) continue;
+      g.lineStyle(2, red, 0.25 + 0.6 * k).lineBetween(b.x, b.y, lamp.x, lamp.y - 16);
+      g.lineStyle(2, red, 0.9).strokeCircle(lamp.x, lamp.y - 16, 12 - 6 * k);
+    }
+    g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+  } else if (act.phase === 'aim') {
+    const locked = act.t <= def.lockTime;
+    const len = def.speed * def.duration;
+    g.lineStyle(b.r * 2, red, locked ? 0.22 : 0.1).lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+    g.lineStyle(2, red, locked ? 1 : 0.6).lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+  }
+};
+
+// 鱗粉：雲が出る場所の予告
+BOSS_TELEGRAPHS.scales = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  for (const spot of act.spots) {
+    g.fillStyle(hex(COLORS.red), 0.08 + 0.16 * k).fillCircle(spot.x, spot.y, act.def.radius);
+    g.lineStyle(2, hex(COLORS.red), 0.8).strokeCircle(spot.x, spot.y, act.def.radius);
+  }
+};
+
 BOSS_TELEGRAPHS.vent = (g, b, act) => {
   // 冷却中：残り時間が輪で分かる
   const k = Math.max(0, act.t / act.def.duration);
@@ -1223,6 +1253,48 @@ SHAPES.boar = (g, b, color) => {
     }
   }
 };
+
+// ランプイーター：大きな羽と、触角。羽は、ゆっくり羽ばたく
+SHAPES.moth = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const flap = stunned ? 0.2 : 0.75 + 0.25 * Math.sin(world.time * 7);
+  for (const side of [-1, 1]) {
+    // 前の羽と、後ろの羽
+    const front = [local(b, r * 0.2, side * r * 0.2), local(b, r * 0.7, side * r * 1.5 * flap), local(b, -r * 0.2, side * r * 1.7 * flap), local(b, -r * 0.3, side * r * 0.3)];
+    const back = [local(b, -r * 0.2, side * r * 0.25), local(b, -r * 0.5, side * r * 1.3 * flap), local(b, -r * 1.1, side * r * 0.9 * flap), local(b, -r * 0.7, side * r * 0.2)];
+    for (const wing of [back, front]) {
+      g.fillStyle(BODY_FILL, 0.92).fillPoints(wing, true);
+      neonStroke(g, color, 2.5, () => g.strokePoints(wing, true, true));
+    }
+    // 羽の目玉もよう
+    const eye = local(b, r * 0.1, side * r * 1.05 * flap);
+    g.lineStyle(2, color, 0.8).strokeCircle(eye.x, eye.y, r * 0.2);
+    g.fillStyle(color, 0.5).fillCircle(eye.x, eye.y, r * 0.08);
+    // 触角
+    const tip = local(b, r * 1.25, side * r * 0.45);
+    const base = local(b, r * 0.7, side * r * 0.12);
+    g.lineStyle(2, color, 0.9).lineBetween(base.x, base.y, tip.x, tip.y);
+  }
+  // 胴
+  const body = [local(b, r * 0.85, 0), local(b, r * 0.3, r * 0.26), local(b, -r * 0.9, r * 0.14), local(b, -r * 0.9, -r * 0.14), local(b, r * 0.3, -r * 0.26)];
+  g.fillStyle(BODY_FILL, 0.96).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.55, side * r * 0.12);
+      g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+};
+
+// 雑魚の攻撃の予告だけを描く（暗闇の上に、もう一度描くために使う）
+export function drawEnemyTelegraphs(g, world) {
+  for (const e of world.enemies) {
+    if (e.dead || e.spawnT > 0 || e.boss) continue;
+    drawTelegraph(g, e, world);
+  }
+}
 
 export function drawBossTelegraph(g, world) {
   const b = world.boss;

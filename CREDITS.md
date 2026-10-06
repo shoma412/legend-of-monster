@@ -53,6 +53,13 @@ BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている�
 | maou_loop_bgm_cyber26.ogg | マップ3 エリア3 未完の塔 | サイバー26 | https://maou.audio/bgm_cyber26/ | 2026-10-07 |
 | maou_loop_bgm_neorock68.ogg | マップ3 ボス1 スクラップハウンド | ネオロック68 | https://maou.audio/bgm_neorock68/ | 2026-10-07 |
 | maou_loop_bgm_neorock66.ogg | マップ3 ボス2 ガーダースパイダー | ネオロック66 | https://maou.audio/bgm_neorock66/ | 2026-10-07 |
+| maou_loop_bgm_cyber21.ogg | マップ4 エリア1 消灯街 | サイバー21 | https://maou.audio/bgm_cyber21/ | 2026-10-07 |
+| maou_loop_bgm_neorock70.ogg | マップ4 ボス1 ランプイーター | ネオロック70 | https://maou.audio/bgm_neorock70/ | 2026-10-07 |
+| maou_loop_bgm_cyber29.ogg | マップ4 エリア2 地下変電所（これから使う） | サイバー29 | https://maou.audio/bgm_cyber29/ | 2026-10-07 |
+| maou_loop_bgm_neorock75.ogg | マップ4 ボス2（これから使う） | ネオロック75 | https://maou.audio/bgm_neorock75/ | 2026-10-07 |
+| maou_loop_bgm_cyber05.ogg | マップ4 エリア3 主幹制御室（これから使う） | サイバー05 | https://maou.audio/bgm_cyber05/ | 2026-10-07 |
+| maou_loop_bgm_neorock55.ogg | マップ4 ボス3（これから使う） | ネオロック55 | https://maou.audio/bgm_neorock55/ | 2026-10-07 |
+| maou_loop_bgm_cyber31.ogg | マップ4 隠しボス（これから使う） | サイバー31 | https://maou.audio/bgm_cyber31/ | 2026-10-07 |
 | maou_loop_bgm_neorock77.ogg | マップ3 ボス3 クレーンタイタン（隠しボスも、見つけたエリアのボス曲が流れる） | ネオロック77 | https://maou.audio/bgm_neorock77/ | 2026-10-07 |
 
 曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。

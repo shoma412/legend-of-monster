@@ -67,7 +67,7 @@ describe('ボスの定義（行動の選び方）', () => {
     }
   });
 
-  it('9体とも大技を持ち、後半には連携がある。大技の部品は3種類が3体ずつ', () => {
+  it('どのボスも大技を持ち、後半には連携がある。マップ1〜3の9体は、大技の部品が3種類を3体ずつ。マップ4からは、そのボスだけの大技もある', () => {
     const count = {};
     for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) {
       expect(boss.ultimate?.announce, boss.id).toBeTruthy();
@@ -75,7 +75,7 @@ describe('ボスの定義（行動の選び方）', () => {
       count[pattern] = (count[pattern] ?? 0) + 1;
       expect(boss.phases.at(-1).combos?.length, boss.id).toBeGreaterThanOrEqual(1);
     }
-    expect(count).toEqual({ endure: 3, safezone: 3, chase: 3 });
+    expect(count).toEqual({ endure: 3, safezone: 3, chase: 3, douse: 1 });
   });
 });
 

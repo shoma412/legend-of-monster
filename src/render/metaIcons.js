@@ -75,6 +75,13 @@ export const MATERIAL_ICONS = {
       g.fillStyle(c, 1).fillCircle(x + dx * s, y - s * 0.35, s * 0.16);
     }
   },
+  // モスコア：羽
+  mothCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    for (const side of [-1, 1]) g.strokePoints([{ x, y: y - s * 0.1 }, { x: x + side * s * 0.6, y: y - s * 0.45 }, { x: x + side * s * 0.5, y: y + s * 0.35 }, { x, y: y + s * 0.1 }], false, false);
+    g.lineBetween(x, y - s * 0.45, x, y + s * 0.45);
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

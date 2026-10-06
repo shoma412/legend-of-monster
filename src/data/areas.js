@@ -301,4 +301,37 @@ export const areas = [
       ],
     },
   },
+  // ---- ここからマップ4「停電区」 ----
+  {
+    id: 'darkstreet',
+    code: 'GRID 01',
+    name: '消灯街',
+    theme: 'night',
+    bgm: 'darkstreet',
+    bossBgm: 'bossDarkstreet',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'stalker', weight: 3 },
+      { id: 'glowbug', weight: 3 },
+      { id: 'lampbreaker', weight: 2 },
+      { id: 'drone', weight: 2 },
+      { id: 'bomber', weight: 2 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['grunt', 'lampbreaker'],
+    boss: 'lampeater',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 灯りが消えていく。あれが、食べている。',
+        '@noise＞ 非常灯を点けておけ。姿が見える。熱が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……もう、灯りを探していない。',
+        '@noise＞ コアを回収しろ。この下に、変電所がある。',
+      ],
+    },
+  },
 ];

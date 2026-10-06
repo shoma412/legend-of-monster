@@ -271,10 +271,8 @@ describe('通行証とマップ4', () => {
   });
 
   it('マップ4は、マップ3の完了と通行証の両方がそろうと開く条件になっている', () => {
-    const map4 = { ...maps[3], ready: true, areas: ['yard'] };
-    const real = maps[3];
-    maps[3] = map4; // 準備中のマップなので、テストの間だけ「できている」ことにする
-    try {
+    const map4 = maps[3];
+    {
       const save = createSave();
       expect(hasPassFor(save, map4)).toBe(false);
       expect(mapState(save, map4)).toBe('locked');
@@ -287,10 +285,8 @@ describe('通行証とマップ4', () => {
       save.passes.push('map3');
       expect(mapState(save, map4)).toBe('open');
       expect(lockReason(save, map4)).toBe('');
-    } finally {
-      maps[3] = real;
     }
-    expect(lockReason(createSave(), maps[3])).toContain('準備中');
+    expect(lockReason(createSave(), maps[4])).toContain('準備中');
     // 通行証の要らないマップは、今までどおり
     expect(hasPassFor(createSave(), maps[1])).toBe(true);
   });

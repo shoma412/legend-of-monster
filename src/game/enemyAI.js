@@ -5,6 +5,7 @@ import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
+import { breakLamp, litByLamp } from './darkness.js';
 import { updateEliteTrait } from './elite.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
@@ -41,6 +42,41 @@ export function createEnemy(def, x, y, spawnT, rng, scale = 1, hpScale = 1) {
 
 // d: { dx, dy, dist } プレイヤーへの向きと距離
 const BEHAVIORS = {
+  // 忍び寄り：暗闇の中を速く近づいてくる。非常灯や攻撃の光に照らされている間は、動けない（プレイヤーのまわりの円は、光に数えない）
+  stalker(world, e, dt, d) {
+    e.lit = litByLamp(world, e.x, e.y);
+    if (e.lit) return;
+    e.x += (d.dx / d.dist) * e.def.speed * dt;
+    e.y += (d.dy / d.dist) * e.def.speed * dt;
+    const p = world.player;
+    if (circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r)) hurtPlayer(world, e.def.damage);
+  },
+
+  // 灯り割り：点いている非常灯へ向かっていき、壊す。点いている非常灯がなければ、プレイヤーを殴りに来る
+  lampbreaker(world, e, dt, d) {
+    let target = null;
+    let best = Infinity;
+    for (const lamp of world.lamps ?? []) {
+      if (lamp.on <= 0) continue;
+      const dist = Math.hypot(lamp.x - e.x, lamp.y - e.y);
+      if (dist < best) {
+        best = dist;
+        target = lamp;
+      }
+    }
+    if (!target || e.state === 'windup' || e.state === 'recover') {
+      BEHAVIORS.brawler(world, e, dt, d);
+      return;
+    }
+    if (best > e.r + 14) {
+      e.x += ((target.x - e.x) / best) * e.def.speed * dt;
+      e.y += ((target.y - e.y) / best) * e.def.speed * dt;
+    } else {
+      breakLamp(world, target, e.def.breakTime);
+      e.swingT = 0.15;
+    }
+  },
+
   swarm(world, e, dt, d) {
     const wob = Math.sin(world.time * 5 + e.seed) * (e.def.wobble ?? 0);
     const ax = d.dx / d.dist - (d.dy / d.dist) * wob;

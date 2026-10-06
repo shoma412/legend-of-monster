@@ -206,6 +206,32 @@ export const implants = [
     desc: (k) => `ダッシュ後1.5秒間、攻撃速度 +${pct(0.2 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.2 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 蛾（ランプイーター由来・光と目） ----
+  {
+    id: 'compound', species: 'moth', name: '複眼',
+    desc: (k) => `会心率 +${pct(0.05 * k)}。暗闇で見える範囲 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'critChance', add: 0.05 * k }, { stat: 'visionBonus', add: 0.15 * k }] }),
+  },
+  {
+    id: 'phosphor', species: 'moth', name: '燐光',
+    desc: (k) => `照らされている敵へのダメージ +${pct(0.1 * k)}（明るい場所では、常に効く）。攻撃の光が大きくなる`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.1 * k, when: 'targetLit' }, { stat: 'lightBonus', add: 0.5 * k }] }),
+  },
+  {
+    id: 'flutter', species: 'moth', name: '羽ばたき',
+    desc: (k) => `ダッシュ後1.5秒間、移動速度 +${pct(0.2 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'moveSpeedMul', add: 0.2 * k, when: 'recentDash', window: 1.5 }] }),
+  },
+  {
+    id: 'lure', species: 'moth', name: '誘蛾灯',
+    desc: (k) => `敵を倒すと、HP +${num(1 * k)}。暗闇では、倒した場所に光が残る`,
+    effect: (k) => ({ mods: [{ stat: 'killHeal', add: 1 * k }, { stat: 'killLight', add: 1 }] }),
+  },
+  {
+    id: 'mothdust', species: 'moth', name: '鱗粉',
+    desc: (k) => `被弾後2秒間、被ダメージ −${pct(0.2 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.2 * k, when: 'recentHurt', window: 2 }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -356,6 +382,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '移動速度 +10%', effect: { mods: [{ stat: 'moveSpeedMul', add: 0.1 }] } },
       { need: 3, desc: 'ダッシュの回数 +1', effect: { mods: [{ stat: 'dashCharges', add: 1 }] } },
+    ],
+  },
+  moth: {
+    name: '蛾', color: 'magenta', boss: 'lampeater',
+    bonuses: [
+      { need: 2, desc: '会心ダメージ +20%', effect: { mods: [{ stat: 'critMul', add: 0.2 }] } },
+      { need: 3, desc: '暗闇で見える範囲 +25%。照らされている敵へのダメージ +10%', effect: { mods: [{ stat: 'visionBonus', add: 0.25 }, { stat: 'attackMul', add: 0.1, when: 'targetLit' }] } },
     ],
   },
   spider: {
