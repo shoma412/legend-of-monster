@@ -10,6 +10,7 @@
 //   burst  : 敵に当てるたびにゲージが溜まり、満タンで右クリックの強烈な一撃（ナックル）
 // shot（遠距離の武器の弾）: damage / interval 撃つ間隔(秒) / speed / radius / life / knockback
 //   explode: { radius, damage } 当たった場所で爆発して、まわりの敵にもダメージ / recoil: 撃ったときに後ろへ下がる距離(px) / firing: 撃ったあと足が遅くなる時間(秒)
+// guardBreak: 盾や甲羅で防がれたときに通るダメージの割合（書いていなければ 0 ＝ 完全に防がれる）
 // dashSpeed: ダッシュの速さの倍率（書いていなければ 1）。小さいほど、同じ距離を進むのに時間がかかる
 // autoCombo: true なら、左クリックを押している間、通常攻撃を出し続ける（ナックル）
 // ougi は奥義（今は大剣だけ）
@@ -25,6 +26,7 @@ export const weapons = [
     id: 'greatsword',
     name: '大剣',
     type: 'melee',
+    guardBreak: 0.5, // 盾や甲羅で防がれても、この割合のダメージが通る（重い武器だけ）
     // この武器を持っている間のステータス補正（重装：打たれ強いが足が遅い）
     mods: [{ stat: 'damageTaken', add: -0.1 }, { stat: 'moveSpeedMul', add: -0.05 }],
     // 奥義（恒久強化「大剣の奥義」を買うと使える）：残りHPが hpBelow 以下のとき、エリアごとに1回だけ、
@@ -138,6 +140,7 @@ export const weapons = [
     name: '大砲',
     type: 'ranged',
     mods: [{ stat: 'moveSpeedMul', add: -0.3 }], // いちばん足が遅い
+    guardBreak: 0.5, // 盾や甲羅で防がれても、この割合のダメージが通る（重い武器だけ）
     dashSpeed: 0.6, // ダッシュの速さの倍率（進む距離と無敵の時間は同じで、かかる時間が延びる。終わりぎわは無敵が切れている）
     moveSlow: 0.45, // 撃った直後の移動速度の倍率
     // 遅くて大きい砲弾。1発の威力は大剣の通常攻撃より高い。当たると爆発して、まわりの敵も巻き込む

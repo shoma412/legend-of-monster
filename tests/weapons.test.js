@@ -3,7 +3,7 @@ import { PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { weaponUnlocks } from '../src/data/upgrades.js';
 import { recalcStats } from '../src/game/build.js';
-import { hurtPlayer } from '../src/game/combat.js';
+import { hitEnemy, hurtPlayer } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 
@@ -576,5 +576,58 @@ describe('大砲（2026-10-07 追加）', () => {
     // ほかの武器は、今までどおり
     for (const id of ['greatsword', 'sword', 'knuckle']) expect(DATA.weapons.get(id).dashSpeed).toBeUndefined();
     expect(cannon.dashSpeed).toBe(0.6);
+  });
+});
+
+describe('ガードの上からのダメージ（2026-10-07 追加）', () => {
+  // 盾をこちらに向けたシールド兵に、正面から 100 の攻撃を当てる
+  const frontHit = (weaponId, options) => {
+    const world = makeWorld(weaponId);
+    const e = addEnemy(world, 'shield', 100);
+    e.facing = Math.PI; // 左（プレイヤーの方）を向いている
+    world.rng = () => 0.99; // 会心なし
+    const result = hitEnemy(world, e, 100, 1, 0, 400, options);
+    return { result, lost: e.maxHp - e.hp, e, world };
+  };
+
+  it('大剣と大砲は、盾で防がれても 50% のダメージが通る', () => {
+    for (const id of ['greatsword', 'cannon']) {
+      expect(DATA.weapons.get(id).guardBreak).toBe(0.5);
+      const { result, lost } = frontHit(id);
+      expect(lost, id).toBe(50);
+      expect(result.amount, id).toBe(50);
+      expect(result.blocked, id).toBeFalsy();
+    }
+  });
+
+  it('片手剣・銃・ナックルは、今までどおり完全に防がれる', () => {
+    for (const id of ['sword', 'gun', 'knuckle']) {
+      expect(DATA.weapons.get(id).guardBreak).toBeUndefined();
+      const { result, lost } = frontHit(id);
+      expect(lost, id).toBe(0);
+      expect(result.blocked, id).toBe(true);
+    }
+  });
+
+  it('背後からの攻撃や、盾が開いている間は、どの武器でも 100% 通る。奥義など「防げない攻撃」も 100%', () => {
+    const world = makeWorld('greatsword');
+    world.rng = () => 0.99;
+    const e = addEnemy(world, 'shield', 100);
+    e.facing = Math.PI;
+    expect(hitEnemy(world, e, 100, -1, 0, 0).amount).toBe(100); // 背後から
+    e.shieldOpen = true;
+    expect(hitEnemy(world, e, 100, 1, 0, 0).amount).toBe(100);
+    e.shieldOpen = false;
+    expect(hitEnemy(world, e, 100, 1, 0, 0, { unblockable: true }).amount).toBe(100);
+  });
+
+  it('ボスの甲羅（タンククラブ）にも、同じように半分通る', () => {
+    const world = makeWorld('cannon');
+    world.rng = () => 0.99;
+    const crab = { def: DATA.bosses.get('tankcrab'), boss: true, x: world.player.x + 150, y: world.player.y, r: 46, hp: 5000, maxHp: 5000, facing: Math.PI, stopT: 0, slowT: 0, burnT: 0, hit: 0, vx: 0, vy: 0 };
+    world.enemies.push(crab);
+    expect(hitEnemy(world, crab, 100, 1, 0, 0).amount).toBe(50);
+    world.player.weapon = DATA.weapons.get('gun');
+    expect(hitEnemy(world, crab, 100, 1, 0, 0).blocked).toBe(true);
   });
 });

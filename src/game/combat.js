@@ -58,15 +58,23 @@ export function enemySpeedFactor(enemy) {
 // options.heavy: 重い攻撃（溜め斬り・締めの一撃・反撃・拡散射撃・奥義）。種族「巨人」の効果が乗る
 export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}) {
   // シールド兵：盾を向けている側からの攻撃は防がれる。止まっている間（凍結・EMP）は防げない
+  //   重い武器（大剣・大砲）は、防がれても、決まった割合のダメージが通る（武器の guardBreak）
   const shield = enemy.def.shield;
   if (shield && enemy.stopT <= 0 && !enemy.shieldOpen && !options.unblockable) {
     const from = Math.atan2(-dirY, -dirX); // 敵から見た、攻撃が来た方向
     if (Math.abs(angleDiff(from, enemy.facing)) <= (shield.arc * DEG) / 2) {
       enemy.hit = 0.06;
-      floatText(world, enemy.x, enemy.y - enemy.r - 6, 'ガード', COLORS.dim, 13);
       burst(world, enemy.x + Math.cos(enemy.facing) * enemy.r, enemy.y + Math.sin(enemy.facing) * enemy.r, COLORS.ink, 4, 160);
       sfx(world, 'block');
-      return { amount: 0, crit: false, weak: false, blocked: true };
+      const through = world.player.weapon.guardBreak ?? 0;
+      if (through <= 0) {
+        floatText(world, enemy.x, enemy.y - enemy.r - 6, 'ガード', COLORS.dim, 13);
+        return { amount: 0, crit: false, weak: false, blocked: true };
+      }
+      // 盾の上から、割合ぶんだけ通す。吹き飛ばしも同じ割合に弱まる
+      floatText(world, enemy.x, enemy.y - enemy.r - 20, 'ガードの上から', COLORS.dim, 11);
+      base *= through;
+      knockback *= through;
     }
   }
   const p = world.player;

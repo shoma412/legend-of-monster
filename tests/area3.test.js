@@ -82,6 +82,7 @@ describe('distToSegment', () => {
 describe('シールド兵', () => {
   it('正面からの攻撃は防ぐ。背後からなら通る', () => {
     const world = makeWorld();
+    world.player.weapon = DATA.weapons.get('sword'); // 盾で完全に防がれる武器で確かめる（大剣・大砲は、半分通る）
     const e = addEnemy(world, 'shield', 100);
     e.facing = Math.PI; // 左（プレイヤーの方）を向いている
     // プレイヤーから敵へ向かう攻撃（正面から）
@@ -104,6 +105,7 @@ describe('シールド兵', () => {
 
   it('向きを変えるのは遅い。素早く回り込めば背後を取れる', () => {
     const world = makeWorld();
+    world.player.weapon = DATA.weapons.get('sword'); // 盾で完全に防がれる武器で確かめる（大剣・大砲は、半分通る）
     const p = world.player;
     const e = addEnemy(world, 'shield', 200);
     e.cd = 99;

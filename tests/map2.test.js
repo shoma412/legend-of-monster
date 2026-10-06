@@ -451,6 +451,7 @@ describe('密漁者', () => {
 describe('タンククラブ：甲羅', () => {
   it('正面からの攻撃は防がれ、背後からの攻撃は通る', () => {
     const world = crabWorld();
+    world.player.weapon = DATA.weapons.get('sword'); // 盾で完全に防がれる武器で確かめる（大剣・大砲は、半分通る）
     const b = world.boss;
     const hp = b.hp;
     updateWorld(world, DT, idle);
