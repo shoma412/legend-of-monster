@@ -64,7 +64,7 @@ describe('定義データのつじつま', () => {
       for (const cost of def.costs) for (const id of Object.keys(cost)) expect(DATA.materials.has(id), `${def.id} の ${id}`).toBe(true);
     }
     for (const w of weaponUnlocks) for (const id of Object.keys(w.cost ?? {})) expect(DATA.materials.has(id)).toBe(true);
-    for (const boss of DATA.bosses.all()) expect(DATA.materials.has(boss.material), boss.id).toBe(true);
+    for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) expect(DATA.materials.has(boss.material), boss.id).toBe(true);
     for (const f of DATA.fragments.all()) expect(DATA.areas.has(f.area), f.id).toBe(true);
   });
 
@@ -408,9 +408,9 @@ describe('記録', () => {
 });
 
 describe('M9 で足した実績', () => {
-  it('実績は32個あり、どれも名前と説明がある', () => {
+  it('実績は33個あり、どれも名前と説明がある', () => {
     const list = DATA.achievements.all();
-    expect(list).toHaveLength(32);
+    expect(list).toHaveLength(33);
     for (const def of list) {
       expect(def.name, def.id).toBeTruthy();
       expect(def.desc, def.id).toBeTruthy();

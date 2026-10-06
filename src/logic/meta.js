@@ -103,6 +103,16 @@ export function processEvent(save, run, event) {
     }
   }
 
+  // 隠しボスを倒した：そのマップの通行証が手に入る（素材とデータ片はない）
+  if (event.type === 'secretKill') {
+    save.bossKills[event.boss] = (save.bossKills[event.boss] ?? 0) + 1;
+    save.passes ??= [];
+    if (!save.passes.includes(event.map)) {
+      save.passes.push(event.map);
+      addNote(run, notes, { kind: 'material', text: `> 通行証を入手 // ${DATA.maps.get(event.map).name}の通行証` });
+    }
+  }
+
   if (event.type === 'fragment') gainFragment(save, run, event.id, notes);
 
   if (event.type === 'runClear') save.records.clears++;

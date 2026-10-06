@@ -1,16 +1,17 @@
 // 1部屋ぶんの戦闘の状態と進行。Phaser に依存しないので、そのままテストできる。
-import { ROOM, SCREEN } from '../data/balance.js';
+import { FEEL, ROOM, SCREEN, SECRET } from '../data/balance.js';
+import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { roomBounds } from '../logic/geometry.js';
 import { createBoss } from './boss.js';
 import { openImplantChoice } from './build.js';
 import { makeElite } from './elite.js';
 import { updateFocus } from './objects.js';
-import { doorObjects } from './rooms.js';
+import { SECRET_IN, doorObjects } from './rooms.js';
 import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
-import { burst, createFx, updateFx } from './fx.js';
+import { addShake, burst, createFx, floatText, sfx, updateFx } from './fx.js';
 import { updateDevices } from './devices.js';
 import { updateGimmick } from './gimmicks.js';
 import { canUseOugi, createPlayer, updatePlayer, updatePlayerShots } from './player.js';
@@ -109,9 +110,28 @@ export function updateWorld(world, dt, input) {
   updateZones(world, dt);
   // クリア後や隠れ家でも、撃った弾は飛ぶ（試し撃ち）
   if (world.mode === 'clear') updatePlayerShots(world, dt);
+  updateSecret(world);
   for (const l of world.loot) l.t += dt;
   world.ougiReady = canUseOugi(world); // 表示用
   updateFocus(world);
+}
+
+// ひび割れた壁：部屋をクリアしてから壊せるようになる。壊すと、隠し扉が現れる
+function updateSecret(world) {
+  const s = world.room.secret;
+  if (!s || s.broken || world.mode !== 'clear') return;
+  if (!s.enemy) {
+    s.enemy = createEnemy(DATA.enemies.get('crackwall'), s.x, s.y, 0, world.rng);
+    world.enemies.push(s.enemy);
+  } else if (s.enemy.dead) {
+    s.broken = true;
+    world.enemies = world.enemies.filter((e) => e !== s.enemy);
+    world.objects.push({ kind: 'secretDoor', x: s.x, y: s.y, r: SECRET.doorRadius, side: s.side, target: SECRET_IN });
+    sfx(world, 'explode');
+    addShake(world, FEEL.shake.heavy);
+    burst(world, s.x, s.y, COLORS.amber, 30, 280);
+    floatText(world, s.x, s.y + (s.side === 'top' ? 34 : -34), '隠し扉', COLORS.amber, 18);
+  }
 }
 
 function updateWaves(world, dt) {

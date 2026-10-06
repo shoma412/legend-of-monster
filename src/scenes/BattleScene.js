@@ -50,7 +50,10 @@ export class BattleScene extends Phaser.Scene {
     this.area = currentArea(run);
     this.world = enterRoom(run);
     this.roomDef = DATA.rooms.get(this.world.room.type);
-    if (import.meta.env.DEV) window.__world = this.world;
+    if (import.meta.env.DEV) {
+      window.__world = this.world;
+      window.__run = run;
+    }
     // 部屋に入るたびに、短く暗転から明ける。曲はエリアごとに違い、ボス部屋ではボス戦の曲になる
     setupView(this);
     this.clock = createClock();
@@ -202,6 +205,8 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 24, false, true).setDepth(9).setVisible(false);
     this.countWasOn = false;
     this.showSectorBanner();
+    // ひび割れた壁のある部屋：通信でひとこと
+    if (this.world.room.secret && this.run.map.secretBoss?.hint) this.commLog.play(resolveNames(this.run.map.secretBoss.hint));
     this.createBossWarning();
     this.bossIntroDone = false;
     this.clearShown = false;
@@ -433,15 +438,18 @@ export class BattleScene extends Phaser.Scene {
     this.bossIntroDone = true;
     this.bossWarning?.forEach((t) => t.destroy());
     this.bossName.setText(`${boss.def.name} — ${boss.def.alias}`).setVisible(true);
-    this.commLog.play(resolveNames(this.area.comms.bossIntro));
+    this.commLog.play(resolveNames(boss.def.comms?.intro ?? this.area.comms.bossIntro));
   }
 
   showClear(boss) {
     this.clearShown = true;
     const world = this.world;
     if (boss) {
-      this.commLog.play(resolveNames(this.area.comms.bossDefeated));
-      if (hasNextArea(this.run)) {
+      this.commLog.play(resolveNames(boss.def.comms?.defeated ?? this.area.comms.bossDefeated));
+      if (boss.def.hidden) {
+        // 隠しボス：倒すと元の部屋へ戻る扉が開く（マップの完了にはならない）
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name}\nHP全回復。右の扉から元の部屋へ戻る`).setVisible(true);
+      } else if (hasNextArea(this.run)) {
         // 次のエリアへの扉が開く
         this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.area.code} CLEAR\nHP全回復。右の扉から次のエリアへ`).setVisible(true);
       } else {

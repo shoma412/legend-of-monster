@@ -14,7 +14,22 @@ export function mapState(save, map) {
   if (!isReady(map)) return 'notReady';
   const index = maps.indexOf(map);
   if (index > 0 && clearedCycle(save, maps[index - 1].id) < 1) return 'locked';
+  if (!hasPassFor(save, map)) return 'locked';
   return clearedCycle(save, map.id) >= 1 ? 'done' : 'open';
+}
+
+// そのマップに入るのに必要な通行証を持っているか（要らないマップなら true）
+export function hasPassFor(save, map) {
+  return !map.requiresPass || (save.passes ?? []).includes(map.requiresPass);
+}
+
+// 選べないマップの、理由の文（マップを選ぶ画面に出す）
+export function lockReason(save, map) {
+  if (!isReady(map)) return 'このマップは、まだ準備中';
+  const index = maps.indexOf(map);
+  if (index > 0 && clearedCycle(save, maps[index - 1].id) < 1) return '前のマップを完了すると、選べるようになる';
+  if (!hasPassFor(save, map)) return `${maps.find((m) => m.id === map.requiresPass).name}の隠しボスを倒すと、選べるようになる`;
+  return '';
 }
 
 export function canSortie(save, map) {

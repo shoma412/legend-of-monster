@@ -13,8 +13,13 @@ export const maps = [
   // 排水区。enemyScale は、雑魚のHPと攻撃力にかかるマップごとの倍率
   { id: 'map2', code: 'MAP 02', name: '排水区', areas: ['sewer', 'reservoir', 'purifier'], enemyScale: 1.5 },
   // 建設区
-  { id: 'map3', code: 'MAP 03', name: '建設区', areas: ['yard', 'viaduct', 'spire'], enemyScale: 2.2 },
-  { id: 'map4', code: 'MAP 04', name: '？？？', areas: [], ready: false },
+  // secretBoss: 隠しボス。出撃ごとに、このマップのどこか1部屋に「ひび割れた壁」が出る。倒すと、このマップの通行証が手に入る
+  {
+    id: 'map3', code: 'MAP 03', name: '建設区', areas: ['yard', 'viaduct', 'spire'], enemyScale: 2.2,
+    secretBoss: { boss: 'architect', hint: ['@noise＞ ……壁の向こうに、反応がある。'] },
+  },
+  // requiresPass: このマップに入るのに必要な通行証（そのマップの id）
+  { id: 'map4', code: 'MAP 04', name: '？？？', areas: [], ready: false, requiresPass: 'map3' },
   { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },
   { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },
   { id: 'map7', code: 'MAP 07', name: '？？？', areas: [], ready: false },

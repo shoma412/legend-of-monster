@@ -1211,7 +1211,57 @@ export function drawHazards(g, world) {
 }
 
 // 凍りついて狭まった部屋：使えなくなった端を氷の色で塗る
+// ひび割れた壁：ジグザグの線と、ときどき散る火花。bright は、壊せる状態のとき
+function drawCrack(g, x, y, r, color, bright, time) {
+  const alpha = bright ? 1 : 0.55;
+  const lines = [
+    [[-0.9, -0.5], [-0.35, -0.1], [-0.5, 0.45], [0.05, 0.2], [0.3, 0.75]],
+    [[-0.1, -0.85], [0.1, -0.3], [-0.35, -0.1]],
+    [[0.1, -0.3], [0.6, -0.45], [0.9, 0.05], [0.45, 0.3], [0.05, 0.2]],
+  ];
+  for (const line of lines) {
+    const pts = line.map(([px, py]) => ({ x: x + px * r, y: y + py * r }));
+    g.lineStyle(bright ? 6 : 4, color, 0.18 * alpha).strokePoints(pts, false, false);
+    g.lineStyle(2, color, alpha).strokePoints(pts, false, false);
+  }
+  // 火花
+  const k = (time * 1.7) % 1;
+  if (k < 0.35) {
+    const a = Math.floor(time * 1.7) * 2.4;
+    g.fillStyle(WHITE, 0.9 * (1 - k / 0.35)).fillCircle(x + Math.cos(a) * r * 0.5 * (1 + k), y + Math.sin(a) * r * 0.5 * (1 + k), 2);
+  }
+  if (bright) g.lineStyle(1.5, color, 0.35 + 0.25 * Math.sin(time * 6)).strokeCircle(x, y, r * 1.1);
+}
+SHAPES.crack = (g, e, color, world) => drawCrack(g, e.x, e.y, e.r, color, true, world.time);
+
+// 隠しボス「アーキテクト」：回る2つの四角い枠（図面）と、製図のコンパスのような脚、中心の目
+SHAPES.architect = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const t = stunned ? 0 : world.time;
+  const square = (size, angle) => [0, 1, 2, 3].map((i) => ({ x: b.x + Math.cos(angle + (i * Math.PI) / 2) * size, y: b.y + Math.sin(angle + (i * Math.PI) / 2) * size }));
+  const outer = square(r * 1.05, t * 0.6);
+  const inner = square(r * 0.72, -t * 0.9 + Math.PI / 4);
+  g.fillStyle(BODY_FILL, 0.94).fillPoints(outer, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(outer, true, true));
+  g.lineStyle(2, color, 0.7).strokePoints(inner, true, true);
+  for (let i = 0; i < 4; i++) g.lineStyle(1.5, color, 0.35).lineBetween(inner[i].x, inner[i].y, outer[i].x, outer[i].y);
+  // コンパスの脚（向いている方向へ開く）
+  for (const side of [-1, 1]) {
+    const a = b.angle + side * 0.45;
+    g.lineStyle(3, color, 0.9).lineBetween(b.x, b.y, b.x + Math.cos(a) * r * 1.5, b.y + Math.sin(a) * r * 1.5);
+    g.fillStyle(color, 1).fillCircle(b.x + Math.cos(a) * r * 1.5, b.y + Math.sin(a) * r * 1.5, 3.5);
+  }
+  // 目。スタン中は消える
+  g.fillStyle(BODY_FILL, 1).fillCircle(b.x, b.y, r * 0.3);
+  g.lineStyle(2, color, 1).strokeCircle(b.x, b.y, r * 0.3);
+  if (!stunned) g.fillStyle(hex(COLORS.red), 1).fillCircle(b.x + Math.cos(b.angle) * r * 0.12, b.y + Math.sin(b.angle) * r * 0.12, 4.5);
+};
+
 export function drawArena(g, world) {
+  // ひび割れた壁（部屋をクリアするまでは、薄く見えているだけで壊せない）
+  const secret = world.room?.secret;
+  if (secret && !secret.broken && !secret.enemy) drawCrack(g, secret.x, secret.y, 30, hex(COLORS.amber), false, world.time);
   const a = world.arena;
   if (!a || a.inset <= 0) return;
   const b = world.bounds;

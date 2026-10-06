@@ -7,7 +7,7 @@ import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { species } from '../data/implants.js';
-import { canSortieCycle, clearedCycle, cycleNotes, mapState } from '../logic/maps.js';
+import { canSortieCycle, clearedCycle, cycleNotes, lockReason, mapState } from '../logic/maps.js';
 import { permanentBonuses } from '../logic/meta.js';
 import { carryOptions, mapSpecies } from '../logic/stats.js';
 
@@ -204,7 +204,7 @@ export function createMapSelect(scene, options) {
         text(80, py + 128, 'いま選べるマップをすべて完了すると、次の周（敵が強くなる）に進めるようになる', 12, COLORS.dim);
       }
     } else {
-      const why = state === 'notReady' ? 'このマップは、まだ準備中' : '前のマップを完了すると、選べるようになる';
+      const why = lockReason(save, map);
       text(W / 2, py + 93, why, 15, LOCKED, { fontStyle: '700' }).setOrigin(0.5);
     }
 

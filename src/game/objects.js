@@ -47,6 +47,12 @@ const HANDLERS = {
     sfx(world, 'door');
   },
 
+  // 隠し扉：隠しボスの部屋へ
+  secretDoor(world, o) {
+    world.exit = o.target;
+    sfx(world, 'door');
+  },
+
   heal(world, o) {
     if (o.used) return;
     const p = world.player;

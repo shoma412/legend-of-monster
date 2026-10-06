@@ -511,4 +511,76 @@ export const bosses = [
       },
     ],
   },
+  // ---- 隠しボス（docs/詳細仕様.md「21. 隠しボスと通行証」） ----
+  // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材とデータ片は持たない
+  {
+    id: 'architect',
+    name: 'アーキテクト',
+    alias: '設計者', // 登場時に出す異名
+    hidden: true,
+    shape: 'architect',
+    color: 'amber',
+    weakness: 'cold',
+    material: null,
+    radius: 42,
+    hp: 12000,
+    speed: 74,
+    contactDamage: 48,
+    xp: 700,
+    credits: 320,
+    drops: { count: 3, rarityBonus: 2, minRarity: 2 }, // 装備は、エピック以上を保証
+    comms: {
+      intro: [
+        '@noise＞ ……図面にない部屋だ。ここで、塔の形を書き換え続けている。',
+        '@noise＞ 設計者だ。線と杭に気をつけろ。冷却が効く。',
+      ],
+      defeated: [
+        '@noise＞ ……図面が、止まった。',
+        '@noise＞ 通行証を拾え。その先へ行くのに、要る。',
+      ],
+    },
+    attacks: {
+      // 測量線：横と縦の線が、プレイヤーの場所から交互に光る
+      survey: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 112, width: 30, delay: 0.8, stagger: 0.2, damage: 48, recover: 0.7 },
+      surveyHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 96, width: 30, delay: 0.75, stagger: 0.17, damage: 48, recover: 0.6 },
+      // 杭打ち：落下地点の予告が次々に出る
+      piles: { pattern: 'rain', telegraph: 0.4, count: 9, interval: 0.24, delay: 0.85, radius: 42, spread: 100, damage: 40, recover: 0.7 },
+      pilesHard: { pattern: 'rain', telegraph: 0.3, count: 15, interval: 0.17, delay: 0.8, radius: 42, spread: 130, damage: 40, recover: 0.6 },
+      // 押印：周囲への一撃
+      stamp: { pattern: 'slam', telegraph: 0.7, radius: 160, damage: 52, recover: 0.9, reach: 'near' },
+      // 鋲の弾：向きをずらしながら全方向に
+      bolts: { pattern: 'barrage', telegraph: 0.65, count: 10, spread: 360, waves: 4, interval: 0.3, rotate: 12, shotSpeed: 230, shotRadius: 7, damage: 34, recover: 0.7 },
+      // 突進。壁に当たると隙ができる
+      dash: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 640, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.3, reach: 'far' },
+      // 図面展開：部屋を横切る壁（橋げた）を張る
+      blueprint: { pattern: 'girder', telegraph: 0.9, lines: 2, offset: 110, spacing: 34, gap: 96, gaps: 2, max: 46, post: 'girderpost', recover: 0.7 },
+      blueprintHard: { pattern: 'girder', telegraph: 0.75, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.6 },
+      // 照準：追尾の円が追いかけてきて、止まった場所を攻撃する
+      lock: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 320, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
+      // 大技「竣工」：部屋全体が危険になる。光る円の中だけが助かる
+      completion: { pattern: 'safezone', telegraph: 1.8, waveTelegraph: 1.25, zones: 2, radius: 74, within: 180, waves: 4, active: 0.35, damage: 54, recover: 1.5 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'dash' }],
+    ultimate: { move: 'completion', announce: '竣工' },
+    phases: [
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['survey', 'piles', 'stamp', 'bolts', 'dash'] },
+      {
+        hpAbove: 0.3,
+        idle: { min: 0.8, max: 1.3 },
+        moves: ['surveyHard', 'piles', 'blueprint', 'lock', 'stamp', 'dash'],
+        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['blueprint', 'piles'] }],
+        side: { moves: ['piles'], every: { min: 11, max: 15 } },
+        announce: '設計変更',
+      },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        speed: 1.15,
+        moves: ['surveyHard', 'pilesHard', 'blueprintHard', 'lock', 'bolts', 'dash', 'stamp'],
+        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['lock', 'surveyHard'] }, { moves: ['bolts', 'dash'] }],
+        side: { moves: ['lock'], every: { min: 9, max: 12 } },
+        announce: '最終図面',
+      },
+    ],
+  },
 ];

@@ -386,6 +386,24 @@ export const enemies = [
     solid: true,
   },
   {
+    // ひび割れた壁（置かれたもの）。部屋をクリアしたあとに現れ、壊すと隠し扉が開く
+    id: 'crackwall',
+    name: 'ひび割れた壁',
+    behavior: 'prop',
+    shape: 'crack',
+    color: 'amber',
+    radius: 30,
+    hp: 120,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
+  },
+  {
     // ガーダースパイダーが張る橋げたの杭（置かれたもの）
     id: 'girderpost',
     name: '橋げた',

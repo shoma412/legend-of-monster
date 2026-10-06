@@ -546,7 +546,8 @@ export class MenuOverlay {
   renderRecords(save) {
     const r = save.records;
     const best = bestReachText(save, (id) => DATA.areas.get(id));
-    const bosses = DATA.bosses.all().map((b) => `${b.name} ×${save.bossKills[b.id] ?? 0}`).join('　');
+    // 隠しボスは、倒すまで名前を出さない
+    const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0).map((b) => `${b.name} ×${save.bossKills[b.id] ?? 0}`).join('　');
     const rows = [
       ['出撃した回数', `${r.runs}`],
       ['クリアした回数', `${r.clears}`],

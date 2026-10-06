@@ -69,7 +69,7 @@ describe('ボスの定義（行動の選び方）', () => {
 
   it('9体とも大技を持ち、後半には連携がある。大技の部品は3種類が3体ずつ', () => {
     const count = {};
-    for (const boss of DATA.bosses.all()) {
+    for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) {
       expect(boss.ultimate?.announce, boss.id).toBeTruthy();
       const pattern = boss.attacks[boss.ultimate.move].pattern;
       count[pattern] = (count[pattern] ?? 0) + 1;

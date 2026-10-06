@@ -89,7 +89,7 @@ describe('自動で出る会話', () => {
 
   it('ボスの前の会話は、そのボスの部屋でだけ出る。どのボスにも用意してある', () => {
     const save = createSave();
-    for (const boss of DATA.bosses.all()) {
+    for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) {
       const d = pendingDialogue(save, 'bossIntro', { boss: boss.id });
       expect(d, boss.id).not.toBeNull();
       expect(d.trigger.boss).toBe(boss.id);

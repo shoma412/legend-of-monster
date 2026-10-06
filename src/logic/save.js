@@ -1,7 +1,7 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -30,6 +30,7 @@ export function createSave() {
     selectedCycle: 1, // 同じく、最後に選んでいた周
     carrySpecies: null, // 持ち込みの種族の id（版4で追加。選んでいなければ null）
     carrySpecies2: null, // 持ち込みの2つ目の枠（版5で追加。恒久強化で枠を増やすと使える）
+    passes: [], // 持っている通行証（隠しボスを倒したマップの id。版6で追加）
   };
 }
 
@@ -61,6 +62,11 @@ function migrate(data) {
     if (data.records) data.records.bestMap = 0;
     data.version = 5;
   }
+  // 版5 → 版6：通行証を足す（隠しボスは新しい要素なので、誰も持っていない状態から始まる）
+  if (data.version === 5) {
+    data.passes = [];
+    data.version = 6;
+  }
   return data;
 }
 
@@ -87,6 +93,7 @@ export function normalizeSave(data) {
     selectedCycle: Number.isInteger(d.selectedCycle) && d.selectedCycle >= 1 ? d.selectedCycle : 1,
     carrySpecies: typeof d.carrySpecies === 'string' ? d.carrySpecies : null,
     carrySpecies2: typeof d.carrySpecies2 === 'string' ? d.carrySpecies2 : null,
+    passes: Array.isArray(d.passes) ? [...new Set(d.passes)] : [],
   };
 }
 

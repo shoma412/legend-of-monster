@@ -82,6 +82,13 @@ export const BOSS_AI = {
   ultimateAt: 0.25, // HP の割合がこれ以下になると、大技を1回使う
 };
 
+// 隠しボスへの入口（ひび割れた壁）。docs/詳細仕様.md「21. 隠しボスと通行証」
+export const SECRET = {
+  wallMargin: 14, // 壁の内側の端から、ひびの中心までの距離（px）
+  sideMargin: 180, // 部屋の角から、これ以上離れた場所に出す（px）
+  doorRadius: 56, // 隠し扉に近づいて E を押せる距離（px）
+};
+
 // まだ実装していない仕組み。true にすると、それを必要とする装備効果やインプラントが出るようになる
 export const FEATURES = {
   credits: true, // クレジット（M4 で実装）

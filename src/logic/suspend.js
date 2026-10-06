@@ -18,7 +18,7 @@ function atFinalBoss(run) {
 
 // 今、中断できるか。部屋をクリアして、次の扉を選べる状態のときだけ
 export function canSuspend(run, world) {
-  return world.mode === 'clear' && !run.outcome && !world.choice && !(world.pendingLevelUps > 0) && !atFinalBoss(run);
+  return world.mode === 'clear' && !run.inSecret && !run.outcome && !world.choice && !(world.pendingLevelUps > 0) && !atFinalBoss(run);
 }
 
 // 中断データを作る（そのまま JSON にできる形）
@@ -35,6 +35,7 @@ export function snapshotRun(run, world) {
     kills: run.kills + world.kills,
     visualSeed: run.visualSeed,
     gained: run.gained,
+    secret: run.secret ?? null,
   }));
 }
 
@@ -79,6 +80,8 @@ export function restoreRun(data, save, rng = Math.random) {
     startChoice: false,
     outcome: null,
     gained: data.gained ?? { materials: {}, fragments: [], achievements: [], notes: [] },
+    secret: data.secret ?? null,
+    inSecret: false,
     resumed: true, // 最初に入る部屋は、クリア済みで扉が開いた状態にする（src/game/run.js の enterRoom）
   };
 }

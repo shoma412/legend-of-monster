@@ -6,7 +6,7 @@ import { cycleMods, recordMapClear } from '../logic/maps.js';
 import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
 import { createBuild, runSpecies } from '../logic/stats.js';
-import { buildRoom } from './rooms.js';
+import { SECRET_IN, SECRET_OUT, buildRoom, makeCrack } from './rooms.js';
 import { createWorld } from './world.js';
 
 // マップ1のエリアの順番（記録の「最高到達」の表示に使う。ランが進むエリアは、選んだマップの areas）
@@ -14,6 +14,15 @@ export const AREA_ORDER = DATA.maps.get('map1').areas;
 
 // ボスを倒したあとに開く「次のエリアへ」の扉の行き先
 export const NEXT_AREA = '@next';
+export { SECRET_IN, SECRET_OUT };
+
+// ひび割れた壁を置く部屋を、今のエリアの地図から1つ選ぶ（最初の部屋・ボス前の補給・ボス部屋は除く）
+function placeSecret(run) {
+  const s = run.secret;
+  if (!s || s.areaIndex !== run.areaIndex) return;
+  const ids = Object.keys(run.plan.nodes).filter((id) => !['start', 'rest', 'boss'].includes(id));
+  s.node = ids.length > 0 ? ids[Math.min(ids.length - 1, Math.floor(run.rng() * ids.length))] : null;
+}
 
 // save: セーブデータ（隠れ家の進行状況）。恒久強化がランに乗り、ボス素材・データ片・実績がここに記録される
 //   mapId: 進むマップ / cycle: 何周目か（周が進むほど敵が強い）/ carry: 持ち込みの種族の id（なければ null）
@@ -40,8 +49,15 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     outcome: null, // 終わり方：dead（死亡）/ clear（マップの最後のボスを倒した）
     // このランで持ち帰ったもの（リザルト画面に出す）
     gained: { materials: {}, fragments: [], achievements: [], notes: [] },
+    secret: null, // 隠しボスへの入口の場所 { boss, areaIndex, node, done }（いないマップでは null）
+    inSecret: false, // 隠しボスの部屋にいる
   };
   // このランで選択肢に出る種族：そのマップのボスの種族と、持ち込みの種族
+  // 隠しボスのいるマップ：出撃ごとに、どこか1部屋にひび割れた壁が出る（エリアも部屋も毎回変わる）
+  if (map.secretBoss) {
+    run.secret = { boss: map.secretBoss.boss, areaIndex: Math.min(map.areas.length - 1, Math.floor(rng() * map.areas.length)), node: null, done: false };
+    placeSecret(run);
+  }
   run.build.species = runSpecies(map, carry);
   run.build.weaponId = weaponId; // 武器ごとのステータス補正が乗る
   startRunRecord(save);
@@ -68,7 +84,8 @@ export function enterRoom(run) {
   // 中断から再開した最初の部屋は、クリア済みで扉が開いた状態にする（中身は空）
   const resumed = !!run.resumed;
   run.resumed = false;
-  const type = resumed ? 'resume' : currentNode(plan).type;
+  const type = run.inSecret ? 'secretBoss' : resumed ? 'resume' : currentNode(plan).type;
+  if (run.inSecret) ctx.secretBoss = run.secret.boss;
   // 遭遇部屋で装備を拾ったあと：次の戦闘部屋は、敵が増える
   if (run.build.ambush && (type === 'combat' || type === 'elite')) {
     ctx.step += ROOMGEN.encounter.ambushSteps;
@@ -77,7 +94,12 @@ export function enterRoom(run) {
   let doors = doorOptions(plan);
   // ボス部屋：倒したあと、次のエリアがあればそこへの扉が開く
   if (plan.current === 'boss' && hasNextArea(run)) doors = [{ id: NEXT_AREA, type: 'descend' }];
+  // 隠しボスの部屋：倒すと、元の部屋へ戻る扉が開く
+  if (run.inSecret) doors = [{ id: SECRET_OUT, type: 'secretBack' }];
   const room = buildRoom(type, ctx, doors);
+  // ひび割れた壁のある部屋（まだ隠しボスを倒していないとき）
+  const s = run.secret;
+  if (s && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex * (run.map.enemyScale ?? 1);
   // 周回による変化（敵の HP、受けるダメージ、装備のレア度、ボスの行動、補給の回復量）
@@ -88,7 +110,7 @@ export function enterRoom(run) {
   room.healScale = run.mods.healScale;
   // 装備のレア度は、奥のエリアほど良くなる。マップの最後のボスは、装備と消耗品を落とさない（倒すと隠れ家に戻るため）
   room.lootTier = run.areaIndex;
-  room.noBossLoot = plan.current === 'boss' && !hasNextArea(run);
+  room.noBossLoot = !run.inSecret && plan.current === 'boss' && !hasNextArea(run);
   const first = !run.started;
   // ランの最初の部屋だけ、3・2・1 のカウントダウンから始まる
   if (first) room.countdown = ROOM.startCountdown.count * ROOM.startCountdown.step;
@@ -108,10 +130,23 @@ export function enterRoom(run) {
 export function leaveRoom(run, world, nextId) {
   run.hp = world.player.hp;
   run.kills += world.kills;
+  // 隠し扉に入る：地図の上では、同じ部屋にいるまま
+  if (nextId === SECRET_IN) {
+    run.inSecret = true;
+    return;
+  }
+  // 隠しボスを倒して、元の部屋へ戻る（クリア済みで、扉が開いた状態から続ける）
+  if (nextId === SECRET_OUT) {
+    run.inSecret = false;
+    run.secret.done = true;
+    run.resumed = true;
+    return;
+  }
   if (nextId === NEXT_AREA) {
     // 次のエリアへ。新しい地図を作る
     run.areaIndex++;
     run.plan = createAreaPlan(currentArea(run), run.rng);
+    placeSecret(run);
     run.build.ougiUsed = false; // 奥義はエリアごとに1回
     return;
   }
@@ -129,6 +164,11 @@ export function handleEvents(run, world) {
   const area = currentArea(run);
   const notes = [];
   for (const event of world.events.splice(0)) {
+    // 隠しボス：通行証が手に入る。エリアのボスではないので、素材・データ片・マップの完了にはならない
+    if (event.type === 'bossKill' && DATA.bosses.get(event.boss).hidden) {
+      notes.push(...processEvent(run.save, run, { type: 'secretKill', boss: event.boss, map: run.map.id, noDamage: event.noDamage }));
+      continue;
+    }
     if (event.type === 'bossKill') {
       event.area = area.id;
       event.materialBonus = run.mods.materialBonus;

@@ -19,5 +19,8 @@ export const rooms = [
   // ボスを倒したあとに開く、次のエリアへの扉（部屋ではない）
   // 中断したランを再開したときの部屋（クリア済みで、扉が開いている）。地図には出ない
   { id: 'resume', label: '再開', tag: '再開地点', color: 'green', icon: 'cross', build: 'none' },
+  // 隠しボスの部屋と、そこから元の部屋へ戻る扉（どちらも地図には出ない）
+  { id: 'secretBoss', label: '隠し部屋', tag: '図面室', color: 'amber', icon: 'warning', build: 'secretBoss', clearCredits: 50 },
+  { id: 'secretBack', label: '元の部屋', tag: '', color: 'cyan', icon: 'down', build: 'none' },
   { id: 'descend', label: '次のエリアへ', tag: '', color: 'cyan', icon: 'down', build: 'none' },
 ];

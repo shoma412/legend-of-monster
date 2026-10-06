@@ -226,6 +226,22 @@ const DRAWERS = {
     ICONS[room.icon](g, o.x - 70, o.y, focused ? 13 : 11, c);
   },
 
+  // 隠し扉：崩れた壁の穴と、奥から漏れる光
+  secretDoor(g, o, world, focused) {
+    const c = hex(COLORS.amber);
+    const pulse = 0.22 + 0.1 * Math.sin(world.time * 5);
+    const pts = [];
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const r = 30 + 9 * Math.sin(i * 2.7 + 1);
+      pts.push({ x: o.x + Math.cos(a) * r, y: o.y + Math.sin(a) * r });
+    }
+    g.fillStyle(0x000000, 0.95).fillPoints(pts, true);
+    g.fillStyle(c, focused ? 0.4 : pulse).fillPoints(pts, true);
+    glowLine(g, c, 2.5, () => g.strokePoints(pts, true, true));
+    ICONS.warning(g, o.x, o.y, focused ? 13 : 11, c);
+  },
+
   heal(g, o, world) {
     const c = hex(o.used ? COLORS.dim : COLORS.green);
     g.fillStyle(BODY_FILL, 0.9).fillCircle(o.x, o.y, 24);
@@ -298,6 +314,8 @@ export function objectLabels(world) {
     } else if (o.kind === 'door') {
       const room = DATA.rooms.get(o.type);
       labels.push({ x: o.x - 70, y: o.y - 32, text: room.label, color: COLORS[room.color], size: 13 });
+    } else if (o.kind === 'secretDoor') {
+      labels.push({ x: o.x, y: o.y + (o.side === 'top' ? 52 : -52), text: '隠し扉', color: COLORS.amber, size: 13 });
     } else if (o.kind === 'heal') {
       labels.push({ x: o.x, y: o.y - 44, text: o.used ? '補給端末（使用済み）' : '補給端末', color: o.used ? COLORS.dim : COLORS.green, size: 12 });
     } else if (o.kind === 'shop') {
@@ -328,6 +346,7 @@ export function focusPrompt(world) {
   if (o.kind === 'station') return o.prompt ? { text: o.prompt, color: o.color ?? COLORS.ink } : null;
   if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
+  if (o.kind === 'secretDoor') return { text: 'E：隠し扉に入る（強い反応がある。入ると、倒すまで出られない）', color: COLORS.amber };
   if (o.kind === 'pickup') {
     const def = DATA.consumables.get(o.id);
     return { text: `E：${def.name} を拾う — ${def.desc}`, color: ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink };

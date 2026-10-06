@@ -18,6 +18,7 @@ export const achievements = [
   { id: 'scraphound', icon: 'skull', color: 'red', name: '資材喰い狩り', desc: 'スクラップハウンドを倒した', on: 'bossKill', check: 'bossIs', boss: 'scraphound' },
   { id: 'girderspider', icon: 'skull', color: 'cold', name: '橋げた張り狩り', desc: 'ガーダースパイダーを倒した', on: 'bossKill', check: 'bossIs', boss: 'girderspider' },
   { id: 'cranetitan', icon: 'skull', color: 'heat', name: '未完の巨人狩り', desc: 'クレーンタイタンを倒した', on: 'bossKill', check: 'bossIs', boss: 'cranetitan' },
+  { id: 'architect', icon: 'skull', color: 'amber', name: '設計変更', desc: '建設区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'architect' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },
