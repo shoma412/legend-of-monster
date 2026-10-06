@@ -163,8 +163,10 @@ export function dashCooldown(p) {
 
 function startDash(p, dx, dy) {
   const d = PLAYER.dash;
+  // 武器によっては、ダッシュが遅い（大砲）。進む距離と無敵の時間は同じで、かかる時間だけが延びる
+  const duration = d.duration / (p.weapon.dashSpeed ?? 1);
   p.dashBuffer = 0;
-  p.dashT = d.duration;
+  p.dashT = duration;
   if (p.dashCharges >= p.stats.dashCharges) p.dashRecharge = dashCooldown(p);
   p.dashCharges--;
   p.dashCd = p.dashCharges > 0 ? 0 : p.dashRecharge;
@@ -174,8 +176,8 @@ function startDash(p, dx, dy) {
   p.inv = Math.max(p.inv, d.invincible);
   // ダッシュの距離は、インプラントで伸びる（時間は同じなので、そのぶん速くなる）
   const distance = d.distance * (1 + (p.stats.dashDistance ?? 0));
-  p.dvx = (dx * distance) / d.duration;
-  p.dvy = (dy * distance) / d.duration;
+  p.dvx = (dx * distance) / duration;
+  p.dvy = (dy * distance) / duration;
   // ダッシュは攻撃・溜め・構えを中断して出せる
   p.attack = null;
   p.charge = null;

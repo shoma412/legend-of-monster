@@ -551,4 +551,30 @@ describe('大砲（2026-10-07 追加）', () => {
     expect(hit.hp).toBeLessThan(hit.maxHp);
     expect(near.hp).toBe(near.maxHp);
   });
+
+  it('大砲だけ、ダッシュが遅い：進む距離は同じで、かかる時間が延びる。無敵の時間は同じ', () => {
+    const dash = (id) => {
+      const world = makeWorld(id);
+      const p = world.player;
+      p.x = 480;
+      const x = p.x;
+      updateWorld(world, DT, { ...idle, mx: 1, dashPressed: true });
+      const inv = p.inv;
+      let time = DT;
+      while (p.dashT > 0) {
+        updateWorld(world, DT, idle);
+        time += DT;
+      }
+      return { distance: p.x - x, time, inv };
+    };
+    const slow = dash('cannon');
+    const normal = dash('gun');
+    expect(slow.time).toBeGreaterThan(normal.time * 1.4);
+    expect(slow.distance).toBeGreaterThan(normal.distance * 0.9);
+    expect(slow.distance).toBeLessThan(normal.distance * 1.15);
+    expect(slow.inv).toBe(normal.inv);
+    // ほかの武器は、今までどおり
+    for (const id of ['greatsword', 'sword', 'knuckle']) expect(DATA.weapons.get(id).dashSpeed).toBeUndefined();
+    expect(cannon.dashSpeed).toBe(0.6);
+  });
 });
