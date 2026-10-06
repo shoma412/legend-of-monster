@@ -269,6 +269,29 @@ describe('部屋の中身', () => {
     expect(p.hp).toBe(50);
   });
 
+  it('補給：HP が満タンのときに調べると、回復の代わりに修復キットが1個もらえる（1回だけ）', () => {
+    const world = roomWorld('supply', { doors: ['boss'] });
+    const p = world.player;
+    const kits = p.build.kits;
+    expect(p.hp).toBe(p.stats.maxHp);
+    run(world, 0.1);
+    const terminal = world.objects.find((o) => o.kind === 'heal');
+    useObject(world, terminal);
+    expect(p.build.kits).toBe(kits + 1);
+    expect(p.hp).toBe(p.stats.maxHp);
+    expect(terminal.used).toBe(true);
+    interact(world);
+    expect(p.build.kits).toBe(kits + 1); // 2回はもらえない
+
+    // 1 でも減っていれば、今までどおり回復になる（修復キットはもらえない）
+    const w2 = roomWorld('supply', { doors: ['boss'] });
+    w2.player.hp = w2.player.stats.maxHp - 1;
+    run(w2, 0.1);
+    useObject(w2, w2.objects.find((o) => o.kind === 'heal'));
+    expect(w2.player.hp).toBe(w2.player.stats.maxHp);
+    expect(w2.player.build.kits).toBe(kits);
+  });
+
   it('闇市の品ぞろえは毎回ちがう。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、修復キットは1つだけ。同じものは並ばない', () => {
     const shapes = new Set();
     const sizes = new Set();

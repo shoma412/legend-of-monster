@@ -56,6 +56,15 @@ const HANDLERS = {
   heal(world, o) {
     if (o.used) return;
     const p = world.player;
+    // HP が満タンのときは、回復の代わりに修復キットを1個もらえる（補給が無駄にならないように）
+    if (p.hp >= p.stats.maxHp) {
+      p.build.kits += ROOMGEN.supply.fullHpKits;
+      o.used = true;
+      sfx(world, 'heal');
+      say(world, `修復キット +${ROOMGEN.supply.fullHpKits}`, COLORS.green);
+      ring(world, o.x, o.y, 60, COLORS.green);
+      return;
+    }
     const amount = Math.round(healPlayer(world, Math.round(p.stats.maxHp * ROOMGEN.supply.heal * (world.room.healScale ?? 1))));
     o.used = true;
     sfx(world, 'heal');

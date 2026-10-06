@@ -369,6 +369,7 @@ export function focusPrompt(world) {
   }
   if (o.kind === 'fragment') return { text: 'E：データ片を回収する（死んでも失わない）', color: COLORS.cyan };
   if (o.kind === 'npc') return o.used ? null : { text: 'E：話しかける', color: COLORS[o.color] ?? COLORS.ink };
+  if (o.kind === 'heal' && !o.used && p.hp >= p.stats.maxHp) return { text: `E：修復キットを${ROOMGEN.supply.fullHpKits}個もらう（HP が満タンなので、回復の代わり）`, color: COLORS.green };
   if (o.kind === 'heal') return o.used ? { text: '補給端末は使用済み', color: COLORS.dim } : { text: `E：修復する（最大HPの${Math.round(ROOMGEN.supply.heal * (world.room.healScale ?? 1) * 100)}%回復）`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'kit') return { text: `E：修復キットを買う（${o.goods.price} c）　所持 ${p.build.kits}`, color: COLORS.green };
   if (o.kind === 'shop' && o.goods.type === 'implant') {

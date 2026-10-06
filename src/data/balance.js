@@ -178,7 +178,7 @@ export const ROOMGEN = {
   combat: { wavesMin: 2, wavesMax: 3, budget: 5, budgetPerStep: 0.6, budgetPerWave: 1 },
   depthPerArea: 5, // エリアが1つ進むごとに、敵の予算をこの部屋数ぶん先のものとして数える
   elite: { minionBudget: 7, minionPerStep: 0.4 }, // エリートの取り巻きの予算と、1部屋進むごとの増え方
-  supply: { heal: 0.4 }, // 補給：最大HPに対する回復の割合
+  supply: { heal: 0.4, fullHpKits: 1 }, // 補給：最大HPに対する回復の割合。fullHpKits は、HP が満タンのときに回復の代わりにもらえる修復キットの数
   vault: { count: 3, rarityBonus: 1 }, // データ金庫：装備の数と、レア度の底上げ
   // 遭遇部屋
   encounter: {
