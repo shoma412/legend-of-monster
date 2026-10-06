@@ -412,6 +412,7 @@ export class BattleScene extends Phaser.Scene {
     dark.clear();
     if (world.room.environment?.dark) {
       drawDarkness(dark, world);
+      drawLamps(dark, world); // 非常灯は、暗闇の中でも場所が分かるように、上にもう一度描く
       drawEyes(dark, world);
       drawHazards(dark, world);
       drawEnemyTelegraphs(dark, world);

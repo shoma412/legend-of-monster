@@ -5,3 +5,5 @@ dist/
 .claude/settings.local.json
 # このパソコンだけの確認用の仕掛け（Git には入れない）
 src/dev.local.js
+# デバッグ用のセーブデータのコード（Git には入れない）
+debug-save-*.txt
