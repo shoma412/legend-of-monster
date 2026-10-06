@@ -107,7 +107,7 @@ export class HideoutScene extends Phaser.Scene {
       title: 'HIDEOUT',
       tabs: ['upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
       actions: [
-        { label: '閉じる（Esc）', run: () => this.menu.close() },
+        { label: '閉じる（Tab）', run: () => this.menu.close() },
         {
           label: 'タイトルへ戻る',
           color: COLORS.dim,

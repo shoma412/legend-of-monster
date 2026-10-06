@@ -40,9 +40,23 @@ export async function toggleFullscreen() {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
     else await document.getElementById('game').requestFullscreen();
+    syncEscapeLock();
     return true;
   } catch {
     return false;
+  }
+}
+
+// フルスクリーンの間だけ、Esc をゲームが受け取れるようにする（Chrome / Edge の機能。この間は Esc の長押しでフルスクリーンが解ける）。
+// 対応していないブラウザでは何もしない（Tab で同じ操作ができる）
+export function syncEscapeLock() {
+  const keyboard = typeof navigator !== 'undefined' ? navigator.keyboard : null;
+  if (!keyboard?.lock) return;
+  try {
+    if (document.fullscreenElement) keyboard.lock(['Escape']).catch(() => {});
+    else keyboard.unlock();
+  } catch {
+    // 使えない環境では、そのまま
   }
 }
 

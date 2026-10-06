@@ -1,6 +1,6 @@
 // 会話の画面。画面下に、顔イラスト・名前・本文を出す。隠れ家と戦闘画面で同じものを使う。
 //   左クリック・E・Enter：次へ（文字が出ている途中なら、まず全部表示する）
-//   Esc：その会話をまるごと飛ばす（選択肢があれば、選択肢まで飛ぶ）
+//   Tab（Esc でも可）：その会話をまるごと飛ばす（選択肢があれば、選択肢まで飛ぶ）
 //   1・2：選択肢を選ぶ（クリックでも選べる）
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
@@ -108,7 +108,7 @@ export function createDialogueBox(scene) {
     nameText.setText(displayName(speaker)).setColor(COLORS[speaker.color] ?? COLORS.amber);
     bodyText.setText('');
     setChoices(false);
-    hint.setText('クリック / E：次へ　　Esc：飛ばす');
+    hint.setText('クリック / E：次へ　　Tab：飛ばす');
   }
 
   function setChoices(on) {
@@ -198,7 +198,9 @@ export function createDialogueBox(scene) {
   const kb = scene.input.keyboard;
   kb.on('keydown-E', advance);
   kb.on('keydown-ENTER', advance);
+  kb.addCapture('TAB');
   kb.on('keydown-ESC', skip);
+  kb.on('keydown-TAB', skip);
   kb.on('keydown-ONE', () => pick(0));
   kb.on('keydown-TWO', () => pick(1));
 

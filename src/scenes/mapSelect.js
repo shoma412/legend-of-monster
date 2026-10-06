@@ -1,6 +1,6 @@
 // マップを選ぶ画面。隠れ家の出撃ゲートを調べると開く。
 //   A・D（← →）：マップを選ぶ　　W・S（↑ ↓）：周を選ぶ（2周目以降が選べるとき）　　Q・E：持ち込みの種族を選ぶ
-//   Enter：出撃　　Esc：やめる　　クリックでも選べる
+//   Enter：出撃　　Tab（Esc でも可）：やめる　　クリックでも選べる
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
@@ -210,8 +210,8 @@ export function createMapSelect(scene, options) {
 
     const weapon = DATA.weapons.get(save.selected);
     button(W / 2 - 230, 438, 220, 38, `出撃する（Enter）`, usable ? COLORS.amber : LOCKED, start);
-    button(W / 2 + 10, 438, 220, 38, 'やめる（Esc）', COLORS.ink, () => box.close());
-    text(W / 2, 498, `武器：${weapon.name}　　A・D：マップ${save.cycle > 1 ? '　W・S：周回' : ''}　Enter：出撃　Esc：やめる`, 12, COLORS.dim).setOrigin(0.5);
+    button(W / 2 + 10, 438, 220, 38, 'やめる（Tab）', COLORS.ink, () => box.close());
+    text(W / 2, 498, `武器：${weapon.name}　　A・D：マップ${save.cycle > 1 ? '　W・S：周回' : ''}　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
   }
 
   const kb = scene.input.keyboard;
@@ -225,7 +225,7 @@ export function createMapSelect(scene, options) {
   on(['Z'], () => changeCarry(-1, 1));
   on(['C'], () => changeCarry(1, 1));
   on(['ENTER'], start);
-  on(['ESC'], () => box.close());
+  on(['ESC', 'TAB'], () => box.close());
 
   return box;
 }

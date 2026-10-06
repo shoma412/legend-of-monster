@@ -7,7 +7,8 @@ import { chooseImplant } from '../game/build.js';
 import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
-import { getSave, persist } from '../game/saveStore.js';
+import { getSave, persist, saveSuspend } from '../game/saveStore.js';
+import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, resolveNames } from '../logic/dialogue.js';
@@ -106,17 +107,23 @@ export class BattleScene extends Phaser.Scene {
       // 最後まで進んだあと：Enter でリザルトへ（リザルトの「隠れ家に戻る」は、画面のボタンを押す）
       this.goToResult();
     });
-    // Esc（または Tab）：ポーズ画面。ステータスや装備の詳細を見られる。隠れ家に戻るのもここから
+    // Tab（または Esc）：ポーズ画面。ステータスや装備の詳細を見られる。隠れ家に戻るのもここから
     this.menu = new MenuOverlay(this, {
       title: 'PAUSE',
       tabs: ['status', 'gear', 'map', 'upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
       readOnlyUpgrades: true,
       actions: [
-        { label: '再開する（Esc）', color: COLORS.green, run: () => this.menu.close() },
+        { label: '再開する（Tab）', color: COLORS.green, run: () => this.menu.close() },
         {
           label: '隠れ家に戻る',
           color: COLORS.amber,
           run: () => this.menu.confirm('今回の進捗はリセットされますが、よろしいですか？\n（装備・レベル・インプラント・クレジットを失います）', () => this.scene.start('Hideout')),
+        },
+        {
+          // 中断セーブ：部屋をクリアして、次の扉を選べる状態のときだけ
+          label: '中断して終了',
+          color: COLORS.cyan,
+          run: () => this.askSuspend(),
         },
       ],
       context: () => ({ save: this.run.save, player: this.world.player, world: this.world, run: this.run }),
@@ -239,6 +246,24 @@ export class BattleScene extends Phaser.Scene {
     } catch (err) {
       console.warn('bloom unavailable', err);
     }
+  }
+
+  // 中断セーブ。今のランを保存して、タイトルへ戻る
+  askSuspend() {
+    if (!canSuspend(this.run, this.world)) {
+      playSe('deny');
+      this.menu.confirm('今は中断できません。\n部屋をクリアして、次の扉を選べるようになってから中断できます。', () => this.menu.render());
+      return;
+    }
+    this.menu.confirm('ここで中断して、タイトルに戻りますか？\n次にこのデータを選ぶと、この部屋から再開します。\n（床に落ちている装備やアイテムは消えます）', () => {
+      handleEvents(this.run, this.world);
+      if (!saveSuspend(this.run, this.world)) {
+        this.menu.confirm('保存できませんでした。中断はできません。', () => this.menu.render());
+        return;
+      }
+      persist();
+      this.scene.start('Title');
+    });
   }
 
   // 部屋に入ったときの区画名（例：SECTOR 01-2 // 下層スラム // 闇市）

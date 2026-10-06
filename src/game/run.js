@@ -64,7 +64,10 @@ export function enterRoom(run) {
   // 周が進むと、さらに敵が増え、エリートの特性も増える
   const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea + run.mods.stepBonus;
   const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits, tier: run.areaIndex };
-  const type = currentNode(plan).type;
+  // 中断から再開した最初の部屋は、クリア済みで扉が開いた状態にする（中身は空）
+  const resumed = !!run.resumed;
+  run.resumed = false;
+  const type = resumed ? 'resume' : currentNode(plan).type;
   // 遭遇部屋で装備を拾ったあと：次の戦闘部屋は、敵が増える
   if (run.build.ambush && (type === 'combat' || type === 'elite')) {
     ctx.step += ROOMGEN.encounter.ambushSteps;

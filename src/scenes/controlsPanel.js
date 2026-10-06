@@ -15,7 +15,7 @@ const GROUPS = [
   { color: COLORS.green, keys: ['Q'], name: 'Q', text: '修復キットを使う（HP回復）' },
   { color: COLORS.amber, keys: ['1', '2', '3'], name: '1・2（・3）', text: '消耗品を使う／レベルアップの3択を選ぶ' },
   { color: COLORS.magenta, keys: ['M'], name: 'M', text: 'エリアの地図' },
-  { color: COLORS.ink, keys: ['Esc', 'Tab'], name: 'Esc・Tab', text: 'ポーズ画面（装備の付け替え、設定など）' },
+  { color: COLORS.ink, keys: ['Esc', 'Tab'], name: 'Tab・Esc', text: 'ポーズ画面（装備の付け替え、設定など）' },
 ];
 
 // キーボードの並び（左側だけ）。w は横幅の倍率

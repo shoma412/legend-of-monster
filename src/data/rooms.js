@@ -17,5 +17,7 @@ export const rooms = [
   { id: 'encounter', label: '遭遇', tag: '反応あり', color: 'ice', icon: 'talk', build: 'encounter' },
   { id: 'boss', label: 'BOSS', tag: '最深部', color: 'red', icon: 'warning', build: 'boss', clearCredits: 50 },
   // ボスを倒したあとに開く、次のエリアへの扉（部屋ではない）
+  // 中断したランを再開したときの部屋（クリア済みで、扉が開いている）。地図には出ない
+  { id: 'resume', label: '再開', tag: '再開地点', color: 'green', icon: 'cross', build: 'none' },
   { id: 'descend', label: '次のエリアへ', tag: '', color: 'cyan', icon: 'down', build: 'none' },
 ];

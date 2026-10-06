@@ -5,6 +5,8 @@
 import { applyVolume, playSe } from '../audio/audio.js';
 import { BAG, LOOT, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
+import { CREDITS } from '../data/credits.js';
+import { isBackKey } from '../logic/keys.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
@@ -28,7 +30,7 @@ const LOCKED = '#4a4470';
 
 const TAB_LABELS = {
   status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
-  fragment: 'データ片', achievement: '実績', controls: '操作', settings: '設定',
+  fragment: 'データ片', achievement: '実績', controls: '操作', settings: '設定', credits: 'クレジット',
 };
 
 export function materialColor(def) {
@@ -108,8 +110,7 @@ export class MenuOverlay {
     const code = event.code;
     if (!this.isOpen) {
       const can = this.options.canOpen?.() ?? true;
-      if (can && code === 'Escape') this.open();
-      else if (can && code === 'Tab' && this.options.tabs.includes('status')) this.open('status');
+      if (can && isBackKey(code)) this.open();
       return;
     }
     if (this.dialog) {
@@ -117,7 +118,7 @@ export class MenuOverlay {
         const { yes } = this.dialog;
         this.dialog = null;
         yes();
-      } else if (code === 'Escape') {
+      } else if (isBackKey(code)) {
         this.dialog = null;
         this.render();
       }
@@ -131,7 +132,7 @@ export class MenuOverlay {
     else if (code === 'KeyW' || code === 'ArrowUp') this.moveCursor(-1);
     else if (code === 'KeyS' || code === 'ArrowDown') this.moveCursor(1);
     else if (code === 'Enter' || code === 'KeyE') this.confirmRow();
-    else if (code === 'Escape' || code === 'Tab') this.close();
+    else if (isBackKey(code)) this.close();
   }
 
   setTab(index) {
@@ -273,6 +274,7 @@ export class MenuOverlay {
     else if (id === 'achievement') this.renderAchievements(save);
     else if (id === 'controls') renderControls(this, ctx.player?.weapon ?? null);
     else if (id === 'settings') this.renderSettings();
+    else if (id === 'credits') this.renderCredits();
 
     // アイコンは、あとから足した枠に隠れないよう、いちばん手前に出す
     for (const layer of this.iconLayers) this.root.bringToTop(layer);
@@ -283,9 +285,25 @@ export class MenuOverlay {
       const bx = W / 2 + (i - (actions.length - 1) / 2) * 226;
       this.button(bx - 105, 470, 210, 34, action.label, action.color ?? COLORS.ink, action.run, 14);
     });
-    this.text(W / 2, H - 20, `1〜${tabs.length} / A・D：切り替え　W・S：選ぶ　Enter：決定　Esc：閉じる`, 12, COLORS.dim).setOrigin(0.5);
+    this.text(W / 2, H - 20, `1〜${tabs.length} / A・D：切り替え　W・S：選ぶ　Enter：決定　Tab：閉じる`, 12, COLORS.dim).setOrigin(0.5);
 
     if (this.dialog) this.renderDialog();
+  }
+
+  // クレジット（音楽・文字・使用ツール・制作）。中身は src/data/credits.js
+  renderCredits() {
+    this.panel(40, 122, W - 80, 336);
+    let y = 140;
+    for (const group of CREDITS) {
+      this.text(64, y, group.title, 12, COLORS.cyan, { fontStyle: '700' });
+      y += 22;
+      for (const line of group.lines) {
+        this.text(84, y, line.name, 15, COLORS.ink, { fontStyle: '700' });
+        this.text(330, y + 1, line.note, 13, COLORS.dim);
+        y += 24;
+      }
+      y += 12;
+    }
   }
 
   renderDialog() {
@@ -303,7 +321,7 @@ export class MenuOverlay {
       this.render();
     };
     this.button(W / 2 - 190, H / 2 + 30, 170, 36, 'はい（Enter）', COLORS.amber, yes, 14);
-    this.button(W / 2 + 20, H / 2 + 30, 170, 36, 'いいえ（Esc）', COLORS.ink, no, 14);
+    this.button(W / 2 + 20, H / 2 + 30, 170, 36, 'いいえ（Tab）', COLORS.ink, no, 14);
   }
 
   // ---- ステータス：数値、装備の詳細、インプラント ----

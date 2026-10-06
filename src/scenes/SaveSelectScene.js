@@ -3,8 +3,9 @@ import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { isBackKey } from '../logic/keys.js';
 import { bestReachText } from '../logic/maps.js';
-import { eraseSlot, getSlots, selectSlot } from '../game/saveStore.js';
+import { eraseSlot, getSlots, selectSlot, suspendText, takeSuspendedRun } from '../game/saveStore.js';
 import { setupView } from '../render/view.js';
 
 const W = SCREEN.width;
@@ -37,9 +38,10 @@ export class SaveSelectScene extends Phaser.Scene {
     this.add.text(W / 2, 56, 'SAVE DATA', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '32px', color: COLORS.cyan })
       .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 14, false, true);
     this.add.text(W / 2, 92, 'セーブデータを選ぶ。進行状況は、遊んでいる間ずっと自動で保存される', { fontFamily: FONTS.body, fontSize: '13px', color: COLORS.dim }).setOrigin(0.5);
-    this.add.text(W / 2, H - 30, '1・2・3 / A・D：選ぶ　Enter：決定　Esc：タイトルへ', { fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim }).setOrigin(0.5);
+    this.add.text(W / 2, H - 30, '1・2・3 / A・D：選ぶ　Enter：決定　Tab：タイトルへ', { fontFamily: FONTS.body, fontSize: '12px', color: COLORS.dim }).setOrigin(0.5);
 
     this.root = this.add.container(0, 0);
+    this.input.keyboard.addCapture('TAB');
     this.input.keyboard.on('keydown', (event) => this.onKey(event));
     this.render();
   }
@@ -49,7 +51,7 @@ export class SaveSelectScene extends Phaser.Scene {
     const code = event.code;
     if (this.confirmDelete) {
       if (code === 'Enter') this.erase(this.confirmDelete);
-      else if (code === 'Escape') this.cancelDelete();
+      else if (isBackKey(code)) this.cancelDelete();
       return;
     }
     const digit = /^Digit([1-3])$/.exec(code);
@@ -57,7 +59,7 @@ export class SaveSelectScene extends Phaser.Scene {
     else if (code === 'KeyA' || code === 'ArrowLeft') this.move(-1);
     else if (code === 'KeyD' || code === 'ArrowRight') this.move(1);
     else if (code === 'Enter' || code === 'KeyE') this.start(this.cursor + 1);
-    else if (code === 'Escape') this.scene.start('Title');
+    else if (isBackKey(code)) this.scene.start('Title');
   }
 
   move(delta) {
@@ -69,7 +71,10 @@ export class SaveSelectScene extends Phaser.Scene {
   start(slot) {
     playSe('confirm');
     selectSlot(slot);
-    this.scene.start('Hideout');
+    // 中断データがあれば、隠れ家ではなく、中断した部屋から再開する（取り出した時点で中断データは消える）
+    const run = takeSuspendedRun();
+    if (run) this.scene.start('Battle', { run });
+    else this.scene.start('Hideout');
   }
 
   erase(slot) {
@@ -140,7 +145,13 @@ export class SaveSelectScene extends Phaser.Scene {
       const counts = Object.values(save.materials).filter((n) => n > 0);
       this.text(x + 18, y + 52 + rows.length * 24, 'ボス素材', 13, COLORS.dim);
       this.text(x + CARD_W - 18, y + 52 + rows.length * 24, counts.length > 0 ? `${counts.length} 種類・${counts.reduce((a, b) => a + b, 0)} 個` : 'なし', 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
-      this.button(x + 18, y + CARD_H - 54, CARD_W - 110, 36, 'つづきから', COLORS.green, () => this.start(slot));
+      // 中断中のランがあれば、その場所を出す
+      const suspended = suspendText(slot);
+      if (suspended) {
+        this.text(x + 18, y + CARD_H - 104, '中断中', 12, COLORS.amber, { fontStyle: '700' });
+        this.text(x + 18, y + CARD_H - 88, suspended, 12, COLORS.amber, { wordWrap: { width: CARD_W - 36, useAdvancedWrap: true } });
+      }
+      this.button(x + 18, y + CARD_H - 54, CARD_W - 110, 36, suspended ? '再開する' : 'つづきから', COLORS.green, () => this.start(slot));
       this.button(x + CARD_W - 82, y + CARD_H - 54, 64, 36, '消す', COLORS.dim, () => {
         this.confirmDelete = slot;
         this.render();
@@ -157,6 +168,6 @@ export class SaveSelectScene extends Phaser.Scene {
     this.root.add([cover, box]);
     this.text(W / 2, H / 2 - 38, `DATA ${this.confirmDelete} を消します。\n恒久強化・実績・データ片など、すべて元に戻せません。よろしいですか？`, 14, COLORS.ink, { fontStyle: '700', align: 'center', lineSpacing: 8 }).setOrigin(0.5);
     this.button(W / 2 - 190, H / 2 + 28, 170, 36, '消す（Enter）', COLORS.red, () => this.erase(this.confirmDelete));
-    this.button(W / 2 + 20, H / 2 + 28, 170, 36, 'やめる（Esc）', COLORS.ink, () => this.cancelDelete());
+    this.button(W / 2 + 20, H / 2 + 28, 170, 36, 'やめる（Tab）', COLORS.ink, () => this.cancelDelete());
   }
 }

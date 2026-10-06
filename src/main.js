@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { SCREEN } from './data/balance.js';
 import { COLORS, FONTS } from './data/theme.js';
-import { applyDisplaySize, getSettings } from './game/settingsStore.js';
+import { applyDisplaySize, getSettings, syncEscapeLock } from './game/settingsStore.js';
 import { setRenderScale } from './render/view.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { EndingScene } from './scenes/EndingScene.js';
@@ -50,5 +50,8 @@ loadFonts().then(() => {
   });
   // 表示の大きさ（設定）。フルスクリーンに出入りしたときも合わせ直す
   applyDisplaySize(game);
-  document.addEventListener('fullscreenchange', () => applyDisplaySize(game));
+  document.addEventListener('fullscreenchange', () => {
+    applyDisplaySize(game);
+    syncEscapeLock();
+  });
 });

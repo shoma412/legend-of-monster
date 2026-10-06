@@ -4,13 +4,14 @@ import { DATA } from '../src/data/index.js';
 import { recalcStats } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
-import { createRun, enterRoom, skipToBoss } from '../src/game/run.js';
+import { NEXT_AREA, createRun, enterRoom, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { generateVault } from '../src/logic/areaGen.js';
+import { doorOptions, generateVault } from '../src/logic/areaGen.js';
 import { makeItem, rarityWeights, rollRarity } from '../src/logic/loot.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
 import { createSave } from '../src/logic/save.js';
 import { createBuild } from '../src/logic/stats.js';
+import { SUSPEND_VERSION, canSuspend, deleteSuspend, loadSuspend, restoreRun, snapshotRun, storeSuspend, suspendKey, suspendSummary } from '../src/logic/suspend.js';
 
 // 2026-10-06 のテストプレイを受けた調整（docs/詳細仕様.md「20. テストプレイを受けた調整」）
 
@@ -23,6 +24,11 @@ function seeded(seed = 1) {
     s = (s * 1664525 + 1013904223) % 4294967296;
     return s / 4294967296;
   };
+}
+
+// その部屋から出られる扉（ボス部屋なら、次のエリアへの扉）
+function enterDoors(run) {
+  return run.plan.current === 'boss' && hasNextArea(run) ? [{ id: NEXT_AREA, type: 'descend' }] : doorOptions(run.plan);
 }
 
 function makeWorld() {
@@ -184,5 +190,126 @@ describe('近接攻撃の踏み込み', () => {
     e.def = { ...e.def, speed: 0 };
     expect(Math.abs(lungeDistance(world))).toBeLessThan(1);
     expect(e.hp).toBeLessThan(e.maxHp); // 攻撃そのものは当たる
+  });
+});
+
+describe('中断セーブ', () => {
+  const fakeStorage = () => {
+    const map = new Map();
+    return { getItem: (k) => (map.has(k) ? map.get(k) : null), setItem: (k, v) => map.set(k, String(v)), removeItem: (k) => map.delete(k), size: () => map.size };
+  };
+  // 最初の部屋をクリアした状態のラン
+  function clearedRoom(seed = 3) {
+    const save = createSave();
+    const run = createRun({ rng: seeded(seed), save, mapId: 'map1' });
+    const world = enterRoom(run);
+    world.player.inv = Infinity;
+    for (let t = 0; t < 120 && world.mode !== 'clear'; t += DT) {
+      for (const e of world.enemies) if (!e.dead && e.spawnT <= 0) hitEnemy(world, e, 99999, 1, 0, 0, { unblockable: true });
+      if (world.choice) world.choice = null;
+      updateWorld(world, DT, idle);
+    }
+    world.choice = null;
+    world.pendingLevelUps = 0;
+    return { save, run, world };
+  }
+
+  it('戦闘中は中断できない。部屋をクリアすると中断できる', () => {
+    const save = createSave();
+    const run = createRun({ rng: seeded(3), save, mapId: 'map1' });
+    const fighting = enterRoom(run);
+    expect(fighting.mode).toBe('play');
+    expect(canSuspend(run, fighting)).toBe(false);
+    const { run: r2, world } = clearedRoom();
+    expect(world.mode).toBe('clear');
+    expect(canSuspend(r2, world)).toBe(true);
+    // レベルアップの3択が出ている間と、ランが終わったあとは、中断できない
+    world.choice = [{}];
+    expect(canSuspend(r2, world)).toBe(false);
+    world.choice = null;
+    r2.outcome = 'dead';
+    expect(canSuspend(r2, world)).toBe(false);
+  });
+
+  it('マップの最後のボスを倒したあとは、中断できない（倒すとランが終わるため）', () => {
+    const { run, world } = clearedRoom();
+    run.areaIndex = run.map.areas.length - 1;
+    run.plan.current = 'boss';
+    expect(canSuspend(run, world)).toBe(false);
+    run.areaIndex = 0;
+    expect(canSuspend(run, world)).toBe(true);
+  });
+
+  it('中断して再開すると、同じ場所・同じ持ち物で、クリア済みの部屋（扉が開いている）から始まる', () => {
+    const { save, run, world } = clearedRoom();
+    const p = world.player;
+    p.hp = 61;
+    p.build.credits = 123;
+    p.build.kits = 1;
+    p.build.level = 4;
+    p.build.implants[DATA.implants.all()[0].id] = 2;
+    p.build.gear.mod = makeItem(seeded(2), { rarity: 3, slot: 'mod' });
+    p.build.bag.push(makeItem(seeded(4), { rarity: 1 }));
+    p.build.items[0] = { id: DATA.consumables.ids()[0], count: 2 };
+    const before = JSON.parse(JSON.stringify(p.build));
+    const data = snapshotRun(run, world);
+    expect(JSON.parse(JSON.stringify(data))).toEqual(data); // そのまま保存できる形
+
+    const again = restoreRun(JSON.parse(JSON.stringify(data)), save, seeded(99));
+    expect(again.map.id).toBe('map1');
+    expect(again.areaIndex).toBe(run.areaIndex);
+    expect(again.plan.current).toBe(run.plan.current);
+    expect(again.kills).toBe(run.kills + world.kills);
+    const runsBefore = save.records.runs;
+    const w2 = enterRoom(again);
+    expect(save.records.runs).toBe(runsBefore); // 出撃の回数は増えない
+    expect(w2.room.type).toBe('resume');
+    expect(w2.room.waves).toHaveLength(0);
+    expect(w2.room.countdown).toBeUndefined();
+    expect(w2.room.doors).toEqual(enterDoors(run));
+    expect(w2.player.hp).toBe(61);
+    expect(w2.player.build).toEqual(before);
+    for (let i = 0; i < 30; i++) updateWorld(w2, DT, idle);
+    expect(w2.mode).toBe('clear');
+    expect(w2.enemies).toHaveLength(0);
+    // 再開の扱いは最初の部屋だけ。次の部屋は、ふつうの部屋
+    leaveRoom(again, w2, w2.room.doors[0].id);
+    expect(enterRoom(again).room.type).not.toBe('resume');
+  });
+
+  it('保存先への読み書き：再開できる文が出る。枠を分けて持つ。消すと読めない', () => {
+    const { run, world } = clearedRoom();
+    const storage = fakeStorage();
+    expect(loadSuspend(storage, 2)).toBeNull();
+    expect(storeSuspend(storage, 2, snapshotRun(run, world))).toBe(true);
+    expect(loadSuspend(storage, 1)).toBeNull();
+    const data = loadSuspend(storage, 2);
+    expect(suspendSummary(data)).toContain('MAP 01');
+    expect(suspendSummary(data)).toContain(DATA.areas.get(run.map.areas[0]).name);
+    deleteSuspend(storage, 2);
+    expect(loadSuspend(storage, 2)).toBeNull();
+    expect(storeSuspend(null, 1, data)).toBe(false); // 保存できない環境
+  });
+
+  it('形が合わない・壊れた中断データは、再開しない（隠れ家から始まる）', () => {
+    const { save, run, world } = clearedRoom();
+    const good = snapshotRun(run, world);
+    const broken = (change) => {
+      const d = JSON.parse(JSON.stringify(good));
+      change(d);
+      return restoreRun(d, save);
+    };
+    expect(restoreRun(good, save)).not.toBeNull();
+    expect(restoreRun(null, save)).toBeNull();
+    expect(broken((d) => { d.version = SUSPEND_VERSION + 1; })).toBeNull();
+    expect(broken((d) => { d.mapId = 'nowhere'; })).toBeNull();
+    expect(broken((d) => { d.plan.current = 'x-y'; })).toBeNull();
+    expect(broken((d) => { d.build.implants.unknownPart = 1; })).toBeNull();
+    expect(broken((d) => { d.build.gear.mod = { slot: 'mod', rarity: 0, effects: [{ id: 'gone', value: 1 }], unique: null, name: '?' }; })).toBeNull();
+    expect(broken((d) => { d.hp = 0; })).toBeNull();
+    expect(suspendSummary({ version: 0 })).toBeNull();
+    const storage = fakeStorage();
+    storage.setItem(suspendKey(1), '{こわれたデータ');
+    expect(loadSuspend(storage, 1)).toBeNull();
   });
 });

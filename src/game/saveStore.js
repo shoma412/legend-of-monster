@@ -1,6 +1,7 @@
 // ブラウザの localStorage にセーブデータを読み書きする窓口。
 // セーブ枠の選択画面で枠を選ぶと、ゲーム中はその枠のデータを共有する。
 import { createSave, deleteSlot, listSlots, loadSlot, storeSlot } from '../logic/save.js';
+import { deleteSuspend, loadSuspend, restoreRun, snapshotRun, storeSuspend, suspendSummary } from '../logic/suspend.js';
 
 function storage() {
   try {
@@ -41,8 +42,29 @@ export function persist() {
   return storeSlot(storage(), slot, getSave());
 }
 
-// その枠のセーブデータを消す
+// ---- 中断セーブ（枠ごとに1つ） ----
+
+// 今のランを、今の枠の中断データとして保存する。保存できたら true
+export function saveSuspend(run, world) {
+  return storeSuspend(storage(), slot, snapshotRun(run, world));
+}
+
+// セーブ枠の選択画面に出す、中断した場所の文（中断データがなければ null）
+export function suspendText(n) {
+  return suspendSummary(loadSuspend(storage(), n));
+}
+
+// 今の枠の中断データからランを作り直す。取り出した時点で、中断データは消える。なければ（再開できなければ）null
+export function takeSuspendedRun() {
+  const data = loadSuspend(storage(), slot);
+  if (!data) return null;
+  deleteSuspend(storage(), slot);
+  return restoreRun(data, getSave());
+}
+
+// その枠のセーブデータを消す（中断データも一緒に消す）
 export function eraseSlot(n) {
   deleteSlot(storage(), n);
+  deleteSuspend(storage(), n);
   if (n === slot) current = null;
 }
