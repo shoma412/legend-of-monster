@@ -30,6 +30,8 @@ export function createPlayer(weaponId, x, y, carry = null) {
     shotCd: 0, // 次の弾が撃てるまでの秒数（銃）
     firingT: 0, // 撃っている最中の残り時間（銃。この間は移動が少し遅い）
     specialCd: 0,
+    gauge: 0, // バーストブローのゲージ（ナックル）
+    gaugeIdle: 0, // 最後に敵に当ててからの秒数（ナックル）
     dashT: 0,
     dashCd: 0, // 次のダッシュが出せるまでの秒数（HUD 用）
     dashCharges: 1, // 今出せるダッシュの回数
@@ -78,6 +80,11 @@ export function updatePlayer(world, dt, input) {
   p.slowT -= dt;
   updateItemEffects(world, dt);
   p.specialCd -= dt;
+  // ゲージ（ナックル）：しばらく当てないでいると、減っていく
+  if (p.weapon.special.type === 'burst' && p.gauge > 0) {
+    p.gaugeIdle += dt;
+    if (p.gaugeIdle > p.weapon.special.hold) p.gauge = Math.max(0, p.gauge - p.weapon.special.decay * dt);
+  }
   p.shotCd -= dt;
   p.firingT -= dt;
   p.dashBuffer -= dt;
@@ -253,6 +260,29 @@ const SPECIALS = {
     return false;
   },
 
+  // バーストブロー：ゲージが満タンのときに右クリックで、前に踏み込んで強烈な一撃。ゲージを全部使う
+  burst(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (!input.specialPressed || p.specialCd > 0) return false;
+    if (p.gauge < special.gaugeMax) {
+      // 足りないときは、何も起きない（音だけ）
+      sfx(world, 'deny');
+      p.specialCd = 0.2;
+      return false;
+    }
+    const blow = special.blow;
+    p.gauge = 0;
+    p.specialCd = special.cooldown;
+    p.inv = Math.max(p.inv, special.invincible);
+    p.attack = makeAttack(world, { ...blow, heavy: true }, blow.damage, blow.range, blow.arc, { charged: 3, burst: true });
+    p.comboStep = 0;
+    sfx(world, 'charge');
+    floatText(world, p.x, p.y - 30, special.name, COLORS.amber, 16);
+    ring(world, p.x, p.y, 40, COLORS.amber);
+    return true;
+  },
+
   // 拡散射撃：右クリックで、扇状に何発も同時に撃つ
   spread(world, dt, input) {
     const p = world.player;
@@ -299,8 +329,8 @@ function updateAttack(world, dt, input) {
     return;
   }
 
-  // 近接：押した瞬間に通常攻撃。硬直中に押したぶんも少しの間は覚えておく
-  if (p.attackBuffer > 0) {
+  // 近接：押した瞬間に通常攻撃。硬直中に押したぶんも少しの間は覚えておく。押している間ずっと出し続ける武器もある（ナックル）
+  if (p.attackBuffer > 0 || (weapon.autoCombo && input.attack)) {
     p.attackBuffer = 0;
     const step = p.comboTimer > 0 ? p.comboStep : 0;
     const def = weapon.combo[step];
@@ -426,6 +456,17 @@ function resolveSwing(world, a) {
     if (!arcHitsCircle(p.x, p.y, a.angle, a.arc, a.range, e.x, e.y, e.r, p.r + 6)) continue;
     hitEnemy(world, e, a.damage, e.x - p.x, e.y - p.y, a.knockback, { heavy: a.heavy || a.charged > 0 });
     hits++;
+  }
+  // ゲージ（ナックル）：通常攻撃を当てると溜まる。バーストブローそのものでは溜まらない
+  const special = p.weapon.special;
+  if (hits > 0 && special.type === 'burst' && !a.burst) {
+    const before = p.gauge;
+    p.gauge = Math.min(special.gaugeMax, p.gauge + (a.heavy ? special.gainHeavy : special.gain));
+    p.gaugeIdle = 0;
+    if (before < special.gaugeMax && p.gauge >= special.gaugeMax) {
+      sfx(world, 'levelup');
+      floatText(world, p.x, p.y - 44, 'ゲージ MAX // 右クリック', COLORS.amber, 14);
+    }
   }
   const kind = a.charged ? 'charged' : a.heavy ? 'heavy' : 'normal';
   if (hits > 0) {

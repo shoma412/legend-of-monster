@@ -32,8 +32,8 @@ function addEnemy(world, id, dx, dy = 0) {
 }
 
 describe('武器の定義', () => {
-  it('3種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
-    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun']);
+  it('4種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
+    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun', 'knuckle']);
     expect(weaponUnlocks.map((w) => w.weapon)).toEqual(DATA.weapons.ids());
     for (const w of DATA.weapons.all()) expect(w.special.hint, w.id).toBeTruthy();
   });
@@ -296,5 +296,153 @@ describe('大剣の奥義', () => {
     updateWorld(world, DT, right);
     expect(e.hp).toBeLessThan(e.maxHp);
     expect(hurtPlayer(world, 50)).toBe(false);
+  });
+});
+
+describe('ナックル（2026-10-07 追加）', () => {
+  const knuckle = DATA.weapons.get('knuckle');
+  const special = knuckle.special;
+  // 敵を目の前に置いたまま、押しっぱなしで殴り続ける
+  const punch = (world, e, seconds, extra = {}) => {
+    for (let t = 0; t < seconds; t += DT) {
+      e.x = world.player.x + 30;
+      e.y = world.player.y;
+      updateWorld(world, DT, { ...idle, attack: true, ...extra });
+    }
+  };
+
+  it('射程はいちばん短い。押している間、殴り続ける（クリックし直さなくてよい）', () => {
+    const reach = (w) => Math.max(...w.combo.map((c) => c.range));
+    for (const id of ['greatsword', 'sword']) expect(reach(knuckle)).toBeLessThan(reach(DATA.weapons.get(id)));
+    const world = makeWorld('knuckle');
+    const e = addEnemy(world, 'grunt', 30);
+    const seen = [];
+    let last = e.hp;
+    for (let t = 0; t < 2 && seen.length < 6; t += DT) {
+      e.x = world.player.x + 30;
+      e.y = world.player.y;
+      updateWorld(world, DT, { ...idle, attack: true }); // attackPressed は出していない
+      if (e.hp !== last) {
+        seen.push(last - e.hp);
+        last = e.hp;
+      }
+    }
+    expect(seen).toEqual([8, 8, 8, 13, 8, 8]);
+  });
+
+  it('同じ時間で、片手剣より多く殴れる', () => {
+    const hits = ['knuckle', 'sword'].map((id) => {
+      const world = makeWorld(id);
+      const e = addEnemy(world, 'grunt', 30);
+      let count = 0;
+      let last = e.hp;
+      for (let t = 0; t < 3; t += DT) {
+        e.x = world.player.x + 30;
+        e.y = world.player.y;
+        updateWorld(world, DT, { ...idle, attack: true, attackPressed: true });
+        if (e.hp !== last) {
+          count++;
+          last = e.hp;
+        }
+      }
+      return count;
+    });
+    expect(hits[0]).toBeGreaterThan(hits[1] * 1.3);
+  });
+
+  it('当てるとゲージが溜まる（フックは多め）。空振りでは溜まらない', () => {
+    const empty = makeWorld('knuckle');
+    run(empty, 1, { ...idle, attack: true }); // 敵がいない
+    expect(empty.player.gauge).toBe(0);
+    const world = makeWorld('knuckle');
+    const p = world.player;
+    const e = addEnemy(world, 'grunt', 30);
+    let last = e.hp;
+    const gains = [];
+    for (let t = 0; t < 2 && gains.length < 4; t += DT) {
+      e.x = p.x + 30;
+      e.y = p.y;
+      const before = p.gauge;
+      updateWorld(world, DT, { ...idle, attack: true });
+      if (e.hp !== last) {
+        gains.push(p.gauge - before);
+        last = e.hp;
+      }
+    }
+    expect(gains).toEqual([special.gain, special.gain, special.gain, special.gainHeavy]);
+  });
+
+  it('ゲージが満タンでないと、右クリックしても出ない', () => {
+    const world = makeWorld('knuckle');
+    const p = world.player;
+    const e = addEnemy(world, 'grunt', 30);
+    p.gauge = special.gaugeMax - 1;
+    updateWorld(world, DT, { ...idle, specialPressed: true });
+    expect(p.attack).toBeNull();
+    expect(e.hp).toBe(e.maxHp);
+    expect(p.gauge).toBe(special.gaugeMax - 1);
+  });
+
+  it('満タンで右クリックすると、バーストブロー：踏み込んで強烈な一撃。ゲージを全部使い、その間は無敵', () => {
+    const world = makeWorld('knuckle');
+    const p = world.player;
+    const e = addEnemy(world, 'grunt', 60);
+    p.gauge = special.gaugeMax;
+    p.fx = 1;
+    p.fy = 0;
+    const x = p.x;
+    updateWorld(world, DT, { ...idle, specialPressed: true, aimX: p.x + 300, aimY: p.y });
+    expect(p.gauge).toBe(0);
+    expect(p.attack?.burst).toBe(true);
+    expect(hurtPlayer(world, 10)).toBe(false); // 無敵
+    run(world, 0.5);
+    expect(e.maxHp - e.hp).toBe(special.blow.damage);
+    expect(p.x).toBeCloseTo(x); // もう届く敵がいるので、踏み込まない（近接攻撃の踏み込みの決まり）
+    expect(p.gauge).toBe(0); // バーストブローそのものでは、ゲージは溜まらない
+    // 届く敵がいないときは、前に踏み込む
+    const w2 = makeWorld('knuckle');
+    w2.player.gauge = special.gaugeMax;
+    const x2 = w2.player.x;
+    updateWorld(w2, DT, { ...idle, specialPressed: true, aimX: w2.player.x + 300, aimY: w2.player.y });
+    run(w2, 0.5);
+    expect(w2.player.x).toBeGreaterThan(x2 + special.blow.lunge * 0.8);
+    // 大剣の通常攻撃のどれよりも強い
+    expect(special.blow.damage).toBeGreaterThan(Math.max(...DATA.weapons.get('greatsword').combo.map((c) => c.damage)));
+  });
+
+  it('しばらく当てないでいると、ゲージは減っていく。当てている間は減らない', () => {
+    const world = makeWorld('knuckle');
+    const p = world.player;
+    p.gauge = 50;
+    run(world, special.hold - 0.2);
+    expect(p.gauge).toBe(50);
+    run(world, 1.2);
+    expect(p.gauge).toBeLessThan(50 - special.decay * 0.8);
+    expect(p.gauge).toBeGreaterThan(0);
+    run(world, 5);
+    expect(p.gauge).toBe(0);
+
+    const w2 = makeWorld('knuckle');
+    const e = addEnemy(w2, 'grunt', 30);
+    punch(w2, e, special.hold + 2);
+    expect(w2.player.gauge).toBe(special.gaugeMax);
+  });
+
+  it('殴り続けて満タンになるまでは、4秒前後', () => {
+    const world = makeWorld('knuckle');
+    const e = addEnemy(world, 'grunt', 30);
+    let t = 0;
+    for (; t < 20 && world.player.gauge < special.gaugeMax; t += DT) {
+      e.x = world.player.x + 30;
+      e.y = world.player.y;
+      updateWorld(world, DT, { ...idle, attack: true });
+    }
+    expect(t).toBeGreaterThan(2.5);
+    expect(t).toBeLessThan(5.5);
+  });
+
+  it('ステータス：移動速度 +10%、被ダメージ +5%。解放はサーペントコア2個', () => {
+    expect(knuckle.mods).toEqual([{ stat: 'moveSpeedMul', add: 0.1 }, { stat: 'damageTaken', add: 0.05 }]);
+    expect(weaponUnlocks.find((w) => w.weapon === 'knuckle').cost).toEqual({ serpentCore: 2 });
   });
 });

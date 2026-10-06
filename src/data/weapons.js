@@ -6,6 +6,8 @@
 //   charge : 左クリック長押しで溜めて斬る（大剣）
 //   guard  : 右クリックで少しの間だけ構え、攻撃を受けると無効化して反撃（片手剣）
 //   spread : 右クリックで扇状に同時に撃つ（銃）
+//   burst  : 敵に当てるたびにゲージが溜まり、満タンで右クリックの強烈な一撃（ナックル）
+// autoCombo: true なら、左クリックを押している間、通常攻撃を出し続ける（ナックル）
 // ougi は奥義（今は大剣だけ）
 // special.hint は画面下の操作説明に出す文
 //
@@ -95,6 +97,36 @@ export const weapons = [
       angle: 50, // 扇の広さ（度）
       damage: 14, // 1発あたり
       recover: 0.3, // 撃ったあと、通常の弾が撃てるようになるまで（秒）
+    },
+  },
+  {
+    id: 'knuckle',
+    name: 'ナックル',
+    type: 'melee',
+    mods: [{ stat: 'moveSpeedMul', add: 0.1 }, { stat: 'damageTaken', add: 0.05 }], // いちばん身軽。少し打たれ弱い
+    moveSlow: 0.9, // 殴っている間の移動速度の倍率（ほとんど落ちない）
+    comboReset: 0.45,
+    autoCombo: true, // 押している間、殴り続ける
+    // とても速い4段。ジャブ3発と、締めのフック。射程はいちばん短い
+    combo: [
+      { damage: 8, range: 42, arc: 80, windup: 0.02, swing: 0.06, recover: 0.04, knockback: 90, lunge: 8 },
+      { damage: 8, range: 42, arc: 80, windup: 0.02, swing: 0.06, recover: 0.04, knockback: 90, lunge: 8 },
+      { damage: 8, range: 42, arc: 80, windup: 0.02, swing: 0.06, recover: 0.04, knockback: 90, lunge: 8 },
+      { damage: 13, range: 48, arc: 120, windup: 0.03, swing: 0.08, recover: 0.12, knockback: 300, lunge: 12, heavy: true },
+    ],
+    special: {
+      type: 'burst',
+      name: 'バーストブロー',
+      hint: '右クリック バーストブロー（ゲージ満タンで）',
+      cooldown: 0.5, // 撃ったあと、次に撃てるようになるまで（秒）。ゲージが要るので、短くてよい
+      gaugeMax: 100,
+      gain: 4, // 通常攻撃を当てるたびに溜まる量（1回の攻撃で何体に当てても同じ）
+      gainHeavy: 8, // フックを当てたときに溜まる量
+      hold: 3, // この秒数、敵に当てないでいると、ゲージが減り始める
+      decay: 20, // 減る速さ（1秒あたり）
+      // 一撃：前に踏み込んで殴る
+      blow: { damage: 140, range: 86, arc: 110, windup: 0.08, swing: 0.16, recover: 0.3, knockback: 820, lunge: 46 },
+      invincible: 0.35, // 撃っている間の無敵（秒）
     },
   },
 ];

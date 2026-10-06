@@ -101,4 +101,5 @@ export const weaponUnlocks = [
   { weapon: 'greatsword', name: '大剣', note: '重い一撃と溜め斬り', cost: null },
   { weapon: 'sword', name: '片手剣', note: '手数とジャストガード', cost: { boarCore: 2 } },
   { weapon: 'gun', name: '銃', note: '遠距離と拡散射撃', cost: { cryoCore: 2 } },
+  { weapon: 'knuckle', name: 'ナックル', note: '超高速の拳とバーストブロー', cost: { serpentCore: 2 } },
 ];

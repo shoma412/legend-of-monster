@@ -33,7 +33,7 @@ function keyColor(name) {
 
 // 武器ごとの、マウスの左右のボタンの説明
 function mouseLines(weapon) {
-  const lines = { greatsword: ['攻撃（3段斬り）／長押しで溜め斬り', '奥義（HP20%以下・エリアごとに1回）'], sword: ['攻撃（4段コンボ）', 'ジャストガード'], gun: ['撃つ（押している間ずっと）', '拡散射撃'] };
+  const lines = { greatsword: ['攻撃（3段斬り）／長押しで溜め斬り', '奥義（HP20%以下・エリアごとに1回）'], sword: ['攻撃（4段コンボ）', 'ジャストガード'], gun: ['撃つ（押している間ずっと）', '拡散射撃'], knuckle: ['殴る（押している間ずっと）', 'バーストブロー（ゲージ満タンで）'] };
   return DATA.weapons.all().map((w) => ({ name: w.name, left: lines[w.id]?.[0] ?? '攻撃', right: lines[w.id]?.[1] ?? w.special.name, current: weapon?.id === w.id }));
 }
 

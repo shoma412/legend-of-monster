@@ -92,6 +92,12 @@ const WEAPON_GLYPHS = {
     glowLine(g, c, 4, () => g.lineBetween(x - 12, y - 6, x + 13, y - 6));
     glowLine(g, c, 4, () => g.lineBetween(x - 8, y - 6, x - 11, y + 10));
   },
+  // ナックル：握った拳（四角い拳と、指の線）
+  knuckle(g, x, y, c) {
+    glowLine(g, c, 2.5, () => g.strokeRect(x - 11, y - 9, 22, 16));
+    for (const dx of [-5, 0, 5]) glowLine(g, c, 1.5, () => g.lineBetween(x + dx, y - 9, x + dx, y - 2));
+    glowLine(g, c, 2.5, () => g.lineBetween(x - 11, y + 7, x - 6, y + 14).lineBetween(x - 6, y + 14, x + 6, y + 14));
+  },
 };
 
 // 人物の線画。who で形を変える

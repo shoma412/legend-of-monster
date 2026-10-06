@@ -547,7 +547,13 @@ export function drawHud(g, world) {
       g.fillStyle(hex(i < p.dashCharges ? COLORS.cyan : COLORS.line), 1).fillRect(362 + i * 8, y + 13, 6, 3);
     }
   }
-  cooldownBar(g, 516, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
+  // 特殊アクションの棒：ふつうはクールダウンの残り。ナックルは、ゲージの溜まり具合（満タンで光る）
+  if (p.weapon.special.type === 'burst') {
+    const full = p.gauge >= p.weapon.special.gaugeMax;
+    cooldownBar(g, 516, y, p.gauge / p.weapon.special.gaugeMax, hex(full && Math.sin(world.time * 12) > 0 ? COLORS.ink : COLORS.amber));
+  } else {
+    cooldownBar(g, 516, y, 1 - Math.max(0, p.specialCd) / p.weapon.special.cooldown, hex(COLORS.amber));
+  }
 
   drawItemSlots(g, world);
 }
