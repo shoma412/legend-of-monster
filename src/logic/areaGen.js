@@ -176,18 +176,46 @@ export function gearPrice(item) {
   return ECONOMY.prices.gear[item.rarity];
 }
 
-// 闇市の品ぞろえ：装備2つ・修復キット・消耗品1つ・インプラント1つ
+// 闇市の品ぞろえ：毎回ちがう。装備・修復キット・インプラントは必ず1つずつ入り、残りは抽選（装備・消耗品・インプラント）
 export function generateShop(build, rng, tier = null) {
-  const goods = [];
-  for (let i = 0; i < ECONOMY.shop.gearCount; i++) {
-    const item = makeItem(rng, { rarityBonus: ECONOMY.shop.rarityBonus, tier });
-    goods.push({ type: 'gear', item, price: gearPrice(item) });
+  const shop = ECONOMY.shop;
+  // 種類を決める：装備・回復（修復キット）・インプラントは必ず1つずつ。残りは抽選
+  const types = ['gear', 'kit', 'implant'];
+  const pool = Object.entries(shop.extras);
+  const total = pool.reduce((sum, [, weight]) => sum + weight, 0);
+  while (types.length < shop.count) {
+    let roll = rng() * total;
+    let chosen = pool[0][0];
+    for (const [type, weight] of pool) {
+      roll -= weight;
+      if (roll < 0) {
+        chosen = type;
+        break;
+      }
+    }
+    types.push(chosen);
   }
-  goods.push({ type: 'kit', price: ECONOMY.prices.kit });
-  goods.push({ type: 'item', id: pick(DATA.consumables.ids(), rng), price: ITEMS.price });
-  const [implant] = rollImplantChoices(build, rng, 1);
-  if (implant) goods.push({ type: 'implant', def: implant, price: ECONOMY.prices.implant });
-  return goods;
+  // 中身を決める。インプラントと消耗品は、同じものが2つ並ばないようにする
+  const implants = rollImplantChoices(build, rng, types.filter((t) => t === 'implant').length);
+  const consumables = [...DATA.consumables.ids()];
+  const goods = [];
+  for (const type of types) {
+    if (type === 'gear') {
+      const item = makeItem(rng, { rarityBonus: shop.rarityBonus, tier });
+      goods.push({ type, item, price: gearPrice(item) });
+    } else if (type === 'kit') {
+      goods.push({ type, price: ECONOMY.prices.kit });
+    } else if (type === 'implant') {
+      const def = implants.shift();
+      if (def) goods.push({ type, def, price: ECONOMY.prices.implant });
+    } else if (type === 'item' && consumables.length > 0) {
+      const [id] = consumables.splice(Math.min(consumables.length - 1, Math.floor(rng() * consumables.length)), 1);
+      goods.push({ type, id, price: ITEMS.price });
+    }
+  }
+  // 見やすいように、種類ごとにまとめて並べる（装備 → 修復キット → 消耗品 → インプラント）
+  const order = ['gear', 'kit', 'item', 'implant'];
+  return goods.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
 }
 
 // データ金庫：装備3つ（スロットはなるべく別々）

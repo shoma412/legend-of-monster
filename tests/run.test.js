@@ -269,10 +269,38 @@ describe('部屋の中身', () => {
     expect(p.hp).toBe(50);
   });
 
-  it('闇市：装備2つ・修復キット・消耗品・インプラントが並び、クレジットで買える。足りないと買えない', () => {
-    const goods = generateShop(createBuild(), seeded(6));
-    expect(goods.map((g) => g.type)).toEqual(['gear', 'gear', 'kit', 'item', 'implant']);
-    expect(goods[0].price).toBe(ECONOMY.prices.gear[goods[0].item.rarity]);
+  it('闇市の品ぞろえは毎回ちがう。装備・修復キット・インプラントは必ず1つずつ入り、修復キットは1つだけ。同じものは並ばない', () => {
+    const shapes = new Set();
+    const counts = { gear: 0, kit: 0, item: 0, implant: 0 };
+    for (let seed = 1; seed <= 300; seed++) {
+      // 種は、ばらけた値にする（続き番号だと、最初の乱数が似た値になる）
+      const goods = generateShop(createBuild(), seeded((seed * 2654435761) % 4294967296));
+      const types = goods.map((g) => g.type);
+      expect(goods).toHaveLength(ECONOMY.shop.count);
+      expect(types).toContain('gear');
+      expect(types).toContain('implant');
+      expect(types.filter((t) => t === 'kit')).toHaveLength(1);
+      // 種類ごとにまとめて並ぶ
+      expect(types).toEqual([...types].sort((x, y) => ['gear', 'kit', 'item', 'implant'].indexOf(x) - ['gear', 'kit', 'item', 'implant'].indexOf(y)));
+      const implants = goods.filter((g) => g.type === 'implant').map((g) => g.def.id);
+      expect(new Set(implants).size).toBe(implants.length);
+      const items = goods.filter((g) => g.type === 'item').map((g) => g.id);
+      expect(new Set(items).size).toBe(items.length);
+      for (const g of goods) {
+        counts[g.type]++;
+        if (g.type === 'gear') expect(g.price).toBe(ECONOMY.prices.gear[g.item.rarity]);
+        if (g.type === 'kit') expect(g.price).toBe(ECONOMY.prices.kit);
+        if (g.type === 'implant') expect(g.price).toBe(ECONOMY.prices.implant);
+      }
+      shapes.add(types.join(','));
+    }
+    // 内訳の形が何通りも出る。消耗品が並ばない店もあれば、装備が3つ並ぶ店もある
+    expect(shapes.size).toBeGreaterThanOrEqual(5);
+    expect(counts.item).toBeGreaterThan(0);
+    expect(counts.gear).toBeGreaterThan(300);
+  });
+
+  it('闇市：クレジットで買える。足りないと買えない', () => {
 
     const world = roomWorld('market', { rng: seeded(6) });
     const p = world.player;
