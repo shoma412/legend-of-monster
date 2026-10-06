@@ -65,7 +65,7 @@ function migrate(data) {
 }
 
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
-function normalize(data) {
+export function normalizeSave(data) {
   const base = createSave();
   if (!data || typeof data !== 'object' || typeof data.version !== 'number' || data.version > SAVE_VERSION) return null;
   const d = migrate(data);
@@ -93,7 +93,7 @@ function normalize(data) {
 function read(storage, key) {
   try {
     const raw = storage?.getItem(key);
-    return raw ? normalize(JSON.parse(raw)) : null;
+    return raw ? normalizeSave(JSON.parse(raw)) : null;
   } catch {
     return null;
   }

@@ -62,6 +62,16 @@ export function takeSuspendedRun() {
   return restoreRun(data, getSave());
 }
 
+// 読み込んだセーブデータを、その枠に入れる（上書き）。その枠の中断データは消す。保存できたら true
+export function importToSlot(n, save) {
+  const ok = storeSlot(storage(), n, save);
+  if (ok) {
+    deleteSuspend(storage(), n);
+    if (n === slot) current = null;
+  }
+  return ok;
+}
+
 // その枠のセーブデータを消す（中断データも一緒に消す）
 export function eraseSlot(n) {
   deleteSlot(storage(), n);

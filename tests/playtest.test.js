@@ -9,7 +9,8 @@ import { createWorld, updateWorld } from '../src/game/world.js';
 import { doorOptions, generateVault } from '../src/logic/areaGen.js';
 import { makeItem, rarityWeights, rollRarity } from '../src/logic/loot.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
-import { createSave } from '../src/logic/save.js';
+import { SAVE_VERSION, createSave } from '../src/logic/save.js';
+import { CODE_PREFIX, exportSaveText, importSaveText } from '../src/logic/saveTransfer.js';
 import { createBuild } from '../src/logic/stats.js';
 import { SUSPEND_VERSION, canSuspend, deleteSuspend, loadSuspend, restoreRun, snapshotRun, storeSuspend, suspendKey, suspendSummary } from '../src/logic/suspend.js';
 
@@ -311,5 +312,64 @@ describe('中断セーブ', () => {
     const storage = fakeStorage();
     storage.setItem(suspendKey(1), '{こわれたデータ');
     expect(loadSuspend(storage, 1)).toBeNull();
+  });
+});
+
+describe('セーブデータの書き出し／読み込み', () => {
+  const sample = () => {
+    const save = createSave();
+    save.materials.boarCore = 4;
+    save.upgrades.frame = 2;
+    save.achievements.push('firstRun');
+    save.records.runs = 12;
+    save.seenDialogues.push('会話・その1');
+    return save;
+  };
+
+  it('書き出したコードを読み込むと、同じセーブデータに戻る（日本語が入っていても）', () => {
+    const save = sample();
+    const code = exportSaveText(save);
+    expect(code.startsWith(CODE_PREFIX)).toBe(true);
+    expect(code).toMatch(/^LOM1:[A-Za-z0-9+/=]+$/);
+    const result = importSaveText(code);
+    expect(result.ok).toBe(true);
+    expect(result.save).toEqual(save);
+  });
+
+  it('前後の空白や改行、途中の改行が入っていても読める', () => {
+    const code = exportSaveText(sample());
+    const messy = `  \n${code.slice(0, 40)}\n${code.slice(40)}  \n`;
+    expect(importSaveText(messy).save).toEqual(sample());
+  });
+
+  it('ブラウザから直接取り出したセーブデータの文字列も、そのまま読める', () => {
+    const save = sample();
+    const raw = JSON.stringify(save);
+    expect(importSaveText(raw).save).toEqual(save);
+    expect(importSaveText(`'${raw}'`).save).toEqual(save); // 引用符つきでコピーされた場合
+    expect(importSaveText(JSON.stringify(raw)).save).toEqual(save); // 文字列として二重に包まれた場合
+  });
+
+  it('古い版のデータは、今の形に直して読み込む', () => {
+    const old = { version: 1, materials: { boarCore: 2 }, upgrades: {}, weapons: ['greatsword'], selected: 'greatsword', bossKills: { overload: 1 }, fragments: [], achievements: [], records: { runs: 3, clears: 1, kills: 50, bestArea: 2, bestStep: 5 }, tutorialSeen: true };
+    const result = importSaveText(JSON.stringify(old));
+    expect(result.ok).toBe(true);
+    expect(result.save.version).toBe(SAVE_VERSION);
+    expect(result.save.materials.boarCore).toBe(2);
+    expect(result.save.cycle).toBe(2); // 版3への変換：オーバーロードを倒していれば2周目が選べる
+  });
+
+  it('読めないコード・関係ない文字・新しすぎる版は、理由を付けて断る', () => {
+    for (const text of ['', '   ', 'こんにちは', 'LOM1:@@@@', 'LOM1:' + btoa('{broken'), '[1,2,3]', '{"name":"x"}', 'null']) {
+      const result = importSaveText(text);
+      expect(result.ok, text).toBe(false);
+      expect(result.reason.length, text).toBeGreaterThan(0);
+    }
+    const future = importSaveText(JSON.stringify({ ...createSave(), version: SAVE_VERSION + 1 }));
+    expect(future.ok).toBe(false);
+    expect(future.reason).toContain('新しい');
+    // 途中で切れたコード
+    const code = exportSaveText(sample());
+    expect(importSaveText(code.slice(0, Math.floor(code.length / 2))).ok).toBe(false);
   });
 });

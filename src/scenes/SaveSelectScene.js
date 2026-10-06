@@ -5,8 +5,10 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { isBackKey } from '../logic/keys.js';
 import { bestReachText } from '../logic/maps.js';
-import { eraseSlot, getSlots, selectSlot, suspendText, takeSuspendedRun } from '../game/saveStore.js';
+import { eraseSlot, getSlots, importToSlot, selectSlot, suspendText, takeSuspendedRun } from '../game/saveStore.js';
+import { exportSaveText, importSaveText } from '../logic/saveTransfer.js';
 import { setupView } from '../render/view.js';
+import { copyText, openTextDialog } from './textDialog.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -28,6 +30,7 @@ export class SaveSelectScene extends Phaser.Scene {
     playBgm('title');
     this.cursor = 0;
     this.confirmDelete = null; // 消す確認を出している枠（1〜3）
+    this.transfer = null; // 書き出し／読み込みの画面を出している間、その画面
 
     const g = this.add.graphics();
     g.lineStyle(1, hex(COLORS.line), 0.45);
@@ -47,7 +50,7 @@ export class SaveSelectScene extends Phaser.Scene {
   }
 
   onKey(event) {
-    if (event.repeat) return;
+    if (event.repeat || this.transfer) return;
     const code = event.code;
     if (this.confirmDelete) {
       if (code === 'Enter') this.erase(this.confirmDelete);
@@ -75,6 +78,75 @@ export class SaveSelectScene extends Phaser.Scene {
     const run = takeSuspendedRun();
     if (run) this.scene.start('Battle', { run });
     else this.scene.start('Hideout');
+  }
+
+  // 選んでいる枠のセーブデータを、引き継ぎコードにして見せる
+  exportSlot() {
+    const slot = this.cursor + 1;
+    const save = getSlots()[this.cursor];
+    if (!save || this.confirmDelete || this.transfer) return;
+    playSe('confirm');
+    this.transfer = openTextDialog(this, {
+      title: `DATA ${slot} を書き出す`,
+      message: 'このコードを保存しておくと、別の場所（別のブラウザやパソコン、別の公開先）で「読み込む」から続きを遊べます。\n中断中のランと設定は含まれません。',
+      value: exportSaveText(save),
+      readOnly: true,
+      buttons: [
+        {
+          label: 'コピー',
+          color: COLORS.green,
+          run: async (text, dialog) => {
+            const ok = await copyText(text, dialog);
+            dialog.setMessage(ok ? 'コピーしました。メモ帳などに貼り付けて、保存しておいてください。' : 'コピーできませんでした。下のコードを全部選んで、Ctrl + C でコピーしてください。', ok ? COLORS.green : COLORS.amber);
+          },
+        },
+        { label: '閉じる', run: (_text, dialog) => dialog.close() },
+      ],
+      onClose: () => {
+        this.transfer = null;
+      },
+    });
+  }
+
+  // 貼り付けたコードを、選んでいる枠に読み込む
+  importSlot() {
+    const slot = this.cursor + 1;
+    const exists = !!getSlots()[this.cursor];
+    if (this.confirmDelete || this.transfer) return;
+    playSe('confirm');
+    this.transfer = openTextDialog(this, {
+      title: `DATA ${slot} に読み込む`,
+      message: exists
+        ? `書き出したコードを下に貼り付けてください（Ctrl + V）。\n今の DATA ${slot} は上書きされ、元に戻せません。`
+        : '書き出したコードを下に貼り付けてください（Ctrl + V）。',
+      placeholder: 'LOM1:…',
+      buttons: [
+        {
+          label: exists ? '上書きして読み込む' : '読み込む',
+          color: exists ? COLORS.red : COLORS.green,
+          run: (text, dialog) => {
+            const result = importSaveText(text);
+            if (!result.ok) {
+              playSe('deny');
+              dialog.setMessage(result.reason, COLORS.red);
+              return;
+            }
+            if (!importToSlot(slot, result.save)) {
+              playSe('deny');
+              dialog.setMessage('保存できませんでした。ブラウザの設定で、保存が止められていないか確かめてください。', COLORS.red);
+              return;
+            }
+            playSe('confirm');
+            dialog.close();
+            this.render();
+          },
+        },
+        { label: 'やめる', run: (_text, dialog) => dialog.close() },
+      ],
+      onClose: () => {
+        this.transfer = null;
+      },
+    });
   }
 
   erase(slot) {
@@ -157,6 +229,14 @@ export class SaveSelectScene extends Phaser.Scene {
         this.render();
       });
     });
+
+    // 選んでいる枠の、書き出し／読み込み（公開先を変えたときや、別のブラウザへの引っ越し用）
+    const picked = slots[this.cursor];
+    const by = 124 + CARD_H + 14;
+    this.text(W / 2 - 250, by + 8, `DATA ${this.cursor + 1} を：`, 13, COLORS.dim).setOrigin(1, 0);
+    if (picked) this.button(W / 2 - 240, by, 230, 30, '書き出す（引き継ぎコード）', COLORS.ink, () => this.exportSlot());
+    else this.text(W / 2 - 125, by + 8, '書き出すデータがない', 13, '#4a4470').setOrigin(0.5, 0);
+    this.button(W / 2 + 10, by, 230, 30, '読み込む（コードを貼り付け）', COLORS.ink, () => this.importSlot());
 
     if (this.confirmDelete) this.renderConfirm();
   }
