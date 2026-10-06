@@ -92,6 +92,12 @@ const WEAPON_GLYPHS = {
     glowLine(g, c, 4, () => g.lineBetween(x - 12, y - 6, x + 13, y - 6));
     glowLine(g, c, 4, () => g.lineBetween(x - 8, y - 6, x - 11, y + 10));
   },
+  // 大砲：太い砲身と、台座
+  cannon(g, x, y, c) {
+    glowLine(g, c, 7, () => g.lineBetween(x - 12, y + 2, x + 13, y - 8));
+    glowLine(g, c, 2, () => g.strokeCircle(x - 9, y + 9, 6));
+    glowLine(g, c, 2, () => g.lineBetween(x + 13, y - 13, x + 13, y - 3));
+  },
   // ナックル：握った拳（四角い拳と、指の線）
   knuckle(g, x, y, c) {
     glowLine(g, c, 2.5, () => g.strokeRect(x - 11, y - 9, 22, 16));

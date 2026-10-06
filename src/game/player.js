@@ -30,6 +30,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
     shotCd: 0, // 次の弾が撃てるまでの秒数（銃）
     firingT: 0, // 撃っている最中の残り時間（銃。この間は移動が少し遅い）
     specialCd: 0,
+    siege: null, // 徹甲砲撃の溜め中（大砲）
     gauge: 0, // バーストブローのゲージ（ナックル）
     gaugeIdle: 0, // 最後に敵に当ててからの秒数（ナックル）
     dashT: 0,
@@ -142,7 +143,7 @@ export function updatePlayer(world, dt, input) {
     fire(world, 'dashMove', { dash: p.dashState });
   } else {
     let slow = 1;
-    if (p.guard) slow = weapon.special.moveSlow;
+    if (p.guard || p.siege) slow = weapon.special.moveSlow;
     else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
     if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
@@ -179,6 +180,7 @@ function startDash(p, dx, dy) {
   p.attack = null;
   p.charge = null;
   p.guard = null;
+  p.siege = null; // 徹甲砲撃の溜めも、ダッシュでやめられる（クールダウンは始まらない）
 }
 
 // 近接攻撃の進行（振りかぶり → 斬る → 硬直）
@@ -283,6 +285,31 @@ const SPECIALS = {
     return true;
   },
 
+  // 徹甲砲撃：右クリックで溜め始め、溜まりきると、敵をすべて貫く太い砲弾を撃つ。溜めている間は、ふつうの弾は撃てない
+  siege(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (p.siege) {
+      p.siege.t += dt;
+      if (p.siege.t >= special.charge) {
+        p.siege = null;
+        p.specialCd = special.cooldown;
+        p.shotCd = Math.max(p.shotCd, 0.5);
+        fireShot(world, Math.atan2(p.fy, p.fx), special.shot);
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        floatText(world, p.x, p.y - 30, special.name, COLORS.amber, 16);
+      }
+      return true;
+    }
+    if (input.specialPressed && p.specialCd <= 0) {
+      p.siege = { t: 0 };
+      sfx(world, 'charge');
+      return true;
+    }
+    return false;
+  },
+
   // 拡散射撃：右クリックで、扇状に何発も同時に撃つ
   spread(world, dt, input) {
     const p = world.player;
@@ -323,7 +350,6 @@ function updateAttack(world, dt, input) {
     // 銃：押している間、撃ち続ける
     if (input.attack && p.shotCd <= 0) {
       p.shotCd = weapon.shot.interval / (1 + statWith(world, 'attackSpeed'));
-      p.firingT = 0.15;
       fireShot(world, Math.atan2(p.fy, p.fx), weapon.shot);
     }
     return;
@@ -485,6 +511,9 @@ function fireShot(world, angle, shot) {
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   sfx(world, 'shoot');
+  // 撃った直後は少し足が遅い。大砲は、反動で後ろへ下がる
+  p.firingT = Math.max(p.firingT, shot.firing ?? 0.15);
+  if (shot.recoil) p.pull = { vx: (-dx * shot.recoil) / 0.12, vy: (-dy * shot.recoil) / 0.12, t: 0.12 };
   world.playerShots.push({
     x: p.x + dx * (p.r + 6),
     y: p.y + dy * (p.r + 6),
@@ -493,11 +522,26 @@ function fireShot(world, angle, shot) {
     r: shot.radius,
     damage: shot.damage,
     knockback: shot.knockback,
-    pierce: p.stats.pierce, // あと何体貫通できるか
+    pierce: shot.pierceAll ? Infinity : p.stats.pierce, // あと何体貫通できるか
     heavy: !!shot.heavy,
+    explode: shot.explode ?? null, // 当たった場所での爆発 { radius, damage }
     hit: new Set(),
     life: shot.life,
   });
+}
+
+// 砲弾の爆発：当たった場所のまわりの敵にダメージ。直接当たった敵（direct）は、弾のダメージをもう受けているので除く
+function explodeShot(world, s, direct) {
+  const { radius, damage } = s.explode;
+  for (const e of world.enemies) {
+    if (e === direct || e.dead || e.spawnT > 0 || e.hidden) continue;
+    if (Math.hypot(e.x - s.x, e.y - s.y) > radius + e.r) continue;
+    hitEnemy(world, e, damage, e.x - s.x, e.y - s.y, s.knockback * 0.5, { heavy: true });
+  }
+  world.fx.rings.push({ x: s.x, y: s.y, radius, color: COLORS.amber, life: 0.25, max: 0.25 });
+  burst(world, s.x, s.y, COLORS.amber, 16, 260);
+  sfx(world, 'explode');
+  addShake(world, FEEL.shake.heavy);
 }
 
 export function updatePlayerShots(world, dt) {
@@ -509,6 +553,7 @@ export function updatePlayerShots(world, dt) {
     if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) {
       s.life = 0;
       burst(world, s.x, s.y, COLORS.cyan, 2, 90);
+      if (s.explode) explodeShot(world, s, null); // 砲弾は、壁に当たっても爆発する
     }
     if (s.life <= 0) continue;
     for (const e of world.enemies) {
@@ -516,6 +561,7 @@ export function updatePlayerShots(world, dt) {
       if (!circlesOverlap(s.x, s.y, s.r, e.x, e.y, e.r)) continue;
       s.hit.add(e);
       hitEnemy(world, e, s.damage, s.vx, s.vy, s.knockback, { heavy: s.heavy });
+      if (s.explode) explodeShot(world, s, e);
       if (s.pierce-- <= 0) {
         s.life = 0;
         break;

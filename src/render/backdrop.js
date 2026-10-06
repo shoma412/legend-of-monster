@@ -218,9 +218,9 @@ const THEMES = {
     block(g, a.cx - 170, a.cy - 44, 340, PX, 0xff2bd6, 0.08);
     block(g, a.cx - 170, a.cy + 40, 340, PX, 0xff2bd6, 0.08);
     // 武器ラックの下の作業台
-    block(g, 190, 176, 440, 12, 0x231d3d, 0.95);
-    block(g, 190, 176, 440, PX, 0x3a3360, 0.95);
-    for (const x of [198, 410, 618]) block(g, x, 188, 8, 16, 0x16122a, 0.95);
+    block(g, 160, 176, 580, 12, 0x231d3d, 0.95);
+    block(g, 160, 176, 580, PX, 0x3a3360, 0.95);
+    for (const x of [168, 446, 724]) block(g, x, 188, 8, 16, 0x16122a, 0.95);
     // 端末につながるケーブル（下の壁へ）
     for (const x of [240, 440]) {
       for (let y = 424; y < a.bottom; y += PX) block(g, x + Math.sin(y * 0.08) * 6, y, PX, PX, 0x05040a, 0.8);

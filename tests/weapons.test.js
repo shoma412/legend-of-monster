@@ -32,8 +32,8 @@ function addEnemy(world, id, dx, dy = 0) {
 }
 
 describe('武器の定義', () => {
-  it('4種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
-    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun', 'knuckle']);
+  it('5種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
+    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun', 'knuckle', 'cannon']);
     expect(weaponUnlocks.map((w) => w.weapon)).toEqual(DATA.weapons.ids());
     for (const w of DATA.weapons.all()) expect(w.special.hint, w.id).toBeTruthy();
   });
@@ -444,5 +444,111 @@ describe('ナックル（2026-10-07 追加）', () => {
   it('ステータス：移動速度 +10%、被ダメージ +5%。解放はサーペントコア2個', () => {
     expect(knuckle.mods).toEqual([{ stat: 'moveSpeedMul', add: 0.1 }, { stat: 'damageTaken', add: 0.05 }]);
     expect(weaponUnlocks.find((w) => w.weapon === 'knuckle').cost).toEqual({ serpentCore: 2 });
+  });
+});
+
+describe('大砲（2026-10-07 追加）', () => {
+  const cannon = DATA.weapons.get('cannon');
+  const greatsword = DATA.weapons.get('greatsword');
+  const aimRight = (world) => ({ aimX: world.player.x + 400, aimY: world.player.y });
+
+  it('1発の威力は、大剣の通常攻撃のどれよりも高い。徹甲砲撃は、大剣の溜め斬りの最大より高い', () => {
+    expect(cannon.shot.damage).toBeGreaterThan(Math.max(...greatsword.combo.map((c) => c.damage)));
+    const chargeMax = greatsword.special.damage * Math.max(...greatsword.special.stages.map((s) => s.multiplier));
+    expect(cannon.special.shot.damage).toBeGreaterThan(chargeMax);
+  });
+
+  it('移動速度がいちばん遅い（−15%）。解放はクラブコア2個', () => {
+    expect(cannon.mods).toEqual([{ stat: 'moveSpeedMul', add: -0.15 }]);
+    for (const w of DATA.weapons.all()) {
+      const speed = (w.mods ?? []).filter((m) => m.stat === 'moveSpeedMul').reduce((s, m) => s + m.add, 0);
+      if (w.id !== 'cannon') expect(speed, w.id).toBeGreaterThan(-0.15);
+    }
+    expect(weaponUnlocks.find((w) => w.weapon === 'cannon').cost).toEqual({ crabCore: 2 });
+  });
+
+  it('撃つ間隔は長い：同じ時間で、銃よりずっと少ない弾数になる', () => {
+    const count = (id) => {
+      const world = makeWorld(id);
+      let shots = 0;
+      let last = 0;
+      for (let t = 0; t < 4; t += DT) {
+        updateWorld(world, DT, { ...idle, attack: true, ...aimRight(world) });
+        if (world.playerShots.length > last) shots += world.playerShots.length - last;
+        last = world.playerShots.length;
+      }
+      return shots;
+    };
+    expect(count('cannon')).toBeLessThanOrEqual(4);
+    expect(count('gun')).toBeGreaterThan(count('cannon') * 3);
+  });
+
+  it('砲弾が当たると、その敵に弾のダメージ、まわりの敵に爆発のダメージ。離れた敵には届かない', () => {
+    const world = makeWorld('cannon');
+    const hit = addEnemy(world, 'grunt', 160);
+    const near = addEnemy(world, 'grunt', 160 + 50, 30);
+    const far = addEnemy(world, 'grunt', 160, 220);
+    for (const e of [hit, near, far]) e.def = { ...e.def, speed: 0 };
+    updateWorld(world, DT, { ...idle, attack: true, attackPressed: true, ...aimRight(world) });
+    run(world, 1);
+    expect(hit.maxHp - hit.hp).toBe(cannon.shot.damage);
+    expect(near.maxHp - near.hp).toBe(cannon.shot.explode.damage);
+    expect(far.hp).toBe(far.maxHp);
+  });
+
+  it('撃つと反動で後ろへ下がり、しばらく足が遅くなる', () => {
+    const world = makeWorld('cannon');
+    const p = world.player;
+    p.x = 400;
+    const x = p.x;
+    updateWorld(world, DT, { ...idle, attack: true, attackPressed: true, ...aimRight(world) });
+    run(world, 0.2);
+    expect(x - p.x).toBeGreaterThan(cannon.shot.recoil * 0.7);
+    expect(x - p.x).toBeLessThan(cannon.shot.recoil * 1.4);
+    expect(p.firingT).toBeGreaterThan(0);
+  });
+
+  it('徹甲砲撃：溜めている間は撃てず、溜まりきると、敵をすべて貫く砲弾が出る。クールダウンに入る', () => {
+    const world = makeWorld('cannon');
+    const p = world.player;
+    const special = cannon.special;
+    const line = [120, 200, 280, 360].map((dx) => {
+      const e = addEnemy(world, 'grunt', dx);
+      e.def = { ...e.def, speed: 0 };
+      return e;
+    });
+    updateWorld(world, DT, { ...idle, specialPressed: true, ...aimRight(world) });
+    expect(p.siege).not.toBeNull();
+    run(world, special.charge - 0.15, { ...idle, attack: true, ...aimRight(world) });
+    expect(world.playerShots).toHaveLength(0); // 溜めている間は、ふつうの弾も出ない
+    for (const e of line) expect(e.hp).toBe(e.maxHp);
+    run(world, 0.2, { ...idle, ...aimRight(world) });
+    expect(p.siege).toBeNull();
+    expect(p.specialCd).toBeGreaterThan(special.cooldown - 0.5);
+    run(world, 1, { ...idle, ...aimRight(world) });
+    for (const e of line) expect(e.maxHp - e.hp).toBe(special.shot.damage); // 4体とも貫く
+  });
+
+  it('溜めはダッシュでやめられる。そのときはクールダウンに入らない', () => {
+    const world = makeWorld('cannon');
+    const p = world.player;
+    updateWorld(world, DT, { ...idle, specialPressed: true, ...aimRight(world) });
+    expect(p.siege).not.toBeNull();
+    updateWorld(world, DT, { ...idle, mx: -1, dashPressed: true });
+    expect(p.siege).toBeNull();
+    expect(p.specialCd).toBeLessThanOrEqual(0);
+    run(world, 2);
+    expect(world.playerShots).toHaveLength(0);
+  });
+
+  it('銃の弾は、今までどおり爆発しない', () => {
+    const world = makeWorld('gun');
+    const hit = addEnemy(world, 'grunt', 160);
+    const near = addEnemy(world, 'grunt', 160 + 40, 30);
+    for (const e of [hit, near]) e.def = { ...e.def, speed: 0 };
+    updateWorld(world, DT, { ...idle, attack: true, attackPressed: true, ...aimRight(world) });
+    run(world, 0.2);
+    expect(hit.hp).toBeLessThan(hit.maxHp);
+    expect(near.hp).toBe(near.maxHp);
   });
 });

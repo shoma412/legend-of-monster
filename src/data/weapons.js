@@ -6,7 +6,10 @@
 //   charge : 左クリック長押しで溜めて斬る（大剣）
 //   guard  : 右クリックで少しの間だけ構え、攻撃を受けると無効化して反撃（片手剣）
 //   spread : 右クリックで扇状に同時に撃つ（銃）
+//   siege  : 右クリックで溜め始め、少しして、敵をすべて貫く砲弾を撃つ（大砲）
 //   burst  : 敵に当てるたびにゲージが溜まり、満タンで右クリックの強烈な一撃（ナックル）
+// shot（遠距離の武器の弾）: damage / interval 撃つ間隔(秒) / speed / radius / life / knockback
+//   explode: { radius, damage } 当たった場所で爆発して、まわりの敵にもダメージ / recoil: 撃ったときに後ろへ下がる距離(px) / firing: 撃ったあと足が遅くなる時間(秒)
 // autoCombo: true なら、左クリックを押している間、通常攻撃を出し続ける（ナックル）
 // ougi は奥義（今は大剣だけ）
 // special.hint は画面下の操作説明に出す文
@@ -127,6 +130,30 @@ export const weapons = [
       // 一撃：前に踏み込んで殴る
       blow: { damage: 140, range: 86, arc: 110, windup: 0.08, swing: 0.16, recover: 0.3, knockback: 820, lunge: 46 },
       invincible: 0.35, // 撃っている間の無敵（秒）
+    },
+  },
+  {
+    id: 'cannon',
+    name: '大砲',
+    type: 'ranged',
+    mods: [{ stat: 'moveSpeedMul', add: -0.15 }], // いちばん足が遅い
+    moveSlow: 0.45, // 撃った直後の移動速度の倍率
+    // 遅くて大きい砲弾。1発の威力は大剣の通常攻撃より高い。当たると爆発して、まわりの敵も巻き込む
+    shot: {
+      damage: 60, interval: 1.3, speed: 430, radius: 9, life: 1.8, knockback: 520, heavy: true,
+      explode: { radius: 72, damage: 30 },
+      recoil: 22,
+      firing: 0.4,
+    },
+    special: {
+      type: 'siege',
+      name: '徹甲砲撃',
+      hint: '右クリック 徹甲砲撃（溜めて撃つ）',
+      cooldown: 7, // 秒
+      charge: 0.95, // 溜める時間（秒）
+      moveSlow: 0.15, // 溜めている間の移動速度の倍率
+      // 敵をすべて貫く太い砲弾。大剣の溜め斬りの最大（120）より高い
+      shot: { damage: 170, speed: 980, radius: 15, life: 1.2, knockback: 900, heavy: true, pierceAll: true, recoil: 44, firing: 0.5 },
     },
   },
 ];

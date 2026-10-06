@@ -396,8 +396,11 @@ export function drawPlayerShots(g, world) {
     const len = Math.hypot(s.vx, s.vy) || 1;
     const tx = s.x - (s.vx / len) * 16;
     const ty = s.y - (s.vy / len) * 16;
-    g.lineStyle(8, color, 0.18).lineBetween(s.x, s.y, tx, ty);
-    g.lineStyle(3, color, 1).lineBetween(s.x, s.y, tx, ty);
+    // 砲弾は、大きさに合わせて太く描く
+    const w = Math.max(3, s.r * 0.9);
+    g.lineStyle(w + 5, color, 0.18).lineBetween(s.x, s.y, tx, ty);
+    g.lineStyle(w, color, 1).lineBetween(s.x, s.y, tx, ty);
+    if (s.r >= 8) g.fillStyle(WHITE, 0.9).fillCircle(s.x, s.y, s.r * 0.45);
   }
 }
 
@@ -496,6 +499,14 @@ export function drawPlayer(g, world) {
     const my = p.y + Math.sin(ang) * (p.r + 14);
     g.lineStyle(4, cyan, 1).lineBetween(p.x + Math.cos(ang) * p.r, p.y + Math.sin(ang) * p.r, mx, my);
     if (p.firingT > 0.08) g.fillStyle(WHITE, 0.9).fillCircle(mx, my, 5);
+    // 徹甲砲撃の溜め：狙っている線と、縮んでいく輪
+    if (p.siege) {
+      const k = Math.min(1, p.siege.t / special.charge);
+      const amber = hex(COLORS.amber);
+      g.lineStyle(special.shot.radius * 2, amber, 0.06 + 0.12 * k).lineBetween(mx, my, p.x + Math.cos(ang) * 900, p.y + Math.sin(ang) * 900);
+      g.lineStyle(1.5, amber, 0.4 + 0.5 * k).lineBetween(mx, my, p.x + Math.cos(ang) * 900, p.y + Math.sin(ang) * 900);
+      g.lineStyle(2, amber, 0.9).strokeCircle(p.x, p.y, p.r + 26 - 18 * k);
+    }
   }
 
   // 振りかぶり中は剣を後ろに引いて見せる
