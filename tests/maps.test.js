@@ -189,7 +189,8 @@ describe('周回', () => {
 
   it('周が進むと、受けるダメージが増える', () => {
     const take = (cycle) => {
-      const world = enterRoom(createRun({ rng: seeded(5), cycle }));
+      // 片手剣は被ダメージの補正がないので、周回の倍率だけを見られる
+      const world = enterRoom(createRun({ rng: seeded(5), cycle, weaponId: 'sword' }));
       hurtPlayer(world, 20);
       return PLAYER.maxHp - world.player.hp;
     };

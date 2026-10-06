@@ -13,7 +13,7 @@ import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
 import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
-import { createBuild } from '../logic/stats.js';
+import { createBuild, weaponTraitText } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
 import { renderScale, setupView } from '../render/view.js';
@@ -42,7 +42,9 @@ export class HideoutScene extends Phaser.Scene {
 
     const bonus = permanentBonuses(this.save);
     const room = { type: 'hideout', waves: [], objects: this.buildStations(), doors: [], clearCredits: 0 };
-    this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build: createBuild(bonus) } });
+    const build = createBuild(bonus);
+    build.weaponId = this.save.selected; // 武器ごとのステータス補正を、隠れ家でも反映する
+    this.world = createWorld({ weaponId: this.save.selected, room, carry: { hp: null, build } });
     if (import.meta.env.DEV) window.__world = this.world;
     setupView(this);
     this.clock = createClock();
@@ -186,10 +188,13 @@ export class HideoutScene extends Phaser.Scene {
         const def = weaponUnlocks.find((w) => w.weapon === o.weapon);
         const owned = save.weapons.includes(o.weapon);
         const ready = def.ready !== false;
+        // 武器ごとのステータス補正を、説明に足す
+        const traits = weaponTraitText(DATA.weapons.has(o.weapon) ? DATA.weapons.get(o.weapon) : null);
+        const note = traits ? `${def.note}／${traits}` : def.note;
         o.label = def.name;
         o.selected = save.selected === o.weapon;
-        if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${def.note}（選択中）` });
-        else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${def.note}）` });
+        if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${note}（選択中）` });
+        else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${note}）` });
         else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost)}` });
         else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）　${ownedText(save, def.cost)}` });
       } else if (o.icon === 'gate') {
@@ -244,6 +249,9 @@ export class HideoutScene extends Phaser.Scene {
     if (this.usable(weaponId)) {
       this.save.selected = weaponId;
       p.weapon = DATA.weapons.get(weaponId);
+      // 武器ごとのステータス補正を付け替える
+      p.build.weaponId = weaponId;
+      recalcStats(p);
       p.attack = null;
       p.charge = null;
       p.guard = null;

@@ -43,6 +43,7 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
   };
   // このランで選択肢に出る種族：そのマップのボスの種族と、持ち込みの種族
   run.build.species = runSpecies(map, carry);
+  run.build.weaponId = weaponId; // 武器ごとのステータス補正が乗る
   startRunRecord(save);
   processEvent(save, run, { type: 'sortie' });
   return run;

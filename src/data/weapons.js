@@ -19,6 +19,8 @@ export const weapons = [
     id: 'greatsword',
     name: '大剣',
     type: 'melee',
+    // この武器を持っている間のステータス補正（重装：打たれ強いが足が遅い）
+    mods: [{ stat: 'damageTaken', add: -0.1 }, { stat: 'moveSpeedMul', add: -0.05 }],
     // 奥義（恒久強化「大剣の奥義」を買うと使える）：残りHPが hpBelow 以下のとき、エリアごとに1回だけ、
     // 右クリックで自分を中心とした円の衝撃波を出す。威力は damage × multiplier
     ougi: { name: '奥義', hpBelow: 0.2, damage: 120, multiplier: 1.75, radius: 260, knockback: 900, invincible: 0.6 },
@@ -52,6 +54,7 @@ export const weapons = [
   {
     id: 'sword',
     name: '片手剣',
+    mods: [{ stat: 'moveSpeedMul', add: 0.05 }], // 身軽
     type: 'melee',
     moveSlow: 0.8, // 振っている間の移動速度の倍率
     comboReset: 0.6,
@@ -79,6 +82,7 @@ export const weapons = [
     id: 'gun',
     name: '銃',
     type: 'ranged',
+    mods: [{ stat: 'damageTaken', add: 0.1 }], // 打たれ弱い
     moveSlow: 0.8, // 撃っている間の移動速度の倍率
     // ハンドガン。左クリックを押している間、撃ち続ける
     shot: { damage: 14, interval: 0.28, speed: 640, radius: 4, life: 0.9, knockback: 110 },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FEEL, ITEMS, LOOT } from '../src/data/balance.js';
+import { FEEL, ITEMS, LOOT, PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { recalcStats } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
@@ -11,7 +11,7 @@ import { makeItem, rarityWeights, rollRarity } from '../src/logic/loot.js';
 import { buyUpgrade, permanentBonuses } from '../src/logic/meta.js';
 import { SAVE_VERSION, createSave } from '../src/logic/save.js';
 import { CODE_PREFIX, exportSaveText, importSaveText } from '../src/logic/saveTransfer.js';
-import { createBuild } from '../src/logic/stats.js';
+import { computeStats, createBuild, weaponTraitText } from '../src/logic/stats.js';
 import { SUSPEND_VERSION, canSuspend, deleteSuspend, loadSuspend, restoreRun, snapshotRun, storeSuspend, suspendKey, suspendSummary } from '../src/logic/suspend.js';
 
 // 2026-10-06 のテストプレイを受けた調整（docs/詳細仕様.md「20. テストプレイを受けた調整」）
@@ -371,5 +371,42 @@ describe('セーブデータの書き出し／読み込み', () => {
     // 途中で切れたコード
     const code = exportSaveText(sample());
     expect(importSaveText(code.slice(0, Math.floor(code.length / 2))).ok).toBe(false);
+  });
+});
+
+describe('武器ごとのステータス', () => {
+  const statsWith = (weaponId) => {
+    const build = createBuild();
+    build.weaponId = weaponId;
+    return computeStats(build);
+  };
+
+  it('大剣は打たれ強くて遅い。片手剣は身軽。銃は打たれ弱い', () => {
+    const plain = computeStats(createBuild());
+    expect(plain.damageTaken).toBe(1);
+    expect(plain.moveSpeed).toBe(PLAYER.moveSpeed);
+    expect(statsWith('greatsword').damageTaken).toBeCloseTo(0.9);
+    expect(statsWith('greatsword').moveSpeed).toBeCloseTo(PLAYER.moveSpeed * 0.95);
+    expect(statsWith('sword').damageTaken).toBeCloseTo(1);
+    expect(statsWith('sword').moveSpeed).toBeCloseTo(PLAYER.moveSpeed * 1.05);
+    expect(statsWith('gun').damageTaken).toBeCloseTo(1.1);
+    expect(statsWith('gun').moveSpeed).toBeCloseTo(PLAYER.moveSpeed);
+  });
+
+  it('出撃すると、選んだ武器の補正が乗る。装備やインプラントの補正とは足し合わせになる', () => {
+    const run = createRun({ rng: seeded(2), save: createSave(), mapId: 'map1', weaponId: 'gun' });
+    expect(run.build.weaponId).toBe('gun');
+    const world = enterRoom(run);
+    expect(world.player.stats.damageTaken).toBeCloseTo(1.1);
+    world.player.build.permanent.push({ mods: [{ stat: 'damageTaken', add: -0.03 }] });
+    recalcStats(world.player);
+    expect(world.player.stats.damageTaken).toBeCloseTo(1.07);
+  });
+
+  it('説明の文：どの武器も、補正がそのまま文になる', () => {
+    expect(weaponTraitText(DATA.weapons.get('greatsword'))).toBe('被ダメージ −10%／移動速度 −5%');
+    expect(weaponTraitText(DATA.weapons.get('sword'))).toBe('移動速度 +5%');
+    expect(weaponTraitText(DATA.weapons.get('gun'))).toBe('被ダメージ +10%');
+    expect(weaponTraitText(null)).toBe('');
   });
 });

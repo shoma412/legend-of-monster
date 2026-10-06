@@ -22,6 +22,7 @@ export function createBuild(bonus = null) {
     ougi: bonus?.ougi ?? [], // 奥義が使える武器の id
     ougiUsed: false, // このエリアで奥義を使ったか（エリアごとに1回）
     reviveUsed: false, // この出撃で、もう起き上がったか（種族「多頭」の予備の首）
+    weaponId: null, // 持っている武器（武器ごとのステータス補正に使う。null なら補正なし）
   };
 }
 
@@ -109,8 +110,21 @@ export function bonusAt(speciesId, count) {
   return species[speciesId].bonuses.find((b) => b.need === count) ?? null;
 }
 
+// 武器ごとのステータス補正を、文にする（例：被ダメージ −10%／移動速度 −5%）。補正がなければ空の文
+const WEAPON_STAT_LABELS = { damageTaken: '被ダメージ', moveSpeedMul: '移動速度', maxHp: '最大HP', attackMul: '攻撃力' };
+export function weaponTraitText(weapon) {
+  return (weapon?.mods ?? []).map((mod) => {
+    const sign = mod.add < 0 ? '−' : '+';
+    const amount = mod.stat === 'maxHp' ? `${Math.abs(mod.add)}` : `${Math.round(Math.abs(mod.add) * 100)}%`;
+    return `${WEAPON_STAT_LABELS[mod.stat] ?? mod.stat} ${sign}${amount}`;
+  }).join('／');
+}
+
 export function collectEffects(build) {
   const list = [...(build.permanent ?? [])];
+  // 持っている武器のステータス補正（出撃するとき・隠れ家で武器を選んだときに build.weaponId が決まる）
+  const weapon = build.weaponId ? DATA.weapons.get(build.weaponId) : null;
+  if (weapon?.mods) list.push({ mods: weapon.mods });
   for (const item of Object.values(build.gear)) {
     if (item) list.push(...itemEffects(item));
   }

@@ -102,16 +102,16 @@ export const LOOT = {
   // unique: 効果のうち1つがレジェンド固有効果になる
   rarities: [
     { id: 'common', name: 'コモン', weight: 60, effects: 1, roll: [0, 0.4] },
-    { id: 'rare', name: 'レア', weight: 28, effects: 2, roll: [0.2, 0.6] },
-    { id: 'epic', name: 'エピック', weight: 10, effects: 3, roll: [0.4, 0.8] },
+    { id: 'rare', name: 'レア', weight: 33, effects: 2, roll: [0.2, 0.6] },
+    { id: 'epic', name: 'エピック', weight: 5, effects: 3, roll: [0.4, 0.8] },
     { id: 'legend', name: 'レジェンド', weight: 2, effects: 4, roll: [0.7, 1], unique: true },
   ],
   // マップの中の何番目のエリアかで変わる、レア度の出やすさ（コモン, レア, エピック, レジェンド）。奥のエリアほど良いものが出る
   //   上の rarities の weight は、エリアが分からないとき（テストなど）に使う。2番目のエリアと同じ値
   areaWeights: [
-    [70, 26, 3.7, 0.3],
-    [60, 28, 10, 2],
-    [50, 30, 15, 5],
+    [70, 27.7, 2, 0.3],
+    [60, 33, 5, 2],
+    [50, 36, 9, 5],
   ],
   bossMinRarity: 1, // ボスが落とす装備の、最低のレア度（1 = レア）
   slots: [
