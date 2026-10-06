@@ -271,12 +271,15 @@ describe('部屋の中身', () => {
 
   it('闇市の品ぞろえは毎回ちがう。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、修復キットは1つだけ。同じものは並ばない', () => {
     const shapes = new Set();
+    const sizes = new Set();
     const counts = { gear: 0, kit: 0, item: 0, implant: 0 };
     for (let seed = 1; seed <= 300; seed++) {
       // 種は、ばらけた値にする（続き番号だと、最初の乱数が似た値になる）
       const goods = generateShop(createBuild(), seeded((seed * 2654435761) % 4294967296));
       const types = goods.map((g) => g.type);
-      expect(goods).toHaveLength(ECONOMY.shop.count);
+      expect(goods.length).toBeGreaterThanOrEqual(ECONOMY.shop.count.min);
+      expect(goods.length).toBeLessThanOrEqual(ECONOMY.shop.count.max);
+      sizes.add(goods.length);
       expect(types).toContain('gear');
       expect(types).toContain('implant');
       expect(types).toContain('item');
@@ -295,8 +298,9 @@ describe('部屋の中身', () => {
       }
       shapes.add(types.join(','));
     }
-    // 残りの1つが何になるかで、内訳は3通り（装備2・消耗品2・インプラント2）
-    expect(shapes.size).toBe(3);
+    // 並ぶ数は5つの店も6つの店もある。内訳の形も何通りも出る
+    expect([...sizes].sort()).toEqual([5, 6]);
+    expect(shapes.size).toBeGreaterThanOrEqual(7);
     expect(counts.item).toBeGreaterThan(300);
     expect(counts.gear).toBeGreaterThan(300);
     expect(counts.implant).toBeGreaterThan(300);

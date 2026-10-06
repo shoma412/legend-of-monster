@@ -210,6 +210,6 @@ export const ECONOMY = {
     kit: 35,
     implant: 70,
   },
-  // 闇市の品ぞろえ：count 個を並べる。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、残りは extras の出やすさで抽選する（修復キットは1つまで）
-  shop: { count: 5, extras: { gear: 3, item: 3, implant: 2 }, rarityBonus: 0 },
+  // 闇市の品ぞろえ：count の範囲で、店ごとに並べる数が変わる。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、残りは extras の出やすさで抽選する（修復キットは1つまで）
+  shop: { count: { min: 5, max: 6 }, extras: { gear: 3, item: 3, implant: 2 }, rarityBonus: 0 },
 };

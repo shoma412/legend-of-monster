@@ -183,7 +183,9 @@ export function generateShop(build, rng, tier = null) {
   const types = ['gear', 'kit', 'item', 'implant'];
   const pool = Object.entries(shop.extras);
   const total = pool.reduce((sum, [, weight]) => sum + weight, 0);
-  while (types.length < shop.count) {
+  // 並べる数は、店ごとに変わる
+  const count = shop.count.min + Math.min(shop.count.max - shop.count.min, Math.floor(rng() * (shop.count.max - shop.count.min + 1)));
+  while (types.length < count) {
     let roll = rng() * total;
     let chosen = pool[0][0];
     for (const [type, weight] of pool) {
