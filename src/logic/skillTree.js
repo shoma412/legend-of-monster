@@ -170,7 +170,7 @@ export function upgradeCounts(tree, owned) {
   return counts;
 }
 
-// 画面に並べる位置。深さを横、枝を縦に並べる。返り値は { id: { col, row } }（row は 0〜1 の割合）と、根元の row
+// 画面に並べる位置。返り値は { id: { col, row } }（col は中心からの段、row は 0〜1 の割合で、円のまわりの位置になる）と、根元の row、先のないマスの数（leaves）
 //   葉（先のないマス）を上から順に等間隔に置き、枝分かれのマスは、その先のマスの真ん中に置く
 export function layoutTree(tree) {
   const kids = new Map();
@@ -194,5 +194,5 @@ export function layoutTree(tree) {
   const rootRows = (kids.get('@root') ?? []).map(walk);
   const leaves = Math.max(1, next - 1);
   for (const p of Object.values(pos)) p.row /= leaves;
-  return { pos, rootRow: (rootRows[0] + rootRows.at(-1)) / 2 / leaves, maxDepth: Math.max(...tree.nodes.map((n) => n.depth)) };
+  return { pos, leaves: next, rootRow: (rootRows[0] + rootRows.at(-1)) / 2 / leaves, maxDepth: Math.max(...tree.nodes.map((n) => n.depth)) };
 }
