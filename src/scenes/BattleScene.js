@@ -156,6 +156,8 @@ export class BattleScene extends Phaser.Scene {
         leaveRoom(run, this.world, NEXT_AREA);
         this.scene.restart({ run });
       });
+      // このパソコンだけの確認用の仕掛け（src/dev.local.js。Git には入れないファイル。なければ何も起きない）
+      for (const mod of Object.values(import.meta.glob('../dev.local.js', { eager: true }))) mod.setupBattle?.(this);
     }
 
     const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim };
