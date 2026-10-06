@@ -458,11 +458,11 @@ describe('大砲（2026-10-07 追加）', () => {
     expect(cannon.special.shot.damage).toBeGreaterThan(chargeMax);
   });
 
-  it('移動速度がいちばん遅い（−15%）。解放はクラブコア2個', () => {
-    expect(cannon.mods).toEqual([{ stat: 'moveSpeedMul', add: -0.15 }]);
+  it('移動速度がいちばん遅い（−30%）。解放はクラブコア2個', () => {
+    expect(cannon.mods).toEqual([{ stat: 'moveSpeedMul', add: -0.3 }]);
     for (const w of DATA.weapons.all()) {
       const speed = (w.mods ?? []).filter((m) => m.stat === 'moveSpeedMul').reduce((s, m) => s + m.add, 0);
-      if (w.id !== 'cannon') expect(speed, w.id).toBeGreaterThan(-0.15);
+      if (w.id !== 'cannon') expect(speed, w.id).toBeGreaterThan(-0.3);
     }
     expect(weaponUnlocks.find((w) => w.weapon === 'cannon').cost).toEqual({ crabCore: 2 });
   });

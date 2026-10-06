@@ -136,7 +136,7 @@ export const weapons = [
     id: 'cannon',
     name: '大砲',
     type: 'ranged',
-    mods: [{ stat: 'moveSpeedMul', add: -0.15 }], // いちばん足が遅い
+    mods: [{ stat: 'moveSpeedMul', add: -0.3 }], // いちばん足が遅い
     moveSlow: 0.45, // 撃った直後の移動速度の倍率
     // 遅くて大きい砲弾。1発の威力は大剣の通常攻撃より高い。当たると爆発して、まわりの敵も巻き込む
     shot: {
