@@ -14,6 +14,8 @@
 //   ougi        : その武器の奥義が使えるようになる（武器の id）
 //   carrySlots  : 持ち込みの種族の枠を増やす数
 //   itemSlots   : 消耗品の枠を増やす数
+// since    : 何回目に足した強化か（書いていなければ 1 ＝ 最初の34マス）。2 以上のものは、最初の配置を作ったあとで、枝の先や空いている所に付け足す。
+//            今あるセーブデータの配置を変えないための決まり（docs/詳細仕様.md「23. スキルツリー」の「あとからマスを足すとき」）
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
 export const upgrades = [
   {
@@ -93,6 +95,29 @@ export const upgrades = [
     id: 'foundation', category: 'body', name: '基礎補強', desc: '最大HP +20', max: 2,
     costs: [{ titanCore: 1 }, { titanCore: 1 }],
     perLevel: { mods: [{ stat: 'maxHp', add: 20 }] },
+  },
+  // ---- ここから、マップ4で足した強化（since: 2） ----
+  {
+    id: 'nightsight', category: 'gear', name: '暗視素子', desc: '暗闇で見える範囲 +8%', max: 2, since: 2,
+    costs: [{ mothCore: 1 }, { mothCore: 1 }],
+    perLevel: { mods: [{ stat: 'visionBonus', add: 0.08 }] },
+  },
+  {
+    id: 'condenser', category: 'skill', name: '集光レンズ', desc: '会心ダメージ +5%', max: 2, since: 2,
+    costs: [{ lensCore: 1 }, { lensCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.05 }] },
+  },
+  {
+    id: 'surgeguard', category: 'body', name: '過負荷耐性', desc: '最大HP +25', max: 2, since: 2,
+    costs: [{ breakerCore: 1 }, { breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 25 }] },
+  },
+  {
+    id: 'sparekit', category: 'gear', name: '予備キット', desc: 'ラン開始時の修復キット +1', max: 1, since: 2,
+    // マップ4の3体の素材を1個ずつ。6段目に置く（画面の円が6段までなので、それより奥には行かない）
+    costs: [{ mothCore: 1, lensCore: 1, breakerCore: 1 }],
+    treeMaxDepth: 6,
+    perLevel: { kits: 1 },
   },
 ];
 

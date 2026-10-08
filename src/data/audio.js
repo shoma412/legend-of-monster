@@ -90,7 +90,7 @@ export const BGM = {
   bossViaduct: { file: 'audio/bgm/maou_loop_bgm_neorock66.ogg', song: 'bossPlant' },
   spire: { file: 'audio/bgm/maou_loop_bgm_cyber26.ogg', song: 'tower' },
   bossSpire: { file: 'audio/bgm/maou_loop_bgm_neorock77.ogg', song: 'bossTower' },
-  // マップ4「停電区」。エリア3と隠しボスの曲は、先に入れてある（まだ使っていない）
+  // マップ4「停電区」。隠しボスの曲は、先に入れてある（まだ使っていない）
   darkstreet: { file: 'audio/bgm/maou_loop_bgm_cyber21.ogg', song: 'slum' },
   bossDarkstreet: { file: 'audio/bgm/maou_loop_bgm_neorock70.ogg', song: 'bossSlum' },
   substation: { file: 'audio/bgm/maou_loop_bgm_cyber29.ogg', song: 'plant' },

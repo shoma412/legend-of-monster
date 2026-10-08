@@ -156,6 +156,12 @@ export const STATUS = {
   playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
   killLight: { radius: 120, life: 6 }, // インプラント「誘蛾灯」：敵を倒した場所に残る光（暗闇のマップだけ）
   // プレイヤーが受ける持続ダメージ。tick 秒ごとに damage を、duration 秒のあいだ受ける。ダッシュすると消える。これで HP が 0 になることはない（1 残る）
+  // 種族「遮断器」：蓄電（window 秒のあいだ攻撃を当てていないと、次の攻撃が強くなる。grace は、1振りで何体かに当たるときのための猶予）、
+  //   遮断（一度に最大HPの threshold 以上のダメージを受けるときに効く）、復電（修復キットを使ったあと、強くなる秒数）、種族ボーナス（敵を倒すとダッシュが回復。cooldown 秒に1回）
+  rested: { window: 2, grace: 0.12 },
+  bigHit: { threshold: 0.2 },
+  kitPower: { duration: 5 },
+  killDash: { cooldown: 3 },
   // label は、付いた瞬間に画面に出す文字（状態が変わったときの文字は、英語にそろえる）
   dots: {
     burn: { name: '炎上', label: 'Burn', color: 'heat', damage: 5, tick: 0.5, duration: 3 },

@@ -94,6 +94,7 @@ export function updatePlayer(world, dt, input) {
   p.sinceDash += dt;
   p.sinceHurt += dt;
   p.sinceKill += dt;
+  p.sinceHit = (p.sinceHit ?? Infinity) + dt; // 最後に攻撃を当ててからの秒数
   // 再生組織（種族「多頭」）：少しずつ HP が戻る
   if (p.stats.hpRegen > 0 && world.mode !== 'dead' && p.hp < p.stats.maxHp) healPlayer(world, p.stats.hpRegen * dt);
   if (!p.attack) p.comboTimer -= dt;
@@ -174,7 +175,7 @@ function startDash(p, dx, dy) {
   p.sinceDash = 0;
   p.dashState = { hit: new Set(), lastFloor: null };
   p.dot = null; // 持続ダメージ（炎上など）は、ダッシュで振り払える
-  p.inv = Math.max(p.inv, d.invincible);
+  p.inv = Math.max(p.inv, d.invincible + (p.stats.dashInvincible ?? 0)); // 無敵時間は、インプラントで延びる
   // ダッシュの距離は、インプラントで伸びる（時間は同じなので、そのぶん速くなる）
   const distance = d.distance * (1 + (p.stats.dashDistance ?? 0));
   p.dvx = (dx * distance) / duration;

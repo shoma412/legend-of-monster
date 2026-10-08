@@ -144,6 +144,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-breaker',
+    trigger: { at: 'bossIntro', boss: 'breaker' },
+    lines: [
+      { who: 'jin', text: '……こいつが、街の灯りを全部落としたのか。' },
+      { who: 'noise', text: '主幹の遮断器だ。異常があれば、電気を止める。人がいなくなったことを、あれは異常だと判断した。' },
+      { who: 'jin', mood: 'angry', text: '誰も帰ってこないのに、待ってるのか。暗いままで。' },
+    ],
+  },
+  {
+    id: 'return-breaker',
+    trigger: { at: 'hideout', bossKilled: 'breaker' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……停電区、灯りが点いたって。遠くからでも見えたよ。' },
+      { who: 'jin', text: '止める奴がいなくなっただけだ。点けたのは、残ってた電気だ。' },
+      { who: 'noise', text: '人が戻れば、あれは自分で入れ直したはずだ。……待っていたんだ。ずっと。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -265,6 +283,7 @@ export const talks = {
     },
     { after: 'lampeater', lines: [{ who: 'hal', text: '蛾の羽、粉を落としたら、ただの薄い鉄板だった。光に寄っていくのは、取り替えるためだったんだね。' }] },
     { after: 'sentinel', lines: [{ who: 'hal', text: '見張りのレンズ、磨いたらすごくきれいだった。誰かを探すためだけに、ずっと曇らないようにしてたんだね。' }] },
+    { after: 'breaker', lines: [{ who: 'hal', text: '遮断器のレバー、すごく重かった。簡単に入れ直せないように、できてるんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -299,9 +318,10 @@ export const talks = {
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
     { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
     { after: 'lampeater', lines: [{ who: 'noise', text: '消灯街が静かになった。次は、地下の変電所だ。止められた電気を、まだ見張っている者がいる。' }] },
-    { after: 'sentinel', lines: [{ who: 'noise', text: '変電所の光が止まった。残りは、主幹制御室だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'sentinel', lines: [{ who: 'noise', text: '変電所の光が止まった。残りは、主幹制御室だ。この区の電気を、最初に止めた者がいる。' }] },
+    { after: 'breaker', lines: [{ who: 'noise', text: '停電区に、灯りが戻った。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
-    { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },
   ],
 };

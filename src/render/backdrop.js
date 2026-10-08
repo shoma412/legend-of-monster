@@ -463,6 +463,41 @@ const THEMES = {
       for (let k = 4; k < 40; k += 8) block(g, x + k, y, PX / 2, 28, 0x1c2434, 0.7);
     }
   },
+  // 主幹制御室：制御盤、モニターの列、床のケーブル溝
+  control(g, rng, a) {
+    speckles(g, rng, a, 240, [0x081014, 0x0b161a, 0x060c0f, 0x10222a], 0.7);
+    // 床のケーブル溝（まっすぐな溝が、縦横に走る）
+    for (const y of [a.top + a.h * 0.33, a.top + a.h * 0.67]) {
+      block(g, a.left + 10, y, a.w - 20, PX * 2, 0x04080a, 0.9);
+      for (let x = a.left + 20; x < a.right - 20; x += 40) block(g, x, y, PX, PX * 2, 0x16303a, 0.7);
+    }
+    for (const x of [a.left + a.w * 0.25, a.left + a.w * 0.5, a.left + a.w * 0.75]) {
+      block(g, x, a.top + 10, PX * 2, a.h - 20, 0x04080a, 0.85);
+      for (let y = a.top + 24; y < a.bottom - 20; y += 44) block(g, x, y, PX * 2, PX, 0x16303a, 0.7);
+    }
+    // モニターの列（上の壁ぎわ。ほとんど消えていて、ところどころ、文字の残り）
+    for (let x = a.left + 40; x < a.right - 60; x += 76) {
+      const y = a.top + 10;
+      block(g, x, y, 56, 30, 0x0a1216, 0.95);
+      block(g, x + 4, y + 4, 48, 20, 0x050a0c, 0.95);
+      if (rng() < 0.35) for (let k = 0; k < 3; k++) block(g, x + 8, y + 7 + k * 5, 10 + rng() * 26, PX / 2, 0x2ef2ff, 0.18);
+      block(g, x + 24, y + 30, PX * 2, PX, 0x16303a, 0.9);
+    }
+    // 制御盤（下の壁ぎわ。つまみと、消えた表示灯）
+    for (let x = a.left + 70; x < a.right - 90; x += 200) {
+      const y = a.bottom - 34;
+      block(g, x, y, 90, 26, 0x0c181c, 0.95);
+      for (let k = 0; k < 7; k++) block(g, x + 8 + k * 11, y + 6, PX, PX, rng() < 0.15 ? 0xff4d5e : 0x16303a, 0.9);
+      for (let k = 0; k < 4; k++) block(g, x + 10 + k * 20, y + 15, PX * 2, PX * 2, 0x1c3a44, 0.9);
+    }
+    // 倒れた椅子と、落ちた書類
+    for (let i = 0; i < 6; i++) {
+      const x = a.left + 60 + rng() * (a.w - 120);
+      const y = a.top + 80 + rng() * (a.h - 170);
+      if (rng() < 0.5) block(g, x, y, PX * 3, PX * 2, 0x1c3a44, 0.35);
+      else block(g, x, y, PX * 2, PX * 3, 0x2a4a54, 0.22);
+    }
+  },
   yard(g, rng, a) {
     speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
     // タイヤの跡（斜めに2本ずつ）

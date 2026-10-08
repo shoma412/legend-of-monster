@@ -78,6 +78,40 @@ const BEHAVIORS = {
     }
   },
 
+  // 明滅機：近づいて殴る。姿が点いたり消えたりする（構えている間と、攻撃が当たった直後は、必ず見える）
+  blinker(world, e, dt, d) {
+    const blink = e.def.blink;
+    e.blinkT = (e.blinkT ?? e.seed) + dt;
+    BEHAVIORS.brawler(world, e, dt, d);
+    e.unseen = e.blinkT % (blink.on + blink.off) >= blink.on && e.state === 'chase';
+  },
+
+  // 蓄電器：動かない。一定の間隔で、予告のあと、まわりに放電する
+  discharger(world, e, dt, d) {
+    const z = e.def.discharge;
+    const p = world.player;
+    if (e.state === 'windup') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        if (d.dist <= z.radius + p.r) hurtPlayer(world, e.def.damage);
+        ring(world, e.x, e.y, z.radius, e.color);
+        burst(world, e.x, e.y, e.color, 12, 240);
+        sfx(world, 'zap');
+        e.state = 'chase';
+        e.cd = z.interval;
+      }
+    } else {
+      e.state = 'chase';
+      if (e.cd <= 0) {
+        e.state = 'windup';
+        e.t = z.windup;
+      }
+    }
+  },
+
+  // 残像：自分では動かない（ボスの攻撃が動かす）
+  decoy() {},
+
   // 見張り灯：動かない。光の扇をゆっくり回し、扇の中にプレイヤーが居続けると、照準線を出して狙い撃つ
   watcher(world, e, dt, d) {
     const cone = e.def.cone;

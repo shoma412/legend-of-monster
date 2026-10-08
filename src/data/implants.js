@@ -259,6 +259,32 @@ export const implants = [
     desc: (k) => `HPが満タンのとき、被ダメージ −${pct(0.25 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.25 * k, when: 'hpFull' }] }),
   },
+  // ---- 遮断器（ブレーカー由来・切り替えと、一瞬の力） ----
+  {
+    id: 'overloader', species: 'breaker', name: '過負荷',
+    desc: (k) => `攻撃を8回当てるごとに、次の攻撃のダメージ +${pct(0.6 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'overloadBonus', add: 0.6 * k }] }),
+  },
+  {
+    id: 'storage', species: 'breaker', name: '蓄電',
+    desc: (k) => `2秒間攻撃を当てていないと、次の攻撃のダメージ +${pct(0.3 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'restedBonus', add: 0.3 * k }] }),
+  },
+  {
+    id: 'cutoff', species: 'breaker', name: '遮断',
+    desc: (k) => `一度に最大HPの20%以上のダメージを受けるとき、そのダメージを${pct(Math.min(0.6, 0.3 * k))}減らす`,
+    effect: (k) => ({ mods: [{ stat: 'bigHitCut', add: 0.3 * k }] }),
+  },
+  {
+    id: 'restore', species: 'breaker', name: '復電',
+    desc: (k) => `修復キットを使うと、5秒間 攻撃力 +${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'kitPower', add: 0.25 * k }] }),
+  },
+  {
+    id: 'blip', species: 'breaker', name: '瞬断',
+    desc: (k) => `ダッシュの無敵時間 +${Math.round(0.15 * k * 100) / 100}秒`,
+    effect: (k) => ({ mods: [{ stat: 'dashInvincible', add: 0.15 * k }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -423,6 +449,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '攻撃を当てた敵を照らす時間 +2秒（照準灯がなくても、2秒照らす）', effect: { mods: [{ stat: 'markTime', add: 2 }] } },
       { need: 3, desc: '照らされている敵の動きが20%遅くなる（ボスには効かない）', effect: { mods: [{ stat: 'litSlow', add: 0.2 }] } },
+    ],
+  },
+  breaker: {
+    name: '遮断器', color: 'cyan', boss: 'breaker',
+    bonuses: [
+      { need: 2, desc: '会心率 +5%', effect: { mods: [{ stat: 'critChance', add: 0.05 }] } },
+      { need: 3, desc: '敵を倒すと、ダッシュが1回ぶん回復する（3秒に1回）', effect: { mods: [{ stat: 'killDash', add: 1 }] } },
     ],
   },
   spider: {

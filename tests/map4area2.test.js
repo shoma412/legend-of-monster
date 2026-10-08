@@ -80,7 +80,7 @@ function bossWorld() {
 describe('マップ4 エリア2「地下変電所」の定義', () => {
   it('色・背景・敵・ボス・素材・データ片・種族・曲がそろっている', () => {
     const map = maps[3];
-    expect(map.areas).toEqual(['darkstreet', 'substation']);
+    expect(map.areas.slice(0, 2)).toEqual(['darkstreet', 'substation']);
     const area = DATA.areas.get('substation');
     expect(AREA_THEMES[area.theme]).toBeDefined();
     expect(hasBackdrop(area.theme)).toBe(true);
@@ -103,7 +103,7 @@ describe('マップ4 エリア2「地下変電所」の定義', () => {
     for (const id of ['map1', 'map2', 'map3']) recordMapClear(save, id, 1);
     save.passes.push('map3');
     const r = createRun({ rng: seeded(7), save, mapId: 'map4', weaponId: 'sword' });
-    expect(r.map.areas.length).toBe(2);
+    expect(r.map.areas[1]).toBe('substation');
     r.areaIndex = 1;
     r.area = DATA.areas.get('substation');
     r.plan.current = 'boss';

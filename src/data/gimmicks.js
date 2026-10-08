@@ -11,6 +11,8 @@
 //   radius      : 当たる範囲
 //   delay       : 予告が出てから落ちるまで（秒）
 //   damage      : プレイヤーへのダメージ / enemyDamage : 敵へのダメージ
+// part が surge のとき（環境「暗闇」の部屋で、ときどき部屋全体が明るくなる）：
+//   interval : 明るくなる間隔（秒） / duration : 明るい時間（秒）
 export const gimmicks = [
   {
     id: 'girders',
@@ -23,6 +25,14 @@ export const gimmicks = [
     delay: 1.15,
     damage: 28,
     enemyDamage: 70,
+    color: 'amber',
+  },
+  {
+    id: 'surge',
+    name: '通電',
+    part: 'surge',
+    interval: 14,
+    duration: 3,
     color: 'amber',
   },
 ];

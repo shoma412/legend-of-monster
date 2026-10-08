@@ -89,6 +89,13 @@ export const MATERIAL_ICONS = {
     g.fillStyle(c, 1).fillCircle(x, y, s * 0.14);
     for (const a of [-0.5, 0.5]) g.lineBetween(x + Math.cos(a - Math.PI / 2) * s * 0.42, y + Math.sin(a - Math.PI / 2) * s * 0.42, x + Math.cos(a - Math.PI / 2) * s * 0.8, y + Math.sin(a - Math.PI / 2) * s * 0.8);
   },
+  // ブレーカーコア：レバーのついたスイッチ
+  breakerCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1).strokeRect(x - s * 0.3, y - s * 0.5, s * 0.6, s);
+    g.lineBetween(x, y + s * 0.15, x + s * 0.35, y - s * 0.4);
+    g.fillStyle(c, 1).fillCircle(x, y + s * 0.15, s * 0.12);
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

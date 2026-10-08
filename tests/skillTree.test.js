@@ -1,12 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DATA } from '../src/data/index.js';
 import { materials } from '../src/data/story.js';
-import { upgrades } from '../src/data/upgrades.js';
+import { upgrades as allUpgrades } from '../src/data/upgrades.js';
 import { buyNode, permanentBonuses, saveTree, treeNodeState } from '../src/logic/meta.js';
 import { SAVE_VERSION, createSave, normalizeSave, refundUpgrades } from '../src/logic/save.js';
 import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upgradeCounts } from '../src/logic/skillTree.js';
 
 // 恒久強化のスキルツリー（docs/詳細仕様.md「23. スキルツリー」）
+
+// 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
+const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
+const FIRST_NODES = 34;
+const ALL_NODES = 41;
 
 const RANK = Object.fromEntries(materials.map((m, i) => [m.id, i]));
 const units = (cost) => Object.values(cost).reduce((a, b) => a + b, 0);
@@ -23,7 +29,8 @@ describe('値段：前のゲームバランスとほぼ同じ', () => {
   const group = (sum, ids) => ids.reduce((s, id) => s + (sum[id] ?? 0), 0);
 
   it('マスは34個。強化の種類・段数・効果は、前と同じ', () => {
-    expect(treeNodeDefs()).toHaveLength(34);
+    expect(treeNodeDefs().filter((d) => d.since === 1)).toHaveLength(FIRST_NODES);
+    expect(treeNodeDefs()).toHaveLength(ALL_NODES);
     for (const def of upgrades) expect(def.costs).toHaveLength(def.max);
   });
 
@@ -191,10 +198,10 @@ describe('マスを取る', () => {
       bought = false;
       for (const n of tree.nodes) if (buyNode(save, n.id)) bought = true;
     }
-    expect(save.tree.owned).toHaveLength(34);
-    for (const def of upgrades) expect(save.upgrades[def.id], def.id).toBe(def.max);
+    expect(save.tree.owned).toHaveLength(ALL_NODES);
+    for (const def of allUpgrades) expect(save.upgrades[def.id], def.id).toBe(def.max);
     const old = createSave();
-    for (const def of upgrades) old.upgrades[def.id] = def.max;
+    for (const def of allUpgrades) old.upgrades[def.id] = def.max;
     expect(permanentBonuses(save)).toEqual(permanentBonuses(old));
   });
 
@@ -271,5 +278,55 @@ describe('セーブデータと払い戻し', () => {
     expect(loaded.upgrades).toEqual({ [root.upgrade]: 1 });
     expect(loaded.tree.owned).toEqual([root.id]);
     expect(DATA.upgrades.has(root.upgrade)).toBe(true);
+  });
+});
+
+describe('あとからマスを足す（マップ4の7マス）：今ある配置は変えない', () => {
+  // マスを足す前（2026-10-08）に記録した、20個の種の配置（マスの id < 親 @ 深さ）
+  const before = JSON.parse(readFileSync(new URL('./fixtures/tree-v1.json', import.meta.url), 'utf8'));
+
+  it('最初の34マスは、足す前とまったく同じ場所・同じ親のまま', () => {
+    expect(Object.keys(before)).toHaveLength(20);
+    for (const [seed, list] of Object.entries(before)) {
+      const now = buildTree(Number(seed)).nodes.filter((n) => n.since === 1).map((n) => `${n.id}<${n.parent}@${n.depth}`);
+      expect(now, seed).toEqual(list);
+    }
+  });
+
+  it('どの種でも、足した7マスが全部あり、深さの決まりと素材の順番を守る。円は6段のまま', () => {
+    for (const seed of SEEDS) {
+      const tree = buildTree(seed);
+      const extra = tree.nodes.filter((n) => n.since > 1);
+      expect(extra).toHaveLength(ALL_NODES - FIRST_NODES);
+      expect(Math.max(...tree.nodes.map((n) => n.depth))).toBe(6);
+      expect(tree.byId['sparekit#0'].depth).toBe(6);
+      for (const n of extra) {
+        const parent = tree.byId[n.parent];
+        expect(parent, n.id).toBeDefined();
+        expect(parent.depth).toBe(n.depth - 1);
+        expect(parent.rank).toBeLessThanOrEqual(n.rank);
+        if (n.types === 1) expect(n.depth).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  it('足す前に取ってあったマスは、そのまま残る（外れたり、別のマスに変わったりしない）', () => {
+    for (const [seed, list] of Object.entries(before).slice(0, 6)) {
+      const owned = list.map((x) => x.split('<')[0]);
+      const save = normalizeSave({ ...createSave(), tree: { seed: Number(seed), owned } });
+      expect(save.tree.owned.sort()).toEqual([...owned].sort());
+      for (const def of upgrades) expect(save.upgrades[def.id], def.id).toBe(def.max);
+      for (const def of allUpgrades.filter((d) => d.since > 1)) expect(save.upgrades[def.id] ?? 0, def.id).toBe(0);
+    }
+  });
+
+  it('足した強化の値段と効果：モスコア2・レンズコア2・ブレーカーコア2と、3種類を1個ずつ', () => {
+    const sum = {};
+    for (const def of allUpgrades.filter((d) => d.since > 1)) for (const cost of def.costs) for (const [id, n] of Object.entries(cost)) sum[id] = (sum[id] ?? 0) + n;
+    expect(sum).toEqual({ mothCore: 3, lensCore: 3, breakerCore: 3 });
+    const save = createSave();
+    for (const def of allUpgrades) save.upgrades[def.id] = def.max;
+    const bonus = permanentBonuses(save);
+    expect(bonus.kits).toBe(3); // 修復キット増設 2 ＋ 予備キット 1
   });
 });

@@ -6,7 +6,7 @@ import { calcDamage } from '../logic/damage.js';
 import { DEG, angleDiff } from '../logic/geometry.js';
 import { addXp } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
-import { addLight, flashLight } from './darkness.js';
+import { addLight, flashLight, lightAllLamps } from './darkness.js';
 import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
@@ -91,9 +91,24 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   if (stats.markTime > 0) enemy.litT = Math.max(enemy.litT ?? 0, stats.markTime);
   const comboMul = stats.comboBonus * Math.min(p.comboHits, stats.comboMax);
   p.comboHits++;
+  // 種族「遮断器」：過負荷（決まった回数当てるごとに、次の攻撃が強い）と、蓄電（しばらく当てていないと、次の攻撃が強い）
+  let surgeMul = 0;
+  if (stats.overloadBonus > 0) {
+    p.overloadHits = (p.overloadHits ?? 0) + 1;
+    if (p.overloadHits > stats.overloadEvery) {
+      p.overloadHits = 0;
+      surgeMul += stats.overloadBonus;
+      floatText(world, p.x, p.y - 44, 'Overload!', COLORS.amber, 13);
+    }
+  }
+  if (stats.restedBonus > 0) {
+    if ((p.sinceHit ?? Infinity) >= STATUS.rested.window) p.restedUntil = world.time + STATUS.rested.grace;
+    if (world.time <= (p.restedUntil ?? -Infinity)) surgeMul += stats.restedBonus;
+  }
+  p.sinceHit = 0;
   const result = calcDamage({
     base: options.heavy ? base * (1 + stats.heavyBonus) : base,
-    attackMul: statWith(world, 'attackMul', enemy) + comboMul,
+    attackMul: statWith(world, 'attackMul', enemy) + comboMul + surgeMul,
     critChance: forceCrit ? 1 : statWith(world, 'critChance', enemy),
     critMul: stats.critMul,
     elements: stats.elements,
@@ -187,6 +202,15 @@ export function killEnemy(world, enemy) {
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   p.sinceKill = 0;
+  // 種族「遮断器」のボーナス：敵を倒すと、ダッシュが1回ぶん回復する（決まった秒数に1回）
+  if (p.stats.killDash > 0 && p.dashCharges < p.stats.dashCharges && world.time >= (p.killDashAt ?? -Infinity) + STATUS.killDash.cooldown) {
+    p.killDashAt = world.time;
+    p.dashCharges++;
+    if (p.dashCharges >= p.stats.dashCharges) p.dashRecharge = 0;
+    p.dashCd = 0;
+  }
+  // 蓄電器：倒すと、部屋の非常灯がすべて点く
+  if (enemy.def.deathLamps) lightAllLamps(world);
   // 倒すと光が残る敵（発光虫）と、インプラント「誘蛾灯」
   if (enemy.def.deathLight) addLight(world, enemy.x, enemy.y, enemy.def.deathLight.radius, enemy.def.deathLight.life);
   else if (p.stats.killLight > 0) addLight(world, enemy.x, enemy.y, STATUS.killLight.radius, STATUS.killLight.life);
@@ -312,7 +336,9 @@ export function hurtPlayer(world, damage) {
   // 周が進むと、受けるダメージが増える
   // 被ダメージの軽減は、条件つきのもの（立ち止まっている間、など）も合わせて、下限まで
   const taken = Math.max(PLAYER.minDamageTaken, statWith(world, 'damageTaken'));
-  const amount = Math.max(1, Math.round(damage * taken * (world.room.damageScale ?? 1)));
+  let amount = Math.max(1, Math.round(damage * taken * (world.room.damageScale ?? 1)));
+  // 遮断（種族「遮断器」）：一度に大きなダメージを受けるとき、そのダメージを減らす
+  if (p.stats.bigHitCut > 0 && amount >= p.stats.maxHp * STATUS.bigHit.threshold) amount = Math.max(1, Math.round(amount * (1 - Math.min(0.6, p.stats.bigHitCut))));
   p.hp = Math.max(0, p.hp - amount);
   world.damageTaken += amount;
   p.inv = PLAYER.hitInvincible + (p.stats.hurtInvincible ?? 0);

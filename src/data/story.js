@@ -14,6 +14,7 @@ export const materials = [
   { id: 'titanCore', name: 'タイタンコア', color: 'heat' },
   { id: 'mothCore', name: 'モスコア', color: 'magenta' },
   { id: 'lensCore', name: 'レンズコア', color: 'amber' },
+  { id: 'breakerCore', name: 'ブレーカーコア', color: 'cyan' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -178,6 +179,22 @@ export const fragments = [
   {
     id: 'ss-core', area: 'substation', source: 'boss', title: 'サーチライト・センチネルのコアログ',
     text: '照合：該当なし。照合：該当なし。照合：該当なし。——登録された者は、誰も来ない。照らし続ける。',
+  },
+  {
+    id: 'mb-01', area: 'control', source: 'vault', title: '主幹遮断器 動作規程',
+    text: '主幹遮断器 MB は、系統に異常を見つけたら、電気を止める。異常がなくなるまで、入れ直してはならない。止めることが、守ることである。',
+  },
+  {
+    id: 'mb-02', area: 'control', source: 'vault', title: '制御室の当直日誌',
+    text: '第四区の送電を止めた日、あれは「異常なし」を返さなかった。人がいない区画を、あれは異常だと判断した。人が戻るまで、入れ直さないつもりらしい。',
+  },
+  {
+    id: 'mb-memo', area: 'control', source: 'vault', title: '壁の落書き',
+    text: '本物は、ちらついている。あれは、自分で自分の電気を切ったり入れたりしているから。偽物は、ずっと点いたままだ。',
+  },
+  {
+    id: 'mb-core', area: 'control', source: 'boss', title: 'ブレーカーのコアログ',
+    text: '異常：居住者 0。復旧条件：居住者の帰還。再投入：不可。再投入：不可。再投入：不可。——守っている。',
   },
   // ---- マップ3「建設区」 ----
   {

@@ -1,5 +1,7 @@
 // 部屋の仕掛けを動かす。仕掛けの定義（src/data/gimmicks.js）の part で、下の部品を選ぶ。
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
+import { powerOn } from './darkness.js';
+import { floatText, sfx } from './fx.js';
 
 // 仕掛けの部品。(world, 仕掛けの定義, 進んだ秒数, その部屋での仕掛けの状態)
 export const GIMMICK_PARTS = {
@@ -27,6 +29,16 @@ export const GIMMICK_PARTS = {
       y = Math.max(b.top + def.radius, Math.min(b.bottom - def.radius, y));
       world.hazards.push({ type: 'mark', x, y, r: def.radius, t: def.delay, max: def.delay, damage: def.damage, enemyDamage: def.enemyDamage ?? 0, color });
     }
+  },
+
+  // 通電：ときどき、部屋全体が明るくなる（環境「暗闇」の部屋だけ）
+  surge(world, def, dt, state) {
+    state.t = (state.t ?? def.interval * 0.5) - dt;
+    if (state.t > 0) return;
+    state.t = def.interval;
+    powerOn(world, def.duration);
+    sfx(world, 'select');
+    floatText(world, world.player.x, world.player.y - 42, 'Power On', COLORS.amber, 13);
   },
 };
 

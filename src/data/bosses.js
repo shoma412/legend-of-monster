@@ -634,6 +634,68 @@ export const bosses = [
       },
     ],
   },
+  {
+    id: 'breaker',
+    name: 'ブレーカー',
+    alias: '主幹遮断器', // 登場時に出す異名
+    shape: 'breaker',
+    color: 'cyan',
+    weakness: 'cold',
+    material: 'breakerCore',
+    radius: 42,
+    hp: 14000,
+    speed: 70,
+    contactDamage: 48,
+    xp: 680,
+    credits: 340,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「遮断」：duration 秒のあいだ、部屋の灯りが落ち、見える円が vision 倍になる。その間、足元に落雷の予告が出る（strikes）
+      //   終わると復電（surge 秒のあいだ部屋全体が明るい）して、overload 秒動けない
+      cutoff: {
+        pattern: 'blackout', telegraph: 1.0, duration: 4, vision: 0.6,
+        strikes: { first: 0.5, interval: 0.7, spread: 70, radius: 50, delay: 0.85, damage: 44 }, surge: 3, overload: 2, recover: 0.3,
+      },
+      cutoffHard: {
+        pattern: 'blackout', telegraph: 0.9, duration: 5.5, vision: 0.6,
+        strikes: { first: 0.4, interval: 0.55, spread: 80, radius: 50, delay: 0.8, damage: 44 }, surge: 3, overload: 2, recover: 0.3,
+      },
+      // 固有「残像」：偽物を count 体出して囲み、本物と一緒に突進する。偽物の体当たり（decoyDamage）は、本物より弱い
+      mirage: {
+        pattern: 'afterimage', telegraph: 0.8, count: 3, rounds: 1, decoy: 'afterimage', distance: 250,
+        aim: 0.9, lockTime: 0.25, speed: 620, duration: 0.55, damage: 50, decoyDamage: 24, recover: 0.9,
+      },
+      mirageHard: {
+        pattern: 'afterimage', telegraph: 0.7, count: 5, rounds: 2, decoy: 'afterimage', distance: 250,
+        aim: 0.85, lockTime: 0.22, speed: 640, duration: 0.55, damage: 50, decoyDamage: 24, recover: 0.9,
+      },
+      // 横切る線：プレイヤーへの向きに平行な線が、順に光る
+      bars: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 4, spacing: 105, width: 32, delay: 0.8, stagger: 0.22, damage: 44, recover: 0.7, reach: 'far' },
+      barsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 100, width: 30, delay: 0.75, stagger: 0.18, damage: 44, recover: 0.6 },
+      // 周囲への一撃
+      trip: { pattern: 'slam', telegraph: 0.7, radius: 155, damage: 50, recover: 0.8, reach: 'near' },
+      // 突進。壁に当たると隙ができる
+      rush: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 650, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.3, reach: 'far' },
+      // 大技「全系統遮断」：遮断の暗闇の中で、残像6体との一斉突進を3回。終わると復電して、長い隙
+      shutdown: {
+        pattern: 'afterimage', telegraph: 1.6, count: 6, rounds: 3, decoy: 'afterimage', distance: 260,
+        aim: 0.9, lockTime: 0.22, speed: 640, duration: 0.55, damage: 52, decoyDamage: 26,
+        blackout: { duration: 12, vision: 0.6 }, surge: 4, recover: 2.2,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'rush' }],
+    ultimate: { move: 'shutdown', announce: '全系統遮断' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['cutoff', 'mirage', 'bars', 'trip', 'rush'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['cutoffHard', 'mirageHard', 'barsHard', 'trip', 'rush'],
+        combos: [{ moves: ['rush', 'trip'] }, { moves: ['barsHard', 'mirageHard'] }],
+        announce: '主幹、遮断',
+      },
+    ],
+  },
   // ---- 隠しボス（docs/詳細仕様.md「21. 隠しボスと通行証」） ----
   // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材とデータ片は持たない
   {

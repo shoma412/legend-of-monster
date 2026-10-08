@@ -7,7 +7,7 @@ import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
-import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp } from './darkness.js';
+import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, startBlackout } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
@@ -1159,6 +1159,152 @@ PATTERNS.scales = {
         sfx(world, 'enemyShot');
         act.phase = 'recover';
         act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 遮断（ブレーカー）：部屋の灯りがすべて落ち、見える円も狭くなる（duration 秒）。その間、プレイヤーの足元に落雷の予告が次々に出る（strikes）。
+//   終わると「復電」で部屋全体が明るくなり（surge 秒）、ボスは過負荷で overload 秒動けない
+PATTERNS.blackout = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        startBlackout(world, def.duration, def.vision);
+        sfx(world, 'bossCharge');
+        floatText(world, b.x, b.y - b.r - 14, 'Blackout', COLORS.red, 20);
+        act.phase = 'active';
+        act.t = def.duration;
+        act.strikeT = def.strikes.first;
+      }
+    } else if (act.phase === 'active') {
+      act.strikeT -= dt;
+      if (act.strikeT <= 0) {
+        act.strikeT = def.strikes.interval;
+        const a = world.rng() * Math.PI * 2;
+        const r = world.rng() * def.strikes.spread;
+        const spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: def.strikes.radius };
+        clampToBounds(spot, world.bounds);
+        world.hazards.push({ type: 'mark', x: spot.x, y: spot.y, r: def.strikes.radius, t: def.strikes.delay, max: def.strikes.delay, damage: def.strikes.damage, enemyDamage: 0, color: b.color });
+      }
+      if (act.t <= 0) {
+        powerOn(world, def.surge);
+        floatText(world, b.x, b.y - b.r - 14, 'Overload', COLORS.amber, 20);
+        burst(world, b.x, b.y, COLORS.amber, 26, 260);
+        sfx(world, 'explode');
+        act.phase = 'stun';
+        act.t = def.overload;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 残像（ブレーカー）：偽物を count 体出して、プレイヤーを囲み、本物と一緒に突進する。rounds 回くり返す。
+//   偽物は1発当てると消える。本物に当てると、偽物は全部消える。blackout を書くと（大技）、その間、遮断の暗闇になる
+PATTERNS.afterimage = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.remaining = act.def.rounds ?? 1;
+    act.decoys = [];
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    const clear = () => {
+      for (const e of act.decoys) {
+        if (e.dead) continue;
+        e.dead = true;
+        burst(world, e.x, e.y, b.color, 8, 160);
+      }
+      act.decoys = [];
+    };
+    // 本物と偽物を、プレイヤーのまわりに等間隔に並べる。どれが本物かは、毎回変わる
+    const arrange = () => {
+      clear();
+      const n = def.count + 1;
+      const base = world.rng() * Math.PI * 2;
+      const real = Math.floor(world.rng() * n) % n;
+      // 囲む円の中心。プレイヤーが壁ぎわにいるときは、部屋の内側へ寄せる（壁に押しつけられて、同じ場所に固まらないように）
+      const inset = def.distance * 0.6;
+      const wb = world.bounds;
+      const cx = Math.max(wb.left + inset, Math.min(wb.right - inset, p.x));
+      const cy = Math.max(wb.top + inset, Math.min(wb.bottom - inset, p.y));
+      for (let i = 0; i < n; i++) {
+        const a = base + (i * Math.PI * 2) / n;
+        const spot = { x: cx + Math.cos(a) * def.distance, y: cy + Math.sin(a) * def.distance, r: b.r };
+        clampToBounds(spot, world.bounds);
+        if (i === real) {
+          b.x = spot.x;
+          b.y = spot.y;
+        } else {
+          const e = createEnemy(DATA.enemies.get(def.decoy), spot.x, spot.y, 0, world.rng);
+          e.noStagger = true;
+          world.enemies.push(e);
+          act.decoys.push(e);
+        }
+        burst(world, spot.x, spot.y, b.color, 8, 160);
+      }
+      sfx(world, 'bossCharge');
+      act.hp = b.hp;
+      act.phase = 'aim';
+      act.t = def.aim;
+    };
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        if (def.blackout) startBlackout(world, def.blackout.duration, def.blackout.vision);
+        arrange();
+      }
+    } else if (act.phase === 'aim' || act.phase === 'active') {
+      // 本物に当てられたら、偽物は全部消える
+      if (b.hp < act.hp) clear();
+      act.decoys = act.decoys.filter((e) => !e.dead);
+      if (act.phase === 'aim') {
+        if (act.t > def.lockTime) {
+          aimAt(act, d);
+          for (const e of act.decoys) e.angle = Math.atan2(p.y - e.y, p.x - e.x);
+        }
+        if (act.t <= 0) {
+          act.phase = 'active';
+          act.t = def.duration;
+          sfx(world, 'bossCharge');
+        }
+      } else {
+        b.x += act.dirX * def.speed * dt;
+        b.y += act.dirY * def.speed * dt;
+        clampToBounds(b, world.bounds);
+        if (circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+        for (const e of act.decoys) {
+          e.x += Math.cos(e.angle) * def.speed * dt;
+          e.y += Math.sin(e.angle) * def.speed * dt;
+          clampToBounds(e, world.bounds);
+          if (circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r)) hurtPlayer(world, def.decoyDamage);
+        }
+        if (act.t <= 0) {
+          act.remaining--;
+          if (act.remaining > 0) {
+            arrange();
+          } else {
+            clear();
+            if (def.blackout) powerOn(world, def.surge);
+            act.phase = 'recover';
+            act.t = def.recover;
+          }
+        }
       }
     } else if (act.t <= 0) {
       return true;

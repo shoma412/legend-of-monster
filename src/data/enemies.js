@@ -19,9 +19,13 @@
 //   prop      : 動かない。攻撃もしない（柵や橋げたの杭）
 //   watcher   : 動かない。光の扇をゆっくり回し、扇の中にプレイヤーが居続けると、照準線を出して狙い撃つ
 //   flasher   : 近づいてきて、予告のあとに光る。その瞬間にそちらを向いていると、目くらみ。光ったあとは体当たり
+//   blinker   : 近づいて殴る（brawler と同じ）。姿が点いたり消えたりする。消えている間は見えないが、攻撃は当たる
+//   discharger: 動かない。一定の間隔で、まわりに放電する（予告の円）
+//   decoy     : 自分では動かない（ボスの「残像」が動かす）
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
+// decoy: true は、ボスの偽物（暗闇でも目の光が出る）
 // solid: true は、歩いて通れず、敵の弾も止める（ダッシュ中はすり抜けられる）
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
 // hp と damage は、エリアが進むごとに倍率がかかる（src/data/balance.js の ENEMY_SCALING）
@@ -532,5 +536,62 @@ export const enemies = [
     cost: 2,
     dropChance: 0.24,
     flash: { triggerRange: 170, windup: 0.9, radius: 250, facing: 75, blind: 4, interval: 5 },
+  },
+  // ---- ここからマップ4 エリア3「主幹制御室」（点いたり消えたりする） ----
+  {
+    // 明滅機：姿が点いたり消えたりする（blink: 見えている秒数 on と、消えている秒数 off）。殴る前には、必ず姿を現す
+    id: 'blinker',
+    name: '明滅機',
+    behavior: 'blinker',
+    shape: 'diamond',
+    color: 'cyan',
+    radius: 13,
+    hp: 48,
+    speed: 122,
+    damage: 20,
+    xp: 13,
+    credits: 5,
+    cost: 2,
+    dropChance: 0.24,
+    blink: { on: 1.6, off: 1.9 },
+    attack: { triggerRange: 50, range: 64, arc: 100, windup: 0.55, recover: 0.7 },
+  },
+  {
+    // 蓄電器：動かない。interval 秒ごとに、windup 秒の予告のあと、まわり（radius）に放電する。倒すと、部屋の非常灯がすべて点く
+    id: 'capacitor',
+    name: '蓄電器',
+    behavior: 'discharger',
+    shape: 'hexagon',
+    color: 'shock',
+    radius: 15,
+    hp: 84,
+    speed: 0,
+    damage: 22,
+    xp: 13,
+    credits: 5,
+    cost: 2,
+    dropChance: 0.24,
+    knockbackResist: 1,
+    discharge: { interval: 2.6, windup: 1.0, radius: 125 },
+    deathLamps: true,
+  },
+  {
+    // 残像：ボス「ブレーカー」の偽物。1発当てると消える。動きは、ボスの攻撃（残像）が決める
+    id: 'afterimage',
+    name: '残像',
+    behavior: 'decoy',
+    shape: 'breaker',
+    color: 'cyan',
+    radius: 42,
+    hp: 1,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
+    decoy: true,
   },
 ];

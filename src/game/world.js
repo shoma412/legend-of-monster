@@ -173,6 +173,7 @@ function clearRoom(world) {
   p.dot = null;
   world.shots = [];
   world.hazards = [];
+  world.blackout = null; // ボスの「遮断」は、部屋をクリアしたら終わる
   world.zones = [];
   world.devices = [];
   // 残っている柵や橋げたは、片づける

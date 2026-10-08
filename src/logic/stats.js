@@ -180,6 +180,15 @@ export function computeStats(build) {
     // 種族「番兵」：攻撃を当てた敵を照らす秒数（0 なら照らさない）、照らされている敵の動きが遅くなる割合
     markTime: 0,
     litSlow: 0,
+    // 種族「遮断器」：何回当てるごとに次の攻撃が強くなるか（overloadEvery）と、その強さ（overloadBonus。0 なら効かない）、
+    //   しばらく当てていないときの次の攻撃の強さ、大きなダメージを減らす割合、修復キットを使ったあとの攻撃力、ダッシュの無敵時間に足す秒数、敵を倒すとダッシュが回復するか（0 より大きければ）
+    overloadEvery: 8,
+    overloadBonus: 0,
+    restedBonus: 0,
+    bigHitCut: 0,
+    kitPower: 0,
+    dashInvincible: 0,
+    killDash: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

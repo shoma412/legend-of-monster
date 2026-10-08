@@ -1,5 +1,5 @@
 // 部屋に置かれているもの（落ちている装備、扉、補給端末、闇市の商品、データ金庫の装備）と、E キーでの操作
-import { LOOT, PLAYER, ROOMGEN } from '../data/balance.js';
+import { LOOT, PLAYER, ROOMGEN, STATUS } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { addImplant, equipFocusLoot, equipItem, stashFocusLoot } from './build.js';
@@ -167,5 +167,10 @@ export function useKit(world) {
   const healed = Math.round(healPlayer(world, PLAYER.kit.heal * (1 + (p.stats.kitBonus ?? 0))));
   say(world, `修復キット +${healed}`, COLORS.green);
   ring(world, p.x, p.y, 40, COLORS.green);
+  // 復電（種族「遮断器」）：修復キットを使うと、しばらく攻撃力が上がる
+  if (p.stats.kitPower > 0) {
+    p.buffs = p.buffs.filter((b) => b.id !== 'kitPower');
+    p.buffs.push({ id: 'kitPower', stat: 'attackMul', add: p.stats.kitPower, t: STATUS.kitPower.duration, max: STATUS.kitPower.duration, color: COLORS.cyan });
+  }
   return true;
 }

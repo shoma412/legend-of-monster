@@ -288,6 +288,14 @@ function drawTelegraph(g, e, world) {
     g.lineStyle(1.5, k > 0 ? red : hex(e.color), 0.55 + 0.4 * k);
     for (const side of [-1, 1]) g.lineBetween(e.x, e.y, e.x + Math.cos(e.cone.angle + side * half) * cone.range, e.y + Math.sin(e.cone.angle + side * half) * cone.range);
   }
+  if (e.def.behavior === 'discharger' && e.state === 'windup') {
+    // 蓄電器の放電の予告：外の輪へ向かって、内の輪が広がる
+    const z = e.def.discharge;
+    const k = 1 - Math.max(0, e.t) / z.windup;
+    g.fillStyle(red, 0.08 + 0.16 * k).fillCircle(e.x, e.y, z.radius);
+    g.lineStyle(2, red, 0.85).strokeCircle(e.x, e.y, z.radius);
+    g.lineStyle(2, hex(e.color), 0.9).strokeCircle(e.x, e.y, z.radius * k);
+  }
   if (e.def.behavior === 'flasher' && e.state === 'windup') {
     // 閃光持ちの予告：外の輪（光の届く距離）へ向かって、内の輪が縮む。重なった瞬間に光る
     const flash = e.def.flash;
@@ -409,6 +417,8 @@ export function drawEnemies(g, world) {
       continue;
     }
     drawTelegraph(g, e, world);
+    // 明滅機：消えている間は、姿を描かない（攻撃が当たった直後と、止められている間は見える）
+    if (e.unseen && e.hit <= 0 && e.stopT <= 0 && !(e.litT > 0)) continue;
     const frozen = e.stopT > 0;
     SHAPES[e.def.shape](g, e, e.hit > 0 ? WHITE : frozen ? hex(ELEMENT_COLORS.cold) : color, world);
     drawStatus(g, e, world);
@@ -957,6 +967,34 @@ BOSS_TELEGRAPHS.douse = (g, b, act, world) => {
   }
 };
 
+// 遮断：灯りが落ちる前の予告（ボスへ向かって縮む、暗い輪）
+BOSS_TELEGRAPHS.blackout = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const red = hex(COLORS.red);
+  g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 150 * (1 - k));
+  g.lineStyle(2, red, 0.8).strokeCircle(b.x, b.y, b.r + 6);
+};
+
+// 残像：本物と偽物の、突進の線
+BOSS_TELEGRAPHS.afterimage = (g, b, act) => {
+  const def = act.def;
+  const red = hex(COLORS.red);
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / def.telegraph;
+    g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+    return;
+  }
+  if (act.phase !== 'aim') return;
+  const locked = act.t <= def.lockTime;
+  const len = def.speed * def.duration;
+  const lines = [{ x: b.x, y: b.y, dx: act.dirX ?? 0, dy: act.dirY ?? 0, r: b.r }, ...act.decoys.filter((e) => !e.dead).map((e) => ({ x: e.x, y: e.y, dx: Math.cos(e.angle), dy: Math.sin(e.angle), r: e.r }))];
+  for (const l of lines) {
+    g.lineStyle(l.r * 2, red, locked ? 0.2 : 0.08).lineBetween(l.x, l.y, l.x + l.dx * len, l.y + l.dy * len);
+    g.lineStyle(2, red, locked ? 1 : 0.55).lineBetween(l.x, l.y, l.x + l.dx * len, l.y + l.dy * len);
+  }
+};
+
 // 照射：光の扇が出る場所の予告（細い線の扇）
 BOSS_TELEGRAPHS.searchlight = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1344,6 +1382,31 @@ SHAPES.moth = (g, b, color, world) => {
       g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
     }
   }
+};
+
+// ブレーカー：四角い箱と、向いている方向に倒れた大きなレバー。残像（偽物）も、同じ形で描く
+//   残像を出している間、本物だけが細かく明滅する（偽物は、点いたまま）
+SHAPES.breaker = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const mirage = b.boss && b.act?.def.pattern === 'afterimage' && b.act.phase !== 'telegraph' && b.act.phase !== 'recover';
+  const box = [local(b, r * 0.85, r * 0.8), local(b, r * 0.85, -r * 0.8), local(b, -r * 0.85, -r * 0.8), local(b, -r * 0.85, r * 0.8)];
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(box, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(box, true, true));
+  // 端子（左右に3つずつ）
+  for (const side of [-1, 1]) {
+    for (const f of [-0.5, 0, 0.5]) {
+      const t = local(b, r * f, side * r * 0.98);
+      g.fillStyle(color, 0.8).fillRect(t.x - 3, t.y - 3, 6, 6);
+    }
+  }
+  // レバー（過負荷で止まっている間は、後ろへ倒れている）
+  const base = local(b, -r * 0.2, 0);
+  const tip = local(b, stunned ? -r * 1.0 : r * 1.15, 0);
+  neonStroke(g, stunned ? hex(COLORS.dim) : color, 5, () => g.lineBetween(base.x, base.y, tip.x, tip.y));
+  g.fillStyle(stunned ? hex(COLORS.dim) : hex(COLORS.red), 1).fillCircle(tip.x, tip.y, 6);
+  g.lineStyle(2, color, 0.7).strokeCircle(base.x, base.y, r * 0.3);
+  if (mirage) g.fillStyle(WHITE, 0.35 * Math.abs(Math.sin(world.time * 22))).fillPoints(box, true);
 };
 
 // サーチライト・センチネル：八角の土台と、向いている方向の大きなレンズ

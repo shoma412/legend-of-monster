@@ -367,4 +367,39 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'control',
+    code: 'GRID 03',
+    name: '主幹制御室',
+    theme: 'control',
+    bgm: 'control',
+    bossBgm: 'bossControl',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    // 部屋の仕掛け：ときどき、部屋全体が明るくなる
+    gimmicks: [{ id: 'surge', chance: 0.4 }],
+    enemies: [
+      { id: 'blinker', weight: 3 },
+      { id: 'capacitor', weight: 2 },
+      { id: 'watchlamp', weight: 2 },
+      { id: 'flasher', weight: 2 },
+      { id: 'stalker', weight: 2 },
+      { id: 'lampbreaker', weight: 1 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['blinker', 'flasher', 'lampbreaker'],
+    boss: 'breaker',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ この区の電気を止めたのは、あれだ。',
+        '@noise＞ 灯りを落としてくる。暗い間は、足元の予告だけを見ろ。偽物は、明滅しない。冷却が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……主幹が、落ちた。もう、何も遮断しない。',
+        '@noise＞ 停電区は、これで全部だ。帰ってこい。',
+      ],
+    },
+  },
 ];

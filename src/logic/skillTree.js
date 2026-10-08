@@ -32,7 +32,7 @@ export function treeNodeDefs() {
   for (const def of upgrades) {
     if (def.ready === false) continue;
     def.costs.forEach((cost, index) => {
-      list.push({ id: `${def.id}#${index}`, upgrade: def.id, index, cost, types: Object.keys(cost).length, rank: rankOf(cost), maxDepth: def.treeMaxDepth ?? null });
+      list.push({ id: `${def.id}#${index}`, upgrade: def.id, index, cost, types: Object.keys(cost).length, rank: rankOf(cost), maxDepth: def.treeMaxDepth ?? null, since: def.since ?? 1 });
     });
   }
   return list;
@@ -61,9 +61,10 @@ function shuffle(list, rng) {
 
 const pick = (list, rng) => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 
-// 配置を1回作ってみる。決まりを満たせなかったら null
+// 最初の配置（since が 1 のマスだけ）を1回作ってみる。決まりを満たせなかったら null
+//   ここを変えると、今あるセーブデータの配置が変わってしまう。あとから足すマスは、下の extendTree で付け足す
 function tryBuild(rng) {
-  const defs = treeNodeDefs();
+  const defs = treeNodeDefs().filter((d) => d.since === 1);
   const placed = [];
   const children = new Map();
   const place = (def, parent) => {
@@ -122,6 +123,32 @@ function tryBuild(rng) {
   return placed.length === defs.length ? placed : null;
 }
 
+// あとから足したマス（since が 2 以上）を、今ある配置に付け足す。今あるマスの場所と親は、変えない。
+//   深さの決まりと、「手前のマスは、先のボスの素材を要求しない」は、足したマスにも当てはまる。枝に空きがなければ、その枝から1本多く伸ばす。
+//   乱数は、足した回（since）ごとに別のものを使う（次にまた足しても、前に足したマスの場所は変わらない）
+function extendTree(nodes, key) {
+  const extra = treeNodeDefs().filter((d) => d.since > 1).sort((a, b) => a.since - b.since || a.types - b.types || a.rank - b.rank || a.upgrade.localeCompare(b.upgrade) || a.index - b.index);
+  if (extra.length === 0) return nodes;
+  const placed = [...nodes];
+  const children = new Map(placed.map((n) => [n.id, 0]));
+  for (const n of placed) if (n.parent) children.set(n.parent, children.get(n.parent) + 1);
+  const room = (node) => children.get(node.id) < (node.depth <= 2 ? TREE.maxChildren : TREE.maxChildrenDeep);
+  const inRange = (def, depth) => depth >= TREE.depthByTypes[def.types][0] && depth <= Math.min(def.maxDepth ?? 99, TREE.depthByTypes[def.types][1]);
+  const rngs = new Map();
+  for (const def of extra) {
+    if (!rngs.has(def.since)) rngs.set(def.since, mulberry((key ^ Math.imul(def.since, 0x51ed270b)) >>> 0));
+    const rng = rngs.get(def.since);
+    const options = placed.filter((n) => inRange(def, n.depth + 1) && n.rank <= def.rank);
+    if (options.length === 0) throw new Error(`スキルツリーに、マス ${def.id} を足せませんでした（seed ${key}）`);
+    const free = options.filter(room);
+    const parent = pick(free.length > 0 ? free : options, rng);
+    placed.push({ ...def, parent: parent.id, depth: parent.depth + 1 });
+    children.set(def.id, 0);
+    children.set(parent.id, children.get(parent.id) + 1);
+  }
+  return placed;
+}
+
 const cache = new Map();
 
 // その種の配置。{ nodes: [{ id, upgrade, index, cost, types, rank, parent, depth }], byId }
@@ -132,6 +159,7 @@ export function buildTree(seed) {
   let nodes = null;
   for (let attempt = 0; attempt < TREE.attempts && !nodes; attempt++) nodes = tryBuild(mulberry((key ^ Math.imul(attempt, 0x9e3779b1)) >>> 0));
   if (!nodes) throw new Error(`スキルツリーの配置を作れませんでした（seed ${key}）`);
+  nodes = extendTree(nodes, key);
   const tree = { nodes, byId: Object.fromEntries(nodes.map((n) => [n.id, n])) };
   if (cache.size > 16) cache.clear();
   cache.set(key, tree);

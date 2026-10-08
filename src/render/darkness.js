@@ -25,12 +25,16 @@ export function drawEyes(g, world) {
   if (!darkEnv(world)) return;
   const p = world.player;
   for (const e of world.enemies) {
-    if (e.dead || e.spawnT > 0 || e.hidden || e.def.prop) continue;
+    if (e.dead || e.spawnT > 0 || e.hidden || (e.def.prop && !e.def.decoy)) continue;
+    if (e.unseen && e.hit <= 0) continue; // 明滅機：消えている間は、目の光も出ない
     if (isVisible(world, e.x, e.y, -e.r * 0.5)) continue;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
-    const gap = e.boss ? 7 : 4;
-    const size = e.boss ? 3.2 : 2;
-    const blink = 0.65 + 0.35 * Math.sin(world.time * 3 + (e.seed ?? 0));
+    const big = e.boss || e.def.decoy;
+    const gap = big ? 7 : 4;
+    const size = big ? 3.2 : 2;
+    // 残像を出している間：本物の目だけが、細かく明滅する。偽物の目は、点いたまま
+    const mirage = e.boss && e.act?.def.pattern === 'afterimage' && e.act.phase !== 'telegraph' && e.act.phase !== 'recover';
+    const blink = e.def.decoy ? 1 : mirage ? 0.45 + 0.55 * Math.abs(Math.sin(world.time * 22)) : 0.65 + 0.35 * Math.sin(world.time * 3 + (e.seed ?? 0));
     for (const side of [-1, 1]) {
       const x = e.x + Math.cos(a) * e.r * 0.3 - Math.sin(a) * side * gap;
       const y = e.y + Math.sin(a) * e.r * 0.3 + Math.cos(a) * side * gap;

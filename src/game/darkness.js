@@ -15,7 +15,8 @@ export function visionRadius(world) {
   const env = darkEnv(world);
   if (!env) return Infinity;
   const p = world.player;
-  const scale = p.blindT > 0 ? env.blind.scale : 1;
+  // 目くらみと、ボスの「遮断」で、見える円は狭くなる
+  const scale = (p.blindT > 0 ? env.blind.scale : 1) * (world.blackout ? world.blackout.scale : 1);
   return env.vision * (1 + (p.stats.visionBonus ?? 0)) * scale;
 }
 
@@ -25,6 +26,8 @@ export function lightSources(world) {
   if (!env) return [];
   const list = [];
   for (const lamp of world.lamps ?? []) if (lamp.on > 0) list.push({ x: lamp.x, y: lamp.y, r: env.lamps.radius });
+  // 通電・復電：部屋全体が明るい
+  if (world.surgeT > 0) list.push({ x: (world.bounds.left + world.bounds.right) / 2, y: (world.bounds.top + world.bounds.bottom) / 2, r: 4000 });
   for (const l of world.lights ?? []) list.push({ x: l.x, y: l.y, r: l.r * Math.min(1, (l.life / l.max) * 1.6) });
   for (const e of world.enemies ?? []) {
     if (e.dead || e.spawnT > 0) continue;
@@ -101,6 +104,31 @@ export function flashAt(world, x, y, def) {
   return true;
 }
 
+// 遮断（ボス「ブレーカー」）：seconds 秒のあいだ、非常灯がすべて消えて点かず、見える円が scale 倍になる
+export function startBlackout(world, seconds, scale) {
+  if (!darkEnv(world)) return;
+  world.blackout = { t: seconds, scale };
+  world.surgeT = 0;
+  for (const lamp of world.lamps) lamp.on = 0;
+}
+
+// 通電・復電：seconds 秒のあいだ、部屋全体が明るくなる。遮断は終わる
+export function powerOn(world, seconds) {
+  if (!darkEnv(world)) return;
+  world.blackout = null;
+  world.surgeT = Math.max(world.surgeT ?? 0, seconds);
+}
+
+// 部屋の非常灯を、すべて点ける（壊されていたものも直る）
+export function lightAllLamps(world) {
+  const env = darkEnv(world);
+  if (!env) return;
+  for (const lamp of world.lamps) {
+    lamp.broken = 0;
+    lamp.on = env.lamps.duration;
+  }
+}
+
 // その場所が、点いている非常灯の光の中か
 export function nearLitLamp(world, x, y) {
   const env = darkEnv(world);
@@ -129,9 +157,19 @@ export function updateDarkness(world, dt) {
   const p = world.player;
   if (p.blindT > 0) p.blindT -= dt;
   if (!env) return;
+  if (world.surgeT > 0) world.surgeT -= dt;
+  if (world.blackout) {
+    world.blackout.t -= dt;
+    if (world.blackout.t <= 0) world.blackout = null;
+  }
   for (const lamp of world.lamps) {
     if (lamp.broken > 0) {
       lamp.broken -= dt;
+      continue;
+    }
+    // 遮断の間は、非常灯は点かない
+    if (world.blackout) {
+      lamp.on = 0;
       continue;
     }
     if (lamp.on > 0) lamp.on -= dt;
