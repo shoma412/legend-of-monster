@@ -1012,15 +1012,21 @@ export class MenuOverlay {
 
     // 操作方法（マニュアル／オート）。音の欄の右に置く
     this.text(660, 196, '操作方法', 12, COLORS.cyan, { fontStyle: '700' });
-    CONTROL_MODES.forEach((opt, i) => {
-      this.button(660 + i * 122, 216, 116, 26, opt.label, opt.id === s.controls ? COLORS.cyan : COLORS.dim, () => {
-        s.controls = opt.id;
-        saveSettings();
-        playSe('select');
-        this.render();
+    if (touch.enabled) {
+      // モバイル版：オートに固定（選べない。設定の中身は書き換えないので、パソコンで選んだ操作方法は残る）
+      this.button(660, 216, 116, 26, 'オート（固定）', COLORS.cyan, () => playSe('deny'));
+      this.text(660, 248, 'ロックオンした敵を向く。R：切り替え', 11, COLORS.dim);
+    } else {
+      CONTROL_MODES.forEach((opt, i) => {
+        this.button(660 + i * 122, 216, 116, 26, opt.label, opt.id === s.controls ? COLORS.cyan : COLORS.dim, () => {
+          s.controls = opt.id;
+          saveSettings();
+          playSe('select');
+          this.render();
+        });
       });
-    });
-    this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
+      this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
+    }
 
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {
