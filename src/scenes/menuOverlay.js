@@ -31,9 +31,19 @@ const PANEL = 0x110f1d;
 const LOCKED = '#4a4470';
 
 // スキルツリーの円を出す枠と、その真ん中
-const TREE_RECT = { left: 40, top: 166, right: 500, bottom: 462 };
-const TREE_CENTER = { x: 270, y: 314 };
-const TREE_RINGS = [0, 30, 58, 86, 105, 122, 139]; // 段ごとの、中心からの距離（拡大していないとき）
+// マスが57個に増えて混んできたので（2026-10-09）、枠を横に広げ、円を横長にして、マス同士の間をあけている
+const TREE_RECT = { left: 40, top: 166, right: 580, bottom: 462 };
+const TREE_CENTER = { x: 310, y: 316 };
+const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114]; // 段ごとの、中心からの距離（縦の長さ。拡大していないとき）
+const TREE_STRETCH = 2.15; // 横は、縦の何倍に広げるか（枠が横長なので、横に広げてマスの間をあける）
+// 絞り込み：選んだもの以外のマスを薄くする
+const TREE_FILTERS = [
+  { id: 'all', label: 'すべて', w: 58 },
+  { id: 'open', label: '取れる', w: 58 },
+  { id: 'body', label: '体', w: 34 },
+  { id: 'skill', label: '技', w: 34 },
+  { id: 'gear', label: '備', w: 34 },
+];
 
 const TAB_LABELS = {
   status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
@@ -127,7 +137,7 @@ export class MenuOverlay {
     const p = layout.pos[id];
     const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
     const radius = TREE_RINGS[Math.min(TREE_RINGS.length - 1, p.col)];
-    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+    return { x: Math.cos(angle) * radius * TREE_STRETCH, y: Math.sin(angle) * radius };
   }
 
   get tabId() {
@@ -593,6 +603,9 @@ export class MenuOverlay {
     const R = 8 * Math.min(2, zoom ** 0.7); // マスの大きさ（寄ると、少し大きくなる）
     const CATEGORY = { body: { label: '体', color: COLORS.green }, skill: { label: '技', color: COLORS.red }, gear: { label: '備', color: COLORS.cyan } };
     const state = Object.fromEntries(tree.nodes.map((n) => [n.id, treeNodeState(save, n.id)]));
+    // 絞り込み：選んだもの以外は、薄く描く（線も）。「取れる」は、手前を取ってあるマス（素材が足りないものも含む）
+    const filter = (this.treeFilter ??= 'all');
+    const matches = (n) => filter === 'all' || (filter === 'open' ? state[n.id] === 'open' || state[n.id] === 'short' : DATA.upgrades.get(n.upgrade).category === filter);
 
     this.panel(TREE_RECT.left, TREE_RECT.top, TREE_RECT.right - TREE_RECT.left, TREE_RECT.bottom - TREE_RECT.top);
     // マスの中の文字が隠れないよう、いちばん手前に出す層（this.graphics()）ではなく、ふつうの層に描く
@@ -606,13 +619,13 @@ export class MenuOverlay {
     };
     // 段の目安の輪（薄く）。枠の中に見えているところだけ、短い線をつないで描く
     for (let d = 1; d < TREE_RINGS.length; d++) {
-      g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.5 : 0.3);
+      g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.32 : 0.2);
       const parts = 72;
       for (let k = 0; k < parts; k++) {
         const a1 = (k / parts) * Math.PI * 2;
         const a2 = ((k + 1) / parts) * Math.PI * 2;
-        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * TREE_RINGS[d], y: Math.sin(a1) * TREE_RINGS[d] });
-        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * TREE_RINGS[d], y: Math.sin(a2) * TREE_RINGS[d] });
+        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * TREE_RINGS[d] * TREE_STRETCH, y: Math.sin(a1) * TREE_RINGS[d] });
+        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * TREE_RINGS[d] * TREE_STRETCH, y: Math.sin(a2) * TREE_RINGS[d] });
         line(p1.x, p1.y, p2.x, p2.y);
       }
     }
@@ -622,7 +635,8 @@ export class MenuOverlay {
       const from = n.parent ? at(n.parent) : root;
       const lit = state[n.id] === 'owned';
       const near = state[n.id] === 'open' || state[n.id] === 'short';
-      g.lineStyle(lit ? 2.5 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.dim), lit ? 0.9 : near ? 0.75 : 0.45);
+      const shown = matches(n);
+      g.lineStyle(lit ? 2 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.dim), (lit ? 0.7 : near ? 0.75 : 0.4) * (shown ? 1 : 0.25));
       line(from.x, from.y, to.x, to.y);
     }
     // 中心
@@ -638,6 +652,13 @@ export class MenuOverlay {
       const cat = CATEGORY[def.category] ?? CATEGORY.body;
       const st = state[n.id];
       const color = st === 'owned' ? COLORS.green : st === 'open' ? COLORS.amber : st === 'short' ? COLORS.dim : LOCKED;
+      const shown = matches(n);
+      if (!shown) {
+        // 絞り込みから外れたマス：小さく、薄く（場所だけ分かる。クリックはできる）
+        g.fillStyle(PANEL, 1).fillCircle(p.x, p.y, R * 0.55);
+        g.lineStyle(1, hex(color), 0.35).strokeCircle(p.x, p.y, R * 0.55);
+        if (i === this.cursor) g.lineStyle(2, hex(COLORS.cyan), 1).strokeCircle(p.x, p.y, R + 4);
+      } else {
       g.fillStyle(PANEL, 1).fillCircle(p.x, p.y, R);
       if (st === 'owned') g.fillStyle(hex(COLORS.green), 0.35).fillCircle(p.x, p.y, R);
       g.lineStyle(st === 'open' ? 2.5 : 1.5, hex(color), 1).strokeCircle(p.x, p.y, R);
@@ -646,6 +667,7 @@ export class MenuOverlay {
       this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
       // 十分に寄ったら、マスの下に強化の名前も出す
       if (zoom >= 1.9 && inRect(p.x, p.y + R + 12, TREE_RECT, 8)) this.text(p.x, p.y + R + 3, def.name, 10, st === 'locked' ? LOCKED : COLORS.ink).setOrigin(0.5, 0);
+      }
       // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る（引っぱって動かした直後は、何もしない）
       const hit = this.scene.add.circle(p.x, p.y, R + 3, 0x000000, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => {
@@ -663,6 +685,24 @@ export class MenuOverlay {
     const strip = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.bottom - 25, TREE_RECT.right - TREE_RECT.left - 2, 24, PANEL, 0.96).setOrigin(0);
     this.root.add(strip);
     this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）', 11, COLORS.dim);
+    // 絞り込みのボタン（枠の上の帯）。選んだもの以外のマスが、薄くなる
+    const bar = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.top + 1, TREE_RECT.right - TREE_RECT.left - 2, 30, PANEL, 0.96).setOrigin(0);
+    this.root.add(bar);
+    this.text(TREE_RECT.left + 10, TREE_RECT.top + 9, '絞り込み', 11, COLORS.dim);
+    let fx = TREE_RECT.left + 66;
+    for (const f of TREE_FILTERS) {
+      const on = filter === f.id;
+      const fcolor = f.id === 'all' || f.id === 'open' ? COLORS.ink : CATEGORY[f.id].color;
+      this.button(fx, TREE_RECT.top + 4, f.w, 22, f.label, on ? fcolor : COLORS.dim, () => {
+        this.treeFilter = f.id;
+        playSe('select');
+        this.render();
+      }, 12);
+      if (on) this.root.add(this.scene.add.rectangle(fx, TREE_RECT.top + 27, f.w, 2, hex(fcolor), 1).setOrigin(0));
+      fx += f.w + 6;
+    }
+    const counts = { owned: tree.nodes.filter((n) => state[n.id] === 'owned').length, open: tree.nodes.filter((n) => state[n.id] === 'open').length };
+    this.text(TREE_RECT.right - 10, TREE_RECT.top + 9, `取得 ${counts.owned} / ${tree.nodes.length}　今取れる ${counts.open}`, 11, counts.open > 0 ? COLORS.amber : COLORS.dim).setOrigin(1, 0);
     this.text(TREE_RECT.right - 10, TREE_RECT.bottom - 20, `×${zoom.toFixed(1)}`, 11, zoom > TREE_VIEW.min ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(1, 0);
 
     // 右側：選んでいるマスの中身
@@ -670,11 +710,11 @@ export class MenuOverlay {
     const cat = CATEGORY[def.category] ?? CATEGORY.body;
     const st = state[picked.id];
     const have = save.upgrades[picked.upgrade] ?? 0;
-    const X = 512;
-    this.panel(X, 166, 408, 296, st === 'open' ? COLORS.amber : COLORS.line);
+    const X = 592;
+    this.panel(X, 166, 328, 296, st === 'open' ? COLORS.amber : COLORS.line);
     this.text(X + 18, 180, `［${cat.label}］${def.name}`, 17, cat.color, { fontStyle: '700' });
-    this.text(X + 18, 208, def.desc, 13, COLORS.ink, { wordWrap: { width: 372, useAdvancedWrap: true }, lineSpacing: 4 });
-    this.text(X + 18, 250, `この強化を取った数　${have} / ${def.max}　　中心から ${picked.depth} 段目`, 12, COLORS.dim);
+    this.text(X + 18, 208, def.desc, 13, COLORS.ink, { wordWrap: { width: 294, useAdvancedWrap: true }, lineSpacing: 4 });
+    this.text(X + 18, 256, `取った数 ${have} / ${def.max}　　中心から ${picked.depth} 段目`, 12, COLORS.dim);
     this.text(X + 18, 280, st === 'owned' ? '使った素材' : '必要な素材', 12, COLORS.cyan, { fontStyle: '700' });
     Object.entries(picked.cost).forEach(([id, n], k) => {
       const mat = DATA.materials.get(id);
@@ -683,7 +723,7 @@ export class MenuOverlay {
       // 1回も手に入れたことのない素材は、名前を伏せる（どのボスの素材かが、先に分かってしまわないように）
       const known = id in save.materials;
       this.text(X + 30, 300 + k * 20, `${materialName(id, save)} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
-      if (st !== 'owned') this.text(X + 240, 300 + k * 20, `持っている数 ${own}`, 12, enough ? COLORS.dim : COLORS.red);
+      if (st !== 'owned') this.text(X + 310, 300 + k * 20, `所持 ${own}`, 12, enough ? COLORS.dim : COLORS.red).setOrigin(1, 0);
     });
     const status = {
       owned: ['取得済み', COLORS.green],
@@ -695,11 +735,11 @@ export class MenuOverlay {
     // 凡例
     this.text(X + 18, 408, '文字', 11, COLORS.dim);
     [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]].forEach(([mark, meaning, color], k) => {
-      this.text(X + 50 + k * 96, 407, mark, 12, color, { fontStyle: '700' });
-      this.text(X + 66 + k * 96, 408, meaning, 11, COLORS.dim);
+      this.text(X + 50 + k * 88, 407, mark, 12, color, { fontStyle: '700' });
+      this.text(X + 66 + k * 88, 408, meaning, 11, COLORS.dim);
     });
     this.text(X + 18, 432, '色', 11, COLORS.dim);
-    [['取得済み', COLORS.green], ['取れる', COLORS.amber], ['素材不足', COLORS.dim], ['まだ', LOCKED]].forEach(([label, color], k) => this.text(X + 50 + k * 86, 431, `● ${label}`, 12, color, { fontStyle: '700' }));
+    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 50 + dx, 431, `● ${label}`, 12, color, { fontStyle: '700' }));
   }
 
   // ---- 記録 ----

@@ -116,12 +116,10 @@ describe('武器ごとの強化', () => {
 });
 
 describe('武器の強さの調整（2026-10-09）', () => {
-  it('ナックル：ゲージの溜まりは 3（フックは 6）。通常攻撃5セットでは、まだ満タンにならない', () => {
+  it('ナックル：ゲージの溜まりは、元のまま（4。フックは 8）。下げる調整は、取りやめた', () => {
     const special = DATA.weapons.get('knuckle').special;
-    expect(special.gain).toBe(3);
-    expect(special.gainHeavy).toBe(6);
-    expect((special.gain * 3 + special.gainHeavy) * 5).toBeLessThan(special.gaugeMax);
-    expect((special.gain * 3 + special.gainHeavy) * 7).toBeGreaterThanOrEqual(special.gaugeMax);
+    expect(special.gain).toBe(4);
+    expect(special.gainHeavy).toBe(8);
   });
 
   it('チャクラム：威力28。行きと帰りで56', () => {
