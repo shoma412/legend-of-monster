@@ -13,7 +13,7 @@ import { weaponFor } from '../logic/stats.js';
 import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
-import { canAfford, permanentBonuses, unlockWeapon } from '../logic/meta.js';
+import { canAfford, permanentBonuses, saveTree, treeNodeState, unlockWeapon } from '../logic/meta.js';
 import { createBuild, weaponTraitText } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
@@ -207,6 +207,10 @@ export class HideoutScene extends Phaser.Scene {
         else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${note}）` });
         else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost, save)}` });
         else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost, save), prompt: `E：${def.name}を解放する（${costText(def.cost, save)}）　${ownedText(save, def.cost)}` });
+      } else if (o.id === 'menu:upgrade') {
+        // 今すぐ取れるマスがあれば、端末に数を出して知らせる
+        const open = saveTree(save).nodes.filter((n) => treeNodeState(save, n.id) === 'open').length;
+        Object.assign(o, open > 0 ? { color: COLORS.amber, sub: `取れるマス ${open}` } : { color: COLORS.green, sub: '恒久強化' });
       } else if (o.icon === 'gate') {
         o.prompt = `E：出撃先を選ぶ（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }

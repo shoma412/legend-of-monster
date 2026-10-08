@@ -17,6 +17,7 @@ import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
+import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
 import { TREE_VIEW, centerOn, clipSegment, createTreeView, inRect, panBy, toScreen, zoomAt } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
@@ -151,6 +152,8 @@ export class MenuOverlay {
     this.scroll = 0;
     this.dialog = null;
     this.root.setVisible(true);
+    // スキルツリーは、今すぐ取れるマスがあれば、そこを選んだ状態で開く
+    if (this.tabId === 'upgrade' && !this.options.readOnlyUpgrades) this.jumpToOpen(false);
     this.render();
   }
 
@@ -195,6 +198,7 @@ export class MenuOverlay {
     else if (code === 'KeyW' || code === 'ArrowUp') this.moveCursor(-1);
     else if (code === 'KeyS' || code === 'ArrowDown') this.moveCursor(1);
     else if (code === 'Enter' || code === 'KeyE') this.confirmRow();
+    else if (code === 'KeyF' && this.tabId === 'upgrade') this.jumpToOpen();
     else if (isBackKey(code)) this.close();
   }
 
@@ -252,6 +256,20 @@ export class MenuOverlay {
       this.text(bar.x + 4, bar.y - 14, 'ホイール / W・S：スクロール', 11, COLORS.dim).setOrigin(1, 0);
     }
     return this.scroll;
+  }
+
+  // スキルツリー：次の「取れるマス」を選ぶ（F キー、「今取れる」の表示をクリック）。なければ、素材が足りないだけのマス
+  jumpToOpen(sound = true) {
+    const { save } = this.options.context();
+    const states = this.treeOrder().map((n) => treeNodeState(save, n.id));
+    const i = nextOpenIndex(states, sound ? this.cursor : -1);
+    if (i < 0) return;
+    this.cursor = i;
+    this.treeFollow = true;
+    if (sound) {
+      playSe('select');
+      this.render();
+    }
   }
 
   confirmRow() {
@@ -639,6 +657,17 @@ export class MenuOverlay {
       g.lineStyle(lit ? 2 : 1.5, hex(lit ? COLORS.green : near ? COLORS.amber : COLORS.dim), (lit ? 0.7 : near ? 0.75 : 0.4) * (shown ? 1 : 0.25));
       line(from.x, from.y, to.x, to.y);
     }
+    // 道筋：選んだマスまでに、あと取る必要のあるマスを、中心（か、取ってあるマス）からつないで光らせる
+    const path = pathTo(tree, save.tree.owned, picked.id);
+    if (path.length > 1) {
+      g.lineStyle(3, hex(COLORS.cyan), 0.85);
+      for (const n of path) {
+        const to = at(n.id);
+        const from = n.parent ? at(n.parent) : root;
+        line(from.x, from.y, to.x, to.y);
+      }
+    }
+    const onPath = new Set(path.length > 1 ? path.map((n) => n.id) : []);
     // 中心
     if (inRect(root.x, root.y, TREE_RECT, 10)) {
       g.fillStyle(hex(COLORS.cyan), 1).fillCircle(root.x, root.y, 5);
@@ -664,6 +693,7 @@ export class MenuOverlay {
       g.lineStyle(st === 'open' ? 2.5 : 1.5, hex(color), 1).strokeCircle(p.x, p.y, R);
       if (st === 'open') g.lineStyle(4, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, R + 3);
       if (i === this.cursor) g.lineStyle(2, hex(COLORS.cyan), 1).strokeCircle(p.x, p.y, R + 4);
+      else if (onPath.has(n.id)) g.lineStyle(1.5, hex(COLORS.cyan), 0.8).strokeCircle(p.x, p.y, R + 3);
       this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
       // 十分に寄ったら、マスの下に強化の名前も出す
       if (zoom >= 1.9 && inRect(p.x, p.y + R + 12, TREE_RECT, 8)) this.text(p.x, p.y + R + 3, def.name, 10, st === 'locked' ? LOCKED : COLORS.ink).setOrigin(0.5, 0);
@@ -684,7 +714,7 @@ export class MenuOverlay {
     // 操作の案内と、今の倍率（マスや線と重ならないよう、下に帯を敷く）
     const strip = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.bottom - 25, TREE_RECT.right - TREE_RECT.left - 2, 24, PANEL, 0.96).setOrigin(0);
     this.root.add(strip);
-    this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）', 11, COLORS.dim);
+    this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）　　F：次の取れるマス', 11, COLORS.dim);
     // 絞り込みのボタン（枠の上の帯）。選んだもの以外のマスが、薄くなる
     const bar = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.top + 1, TREE_RECT.right - TREE_RECT.left - 2, 30, PANEL, 0.96).setOrigin(0);
     this.root.add(bar);
@@ -702,7 +732,7 @@ export class MenuOverlay {
       fx += f.w + 6;
     }
     const counts = { owned: tree.nodes.filter((n) => state[n.id] === 'owned').length, open: tree.nodes.filter((n) => state[n.id] === 'open').length };
-    this.text(TREE_RECT.right - 10, TREE_RECT.top + 9, `取得 ${counts.owned} / ${tree.nodes.length}　今取れる ${counts.open}`, 11, counts.open > 0 ? COLORS.amber : COLORS.dim).setOrigin(1, 0);
+    this.text(TREE_RECT.right - 10, TREE_RECT.top + 9, `取得 ${counts.owned} / ${tree.nodes.length}　今取れる ${counts.open}`, 11, counts.open > 0 ? COLORS.amber : COLORS.dim, {}, () => this.jumpToOpen()).setOrigin(1, 0);
     this.text(TREE_RECT.right - 10, TREE_RECT.bottom - 20, `×${zoom.toFixed(1)}`, 11, zoom > TREE_VIEW.min ? COLORS.cyan : COLORS.dim, { fontStyle: '700' }).setOrigin(1, 0);
 
     // 右側：選んでいるマスの中身
@@ -713,17 +743,23 @@ export class MenuOverlay {
     const X = 592;
     this.panel(X, 166, 328, 296, st === 'open' ? COLORS.amber : COLORS.line);
     this.text(X + 18, 180, `［${cat.label}］${def.name}`, 17, cat.color, { fontStyle: '700' });
-    this.text(X + 18, 208, def.desc, 13, COLORS.ink, { wordWrap: { width: 294, useAdvancedWrap: true }, lineSpacing: 4 });
-    this.text(X + 18, 256, `取った数 ${have} / ${def.max}　　中心から ${picked.depth} 段目`, 12, COLORS.dim);
-    this.text(X + 18, 280, st === 'owned' ? '使った素材' : '必要な素材', 12, COLORS.cyan, { fontStyle: '700' });
+    this.text(X + 18, 204, def.desc, 13, COLORS.ink, { wordWrap: { width: 294, useAdvancedWrap: true }, lineSpacing: 3 });
+    // 取ったらどうなるか：恒久強化ぜんたいの合計（今 → 取ったあと）。数値で表せない強化（奥義など）には出さない
+    const preview = upgradePreview(DATA.upgrades.all(), save.upgrades, def)[0];
+    if (preview) {
+      const head = this.text(X + 18, 244, `合計　${preview.label} ${preview.now}`, 12, COLORS.ink);
+      if (st !== 'owned') this.text(X + 18 + head.width, 244, ` → ${preview.next}`, 12, COLORS.green, { fontStyle: '700' });
+    }
+    this.text(X + 18, 262, `取った数 ${have} / ${def.max}　　中心から ${picked.depth} 段目`, 11, COLORS.dim);
+    this.text(X + 18, 282, st === 'owned' ? '使った素材' : '必要な素材', 12, COLORS.cyan, { fontStyle: '700' });
     Object.entries(picked.cost).forEach(([id, n], k) => {
       const mat = DATA.materials.get(id);
       const own = save.materials[id] ?? 0;
       const enough = st === 'owned' || own >= n;
       // 1回も手に入れたことのない素材は、名前を伏せる（どのボスの素材かが、先に分かってしまわないように）
       const known = id in save.materials;
-      this.text(X + 30, 300 + k * 20, `${materialName(id, save)} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
-      if (st !== 'owned') this.text(X + 310, 300 + k * 20, `所持 ${own}`, 12, enough ? COLORS.dim : COLORS.red).setOrigin(1, 0);
+      this.text(X + 30, 300 + k * 18, `${materialName(id, save)} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
+      if (st !== 'owned') this.text(X + 310, 300 + k * 18, `所持 ${own}`, 12, enough ? COLORS.dim : COLORS.red).setOrigin(1, 0);
     });
     const status = {
       owned: ['取得済み', COLORS.green],
@@ -731,15 +767,25 @@ export class MenuOverlay {
       short: ['素材が足りない', COLORS.red],
       locked: ['手前のマスを取ると、取れるようになる', LOCKED],
     }[st];
-    this.text(X + 18, 372, status[0], 14, status[1], { fontStyle: '700' });
+    this.text(X + 18, 358, status[0], 13, status[1], { fontStyle: '700' });
+    // 道筋：手前のマスも合わせて、ここまでに要る素材の合計（持っている数／要る数）
+    if (path.length > 1) {
+      const total = totalCost(path);
+      const enough = Object.entries(total).every(([id, n]) => (save.materials[id] ?? 0) >= n);
+      this.text(X + 18, 377, `ここまでの道　あと ${path.length} マス`, 12, COLORS.cyan, { fontStyle: '700' });
+      this.text(X + 310, 378, enough ? '素材は足りる' : '素材が足りない', 11, enough ? COLORS.green : COLORS.red).setOrigin(1, 0);
+      Object.entries(total).slice(0, 6).forEach(([id, n], k) => {
+        const own = save.materials[id] ?? 0;
+        const known = id in save.materials;
+        this.text(X + 24 + (k % 2) * 148, 393 + Math.floor(k / 2) * 13, `${materialName(id, save)} ${own}/${n}`, 11, own >= n ? COLORS.dim : known ? COLORS.red : LOCKED);
+      });
+    }
     // 凡例
-    this.text(X + 18, 408, '文字', 11, COLORS.dim);
     [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]].forEach(([mark, meaning, color], k) => {
-      this.text(X + 50 + k * 88, 407, mark, 12, color, { fontStyle: '700' });
-      this.text(X + 66 + k * 88, 408, meaning, 11, COLORS.dim);
+      this.text(X + 18 + k * 88, 436, mark, 11, color, { fontStyle: '700' });
+      this.text(X + 33 + k * 88, 436, meaning, 11, COLORS.dim);
     });
-    this.text(X + 18, 432, '色', 11, COLORS.dim);
-    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 50 + dx, 431, `● ${label}`, 12, color, { fontStyle: '700' }));
+    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 18 + dx, 449, `● ${label}`, 11, color, { fontStyle: '700' }));
   }
 
   // ---- 記録 ----
