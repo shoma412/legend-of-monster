@@ -36,6 +36,12 @@ export const PAD_KEYS = {
   padRight: ['PadRight', 0],
   padZoomIn: ['PadZoomIn', 0],
   padZoomOut: ['PadZoomOut', 0],
+  padFilter: ['PadFilter', 0],
+  // マップ選択：持ち込み（1つ目・2つ目）と、持ち越し（1つ目・2つ目）の切り替え
+  carry1: ['KeyE', 69],
+  carry2: ['KeyC', 67],
+  keep1: ['KeyR', 82],
+  keep2: ['KeyF', 70],
 };
 
 const held = (button) => !!button && (button.pressed || button.value > PAD.trigger);
@@ -125,12 +131,17 @@ export function padActions(mode, pressed, state) {
       else if (name === 'LT') key('padZoomOut');
       else if (name === 'A') key('enter');
       else if (name === 'Y') key('stash'); // スキルツリー：次の取れるマスへ（F）
+      else if (name === 'X') key('padFilter'); // スキルツリー：絞り込みを切り替える
       else if (name === 'B' || name === 'plus') key('menu');
     } else {
       if (name.startsWith('dir:')) key(name.slice(4));
       else if (name === 'LB') key('left');
       else if (name === 'RB') key('right');
       else if (name === 'A') key('enter');
+      else if (name === 'X') key('carry1');
+      else if (name === 'Y') key('carry2');
+      else if (name === 'LT') key('keep1');
+      else if (name === 'RT') key('keep2');
       else if (name === 'B' || name === 'plus') key('menu');
     }
   }

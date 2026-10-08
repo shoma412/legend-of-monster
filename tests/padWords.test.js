@@ -18,7 +18,7 @@ describe('ゲームパッドの言葉への言い換え', () => {
     expect(padWords('閉じる（Tab）')).toBe('閉じる（B）');
     expect(padWords('はい（Enter）')).toBe('はい（A）');
     expect(padWords('ホイール / W・S：スクロール')).toBe('左スティック：スクロール');
-    expect(padWords('ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）　　F：次の取れるマス')).toBe('RT：拡大　LT：縮小　　Y：次の取れるマス');
+    expect(padWords('ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）　　F：次の取れるマス')).toBe('RT：拡大　LT：縮小　　Y：次の取れるマス　X：絞り込み');
   });
 
   it('タイトル・セーブ枠・マップ選択の案内', () => {

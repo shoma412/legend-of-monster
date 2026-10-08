@@ -293,6 +293,15 @@ export class MenuOverlay {
       this.render();
       return;
     }
+    if (code === 'PadFilter') {
+      if (this.tabId !== 'upgrade') return;
+      // スキルツリー：X で、絞り込みを順に切り替える
+      const i = TREE_FILTERS.findIndex((f) => f.id === (this.treeFilter ?? 'all'));
+      this.treeFilter = TREE_FILTERS[(i + 1) % TREE_FILTERS.length].id;
+      playSe('select');
+      this.render();
+      return;
+    }
     const dir = code.slice(3).toLowerCase();
     const vertical = dir === 'up' || dir === 'down';
     const content = this.targets.filter((t) => t.kind === 'content');
@@ -1065,6 +1074,8 @@ export class MenuOverlay {
       for (let i = 0; i < VOLUME_STEPS; i++) {
         const cell = this.scene.add.rectangle(262 + i * 24, y + 3, 20, 20, i < filled ? hex(COLORS.cyan) : PANEL, 1).setOrigin(0).setStrokeStyle(1, hex(i < filled ? COLORS.cyan : COLORS.dim));
         cell.setInteractive({ useHandCursor: true }).on('pointerdown', set((i + 1) / VOLUME_STEPS));
+        // ゲームパッド：ゲージの目盛りも、選んで押せる
+        this.targets.push({ x: 262 + i * 24, y: y + 3, w: 20, h: 20, run: set((i + 1) / VOLUME_STEPS), kind: 'content' });
         this.root.add(cell);
       }
       this.button(510, y, 30, 26, '＋', COLORS.ink, set(stepVolume(value, 1)), 16);
