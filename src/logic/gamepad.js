@@ -5,6 +5,8 @@ import { stickDirection, stickVector } from './device.js';
 export const PAD = {
   trigger: 0.4, // LT・RT を、これより深く引いたら「押した」
   aimReach: 140, // 右スティックで向いているとき、狙う位置までの距離（px）
+  repeatDelay: 0.4, // スティック・十字キーを、これだけ倒し続けたら（秒）、速く動く状態になる
+  repeatEvery: 0.06, // 速く動く状態での、1つ動くまでの間（秒）
 };
 
 export const BUTTONS = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, minus: 8, plus: 9, up: 12, down: 13, left: 14, right: 15 };
@@ -59,6 +61,17 @@ export function padPressed(prev, now) {
   return list;
 }
 const PAD_DIRS = { up: 1, down: 1, left: 1, right: 1 };
+
+// スティック・十字キーを倒し続けたときの、くり返し。hold は { direction, t }（前のコマの続き）、direction は今倒している向き、dt は秒。
+//   返り値は { hold, fire }。fire が true のコマは、その向きにもう1つ動かす
+export function padRepeat(hold, direction, dt) {
+  if (!direction) return { hold: null, fire: false };
+  if (hold?.direction !== direction) return { hold: { direction, t: 0 }, fire: false };
+  const t = hold.t + dt;
+  if (t < PAD.repeatDelay) return { hold: { direction, t }, fire: false };
+  if (t - PAD.repeatDelay >= PAD.repeatEvery) return { hold: { direction, t: PAD.repeatDelay }, fire: true };
+  return { hold: { direction, t }, fire: false };
+}
 
 // 押した瞬間のものを、画面ごとの働きに直す。
 //   mode: play（動き回る）/ talk（会話）/ choice（レベルアップの3択）/ result（リザルト）/ menu（ポーズ画面・隠れ家のメニュー）/ select（タイトル・セーブ枠・マップ選択）

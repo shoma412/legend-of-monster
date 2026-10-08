@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUTTONS, PAD_KEYS, padActions, padPressed, padTouched, readPad } from '../src/logic/gamepad.js';
+import { BUTTONS, PAD, PAD_KEYS, padActions, padPressed, padRepeat, padTouched, readPad } from '../src/logic/gamepad.js';
 
 // ゲームパッドのふり。down: 押しているボタンの名前, axes: [左X, 左Y, 右X, 右Y]
 function fake(down = [], axes = [0, 0, 0, 0], values = {}) {
@@ -50,6 +50,36 @@ describe('ゲームパッドの読み取り', () => {
     expect(padPressed(a, b)).toEqual(['dir:up']);
     expect(padPressed(b, b)).toEqual([]);
     expect(padPressed(b, c)).toEqual(['dir:right']);
+  });
+});
+
+describe('倒し続けたときのくり返し', () => {
+  // dt 秒ずつ steps コマ進めて、動いた回数を数える
+  function run(direction, steps, dt = 0.02) {
+    let hold = null;
+    let fired = 0;
+    for (let i = 0; i < steps; i++) {
+      const r = padRepeat(hold, direction, dt);
+      hold = r.hold;
+      if (r.fire) fired++;
+    }
+    return fired;
+  }
+
+  it('倒してすぐは、くり返さない', () => {
+    expect(run('down', Math.floor(PAD.repeatDelay / 0.02) - 1)).toBe(0);
+  });
+
+  it('倒し続けると、速くくり返す', () => {
+    // 0.4秒待ったあとの 1秒で、十数回動く
+    const fired = run('down', Math.round((PAD.repeatDelay + 1) / 0.02));
+    expect(fired).toBeGreaterThanOrEqual(10);
+    expect(fired).toBeLessThanOrEqual(20);
+  });
+
+  it('離すと、止まる。向きを変えると、待ち直す', () => {
+    expect(padRepeat({ direction: 'down', t: 5 }, null, 0.02)).toEqual({ hold: null, fire: false });
+    expect(padRepeat({ direction: 'down', t: 5 }, 'up', 0.02)).toEqual({ hold: { direction: 'up', t: 0 }, fire: false });
   });
 });
 

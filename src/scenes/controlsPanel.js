@@ -25,32 +25,111 @@ const TOUCH_GROUPS = [
 
 // ゲームパッドの操作説明（docs/詳細仕様.md「32. ゲームパッド」）。ボタンの名前は Xbox のもの
 const PAD_GROUPS = [
-  { color: COLORS.cyan, name: '左スティック・十字', text: '移動。メニューでは、項目を選ぶ' },
-  { color: COLORS.cyan, name: '右スティック', text: '倒している間、その向きを向く' },
-  { color: COLORS.amber, name: 'RB', text: '攻撃（押している間）。長押しで、溜め斬り・連射' },
-  { color: COLORS.amber, name: 'LB', text: '特殊アクション（武器ごとに違う。右の一覧）' },
-  { color: COLORS.cyan, name: 'LT', text: 'ダッシュ回避（無敵あり）' },
-  { color: COLORS.red, name: 'RT', text: 'ロックオンする敵を切り替える' },
-  { color: COLORS.green, name: 'X', text: '調べる。装備が落ちていれば、バッグに入れる' },
-  { color: COLORS.green, name: 'Y', text: '修復キットを使う（HP回復）' },
-  { color: COLORS.amber, name: 'B', text: '消耗品を切り替える（枠の順に）' },
-  { color: COLORS.amber, name: 'A', text: '選んでいる消耗品を使う。会話を進める' },
-  { color: COLORS.ink, name: '＋（メニュー）', text: 'ポーズ画面を開く・閉じる。会話を飛ばす' },
-  { color: COLORS.magenta, name: '−（ビュー）', text: 'エリアの地図' },
-  { color: COLORS.dim, name: 'メニューの中', text: 'LB・RB：タブ　A：決定　B：閉じる・戻る' },
+  { color: COLORS.cyan, keys: ['LS', 'DP'], name: '左スティック', text: '移動（十字キーでも）' },
+  { color: COLORS.magenta, keys: ['RS'], name: '右スティック', text: '倒している間、その向きを向く' },
+  { color: COLORS.amber, keys: ['RB'], name: 'RB', text: '攻撃（押している間）' },
+  { color: COLORS.amber, keys: ['LB'], name: 'LB', text: '特殊アクション（武器ごとに違う）' },
+  { color: COLORS.cyan, keys: ['LT'], name: 'LT', text: 'ダッシュ回避（無敵あり）' },
+  { color: COLORS.red, keys: ['RT'], name: 'RT', text: 'ロックオンの切り替え' },
+  { color: COLORS.green, keys: ['X'], name: 'X', text: '調べる／落ちている装備をバッグに入れる' },
+  { color: COLORS.green, keys: ['Y'], name: 'Y', text: '修復キットを使う（HP回復）' },
+  { color: COLORS.amber, keys: ['B'], name: 'B', text: '消耗品の切り替え（枠の順に）' },
+  { color: COLORS.amber, keys: ['A'], name: 'A', text: '選んでいる消耗品を使う／会話を進める' },
+  { color: COLORS.ink, keys: ['+'], name: '＋', text: 'ポーズ画面（装備の付け替え、設定など）' },
+  { color: COLORS.ink, keys: ['-'], name: '−', text: 'エリアの地図' },
+];
+// メニューの中での働き
+const PAD_MENU_LINES = [
+  ['LB・RB', 'タブを切り替える'],
+  ['左スティック', '項目を選ぶ（十字キーでも）。倒し続けると、速く動く'],
+  ['A', '決定'],
+  ['B・＋', '閉じる・戻る'],
+  ['Y', 'スキルツリー：次の取れるマスへ'],
+  ['3択', '左右で選んで、A で決定'],
+  ['会話', 'A：次へ　X・Y：選択肢　＋：飛ばす'],
 ];
 
-function renderTouchControls(menu, weapon, groups = TOUCH_GROUPS) {
+function padColor(name) {
+  return PAD_GROUPS.find((group) => group.keys.includes(name))?.color ?? COLORS.dim;
+}
+
+// ゲームパッドの図（Xbox の形）。ボタンは、右の一覧と同じ色
+function drawPadFigure(menu, g) {
+  const part = (name, draw) => {
+    const color = hex(padColor(name));
+    g.fillStyle(color, 0.22);
+    g.lineStyle(2, color, 1);
+    draw();
+  };
+  const label = (x, y, str, name, size = 11) => menu.text(x, y, str, size, padColor(name), { fontStyle: '700' }).setOrigin(0.5);
+  // 肩のボタン（LT・RT は上、LB・RB はその下）
+  for (const [name, x] of [['LT', 112], ['RT', 318]]) {
+    part(name, () => g.fillRoundedRect(x, 176, 50, 22, 6).strokeRoundedRect(x, 176, 50, 22, 6));
+    label(x + 25, 187, name, name);
+  }
+  for (const [name, x] of [['LB', 100], ['RB', 306]]) {
+    part(name, () => g.fillRoundedRect(x, 204, 74, 18, 6).strokeRoundedRect(x, 204, 74, 18, 6));
+    label(x + 37, 213, name, name);
+  }
+  // 本体と、左右の持ち手
+  // （塗ると、上に載せる文字が隠れるので、線だけで描く）
+  g.lineStyle(2, hex(COLORS.dim), 1);
+  g.strokeRoundedRect(80, 226, 320, 136, { tl: 40, tr: 40, bl: 8, br: 8 });
+  for (const x of [106, 374]) {
+    g.beginPath();
+    g.moveTo(x - 22, 362);
+    g.lineTo(x - 22, 400);
+    g.arc(x, 400, 22, Math.PI, 0, true);
+    g.lineTo(x + 22, 362);
+    g.strokePath();
+  }
+  // 左スティック
+  part('LS', () => g.fillCircle(140, 268, 22).strokeCircle(140, 268, 22));
+  g.lineStyle(1, hex(padColor('LS')), 0.8).strokeCircle(140, 268, 12);
+  label(140, 268, 'L', 'LS');
+  // 十字キー
+  part('DP', () => {
+    g.fillRect(184, 310, 14, 44).fillRect(169, 325, 44, 14);
+    g.strokeRect(184, 310, 14, 44).strokeRect(169, 325, 44, 14);
+  });
+  // 右スティック
+  part('RS', () => g.fillCircle(288, 332, 22).strokeCircle(288, 332, 22));
+  g.lineStyle(1, hex(padColor('RS')), 0.8).strokeCircle(288, 332, 12);
+  label(288, 332, 'R', 'RS');
+  // − と ＋
+  for (const [name, x, str] of [['-', 216, '−'], ['+', 264, '＋']]) {
+    part(name, () => g.fillCircle(x, 262, 9).strokeCircle(x, 262, 9));
+    label(x, 262, str, name, 10);
+  }
+  // A・B・X・Y
+  for (const [name, dx, dy] of [['Y', 0, -22], ['A', 0, 22], ['X', -22, 0], ['B', 22, 0]]) {
+    part(name, () => g.fillCircle(342 + dx, 270 + dy, 11).strokeCircle(342 + dx, 270 + dy, 11));
+    label(342 + dx, 270 + dy, name, name, 12);
+  }
+}
+
+// ゲームパッドの操作説明：左にゲームパッドの図、右にボタンの一覧（キーボードとマウスのときと同じ並び）
+function renderPadControls(menu, weapon) {
   const g = menu.graphics();
-  const isPad = groups === PAD_GROUPS;
-  menu.text(60, 132, isPad ? 'ゲームパッド' : '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
-  menu.text(900, 132, isPad ? '右スティックを倒していない間は、オート（敵をロックオンして、その敵のほうを向く）' : '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
-  groups.forEach((group, i) => {
+  menu.text(60, 132, 'ゲームパッド', 12, COLORS.cyan, { fontStyle: '700' });
+  drawPadFigure(menu, g);
+  menu.text(60, 428, '右スティックを倒していない間は、オート（ロックオンした敵のほうを向く）', 10, COLORS.dim);
+  g.lineStyle(1, hex(COLORS.line), 1).lineBetween(436, 134, 436, 446);
+  const lines = listLines(weapon, true);
+  const start = menu.window(lines.length, VISIBLE, { x: 908, y: LIST_Y, h: VISIBLE * LINE });
+  lines.slice(start, start + VISIBLE).forEach((line, i) => line.draw(menu, g, LIST_Y + i * LINE));
+}
+
+function renderTouchControls(menu, weapon) {
+  const g = menu.graphics();
+  menu.text(60, 132, '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
+  menu.text(900, 132, '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
+  TOUCH_GROUPS.forEach((group, i) => {
     const y = 156 + i * 21;
     g.fillStyle(hex(group.color), 0.3).fillRect(60, y + 2, 12, 12);
     g.lineStyle(1, hex(group.color), 1).strokeRect(60, y + 2, 12, 12);
     menu.text(80, y, group.name, 12, group.color, { fontStyle: '700' });
-    menu.text(isPad ? 200 : 166, y, group.text, 12, COLORS.ink);
+    menu.text(166, y, group.text, 12, COLORS.ink);
   });
   // 右：武器ごとの、攻撃と特殊
   menu.text(560, 156, '武器ごとの攻撃と特殊（今の武器は、明るい）', 12, COLORS.cyan, { fontStyle: '700' });
@@ -107,8 +186,8 @@ function mouseLines(weapon) {
   return DATA.weapons.all().map((w) => ({ name: w.name, left: lines[w.id]?.[0] ?? '攻撃', right: lines[w.id]?.[1] ?? w.special.name, current: weapon?.id === w.id }));
 }
 
-// 右の一覧の行。{ draw(menu, g, y) } の並び。1行は LINE px
-function listLines(weapon) {
+// 右の一覧の行。{ draw(menu, g, y) } の並び。1行は LINE px。isPad: ゲームパッドの一覧にする
+function listLines(weapon, isPad = false) {
   const head = (label) => ({
     draw(menu, g, y) {
       g.lineStyle(1, hex(COLORS.line), 1).lineBetween(LIST_X, y + LINE - 3, LIST_X + LIST_W, y + LINE - 3);
@@ -116,8 +195,8 @@ function listLines(weapon) {
     },
   });
   const blank = { draw() {} };
-  const lines = [head('キーの操作')];
-  for (const group of GROUPS) {
+  const lines = [head(isPad ? 'ボタンの操作' : 'キーの操作')];
+  for (const group of isPad ? PAD_GROUPS : GROUPS) {
     lines.push({
       draw(menu, g, y) {
         g.fillStyle(hex(group.color), 0.3).fillRect(LIST_X, y + 5, 12, 12);
@@ -127,17 +206,28 @@ function listLines(weapon) {
       },
     });
   }
-  lines.push(blank, head('武器ごとのクリック（今の武器は、明るい）'));
+  if (isPad) {
+    lines.push(blank, head('メニューの中'));
+    for (const [name, text] of PAD_MENU_LINES) {
+      lines.push({
+        draw(menu, g, y) {
+          menu.text(LIST_X + 20, y + 3, name, 12, COLORS.cyan, { fontStyle: '700' });
+          menu.text(LIST_X + 104, y + 3, text, 12, COLORS.ink);
+        },
+      });
+    }
+  }
+  lines.push(blank, head(isPad ? '武器ごとの攻撃と特殊（今の武器は、明るい）' : '武器ごとのクリック（今の武器は、明るい）'));
   for (const line of mouseLines(weapon)) {
     const on = line.current || !weapon;
     lines.push(
       { draw: (menu, g, y) => menu.text(LIST_X, y + 4, `${line.name}${line.current ? '　← 今の武器' : ''}`, 13, on ? COLORS.ink : COLORS.dim, { fontStyle: '700' }) },
-      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `左クリック：${line.left}`, 12, on ? COLORS.cyan : LOCKED) },
-      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `右クリック：${line.right}`, 12, on ? COLORS.amber : LOCKED) },
+      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `${isPad ? 'RB' : '左クリック'}：${line.left}`, 12, on ? COLORS.cyan : LOCKED) },
+      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `${isPad ? 'LB' : '右クリック'}：${line.right}`, 12, on ? COLORS.amber : LOCKED) },
     );
   }
   // 確認用のキー（開発中の画面だけ。公開版では出ないし、効かない）
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !isPad) {
     lines.push(
       blank,
       head('確認用（開発中の画面だけ）'),
@@ -157,7 +247,7 @@ export function renderControls(menu, weapon) {
   }
   // ゲームパッドで操作しているときは、ゲームパッドのボタンの一覧を出す
   if (pad.active) {
-    renderTouchControls(menu, weapon, PAD_GROUPS);
+    renderPadControls(menu, weapon);
     return;
   }
   const g = menu.graphics();
