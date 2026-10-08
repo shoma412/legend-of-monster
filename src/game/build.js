@@ -8,6 +8,8 @@ import { floatText, ring, sfx } from './fx.js';
 // ビルドが変わったらステータスを計算し直す
 export function recalcStats(player) {
   player.stats = computeStats(player.build);
+  // 属性を奪われている間（隠しボス「カタリスト」の奪取）は、攻撃に属性が付かない
+  if (player.sealT > 0) player.stats = { ...player.stats, elements: [], sealed: player.stats.elements };
   // 最大HPが変わっても、今のHPは増やさない（装備の付け外しをくり返して回復できてしまうため）。最大HPを超えたぶんだけ切り捨てる
   player.hp = Math.min(player.hp, player.stats.maxHp);
 }

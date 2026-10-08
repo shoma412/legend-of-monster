@@ -841,6 +841,74 @@ export const bosses = [
       },
     ],
   },
+  // ---- マップ5の隠しボス（docs/詳細仕様.md「28. マップ5」の「隠しボス「カタリスト」」）。出し方は、マップの定義（secretBoss.rule）----
+  {
+    id: 'catalyst',
+    name: 'カタリスト',
+    alias: '触媒', // 登場時に出す異名
+    hidden: true,
+    bgm: 'bossCatalyst', // この隠しボスだけの曲
+    shape: 'catalyst',
+    color: 'ink',
+    weakness: null,
+    material: 'catalystCore', // 倒すたびに1個
+    radius: 40,
+    hp: 19500,
+    speed: 92,
+    contactDamage: 52,
+    xp: 840,
+    credits: 420,
+    drops: { count: 3, rarityBonus: 2, minRarity: 2 }, // 装備は、エピック以上を保証
+    comms: {
+      intro: [
+        '@noise＞ ……濡れていないお前を、あれは調べている。',
+        '@noise＞ お前の持っている属性を、写し取る。持っているほど、厄介になる。円からは、出ろ。弱点は、ない。',
+      ],
+      defeated: [
+        '@noise＞ ……反応が、止まった。',
+        '@noise＞ 通行証を拾え。コアも持っていけ。いつか、使い道がある。',
+      ],
+    },
+    attacks: {
+      // 固有「反応」：プレイヤーへ弾を撃つ。弾には、写し取った属性の効き目が乗る（電撃のときは shockSpeed 倍に速い）。
+      //   属性を写し取れなかったときは、ダメージが plainBonus 倍になる
+      reflect: { pattern: 'reflect', telegraph: 0.6, count: 5, spread: 56, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shockSpeed: 1.35, shotRadius: 7, damage: 34, plainBonus: 1.25, recover: 0.6 },
+      reflectHard: { pattern: 'reflect', telegraph: 0.5, count: 7, spread: 70, waves: 4, interval: 0.34, track: true, shotSpeed: 310, shockSpeed: 1.35, shotRadius: 7, damage: 34, plainBonus: 1.25, recover: 0.6 },
+      // 固有「奪取」：ボスのまわりの円（radius）。中にいると、ダメージに加えて、seal 秒のあいだ属性を奪われる
+      seize: { pattern: 'seize', telegraph: 1.3, radius: 230, damage: 38, seal: 10, recover: 0.8 },
+      // 固有「軌跡」：突進。通ったあと（gap px ごと）に、写し取った属性の床が残る。壁に当たると隙
+      streak: {
+        pattern: 'streak', telegraph: 0.7, lockTime: 0.2, speed: 680, duration: 0.65, damage: 52, plainBonus: 1.25, wallStun: 1.3, recover: 0.7, reach: 'far',
+        trail: { gap: 70, radius: 42, arm: 0.5, life: 5, damage: 14, strike: 40, strikeDelay: 0.8 },
+      },
+      // 放電：足元からの衝撃波の輪
+      pulse: { pattern: 'shockwave', telegraph: 0.8, damage: 40, ringSpeed: 340, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 追尾の照準
+      probe: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 330, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
+      // 大技「連鎖反応」：4つの属性すべてを乗せた弾を、全方向に何度も撃つ
+      chainreaction: { pattern: 'reflect', telegraph: 1.7, all: true, count: 14, spread: 360, waves: 7, interval: 0.42, rotate: 13, shotSpeed: 220, shockSpeed: 1.2, shotRadius: 7, damage: 34, recover: 1.5 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'streak' }],
+    ultimate: { move: 'chainreaction', announce: '連鎖反応' },
+    phases: [
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['reflect', 'seize', 'streak', 'pulse'] },
+      {
+        hpAbove: 0.3,
+        idle: { min: 0.8, max: 1.3 },
+        moves: ['reflectHard', 'seize', 'streak', 'pulse', 'probe'],
+        combos: [{ moves: ['streak', 'pulse'] }, { moves: ['seize', 'reflectHard'] }],
+        announce: '反応、加速',
+      },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        speed: 1.15,
+        moves: ['reflectHard', 'seize', 'streak', 'pulse', 'probe'],
+        combos: [{ moves: ['streak', 'reflectHard'] }, { moves: ['seize', 'streak'] }, { moves: ['probe', 'pulse'] }],
+        announce: '平衡、破れる',
+      },
+    ],
+  },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
   {
     id: 'nocturne',

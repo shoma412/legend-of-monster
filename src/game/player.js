@@ -97,6 +97,11 @@ export function updatePlayer(world, dt, input) {
   p.sinceHurt += dt;
   p.sinceKill += dt;
   p.sinceHit = (p.sinceHit ?? Infinity) + dt; // 最後に攻撃を当ててからの秒数
+  // 属性を奪われている時間。切れたら、元に戻る
+  if (p.sealT > 0) {
+    p.sealT -= dt;
+    if (p.sealT <= 0) recalcStats(p);
+  }
   // 再生組織（種族「多頭」）：少しずつ HP が戻る
   if (p.stats.hpRegen > 0 && world.mode !== 'dead' && p.hp < p.stats.maxHp) healPlayer(world, p.stats.hpRegen * dt);
   // 軒下（種族「雨」）：立ち止まっている間、少しずつ HP が戻る

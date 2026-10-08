@@ -464,7 +464,13 @@ export class BattleScene extends Phaser.Scene {
     this.lampText.setVisible(lamps.length > 0 && !this.run.inSecret && this.run.plan.current !== 'boss').setText(`灯り ${litCount}/${lamps.length}`).setColor(litCount >= lamps.length ? COLORS.green : COLORS.amber);
     // 酸の雨：雨までの秒数（降っている間は、残りの秒数）
     const rain = world.rain;
-    if (rain) this.lampText.setVisible(true).setText(rain.phase === 'rain' ? `酸の雨　残り ${Math.ceil(rain.t)}` : `酸の雨まで ${Math.ceil(rain.t + (rain.phase === 'clear' ? world.room.environment.cycle.warn : 0))}`).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
+    if (rain) {
+      const timer = rain.phase === 'rain' ? `酸の雨　残り ${Math.ceil(rain.t)}` : `酸の雨まで ${Math.ceil(rain.t + (rain.phase === 'clear' ? world.room.environment.cycle.warn : 0))}`;
+      // 隠しボスの条件（そのエリアで、雨に1回も当たっていない）が、まだ生きているか
+      const sec = this.run.secret;
+      const dry = sec?.rule === 'rain' && !sec.done && !this.run.inSecret ? (sec.dryOk && !(world.rainHits > 0) ? '　／　濡れていない' : '　／　濡れた') : '';
+      this.lampText.setVisible(true).setText(timer + dry).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
+    }
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 
     const implantCount = Object.keys(p.build.implants).length;

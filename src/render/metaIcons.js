@@ -146,6 +146,15 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.45, y - s * 0.15, x + s * 0.5, y - s * 0.15);
     for (const dx of [-0.25, 0.05, 0.35]) g.lineBetween(x + dx * s, y + s * 0.05, x + (dx - 0.1) * s, y + s * 0.45);
   },
+  // カタリストコア：回る3つの玉
+  catalystCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.2, c, 1).strokeCircle(x, y, s * 0.42);
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI * 2) / 3;
+      g.fillStyle(c, 1).fillCircle(x + Math.cos(a) * s * 0.42, y + Math.sin(a) * s * 0.42, s * 0.15);
+    }
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

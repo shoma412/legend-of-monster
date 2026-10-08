@@ -577,6 +577,11 @@ export function drawPlayer(g, world) {
   const ang = a ? a.angle : Math.atan2(p.fy, p.fx);
   g.fillStyle(0x0b0914, 1).fillCircle(p.x, p.y, p.r);
   neonStroke(g, cyan, 2.5, () => g.strokeCircle(p.x, p.y, p.r));
+  // 属性を奪われている間：灰色の、切れた輪
+  if (p.sealT > 0) {
+    g.lineStyle(2, hex(COLORS.dim), 0.9);
+    for (let i = 0; i < 4; i++) arcPath(g, p.x, p.y, p.r + 9, world.time * 2 + (i * Math.PI) / 2, world.time * 2 + (i * Math.PI) / 2 + 0.9);
+  }
   const tip = [
     { x: p.x + Math.cos(ang) * (p.r + 8), y: p.y + Math.sin(ang) * (p.r + 8) },
     { x: p.x + Math.cos(ang + 0.42) * (p.r - 1), y: p.y + Math.sin(ang + 0.42) * (p.r - 1) },
@@ -1065,6 +1070,34 @@ BOSS_TELEGRAPHS.stormcloud = (g, b, act) => {
   g.lineStyle(2, hex(b.color), 0.7).strokeCircle(b.x, b.y, b.r + 40 * k);
 };
 
+// 反応：撃つ前の予告（ボスのまわりの輪）
+BOSS_TELEGRAPHS.reflect = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+
+// 奪取：奪われる範囲の円（外の輪へ向かって、内の輪が広がる）
+BOSS_TELEGRAPHS.seize = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const k = 1 - Math.max(0, act.t) / def.telegraph;
+  const red = hex(COLORS.red);
+  g.fillStyle(red, 0.08 + 0.16 * k).fillCircle(b.x, b.y, def.radius);
+  g.lineStyle(2, red, 0.9).strokeCircle(b.x, b.y, def.radius);
+  g.lineStyle(3, hex(COLORS.ink), 0.9).strokeCircle(b.x, b.y, def.radius * k);
+};
+
+// 軌跡：突進の線
+BOSS_TELEGRAPHS.streak = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const len = def.speed * def.duration;
+  const locked = act.t <= def.lockTime;
+  g.lineStyle(b.r * 1.6, hex(COLORS.red), locked ? 0.5 : 0.18 + 0.18 * Math.abs(Math.sin(world.time * 16)));
+  g.lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+};
+
 // 溶解：穴が開く場所の予告
 BOSS_TELEGRAPHS.melt = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1536,6 +1569,30 @@ SHAPES.rainmaker = (g, b, color, world) => {
       g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
     }
   }
+};
+
+// カタリスト：三角を2つ重ねた、六芒の結晶。まわりを、写し取った属性の色の玉が回る
+SHAPES.catalyst = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const spin = world.time * (stunned ? 0.1 : 0.7);
+  for (const [rot, k] of [[spin, 1], [-spin + Math.PI / 3, 0.92]]) {
+    const tri = polygon(b.x, b.y, r * 1.15 * k, 3, rot);
+    g.fillStyle(BODY_FILL, 0.9).fillPoints(tri, true);
+    neonStroke(g, color, 3, () => g.strokePoints(tri, true, true));
+  }
+  g.lineStyle(2, color, 0.6).strokeCircle(b.x, b.y, r * 0.45);
+  g.fillStyle(color, stunned ? 0.2 : 0.75).fillCircle(b.x, b.y, r * 0.16);
+  // 写し取った属性の玉
+  const els = b.copied ?? [];
+  els.forEach((el, i) => {
+    const a = world.time * 1.8 + (i * Math.PI * 2) / els.length;
+    const c = hex(ELEMENT_COLORS[el]);
+    const x = b.x + Math.cos(a) * (r + 16);
+    const y = b.y + Math.sin(a) * (r + 16);
+    g.fillStyle(c, 0.95).fillCircle(x, y, 6);
+    g.lineStyle(2, c, 0.4).strokeCircle(x, y, 10);
+  });
 };
 
 // バッファータンク：丸いタンク。体の色が、今の弱点。色が変わる前には、次の色の輪が外に出る

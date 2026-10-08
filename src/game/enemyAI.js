@@ -875,6 +875,7 @@ export function updateShots(world, dt) {
       if (hurtPlayer(world, s.damage)) {
         s.life = 0;
         if (s.dot) afflictPlayer(world, s.dot);
+        else if (s.dots?.length) afflictPlayer(world, s.dots[Math.floor(world.rng() * s.dots.length) % s.dots.length]); // いくつかの属性が乗った弾（カタリスト）
       }
     }
   }

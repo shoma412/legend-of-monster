@@ -10,6 +10,7 @@ import { cellHot, orbitBlades } from '../logic/bossShapes.js';
 import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, startBlackout } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { breakRoof, rainHit, startRain, underRoof } from './acidRain.js';
+import { recalcStats } from './build.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
@@ -1162,6 +1163,155 @@ PATTERNS.scales = {
           });
         }
         sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// ---- 隠しボス「カタリスト」：こちらの属性を写し取って、同じ属性で攻めてくる ----
+
+// プレイヤーが持っている属性を写し取る（奪われている間は、奪われる前のもの）。all なら、4つすべて
+function transcribe(world, b, all = false) {
+  const stats = world.player.stats;
+  b.copied = all ? Object.keys(ELEMENT_COLORS_BY_ID) : [...(stats.sealed ?? stats.elements)];
+  return b.copied;
+}
+
+// 写し取った属性の、効き目。属性を1つも写し取れなかったときは、かわりにダメージが増える
+function copiedEffects(b, def) {
+  const els = b.copied ?? [];
+  return {
+    slow: els.includes('cold'),
+    dots: [els.includes('heat') ? 'burn' : null, els.includes('corrode') ? 'corrode' : null].filter(Boolean),
+    fast: els.includes('shock'),
+    power: els.length === 0 ? def.plainBonus ?? 1 : 1,
+    color: els.length > 0 ? ELEMENT_COLORS_BY_ID[els[0]] : b.color,
+  };
+}
+
+// 反応（カタリスト）：プレイヤーへ弾を撃つ。弾には、写し取った属性の効き目が乗る。all: true なら（大技）、4つすべてが乗る
+PATTERNS.reflect = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.remaining = act.def.waves;
+    act.base = Math.atan2(d.dy, d.dx);
+    transcribe(world, b, !!act.def.all);
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph' || act.phase === 'active') {
+      if (act.t > 0) return false;
+      const fx = copiedEffects(b, def);
+      const full = def.spread >= 360;
+      if (def.track && !full) act.base = Math.atan2(d.dy, d.dx);
+      for (let i = 0; i < def.count; i++) {
+        const offset = full ? (i * 360) / def.count : def.count > 1 ? (i / (def.count - 1) - 0.5) * def.spread : 0;
+        const a = act.base + offset * DEG;
+        const speed = def.shotSpeed * (fx.fast ? def.shockSpeed : 1);
+        world.shots.push({
+          x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+          r: def.shotRadius, damage: def.damage * fx.power, life: 4, slow: fx.slow, dots: fx.dots, color: ELEMENT_COLORS_BY_ID[(b.copied ?? [])[i % Math.max(1, (b.copied ?? []).length)]] ?? b.color,
+        });
+      }
+      act.base += (def.rotate ?? 0) * DEG;
+      sfx(world, 'enemyShot');
+      act.remaining--;
+      act.phase = act.remaining > 0 ? 'active' : 'recover';
+      act.t = act.remaining > 0 ? def.interval : def.recover;
+      return false;
+    }
+    return act.t <= 0;
+  },
+};
+
+// 奪取（カタリスト）：予告の円（ボスのまわり）のあと、円の中にいると、ダメージに加えて、seal 秒のあいだ属性を奪われる
+PATTERNS.seize = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        ring(world, b.x, b.y, def.radius, b.color);
+        sfx(world, 'zap');
+        addShake(world, FEEL.shake.hit);
+        if (Math.hypot(p.x - b.x, p.y - b.y) <= def.radius + p.r && hurtPlayer(world, def.damage) && world.mode === 'play' && !p.guard) {
+          const had = p.stats.sealed ?? p.stats.elements;
+          if (had.length > 0) {
+            p.sealT = def.seal;
+            recalcStats(p);
+            floatText(world, p.x, p.y - 42, 'Sealed!', COLORS.dim, 16);
+          }
+        }
+        transcribe(world, b);
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 軌跡（カタリスト）：予告線つきの突進。通ったあとに、写し取った属性の床が残る。壁に当たると隙
+PATTERNS.streak = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    aimAt(act, d);
+    transcribe(world, b);
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t > def.lockTime) aimAt(act, d);
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        act.last = { x: b.x, y: b.y };
+        act.step = 0;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'active') {
+      const fx = copiedEffects(b, def);
+      b.x += act.dirX * def.speed * dt;
+      b.y += act.dirY * def.speed * dt;
+      if (circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, def.damage * fx.power);
+      // 通ったあとに、床を残す（写し取った属性を、順番に）
+      const els = b.copied ?? [];
+      if (els.length > 0 && Math.hypot(b.x - act.last.x, b.y - act.last.y) >= def.trail.gap) {
+        const el = els[act.step++ % els.length];
+        act.last = { x: b.x, y: b.y };
+        if (el === 'shock') {
+          world.hazards.push({ type: 'mark', x: b.x, y: b.y, r: def.trail.radius, t: def.trail.strikeDelay, max: def.trail.strikeDelay, damage: def.trail.strike, enemyDamage: 0, color: ELEMENT_COLORS_BY_ID.shock });
+        } else {
+          world.hazards.push({
+            type: 'pool', x: b.x, y: b.y, r: def.trail.radius, arm: def.trail.arm, armMax: def.trail.arm, life: def.trail.life,
+            tick: 0.5, acc: 0.5, damage: el === 'cold' ? 0 : def.trail.damage, slow: el === 'cold', dot: el === 'heat' ? 'burn' : el === 'corrode' ? 'corrode' : undefined, color: ELEMENT_COLORS_BY_ID[el],
+          });
+        }
+      }
+      if (clampToBounds(b, world.bounds)) {
+        act.phase = 'stun';
+        act.t = def.wallStun;
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
+      } else if (act.t <= 0) {
         act.phase = 'recover';
         act.t = def.recover;
       }
