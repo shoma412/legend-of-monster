@@ -674,7 +674,9 @@ export class MenuOverlay {
       const mat = DATA.materials.get(id);
       const own = save.materials[id] ?? 0;
       const enough = st === 'owned' || own >= n;
-      this.text(X + 30, 300 + k * 20, `${mat.name} ×${n}`, 13, materialColor(mat), { fontStyle: '700' });
+      // 1回も手に入れたことのない素材は、名前を伏せる（どのボスの素材かが、先に分かってしまわないように）
+      const known = id in save.materials;
+      this.text(X + 30, 300 + k * 20, `${known ? mat.name : '？？？'} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
       if (st !== 'owned') this.text(X + 240, 300 + k * 20, `持っている数 ${own}`, 12, enough ? COLORS.dim : COLORS.red);
     });
     const status = {
