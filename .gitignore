@@ -7,3 +7,5 @@ dist/
 src/dev.local.js
 # デバッグ用のセーブデータのコード（Git には入れない）
 debug-save-*.txt
+# Graphify が作るグラフ（このパソコンだけの開発用。Git には入れない）
+graphify-out/
