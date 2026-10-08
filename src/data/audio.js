@@ -106,6 +106,9 @@ export const BGM = {
   raintower: { file: 'audio/bgm/maou_loop_bgm_cyber35.ogg', song: 'tower' },
   bossRaintower: { file: 'audio/bgm/maou_loop_bgm_neorock76.ogg', song: 'bossTower' },
   bossCatalyst: { file: 'audio/bgm/maou_loop_bgm_neorock67.ogg', song: 'bossTower' },
+  // マップ6「送風区」。曲はまだ選んでいない（新しい曲を入れるまで、マップ1の曲を借りている）
+  airintake: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossAirintake: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

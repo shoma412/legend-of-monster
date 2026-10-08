@@ -8,6 +8,7 @@ import { afflictPlayer, damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } 
 import { breakLamp, flashAt, isVisible, litByLamp } from './darkness.js';
 import { isRaining, nearestRoof, rainComing, rainHit, rainEnv, underRoof } from './acidRain.js';
 import { updateEliteTrait } from './elite.js';
+import { isBlowing, windComing } from './wind.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
 // scale: エリアが進んだぶんの、HPと攻撃力の倍率
@@ -678,6 +679,36 @@ const BEHAVIORS = {
     }
   },
 
+  // 錨打ち：距離を取って撃つ。風の予告が出ると、床に杭を打つ。杭を打っている間は、流されず、動かず、その場から速く撃つ
+  anchorer(world, e, dt, d) {
+    if (!windComing(world)) {
+      e.staked = false;
+      BEHAVIORS.gunner(world, e, dt, d);
+      return;
+    }
+    if (!e.staked) {
+      e.staked = true;
+      ring(world, e.x, e.y, e.r + 14, e.color);
+      sfx(world, 'block');
+    }
+    const shot = e.def.shot;
+    const haste = e.def.stake.haste;
+    if (e.state === 'aim') {
+      e.t -= dt * haste;
+      if (e.t <= 0) {
+        fireShot(world, e, d, shot);
+        e.state = 'chase';
+        e.cd = shot.interval / haste;
+      }
+    } else {
+      e.state = 'chase';
+      if (e.cd <= 0) {
+        e.state = 'aim';
+        e.t = shot.aim;
+      }
+    }
+  },
+
   gunner(world, e, dt, d) {
     const keep = e.def.keepDistance;
     const shot = e.def.shot;
@@ -736,6 +767,18 @@ const BEHAVIORS = {
   },
 };
 
+// 部屋にある、がれきの数
+export function debrisCount(world) {
+  return world.enemies.filter((e) => e.def.id === 'debris' && !e.dead).length;
+}
+
+// がれきを1つ置く（ボス「インテーク」が吸い込んで、弾にする。攻撃で壊せる）
+export function dropDebris(world, x, y, spawnT = 0) {
+  const e = createEnemy(DATA.enemies.get('debris'), x, y, spawnT, world.rng);
+  world.enemies.push(e);
+  return e;
+}
+
 // 弾を1発撃つ（プレイヤーのいる方向へ）
 function fireShot(world, e, d, shot) {
   sfx(world, 'enemyShot');
@@ -758,6 +801,7 @@ function updateStatus(world, e, dt) {
   e.stopT -= dt;
   if (e.litT > 0) e.litT -= dt;
   if (e.corrodeT > 0) e.corrodeT -= dt;
+  if (e.pulledT > 0) e.pulledT -= dt;
   if (e.burnT > 0) {
     e.burnT -= dt;
     e.burnAcc += dt;
@@ -789,6 +833,12 @@ export function updateEnemies(world, dt) {
     }
     // 錆び犬：腐食が付いている間は、速くなる
     if (e.def.corrodeHaste && e.corrodeT > 0) edt *= e.def.corrodeHaste;
+    // 風乗り：追い風（風が、プレイヤーのほうへ吹いている）の間は、速くなる
+    if (e.def.tailwindHaste && isBlowing(world)) {
+      const tx = p.x - e.x;
+      const ty = p.y - e.y;
+      if ((tx * world.wind.dirX + ty * world.wind.dirY) / (Math.hypot(tx, ty) || 1) > 0.3) edt *= e.def.tailwindHaste;
+    }
     // 種族「番兵」のボーナス：照らされている（見えている）敵は、動きが遅くなる
     if (p.stats.litSlow > 0 && isVisible(world, e.x, e.y)) edt *= 1 - p.stats.litSlow;
     updateEliteTrait(world, e, dt);
@@ -802,6 +852,11 @@ export function updateEnemies(world, dt) {
       const dx = p.x - e.x;
       const dy = p.y - e.y;
       BEHAVIORS[e.def.behavior](world, e, edt, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
+    }
+    // 杭を打った錨打ちは、吹き飛ばない
+    if (e.staked) {
+      e.vx = 0;
+      e.vy = 0;
     }
     if (e.state !== 'latched' && !e.anchor) {
       e.x += e.vx * dt;
@@ -866,7 +921,13 @@ export function updateShots(world, dt) {
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.life -= dt;
-    if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) s.life = 0;
+    if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) {
+      s.life = 0;
+      // 吐き出されたがれき（インテーク）：壁に当たると、決まった確率で、がれきになって床に残る
+      if (s.litter > 0 && world.rng() < s.litter && debrisCount(world) < s.maxDebris) {
+        dropDebris(world, Math.max(b.left + 20, Math.min(b.right - 20, s.x)), Math.max(b.top + 20, Math.min(b.bottom - 20, s.y)));
+      }
+    }
     if (s.life > 0 && solids.some((e) => circlesOverlap(s.x, s.y, s.r, e.x, e.y, e.r))) s.life = 0;
     if (s.life > 0 && circlesOverlap(s.x, s.y, s.r, p.x, p.y, p.r)) {
       // 無敵中（ダッシュ中など）はすり抜ける

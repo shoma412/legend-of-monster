@@ -909,6 +909,59 @@ export const bosses = [
       },
     ],
   },
+  // ---- ここからマップ6「送風区」 ----
+  {
+    id: 'intake',
+    name: 'インテーク',
+    alias: '吸い込み口', // 登場時に出す異名
+    shape: 'intake',
+    color: 'cold',
+    weakness: 'corrode',
+    material: 'intakeCore',
+    radius: 46,
+    hp: 21000,
+    speed: 60,
+    contactDamage: 54,
+    xp: 780,
+    credits: 400,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「吸引」：正面の扇形（arc 度）にあるものを、口へ吸い寄せる。吸っている間、ゆっくり向きを変える（turnRate ラジアン/秒）。
+      //   プレイヤーは pull px/秒 で引かれる（ダッシュ中と、遮風板の陰では引かれない）。口のすぐ前（mouth px）にいると、tick 秒ごとにダメージ。
+      //   がれきは debrisPull px/秒 で吸われて、飲み込まれる。最初の1回だけ、部屋にがれきを seed 個まく。終わると、then の技（吐き出し）を出す
+      inhale: { pattern: 'inhale', telegraph: 0.9, duration: 3.0, arc: 80, turnRate: 0.7, pull: 170, debrisPull: 300, mouth: 30, tick: 0.4, damage: 34, seed: 5, then: 'exhale', recover: 0.4, reach: 'far' },
+      inhaleHard: { pattern: 'inhale', telegraph: 0.8, duration: 3.4, arc: 100, turnRate: 0.85, pull: 185, debrisPull: 340, mouth: 30, tick: 0.4, damage: 34, seed: 5, then: 'exhale', recover: 0.4, reach: 'far' },
+      // 固有「吐き出し」：飲み込んだがれきを、扇形に吐く。弾の数は base ＋ 飲み込んだ数 × perDebris（max まで）。
+      //   壁に当たった弾は、litter の確率で、がれきになって床に残る（部屋のがれきは maxDebris 個まで）
+      exhale: { pattern: 'exhale', telegraph: 0.6, lockTime: 0.2, base: 4, perDebris: 2, max: 18, spread: 80, shotSpeed: 330, shotRadius: 9, damage: 42, litter: 0.5, maxDebris: 8, recover: 0.8 },
+      // 羽根の破片：全方向へ、うずまきに弾を撃つ
+      shards: { pattern: 'barrage', telegraph: 0.55, count: 8, spread: 360, waves: 3, interval: 0.4, rotate: 14, shotSpeed: 250, shotRadius: 7, damage: 36, recover: 0.6 },
+      // 地ならし：足元からの衝撃波の輪
+      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 40, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 踏みつけ：周囲への一撃
+      stomp: { pattern: 'slam', telegraph: 0.7, radius: 165, damage: 54, recover: 0.8, reach: 'near' },
+      // 大技「全開」：部屋ぜんたいを吸う。遮風板の陰（口の反対側）でしのぐ。strip.every 秒ごとに、プレイヤーにいちばん近い板が、
+      //   strip.warn 秒揺れてから飛ぶ（keep 枚は残る。飛んだ板は restore 秒で戻る）。最後に、飲み込んだがれきを全方向に吐く
+      fullopen: {
+        pattern: 'fullopen', telegraph: 1.7, duration: 7, pull: 180, debrisPull: 340, mouth: 34, tick: 0.35, damage: 36,
+        strip: { first: 1.4, every: 2.2, warn: 0.8, restore: 9, keep: 1 },
+        burst: { base: 14, perDebris: 2, max: 30, shotSpeed: 280, shotRadius: 9, damage: 42 },
+        recover: 1.5,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'inhale' }],
+    ultimate: { move: 'fullopen', announce: '全開' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['inhale', 'exhale', 'shards', 'quake', 'stomp'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['inhaleHard', 'exhale', 'shards', 'quake', 'stomp'],
+        combos: [{ moves: ['quake', 'shards'] }, { moves: ['stomp', 'inhaleHard'] }],
+        announce: '全部、吸う',
+      },
+    ],
+  },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
   {
     id: 'nocturne',

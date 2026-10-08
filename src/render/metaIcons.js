@@ -146,6 +146,16 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.45, y - s * 0.15, x + s * 0.5, y - s * 0.15);
     for (const dx of [-0.25, 0.05, 0.35]) g.lineBetween(x + dx * s, y + s * 0.05, x + (dx - 0.1) * s, y + s * 0.45);
   },
+  // インテークコア：送風機の羽根
+  intakeCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1).strokeCircle(x, y, s * 0.5);
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
+      g.lineBetween(x, y, x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5);
+      g.lineBetween(x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5, x + Math.cos(a + 0.7) * s * 0.3, y + Math.sin(a + 0.7) * s * 0.3);
+    }
+  },
   // カタリストコア：回る3つの玉
   catalystCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

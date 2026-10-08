@@ -216,6 +216,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-intake',
+    trigger: { at: 'bossIntro', boss: 'intake' },
+    lines: [
+      { who: 'jin', text: '……風が、あいつに向かって流れてる。' },
+      { who: 'noise', text: '吸気機だ。この区の空気を、全部あそこから吸っている。送った先には、もう誰もいない。' },
+      { who: 'jin', mood: 'angry', text: '誰も吸わない空気のために、俺まで吸う気か。' },
+    ],
+  },
+  {
+    id: 'return-intake',
+    trigger: { at: 'hideout', bossKilled: 'intake' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……髪、すごいことになってるよ。' },
+      { who: 'jin', text: '風の強い所だった。' },
+      { who: 'hal', text: 'うちの換気扇も、掃除しなきゃね。……吸い込まれないでよ。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -341,6 +359,7 @@ export const talks = {
     { after: 'rusteater', lines: [{ who: 'hal', text: '解体機の歯、溶けた鉄を何度も継ぎ足してあった。自分を直すために、自分を食べてたんだね。' }] },
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
+    { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -379,7 +398,8 @@ export const talks = {
     { after: 'breaker', lines: [{ who: 'noise', text: '停電区に、灯りが戻った。次は溶解区だ。酸の雨が降る。……あそこへ入るには、停電区の通行証が要る。' }] },
     { after: 'rusteater', lines: [{ who: 'noise', text: '廃液路が静かになった。次は中和プラントだ。色の変わる槽がいる。色を、よく見ろ。' }] },
     { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。この雨を降らせている者がいる。屋根を、当てにするな。' }] },
-    { after: 'rainmaker', lines: [{ who: 'noise', text: '溶解区の雨が、上がった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'rainmaker', lines: [{ who: 'noise', text: '溶解区の雨が、上がった。次は送風区だ。強い風が吹く。……あそこへ入るには、溶解区の通行証が要る。' }] },
+    { after: 'intake', lines: [{ who: 'noise', text: '吸気口が静かになった。次は送風路だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

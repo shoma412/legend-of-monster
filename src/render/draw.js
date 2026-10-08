@@ -1107,6 +1107,61 @@ BOSS_TELEGRAPHS.streak = (g, b, act, world) => {
   g.lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
 };
 
+// 吸引：吸い込む扇形。予告の間は赤く、吸っている間は、口へ向かって流れるすじが出る。口のすぐ前は、赤い弧
+BOSS_TELEGRAPHS.inhale = (g, b, act, world) => {
+  if (act.phase !== 'telegraph' && act.phase !== 'active') return;
+  const def = act.def;
+  const a = Math.atan2(act.dirY, act.dirX);
+  const half = (def.arc * DEG) / 2;
+  const R = 720;
+  const active = act.phase === 'active';
+  const c = active ? hex(ELEMENT_COLORS.cold) : hex(COLORS.red);
+  g.fillStyle(c, active ? 0.07 : 0.06 + 0.08 * Math.abs(Math.sin(world.time * 10)));
+  g.slice(b.x, b.y, R, a - half, a + half, false).fillPath();
+  g.lineStyle(2, c, 0.7);
+  for (const s of [-1, 1]) g.lineBetween(b.x, b.y, b.x + Math.cos(a + half * s) * R, b.y + Math.sin(a + half * s) * R);
+  if (active) {
+    g.lineStyle(1.5, c, 0.5);
+    for (let i = 0; i < 14; i++) {
+      const t = (i * 0.37 + world.time * 1.6) % 1;
+      const ang = a + half * (((i * 0.618) % 1) * 2 - 1) * 0.92;
+      const d0 = b.r + (1 - t) * 420;
+      g.lineBetween(b.x + Math.cos(ang) * d0, b.y + Math.sin(ang) * d0, b.x + Math.cos(ang) * (d0 + 22), b.y + Math.sin(ang) * (d0 + 22));
+    }
+  }
+  g.lineStyle(3, hex(COLORS.red), 0.8);
+  arcPath(g, b.x, b.y, b.r + def.mouth + 12, a - half, a + half);
+};
+
+// 吐き出し：弾が飛ぶ向きの予告（飲み込んだ数だけ、線が増える）
+BOSS_TELEGRAPHS.exhale = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const base = Math.atan2(act.dirY, act.dirX);
+  const locked = act.t <= (def.lockTime ?? 0);
+  g.lineStyle(2, hex(COLORS.red), locked ? 0.8 : 0.3 + 0.3 * Math.abs(Math.sin(world.time * 16)));
+  for (let i = 0; i < act.count; i++) {
+    const a = base + (act.count > 1 ? (i / (act.count - 1) - 0.5) * def.spread : 0) * DEG;
+    g.lineBetween(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r, b.x + Math.cos(a) * 460, b.y + Math.sin(a) * 460);
+  }
+};
+
+// 全開：部屋ぜんたいを吸う。予告は、ボスへ向かって縮む赤い輪。吸っている間は、口へ向かって縮み続ける輪と、口のまわりの赤い円
+BOSS_TELEGRAPHS.fullopen = (g, b, act, world) => {
+  if (act.phase === 'telegraph') {
+    const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+    g.lineStyle(4, hex(COLORS.red), 0.4 + 0.5 * k).strokeCircle(b.x, b.y, b.r + 380 * (1 - k));
+    g.lineStyle(2, hex(COLORS.red), 0.5).strokeCircle(b.x, b.y, b.r + act.def.mouth + 12);
+  } else if (act.phase === 'active') {
+    const ice = hex(ELEMENT_COLORS.cold);
+    for (let i = 0; i < 4; i++) {
+      const t = (i / 4 + world.time * 0.9) % 1;
+      g.lineStyle(2, ice, 0.5 * t).strokeCircle(b.x, b.y, b.r + (1 - t) * 420);
+    }
+    g.lineStyle(3, hex(COLORS.red), 0.8).strokeCircle(b.x, b.y, b.r + act.def.mouth + 12);
+  }
+};
+
 // 溶解：穴が開く場所の予告
 BOSS_TELEGRAPHS.melt = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1637,6 +1692,47 @@ SHAPES.tank = (g, b, color, world) => {
     arcPath(g, b.x, b.y, r + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
     g.lineStyle(1, next, 0.5).strokeCircle(b.x, b.y, r + 12);
   }
+};
+
+// インテーク：八角形の送風機の胴と、正面に開いた大きな口。中で羽根が回る（吸っている間は、速く回る）
+SHAPES.intake = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const sucking = (pattern === 'inhale' || pattern === 'fullopen') && b.act.phase === 'active';
+  const body = polygon(b.x, b.y, r, 8, b.angle + Math.PI / 8);
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  // 口（正面に寄っている）と、羽根
+  const mouth = local(b, r * 0.2, 0);
+  const mr = r * 0.64;
+  g.fillStyle(0x000000, 0.9).fillCircle(mouth.x, mouth.y, mr);
+  g.lineStyle(2.5, color, 0.9).strokeCircle(mouth.x, mouth.y, mr);
+  const spin = world.time * (stunned ? 0 : sucking ? 14 : 2.5);
+  for (let i = 0; i < 5; i++) {
+    const a = spin + (i / 5) * Math.PI * 2;
+    g.lineStyle(3, color, sucking ? 0.95 : 0.6).lineBetween(mouth.x, mouth.y, mouth.x + Math.cos(a) * mr * 0.92, mouth.y + Math.sin(a) * mr * 0.92);
+  }
+  g.fillStyle(hex(COLORS.ink), 1).fillCircle(mouth.x, mouth.y, 4);
+  // 飲み込んだがれきの数だけ、背中に橙色の印が灯る（次の「吐き出し」の弾の多さ）
+  const n = Math.min(8, b.swallowed ?? 0);
+  for (let i = 0; i < n; i++) {
+    const q = local(b, -r * 0.8, (i - (n - 1) / 2) * 9);
+    g.fillStyle(hex(COLORS.amber), 1).fillCircle(q.x, q.y, 3);
+  }
+};
+
+// がれき：角ばった、いびつな塊
+SHAPES.debris = (g, e, color) => {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = e.seed + (i / 6) * Math.PI * 2;
+    const rr = e.r * (0.7 + 0.3 * Math.abs(Math.sin(e.seed * 7 + i * 2.3)));
+    pts.push({ x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr });
+  }
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(pts, true);
+  g.lineStyle(1.5, color, 0.9).strokePoints(pts, true, true);
+  g.lineStyle(1, color, 0.5).lineBetween(pts[0].x, pts[0].y, pts[3].x, pts[3].y);
 };
 
 // ラストイーター：欠けた歯車のような体と、前に開く大きなあご

@@ -287,7 +287,7 @@ describe('通行証とマップ4', () => {
       expect(mapState(save, map4)).toBe('open');
       expect(lockReason(save, map4)).toBe('');
     }
-    expect(lockReason(createSave(), maps[5])).toContain('準備中');
+    expect(lockReason(createSave(), maps[6])).toContain('準備中');
     // 通行証の要らないマップは、今までどおり
     expect(hasPassFor(createSave(), maps[1])).toBe(true);
   });

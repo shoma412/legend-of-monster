@@ -29,6 +29,7 @@ export const maps = [
     // 隠しボスの出し方（rule: 'rain'）：そのエリアで、雨のダメージを1回も受けていないと、ボス前の補給部屋に道が開く
     secretBoss: { boss: 'catalyst', rule: 'rain', hint: ['@noise＞ ……一滴も、濡れていないな。壁の向こうで、何かが反応した。'] },
   },
-  { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },
+  // 送風区。環境は「強風」。エリアは4つにする（エリア2〜4と隠しボスは、これから足す）。入るには、溶解区の通行証（マップ5の隠しボス）が要る
+  { id: 'map6', code: 'MAP 06', name: '送風区', areas: ['airintake'], enemyScale: 5, environment: 'gale', requiresPass: 'map5' },
   { id: 'map7', code: 'MAP 07', name: '？？？', areas: [], ready: false },
 ];

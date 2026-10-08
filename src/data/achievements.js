@@ -24,6 +24,7 @@ export const achievements = [
   { id: 'rusteater', icon: 'skull', color: 'heat', name: '錆び喰い狩り', desc: 'ラストイーターを倒した', on: 'bossKill', check: 'bossIs', boss: 'rusteater' },
   { id: 'buffertank', icon: 'skull', color: 'cold', name: '中和槽狩り', desc: 'バッファータンクを倒した', on: 'bossKill', check: 'bossIs', boss: 'buffertank' },
   { id: 'rainmaker', icon: 'skull', color: 'shock', name: '雨降らし狩り', desc: 'レインメーカーを倒した', on: 'bossKill', check: 'bossIs', boss: 'rainmaker' },
+  { id: 'intake', icon: 'skull', color: 'cold', name: '吸い込み口狩り', desc: 'インテークを倒した', on: 'bossKill', check: 'bossIs', boss: 'intake' },
   { id: 'architect', icon: 'skull', color: 'amber', name: '設計変更', desc: '建設区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'architect' },
   { id: 'nocturne', icon: 'skull', color: 'magenta', name: '夜明け', desc: '停電区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'nocturne' },
   { id: 'catalyst', icon: 'skull', color: 'cold', name: '反応完了', desc: '溶解区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'catalyst' },

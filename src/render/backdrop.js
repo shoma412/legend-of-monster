@@ -578,6 +578,38 @@ const THEMES = {
       blob(g, x, y, 10 + rng() * 16, 3 + rng() * 4, pipes[Math.floor(rng() * pipes.length)], 0.1);
     }
   },
+  // 吸気口：格子の床、床に埋まった大きな換気扇、壁ぎわのダクト、風に飛ばされた紙くず
+  vent(g, rng, a) {
+    speckles(g, rng, a, 240, [0x0b0d12, 0x10131a, 0x07090d, 0x171b24], 0.7);
+    // 格子の床（細い溝が、縦に走る）
+    for (let x = a.left + 40; x < a.right - 20; x += 80) {
+      block(g, x, a.top + 10, PX / 2, a.h - 20, 0x04050a, 0.85);
+      for (let y = a.top + 20; y < a.bottom - 20; y += 20) block(g, x - 3, y, PX * 2, PX / 2, 0x1c2230, 0.7);
+    }
+    // 床に埋まった換気扇（丸い枠と、止まった羽根）
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + a.w * (0.2 + 0.3 * i) + (rng() - 0.5) * 40;
+      const y = a.top + a.h * (0.3 + 0.4 * rng());
+      const r = 30 + rng() * 12;
+      blob(g, x, y, r, r, 0x05060a, 0.9);
+      blob(g, x, y, r - 5, r - 5, 0x121722, 0.9);
+      const spin = rng() * Math.PI;
+      for (let k = 0; k < 4; k++) {
+        const ang = spin + (k * Math.PI) / 2;
+        for (let d = 6; d < r - 8; d += 6) block(g, x + Math.cos(ang) * d - 2, y + Math.sin(ang) * d - 2, PX, PX, 0x2a3446, 0.8);
+      }
+      block(g, x - 3, y - 3, 6, 6, 0x4a5a7a, 0.9);
+    }
+    // 壁ぎわのダクト（上の壁。継ぎ目と、吹き出し口）
+    block(g, a.left + 10, a.top + 12, a.w - 20, PX * 3, 0x1a2030, 0.95);
+    block(g, a.left + 10, a.top + 12, a.w - 20, PX / 2, 0x3a4a66, 0.7);
+    for (let x = a.left + 70; x < a.right - 50; x += 120) {
+      block(g, x, a.top + 10, PX, PX * 4, 0x2a3446, 0.95);
+      for (let k = 0; k < 3; k++) block(g, x + 20 + k * 8, a.top + 16, PX, PX, 0x8fd8ff, 0.25);
+    }
+    // 風に飛ばされた紙くず
+    for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
+  },
   // 降雨制御塔：濡れた鉄板の床、散水のノズル、アンテナ、警告灯
   raintower(g, rng, a) {
     speckles(g, rng, a, 240, [0x0c0d0e, 0x111314, 0x08090a, 0x181b1c], 0.7);

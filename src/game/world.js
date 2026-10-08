@@ -13,6 +13,7 @@ import { updateHazards } from './bossPatterns.js';
 import { updatePlayerDot } from './combat.js';
 import { updateDarkness } from './darkness.js';
 import { updateRain } from './acidRain.js';
+import { updateWind } from './wind.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { addShake, burst, createFx, floatText, sfx, updateFx } from './fx.js';
 import { updateDevices } from './devices.js';
@@ -46,6 +47,9 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     roofs: (room.roofs ?? []).map((r) => ({ ...r, broken: 0 })), // 屋根（環境「酸の雨」）。下にいれば、雨に当たらない
     rain: null, // 雨の周期 { phase: clear / warn / rain, t, max }（環境「酸の雨」。戦闘の間だけ）
     rainHits: 0, // この部屋で、雨に当たった回数
+    screens: (room.screens ?? []).map((s) => ({ ...s, broken: 0, loose: 0 })), // 遮風板（環境「強風」）。陰にいれば、風に流されない。broken は飛ばされていて無い残り秒数、loose は揺れている残り秒数
+    wind: null, // 風の周期 { phase: clear / warn / blow, t, max, dirX, dirY }（環境「強風」。戦闘の間だけ）
+    suction: null, // ボスが吸っている場所 { x, y, arc, angle, until }（インテーク）
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
     room,
@@ -123,6 +127,7 @@ export function updateWorld(world, dt, input) {
   updateSecret(world);
   updateDarkness(world, dt);
   updateRain(world, dt);
+  updateWind(world, dt);
   for (const l of world.loot) l.t += dt;
   world.ougiReady = canUseOugi(world); // 表示用
   updateFocus(world);

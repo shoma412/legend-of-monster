@@ -221,6 +221,9 @@ export function computeStats(build) {
     floodPower: 0,
     // 恒久強化「触媒炉」：敵に付けた状態異常（燃焼・減速・腐食）の時間が延びる割合
     statusTime: 0,
+    // 種族「吸気」：風と吸い込みで流される量が減る割合、風の間のダッシュの回復が速くなる割合
+    windResist: 0,
+    windDash: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

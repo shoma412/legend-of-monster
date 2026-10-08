@@ -11,7 +11,8 @@ import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, star
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { breakRoof, rainHit, startRain, underRoof } from './acidRain.js';
 import { recalcStats } from './build.js';
-import { createEnemy } from './enemyAI.js';
+import { createEnemy, dropDebris } from './enemyAI.js';
+import { loosenScreen, suck } from './wind.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -1519,6 +1520,197 @@ PATTERNS.gnaw = {
         addShake(world, FEEL.shake.charged);
         floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
       } else if (act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// ---- マップ6「送風区」：インテーク ----
+
+// 吸われているがれきを、ボスの口へ動かす。口に届いたものは、飲み込む（b.swallowed に数える）。
+//   inside(x, y) を渡すと、その中にあるがれきだけを吸う（扇形）
+function swallowDebris(world, b, dt, speed, inside = null) {
+  for (const e of world.enemies) {
+    if (e.def.id !== 'debris' || e.dead || e.spawnT > 0) continue;
+    if (inside && !inside(e.x, e.y)) continue;
+    const dx = b.x - e.x;
+    const dy = b.y - e.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    if (dist <= b.r + e.r + 4) {
+      e.dead = true;
+      b.swallowed = (b.swallowed ?? 0) + 1;
+      burst(world, e.x, e.y, b.color, 4, 120);
+      continue;
+    }
+    e.x += (dx / dist) * speed * dt;
+    e.y += (dy / dist) * speed * dt;
+  }
+}
+
+// 吸い込まれていく空気のすじ（見た目だけ）
+function suctionDust(world, b, angle, arc) {
+  if (world.rng() >= 0.7) return;
+  const a = angle + (world.rng() - 0.5) * arc;
+  const r = 240 + world.rng() * 160;
+  world.fx.particles.push({ x: b.x + Math.cos(a) * r, y: b.y + Math.sin(a) * r, vx: -Math.cos(a) * 460, vy: -Math.sin(a) * 460, life: 0.5, max: 0.5, color: b.color, size: 3 });
+}
+
+// 吸引（インテーク）：正面の扇形にあるものを、口へ吸い寄せる。吸っている間、ゆっくり向きを変える。
+//   プレイヤーは引かれ（ダッシュ中と、遮風板の陰では引かれない）、口のすぐ前にいると、噛み砕かれる。がれきは飲み込まれて、次の「吐き出し」の弾になる。
+//   最初の1回だけ、部屋にがれきを seed 個まく。then を書くと、終わったあとに、その技を出す
+PATTERNS.inhale = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.acc = 0;
+    aimAt(act, d);
+    if (!b.littered) {
+      b.littered = true;
+      const wb = world.bounds;
+      for (let i = 0; i < (act.def.seed ?? 0); i++) {
+        dropDebris(world, wb.left + 60 + world.rng() * (wb.right - wb.left - 120), wb.top + 60 + world.rng() * (wb.bottom - wb.top - 120), 0.4);
+      }
+    }
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph' || act.phase === 'active') {
+      // 口を、プレイヤーのほうへ向け直す（予告の間は速く、吸っている間はゆっくり。回り込めば、扇形から出られる）
+      let angle = Math.atan2(act.dirY, act.dirX);
+      const diff = angleDiff(Math.atan2(d.dy, d.dx), angle);
+      const step = def.turnRate * dt * (act.phase === 'telegraph' ? 4 : 1);
+      angle += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+      act.dirX = Math.cos(angle);
+      act.dirY = Math.sin(angle);
+      if (act.phase === 'telegraph') {
+        if (act.t <= 0) {
+          act.phase = 'active';
+          act.t = def.duration;
+          sfx(world, 'bossCharge');
+        }
+        return false;
+      }
+      const arc = def.arc * DEG;
+      const pulled = suck(world, b.x, b.y, def.pull, dt, { arc, angle, stop: b.r + p.r + 4 });
+      swallowDebris(world, b, dt, def.debrisPull, (x, y) => Math.abs(angleDiff(Math.atan2(y - b.y, x - b.x), angle)) <= arc / 2);
+      suctionDust(world, b, angle, arc);
+      act.acc += dt;
+      if (act.acc >= def.tick) {
+        act.acc -= def.tick;
+        if (pulled && d.dist <= b.r + p.r + def.mouth) hurtPlayer(world, def.damage);
+      }
+      if (act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+        if (def.then) b.next = def.then;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 吐き出し（インテーク）：飲み込んだがれきを、プレイヤーのほうへ扇形に吐く。弾の数は base ＋ 飲み込んだ数 × perDebris（max まで）。
+//   壁に当たった弾は、litter の確率で、がれきになって床に残る（次の「吸引」で、また吸われる）
+PATTERNS.exhale = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.count = Math.min(act.def.max, act.def.base + act.def.perDebris * (b.swallowed ?? 0));
+    b.swallowed = 0;
+    aimAt(act, d);
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t > (def.lockTime ?? 0)) aimAt(act, d);
+      if (act.t <= 0) {
+        const base = Math.atan2(act.dirY, act.dirX);
+        for (let i = 0; i < act.count; i++) {
+          const a = base + (act.count > 1 ? (i / (act.count - 1) - 0.5) * def.spread : 0) * DEG;
+          const speed = def.shotSpeed * (0.85 + 0.3 * world.rng()); // 速さをばらつかせて、すき間を作る
+          world.shots.push({
+            x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+            r: def.shotRadius, damage: def.damage, life: 4, color: COLORS.dim, litter: def.litter, maxDebris: def.maxDebris,
+          });
+        }
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.hit);
+        burst(world, b.x + act.dirX * b.r, b.y + act.dirY * b.r, b.color, 14, 260);
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 全開（インテークの大技）：部屋ぜんたいを吸う。遮風板の陰（口の反対側）にいれば、引かれない。
+//   strip.every 秒ごとに、プレイヤーにいちばん近い板が、strip.warn 秒揺れてから飛ぶ（keep 枚は残る）。
+//   部屋のがれきは、すべて飲み込む。最後に、飲み込んだぶんを、全方向に吐く
+PATTERNS.fullopen = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.acc = 0;
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        act.stripT = def.strip.first;
+        sfx(world, 'bossCharge');
+        floatText(world, p.x, p.y - 44, '板の陰へ', COLORS.amber, 16);
+      }
+    } else if (act.phase === 'active') {
+      const pulled = suck(world, b.x, b.y, def.pull, dt, { stop: b.r + p.r + 4 });
+      swallowDebris(world, b, dt, def.debrisPull);
+      suctionDust(world, b, world.rng() * Math.PI * 2, Math.PI * 2);
+      act.acc += dt;
+      if (act.acc >= def.tick) {
+        act.acc -= def.tick;
+        if (pulled && d.dist <= b.r + p.r + def.mouth) hurtPlayer(world, def.damage);
+      }
+      // 遮風板が、1枚ずつ飛ぶ（プレイヤーにいちばん近いものから。keep 枚は残る）
+      act.stripT -= dt;
+      if (act.stripT <= 0) {
+        act.stripT = def.strip.every;
+        const standing = (world.screens ?? []).filter((s) => !(s.broken > 0) && s.flyAt == null);
+        if (standing.length > def.strip.keep) {
+          standing.sort((s1, s2) => Math.hypot(s1.x - p.x, s1.y - p.y) - Math.hypot(s2.x - p.x, s2.y - p.y));
+          loosenScreen(world, standing[0], def.strip.warn, def.strip.restore);
+        }
+      }
+      if (act.t <= 0) {
+        // 飲み込んだがれきを、全方向に吐く
+        const count = Math.min(def.burst.max, def.burst.base + def.burst.perDebris * (b.swallowed ?? 0));
+        b.swallowed = 0;
+        const base = world.rng() * Math.PI * 2;
+        for (let i = 0; i < count; i++) {
+          const a = base + (i / count) * Math.PI * 2;
+          world.shots.push({
+            x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, vx: Math.cos(a) * def.burst.shotSpeed, vy: Math.sin(a) * def.burst.shotSpeed,
+            r: def.burst.shotRadius, damage: def.burst.damage, life: 4, color: COLORS.dim,
+          });
+        }
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.heavy);
+        burst(world, b.x, b.y, b.color, 30, 320);
         act.phase = 'recover';
         act.t = def.recover;
       }

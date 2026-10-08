@@ -12,6 +12,7 @@ import { permanentBonuses, recordCarryOver } from '../logic/meta.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { drawRain, drawRoofs } from '../render/rain.js';
+import { drawAnchors, drawScreens, drawWind } from '../render/wind.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -422,6 +423,10 @@ export class BattleScene extends Phaser.Scene {
     // 酸の雨：雨と、屋根（下にいるものが見えるように、透けて描く）
     drawRain(g, world);
     drawRoofs(g, world);
+    // 強風：遮風板と、風
+    drawScreens(g, world);
+    drawAnchors(g, world);
+    drawWind(g, world);
     // 攻撃の予告（赤い円や線）・残る攻撃・敵の弾は、屋根に隠れないように、屋根の上にもう一度描く
     if ((world.roofs ?? []).length > 0) {
       drawHazards(g, world);
@@ -470,6 +475,13 @@ export class BattleScene extends Phaser.Scene {
       const sec = this.run.secret;
       const dry = sec?.rule === 'rain' && !sec.done && !this.run.inSecret ? (sec.dryOk && !(world.rainHits > 0) ? '　／　濡れていない' : '　／　濡れた') : '';
       this.lampText.setVisible(true).setText(timer + dry).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
+    }
+    // 強風：風までの秒数（吹いている間は、残りの秒数）と、風向き
+    const wind = world.wind;
+    if (wind) {
+      const arrow = wind.dirX > 0 ? '→' : wind.dirX < 0 ? '←' : wind.dirY > 0 ? '↓' : '↑';
+      const timer = wind.phase === 'blow' ? `強風 ${arrow}　残り ${Math.ceil(wind.t)}` : wind.phase === 'warn' ? `強風 ${arrow}　まで ${Math.ceil(wind.t)}` : `強風まで ${Math.ceil(wind.t + world.room.environment.cycle.warn)}`;
+      this.lampText.setVisible(true).setText(timer).setColor(wind.phase === 'clear' ? COLORS.dim : '#8fd8ff');
     }
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 

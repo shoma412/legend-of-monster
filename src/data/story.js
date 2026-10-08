@@ -18,6 +18,7 @@ export const materials = [
   { id: 'rustCore', name: 'ラストコア', color: 'heat' },
   { id: 'bufferCore', name: 'バッファーコア', color: 'ice' },
   { id: 'rainCore', name: 'レインコア', color: 'green' },
+  { id: 'intakeCore', name: 'インテークコア', color: 'ice' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -251,6 +252,23 @@ export const fragments = [
   {
     id: 'rm-core', area: 'raintower', source: 'boss', title: 'レインメーカーのコアログ',
     text: '観測：大気汚染 あり。処置：降雨。観測：大気汚染 あり。処置：降雨。——空を、きれいにする。',
+  },
+  // ---- マップ6「送風区」 ----
+  {
+    id: 'in-01', area: 'airintake', source: 'vault', title: '吸気機 IN 仕様書',
+    text: '吸気機 IN シリーズは、区画の空気を吸い込み、ごみを濾して、きれいな空気だけを奥へ送る。濾したごみは、外へ吐き出す。フィルターが詰まれば、止まる。',
+  },
+  {
+    id: 'in-02', area: 'airintake', source: 'vault', title: '送風区 保守記録',
+    text: 'フィルターの交換が、止まっている。交換する人員が、いない。吸気機は、詰まったフィルターを、自分で外した。今は、吸ったものを、そのまま吐いている。',
+  },
+  {
+    id: 'in-memo', area: 'airintake', source: 'vault', title: '作業員の走り書き',
+    text: '風が来たら、十字の板の陰に入れ。あれは、俺たちが勝手に立てたやつだ。図面には載ってない。だから、あいつらも直しに来ない。',
+  },
+  {
+    id: 'in-core', area: 'airintake', source: 'boss', title: 'インテークのコアログ',
+    text: '吸気：継続。濾過：不可。送風先：応答なし。吸気：継続。——誰も吸わない空気を、送り続けている。',
   },
   // ---- マップ3「建設区」 ----
   {

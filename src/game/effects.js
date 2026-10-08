@@ -7,6 +7,7 @@ import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyBurn, applyCorrode, applySlow, applyStop, effectDamage, healPlayer } from './combat.js';
 import { addLight, isVisible } from './darkness.js';
 import { placeMine } from './devices.js';
+import { isBlowing } from './wind.js';
 import { burst, ring } from './fx.js';
 
 // 条件つき補正（mods の when）
@@ -30,6 +31,10 @@ const CONDITIONS = {
   noElement: (world) => world.player.stats.elements.length === 0,
   // 状態異常（燃焼・減速・凍結・腐食）が付いている敵
   targetAfflicted: (world, mod, target) => !!target && (target.burnT > 0 || target.slowT > 0 || target.stopT > 0 || target.corrodeT > 0),
+  // 強風が吹いている間（環境「強風」）
+  windBlowing: (world) => isBlowing(world),
+  // 引き寄せた敵、風に流されている敵
+  targetPulled: (world, mod, target) => !!target && target.pulledT > 0,
   // 腐食中の敵
   targetCorroded: (world, mod, target) => !!target && target.corrodeT > 0,
   // 照準灯で照らした敵
@@ -67,6 +72,22 @@ function liveEnemies(world) {
 
 function enemiesNear(world, x, y, radius, except = null) {
   return liveEnemies(world).filter((e) => e !== except && Math.hypot(e.x - x, e.y - y) <= radius + e.r);
+}
+
+// 引き寄せられる敵か（ボス、置かれたもの、体から生えた首は、動かない）
+function movable(e) {
+  return !e.dead && !e.boss && !e.def.prop && !e.def.solid && !e.anchor && !e.staked;
+}
+
+// 敵を、(x, y) のほうへ amount px だけ動かす（min px より近くへは寄せない）。しばらく「引き寄せた敵」になる
+function pullToward(e, x, y, amount, min) {
+  const dx = x - e.x;
+  const dy = y - e.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const step = Math.max(0, Math.min(amount, dist - min));
+  e.x += (dx / dist) * step;
+  e.y += (dy / dist) * step;
+  e.pulledT = STATUS.pulled.duration;
 }
 
 // イベントで発動する効果の部品。t はデータに書いた trigger、ctx はイベントの内容
@@ -172,6 +193,23 @@ const ACTIONS = {
     const p = world.player;
     ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.corrode);
     for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyCorrode(e, world.player.stats.corrodeTime ?? 0);
+  },
+
+  // 吸い寄せ：攻撃が当たった敵を、プレイヤーのほうへ少し引き寄せる（武器の攻撃だけ。ボスと、置かれたものは動かない）
+  pullTarget(world, t, ctx) {
+    const e = ctx.target;
+    if (!ctx.primary || !movable(e)) return;
+    const p = world.player;
+    pullToward(e, p.x, p.y, t.amount, p.r + e.r + 4);
+  },
+
+  // 集塵：倒した敵のまわりの敵を、倒した場所へ引き寄せる
+  vortex(world, t, ctx) {
+    const from = ctx.target;
+    const targets = enemiesNear(world, from.x, from.y, t.radius, from).filter(movable);
+    if (targets.length === 0) return;
+    ring(world, from.x, from.y, t.radius, ELEMENT_COLORS.cold);
+    for (const e of targets) pullToward(e, from.x, from.y, t.amount, e.r);
   },
 
   // HP が少し戻る

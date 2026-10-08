@@ -122,6 +122,7 @@ export const LOOT = {
     [70, 27.7, 2, 0.3],
     [60, 33, 5, 2],
     [50, 36, 9, 5],
+    [42, 38, 12, 8], // 4つ目のエリア（マップ6から）
   ],
   bossMinRarity: 1, // ボスが落とす装備の、最低のレア度（1 = レア）
   slots: [
@@ -168,6 +169,8 @@ export const STATUS = {
   // 種族「雨」：恵みの雷（interval 秒ごとに、range px 以内の敵1体に落雷）、増水（敵を倒すたびに攻撃力が上がる。cap 体ぶんまで）
   skyBolt: { interval: 4, range: 320 },
   flood: { cap: 10 },
+  // 種族「吸気」：引き寄せた敵が「引き寄せた敵」として扱われる時間（秒）
+  pulled: { duration: 1.5 },
   // label は、付いた瞬間に画面に出す文字（状態が変わったときの文字は、英語にそろえる）
   dots: {
     burn: { name: '炎上', label: 'Burn', color: 'heat', damage: 5, tick: 0.5, duration: 3 },

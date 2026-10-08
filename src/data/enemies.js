@@ -30,6 +30,8 @@
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
 // corrodeHaste: 腐食が付いている間の、動きの速さの倍率（錆び犬）
+// tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
+//   anchorer  : 距離を取って撃つ（gunner と同じ）。風の予告が出ると杭を打ち、風の間は、流されずに、その場から速く撃つ（stake.haste 倍）
 // decoy: true は、ボスの偽物（暗闇でも目の光が出る）
 // solid: true は、歩いて通れず、敵の弾も止める（ダッシュ中はすり抜けられる）
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
@@ -635,6 +637,62 @@ export const enemies = [
     dropChance: 0.14,
     wobble: 0.4,
     corrodeHaste: 1.6,
+  },
+  // ---- ここからマップ6「送風区」（環境「強風」） ----
+  {
+    // 風乗り：軽くて速い。追い風のときは、一気に飛び込んでくる。風には、よく流される
+    id: 'windrider',
+    name: '風乗り',
+    behavior: 'swarm',
+    shape: 'triangle',
+    color: 'ice',
+    radius: 11,
+    hp: 30,
+    speed: 118,
+    damage: 14,
+    xp: 9,
+    credits: 3,
+    cost: 1,
+    dropChance: 0.14,
+    wobble: 0.5,
+    tailwindHaste: 2.2,
+  },
+  {
+    // 錨打ち：風の予告が出ると、床に杭を打つ。風の間は流されず、その場から速く撃つ（杭を打っている間は、動けない）
+    id: 'anchorer',
+    name: '錨打ち',
+    behavior: 'anchorer',
+    shape: 'pentagon',
+    color: 'amber',
+    radius: 14,
+    hp: 60,
+    speed: 52,
+    damage: 11,
+    xp: 13,
+    credits: 5,
+    cost: 2,
+    dropChance: 0.24,
+    keepDistance: { min: 200, max: 320 },
+    shot: { interval: 2.2, aim: 0.5, speed: 260, radius: 5, life: 3 },
+    stake: { haste: 1.8 },
+  },
+  {
+    // がれき（置かれたもの）。ボス「インテーク」が吸い込んで、弾にして吐き出す。吸われる前に、攻撃で壊せる
+    id: 'debris',
+    name: 'がれき',
+    behavior: 'prop',
+    shape: 'debris',
+    color: 'dim',
+    radius: 13,
+    hp: 300,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
   },
   // ---- ここからマップ5 エリア2「中和プラント」 ----
   {

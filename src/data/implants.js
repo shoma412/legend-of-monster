@@ -11,6 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
+//                    windBlowing（強風が吹いている間）/ targetPulled（引き寄せた相手・風に流されている相手）/
 //                    targetCorroded（相手が腐食中）/ targetAfflicted（相手に、燃焼・減速・凍結・腐食のどれかが付いている）/ noElement（属性を1つも持っていない）/ hasShock（電撃属性を持っている）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
 //                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
@@ -363,6 +364,32 @@ export const implants = [
     desc: (k) => `敵を倒すたびに、その部屋にいる間、攻撃力 +${pct(0.02 * k)}（10体ぶんまで）`,
     effect: (k) => ({ mods: [{ stat: 'floodPower', add: 0.02 * k }] }),
   },
+  // ---- 吸気（インテーク由来・風と引き寄せ） ----
+  {
+    id: 'tailwind', species: 'intake', name: '追い風',
+    desc: (k) => `風の間、移動速度 +${pct(0.2 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'moveSpeedMul', add: 0.2 * k, when: 'windBlowing' }] }),
+  },
+  {
+    id: 'drawin', species: 'intake', name: '吸い寄せ',
+    desc: (k) => `攻撃が当たった敵を、手前に引き寄せる（${num(16 * k)}）`,
+    effect: (k) => ({ triggers: [{ on: 'hit', do: 'pullTarget', amount: 16 * k }] }),
+  },
+  {
+    id: 'dustcollect', species: 'intake', name: '集塵',
+    desc: (k) => `敵を倒すと、近くの敵を、倒した場所へ引き寄せる（範囲 ${num(150 * k)}）`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'vortex', radius: 150 * k, amount: 60 }] }),
+  },
+  {
+    id: 'windbreak', species: 'intake', name: '風よけ',
+    desc: (k) => `風と吸い込みで流される量 −${pct(Math.min(0.9, 0.5 * k))}`,
+    effect: (k) => ({ mods: [{ stat: 'windResist', add: 0.5 * k }] }),
+  },
+  {
+    id: 'blowback', species: 'intake', name: '吹き返し',
+    desc: (k) => `風の間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'windBlowing' }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -561,6 +588,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '移動速度 +8%', effect: { mods: [{ stat: 'moveSpeedMul', add: 0.08 }] } },
       { need: 3, desc: '敵を倒すと、近くの敵1体に落雷（40ダメージ）', effect: { triggers: [{ on: 'kill', do: 'chainLightning', count: 1, range: 220, damage: 40 }] } },
+    ],
+  },
+  intake: {
+    name: '吸気', color: 'cold', boss: 'intake',
+    bonuses: [
+      { need: 2, desc: '風の間、ダッシュの回復が 20% 速くなる', effect: { mods: [{ stat: 'windDash', add: 0.2 }] } },
+      { need: 3, desc: '引き寄せた敵・風に流されている敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetPulled' }] } },
     ],
   },
   spider: {

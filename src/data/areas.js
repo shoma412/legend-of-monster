@@ -502,4 +502,37 @@ export const areas = [
       ],
     },
   },
+  // ---- ここからマップ6「送風区」 ----
+  {
+    id: 'airintake',
+    code: 'VENT 01',
+    name: '吸気口',
+    theme: 'vent',
+    bgm: 'airintake',
+    bossBgm: 'bossAirintake',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'windrider', weight: 3 },
+      { id: 'anchorer', weight: 3 },
+      { id: 'grunt', weight: 2 },
+      { id: 'bomber', weight: 2 },
+      { id: 'shield', weight: 1 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['anchorer', 'grunt', 'shield'],
+    boss: 'intake',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 風が、あれに集まっている。吸気機だ。',
+        '@noise＞ 正面に立つな。吸われる。がれきは、吸わせる前に壊せ。吸ったぶんだけ、吐いてくる。腐食が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……羽根が、止まった。',
+        '@noise＞ コアを回収しろ。この先に、送風路がある。',
+      ],
+    },
+  },
 ];
