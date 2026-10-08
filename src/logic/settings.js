@@ -27,7 +27,7 @@ export const FRAME_RATES = [
   { id: 120, label: '120' },
 ];
 
-// 操作方法。manual：カーソルのあるほうを向く（今までどおり）／auto：動いている向きを向き、敵がいるときは、いちばん近い敵のほうを向く
+// 操作方法。manual：カーソルのあるほうを向く（今までどおり）／auto：敵を1体ロックオンして、その敵のほうを向く（R キーで切り替え。敵がいなければ、動いている向き）
 export const CONTROL_MODES = [
   { id: 'manual', label: 'マニュアル' },
   { id: 'auto', label: 'オート' },

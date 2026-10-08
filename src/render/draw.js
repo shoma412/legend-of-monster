@@ -404,7 +404,19 @@ function drawEliteMark(g, e, world) {
   }
 }
 
+// ロックオンの印（操作方法「オート」）：敵のまわりを回る、4つに切れた輪
+function drawLockOn(g, world) {
+  const e = world.player.lock;
+  if (!e || e.dead) return;
+  const c = hex(COLORS.amber); // プレイヤーや敵の色（水色）と、まぎれない色にする
+  const r = e.r + 9 + 1.5 * Math.sin(world.time * 6);
+  const spin = world.time * 1.6;
+  g.lineStyle(2.5, c, 0.95);
+  for (let i = 0; i < 4; i++) arcPath(g, e.x, e.y, r, spin + (i * Math.PI) / 2 + 0.25, spin + ((i + 1) * Math.PI) / 2 - 0.25);
+}
+
 export function drawEnemies(g, world) {
+  drawLockOn(g, world);
   for (const e of world.enemies) {
     if (e.dead) continue;
     const color = hex(e.color);

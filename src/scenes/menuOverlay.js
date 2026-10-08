@@ -829,7 +829,7 @@ export class MenuOverlay {
         this.render();
       });
     });
-    this.text(660, 248, s.controls === 'auto' ? '動いている向き・近くの敵を向く' : 'カーソルのあるほうを向く', 11, COLORS.dim);
+    this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
 
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {

@@ -82,12 +82,14 @@ export class BattleScene extends Phaser.Scene {
     this.addBloom();
 
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,F,Q,M,ONE,TWO,THREE,FOUR,B,N,O');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,ENTER,E,F,Q,M,R,ONE,TWO,THREE,FOUR,B,N,O');
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
     this.choiceShownAt = 0;
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
+    // R：ロックオンの切り替え（操作方法「オート」のときだけ効く）
+    this.keys.R.on('down', () => { this.lockPressed = true; });
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
       if (this.world.choice || this.menu.isOpen || this.dialogue.blocking) return;
@@ -347,6 +349,7 @@ export class BattleScene extends Phaser.Scene {
       aimX: pointer.worldX,
       aimY: pointer.worldY,
       auto: getSettings().controls === 'auto', // 操作方法（設定）
+      lockPressed: this.lockPressed,
       attack: pointer.leftButtonDown(),
       attackPressed: this.attackPressed,
       specialPressed: this.specialPressed,
@@ -355,6 +358,7 @@ export class BattleScene extends Phaser.Scene {
     this.dashPressed = false;
     this.attackPressed = false;
     this.specialPressed = false;
+    this.lockPressed = false;
     return input;
   }
 

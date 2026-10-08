@@ -62,8 +62,8 @@ export function createPlayer(weaponId, x, y, carry = null) {
   return player;
 }
 
-// input: { mx, my, aimX, aimY, auto, attack, attackPressed, specialPressed, dashPressed }
-//   auto: true なら、操作方法「オート」（カーソルではなく、動いている向き・いちばん近い敵のほうを向く）
+// input: { mx, my, aimX, aimY, auto, lockPressed, attack, attackPressed, specialPressed, dashPressed }
+//   auto: true なら、操作方法「オート」（カーソルではなく、ロックオンした敵のほうを向く）。lockPressed は、ロックオンを切り替えるキー（R）が押された瞬間
 //   aimX, aimY: マウスカーソルの位置。攻撃はこの方向に出る
 //   attack: 攻撃ボタン（左クリック）を押している間 true / attackPressed: 押した瞬間だけ true
 //   specialPressed: 特殊アクションのボタン（右クリック）を押した瞬間だけ true
@@ -108,14 +108,18 @@ export function updatePlayer(world, dt, input) {
     mx /= ml;
     my /= ml;
   }
-  // 向き。振っている間は変えられない。オート：動いている向き・いちばん近い敵のほう。マニュアル：カーソルのほう
-  if (!p.attack && input.auto) {
-    const f = autoFacing(world, mx, my);
-    if (f) {
+  // 向き。振っている間は変えられない。オート：ロックオンした敵のほう（いなければ、動いている向き）。マニュアル：カーソルのほう
+  if (input.auto) {
+    // ロックオンの切り替えは、振っている間でも受け付ける（向きが変わるのは、振り終わってから）
+    const f = autoFacing(world, mx, my, !!input.lockPressed);
+    if (f && !p.attack) {
       p.fx = f.x;
       p.fy = f.y;
     }
-  } else if (!p.attack && input.aimX != null) {
+  } else {
+    p.lock = null;
+  }
+  if (!input.auto && !p.attack && input.aimX != null) {
     const ax = input.aimX - p.x;
     const ay = input.aimY - p.y;
     const al = Math.hypot(ax, ay);

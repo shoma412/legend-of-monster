@@ -74,7 +74,7 @@ export function renderControls(menu, weapon) {
   menu.text(mx + 18, my + 22, '右', 12, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
   // 向きの決め方は、設定の「操作方法」で変わる
   const auto = getSettings().controls === 'auto';
-  menu.text(mx, my + 122, auto ? 'オート：近くの敵を向く\n（敵がいなければ、動く向き）' : 'カーソルの方向を向く\n攻撃もその方向に出る', 11, COLORS.dim, { align: 'center', lineSpacing: 3 }).setOrigin(0.5, 0);
+  menu.text(mx, my + 122, auto ? 'オート：ロックオンした敵を向く\nR：ロックオンの切り替え' : 'カーソルの方向を向く\n攻撃もその方向に出る', 11, COLORS.dim, { align: 'center', lineSpacing: 3 }).setOrigin(0.5, 0);
 
   // 武器ごとの左・右クリック（今の武器は明るく）
   menu.text(510, 132, '武器ごとのクリック', 12, COLORS.cyan, { fontStyle: '700' });
