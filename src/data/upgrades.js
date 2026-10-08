@@ -127,6 +127,35 @@ export const upgrades = [
     costs: [{ architectCore: 1, nocturneCore: 1 }],
     perLevel: { keepImplants: 1 },
   },
+  // ---- ここから、マップ5で足した強化（since: 4）。数値は小さめ。マップ5で覚える要素（持続ダメージ・弱点・状態異常）に沿わせる ----
+  {
+    id: 'rustproof', category: 'body', name: '防錆塗装', desc: '持続ダメージ（炎上・裂傷・腐食・酸の雨）で受ける量 −10%', max: 2, since: 4,
+    costs: [{ rustCore: 1 }, { rustCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.1 }] },
+  },
+  {
+    id: 'reagent', category: 'skill', name: '試薬庫', desc: '弱点を突いたときのダメージ +5%', max: 2, since: 4,
+    costs: [{ bufferCore: 1 }, { bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.05 }] },
+  },
+  {
+    id: 'cistern', category: 'gear', name: '集雨槽', desc: '修復キットの回復量 +10%', max: 2, since: 4,
+    costs: [{ rainCore: 1 }, { rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.1 }] },
+  },
+  {
+    id: 'hardshell', category: 'body', name: '強化外装', desc: '被ダメージ −4%', max: 1, since: 4,
+    // マップ5の3体の素材を1個ずつ。6段目に置く
+    costs: [{ rustCore: 1, bufferCore: 1, rainCore: 1 }],
+    treeMaxDepth: 6,
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.04 }] },
+  },
+  {
+    id: 'catalyzer', category: 'skill', name: '触媒炉', desc: '敵に付けた状態異常（燃焼・減速・腐食）の時間 +20%', max: 1, since: 4,
+    // 隠しボス「カタリスト」の素材を使う（4〜5段目のマス）
+    costs: [{ catalystCore: 1, bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.2 }] },
+  },
 ];
 
 // 武器の解放

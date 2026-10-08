@@ -12,7 +12,8 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 42;
+const ALL_NODES = 50;
+const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
 
 const RANK = Object.fromEntries(materials.map((m, i) => [m.id, i]));
@@ -300,6 +301,10 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
       const extra = tree.nodes.filter((n) => n.since > 1);
       expect(extra).toHaveLength(ALL_NODES - FIRST_NODES);
       expect(extra.filter((n) => n.since === 2)).toHaveLength(MAP4_NODES);
+      expect(extra.filter((n) => n.since === 4)).toHaveLength(MAP5_NODES);
+      expect(tree.byId['hardshell#0'].depth).toBe(6);
+      expect(tree.byId['catalyzer#0'].depth).toBeGreaterThanOrEqual(4);
+      expect(tree.byId['catalyzer#0'].depth).toBeLessThanOrEqual(5);
       expect(tree.byId['memory#0'].depth).toBeGreaterThanOrEqual(4);
       expect(tree.byId['memory#0'].depth).toBeLessThanOrEqual(5);
       expect(Math.max(...tree.nodes.map((n) => n.depth))).toBe(6);
@@ -332,5 +337,42 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
     for (const def of allUpgrades) save.upgrades[def.id] = def.max;
     const bonus = permanentBonuses(save);
     expect(bonus.kits).toBe(3); // 修復キット増設 2 ＋ 予備キット 1
+  });
+});
+
+describe('マップ5で足した8マス（since: 4）', () => {
+  it('足す前の42マス（最初の34・マップ4の7・記憶領域）の場所は、変わらない', () => {
+    const v3 = JSON.parse(readFileSync(new URL('./fixtures/tree-v3.json', import.meta.url), 'utf8'));
+    expect(Object.keys(v3)).toHaveLength(20);
+    for (const [seed, list] of Object.entries(v3)) {
+      expect(list).toHaveLength(42);
+      const now = buildTree(Number(seed)).nodes.filter((n) => n.since <= 3).map((n) => `${n.id}<${n.parent}@${n.depth}`);
+      expect(now, seed).toEqual(list);
+    }
+  });
+
+  it('値段：ラストコア3・バッファーコア4・レインコア3・カタリストコア1。効果は、小さめ', () => {
+    const sum = {};
+    for (const def of allUpgrades.filter((d) => d.since === 4)) for (const cost of def.costs) for (const [id, n] of Object.entries(cost)) sum[id] = (sum[id] ?? 0) + n;
+    expect(sum).toEqual({ rustCore: 3, bufferCore: 4, rainCore: 3, catalystCore: 1 });
+    const save = createSave();
+    for (const def of allUpgrades.filter((d) => d.since === 4)) save.upgrades[def.id] = def.max;
+    const mods = permanentBonuses(save).effects.flatMap((e) => e.mods);
+    const total = (stat) => mods.filter((m) => m.stat === stat).reduce((a, m) => a + m.add, 0);
+    expect(total('dotResist')).toBeCloseTo(0.2);
+    expect(total('weakBonus')).toBeCloseTo(0.1);
+    expect(total('kitBonus')).toBeCloseTo(0.2);
+    expect(total('damageTaken')).toBeCloseTo(-0.04);
+    expect(total('statusTime')).toBeCloseTo(0.2);
+  });
+
+  it('画面の並び：50マスになっても、同じ場所に重ならない。円は6段のまま', () => {
+    for (const seed of SEEDS.slice(0, 80)) {
+      const tree = buildTree(seed);
+      expect(tree.nodes).toHaveLength(ALL_NODES);
+      const { pos, maxDepth } = layoutTree(tree);
+      expect(maxDepth).toBe(6);
+      expect(new Set(tree.nodes.map((n) => `${pos[n.id].col}/${pos[n.id].row.toFixed(4)}`)).size).toBe(ALL_NODES);
+    }
   });
 });

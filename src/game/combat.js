@@ -16,9 +16,10 @@ import { triggerCounter } from './player.js';
 
 // ---- 状態異常 ----
 
-export function applyBurn(enemy) {
+//   mul: 燃えている時間の倍率（恒久強化「触媒炉」で延びる）
+export function applyBurn(enemy, mul = 1) {
   if (enemy.burnT <= 0) enemy.burnAcc = 0;
-  enemy.burnT = STATUS.burn.duration;
+  enemy.burnT = STATUS.burn.duration * mul;
 }
 
 // 腐食：しばらくの間、受けるダメージが増える。当て直すと、時間が戻る
@@ -42,7 +43,7 @@ export function applyStop(enemy, duration) {
 // 属性つきの攻撃が当たったときの状態異常。熱は燃焼、冷却は減速、腐食は受けるダメージの増加
 function applyElementStatus(world, enemy, elements) {
   if (enemy.dead) return;
-  if (elements.includes('heat')) applyBurn(enemy);
+  if (elements.includes('heat')) applyBurn(enemy, 1 + (world.player.stats.statusTime ?? 0));
   if (elements.includes('corrode')) applyCorrode(enemy, world.player.stats.corrodeTime ?? 0);
   if (elements.includes('cold')) {
     // 種族ボーナスなど：すでに減速している敵は凍結することがある

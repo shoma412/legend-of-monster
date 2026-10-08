@@ -202,7 +202,7 @@ const ACTIONS = {
   burnNearby(world, t) {
     const p = world.player;
     ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.heat);
-    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e, 1 + (world.player.stats.statusTime ?? 0));
   },
 
   // ダッシュで通り抜けた敵を減速させる

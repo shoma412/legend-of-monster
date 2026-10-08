@@ -2,7 +2,7 @@
 // 装備効果・レジェンド固有効果・インプラント・種族ボーナスはすべて同じ形の「effect」で、
 //   mods（ステータス補正）と triggers（イベントで発動する効果）と element（属性付与）
 // だけでできている。ここではそれを1つにまとめる。
-import { COMBO, FEATURES, ITEMS, LEVEL, PLAYER } from '../data/balance.js';
+import { COMBO, FEATURES, ITEMS, LEVEL, PLAYER, STATUS } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { species } from '../data/implants.js';
 
@@ -203,6 +203,8 @@ export function computeStats(build) {
     skyBolt: 0,
     standRegen: 0,
     floodPower: 0,
+    // 恒久強化「触媒炉」：敵に付けた状態異常（燃焼・減速・腐食）の時間が延びる割合
+    statusTime: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }
@@ -216,6 +218,10 @@ export function computeStats(build) {
     for (const trigger of effect.triggers ?? []) (triggers[trigger.on] ??= []).push(trigger);
     if (effect.element && !elements.includes(effect.element)) elements.push(effect.element);
   }
+
+  // 状態異常の時間の延びは、それぞれの値に振り分ける（減速は倍率、腐食は秒数。燃焼は、付けるときに掛ける）
+  sum.slowMul += sum.statusTime;
+  sum.corrodeTime += STATUS.corrode.duration * sum.statusTime;
 
   return {
     ...sum,
