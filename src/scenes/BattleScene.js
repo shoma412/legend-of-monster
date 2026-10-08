@@ -14,6 +14,8 @@ import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { drawRain, drawRoofs } from '../render/rain.js';
 import { drawAnchors, drawScreens, drawWind } from '../render/wind.js';
 import { setTouchMode, takeTouchPresses, touch } from '../game/touchInput.js';
+import { pad, padAiming, takePadPresses } from '../game/padInput.js';
+import { PAD } from '../logic/gamepad.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -115,8 +117,8 @@ export class BattleScene extends Phaser.Scene {
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
         const p = this.world.player;
-        // モバイル版：カーソルがないので、向いている先を狙う
-        useItem(this.world, i, touch.enabled ? { x: p.x + p.fx * 140, y: p.y + p.fy * 140 } : { x: pointer.worldX, y: pointer.worldY });
+        // モバイル版・ゲームパッド：カーソルがないので、向いている先を狙う
+        useItem(this.world, i, touch.enabled || pad.active ? { x: p.x + p.fx * 140, y: p.y + p.fy * 140 } : { x: pointer.worldX, y: pointer.worldY });
       }
     }));
     this.keys.ENTER.on('down', () => {
@@ -355,16 +357,22 @@ export class BattleScene extends Phaser.Scene {
     // モバイル版：スティックと、攻撃・特殊のボタン。向きは、いつもオート（ロックオン）
     const mobile = touch.enabled;
     const presses = mobile ? takeTouchPresses() : null;
+    // ゲームパッド：右スティックを倒している間は、その向き。倒していなければ、オート（ロックオン）
+    const padPresses = takePadPresses();
+    const aiming = padAiming();
+    const p = this.world.player;
+    // リザルト：A で「隠れ家に戻る」
+    if (padPresses.confirmPressed && this.result.visible) this.result.confirm();
     const input = {
-      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0),
-      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0),
-      aimX: pointer.worldX,
-      aimY: pointer.worldY,
-      auto: mobile || getSettings().controls === 'auto', // 操作方法（設定）
+      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0) + pad.mx,
+      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0) + pad.my,
+      aimX: aiming ? p.x + pad.ax * PAD.aimReach : pointer.worldX,
+      aimY: aiming ? p.y + pad.ay * PAD.aimReach : pointer.worldY,
+      auto: !aiming && (mobile || pad.active || getSettings().controls === 'auto'), // 操作方法（設定）
       lockPressed: this.lockPressed,
-      attack: mobile ? touch.attack : pointer.leftButtonDown(),
-      attackPressed: this.attackPressed || !!presses?.attackPressed,
-      specialPressed: this.specialPressed || !!presses?.specialPressed,
+      attack: (mobile ? touch.attack : pointer.leftButtonDown()) || pad.attack,
+      attackPressed: this.attackPressed || !!presses?.attackPressed || padPresses.attackPressed,
+      specialPressed: this.specialPressed || !!presses?.specialPressed || padPresses.specialPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;
@@ -379,7 +387,12 @@ export class BattleScene extends Phaser.Scene {
     const seconds = Math.min(this.clock.tick(time), MAX_FRAME);
     const delta = seconds * 1000;
     // モバイル版：ポーズ画面やリザルトが開いている間は、戦闘用のボタンを隠す
-    setTouchMode(this.menu.isOpen || this.result.visible || world.choice ? 'menu' : 'play');
+    setTouchMode(this.menu.isOpen ? 'menu' : this.result.visible ? 'result' : world.choice ? 'choice' : this.dialogue.isOpen ? 'talk' : 'play');
+    // ゲームパッド：消耗品の枠の数、足元の装備、「帰還する」のボタン
+    pad.items = world.player.build.items.length;
+    pad.options = world.choice?.options.length ?? 3;
+    pad.loot = !!world.focusLoot;
+    pad.canReturn = this.returnButton.visible;
     // ポーズ画面が開いている間は、ゲームを止める
     if (this.menu.isOpen) {
       this.readInput();

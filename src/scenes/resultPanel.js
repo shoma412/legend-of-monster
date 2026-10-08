@@ -40,14 +40,21 @@ export function createResultPanel(scene) {
     if (rows.length > MAX_ROWS) text(x + 44, y + 44 + MAX_ROWS * 25, `ほか ${rows.length - MAX_ROWS} 件`, 12, COLORS.dim);
   };
 
+  let done = null; // 「隠れ家に戻る」が押せるようになったら、その働き
   return {
     get visible() {
       return root.visible;
     },
 
+    // ゲームパッドの A：「隠れ家に戻る」（押せるようになるまでは、何もしない）
+    confirm() {
+      done?.();
+    },
+
     // info: { title, color, reach, kills, gained: { materials, fragments, achievements }, note, onDone }
     show(info) {
       root.removeAll(true);
+      done = null;
       root.add(scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.9).setInteractive());
       const title = text(W / 2, 62, info.title, 44, info.color, { fontFamily: FONTS.display, fontStyle: '700' }).setOrigin(0.5);
       title.setShadow(0, 0, info.color, 16, false, true);
@@ -91,6 +98,7 @@ export function createResultPanel(scene) {
         button.on('pointerover', () => button.setFillStyle(0x2a2546, 1));
         button.on('pointerout', () => button.setFillStyle(PANEL, 0.95));
         button.on('pointerdown', () => info.onDone());
+        done = info.onDone;
       });
       root.setVisible(true);
     },

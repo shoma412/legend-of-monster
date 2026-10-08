@@ -21,7 +21,7 @@ export class EndingScene extends Phaser.Scene {
   }
 
   create() {
-    setTouchMode('menu');
+    setTouchMode('select');
     const { width: W, height: H } = SCREEN;
     setupView(this);
     this.cameras.main.fadeIn(600, 7, 6, 13);

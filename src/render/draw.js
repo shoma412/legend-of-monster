@@ -2,6 +2,7 @@
 import { LOOT, PLAYER, ROOM, SCREEN } from '../data/balance.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
 import { DATA } from '../data/index.js';
+import { pad } from '../game/padInput.js';
 import { xpToNext } from '../logic/level.js';
 import { drawBackdrop } from './backdrop.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
@@ -686,6 +687,8 @@ function drawItemSlots(g, world) {
     const bx = x + i * gap;
     g.fillStyle(0x110f1d, 0.85).fillRect(bx, y, size, size);
     g.lineStyle(1, hex(slot ? COLORS.ink : COLORS.line), slot ? 0.8 : 1).strokeRect(bx, y, size, size);
+    // ゲームパッド：B で選んでいる枠（A で使う）
+    if (pad.active && i === Math.min(pad.item, p.build.items.length - 1)) g.lineStyle(2, hex(COLORS.amber), 1).strokeRect(bx - 2, y - 2, size + 4, size + 4);
     if (slot) {
       const def = DATA.consumables.get(slot.id);
       drawItemIcon(g, def.icon, bx + size / 2, y + size / 2 + 1, 8, hex(ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.ink));

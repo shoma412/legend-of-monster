@@ -25,7 +25,7 @@ export class SaveSelectScene extends Phaser.Scene {
   }
 
   create() {
-    setTouchMode('menu');
+    setTouchMode('select');
     setupView(this);
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);

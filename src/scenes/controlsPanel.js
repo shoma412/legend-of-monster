@@ -5,6 +5,7 @@ import { DATA } from '../data/index.js';
 import { COLORS, hex } from '../data/theme.js';
 import { getSettings } from '../game/settingsStore.js';
 import { touch } from '../game/touchInput.js';
+import { pad } from '../game/padInput.js';
 
 // モバイル版の操作説明：画面のボタンと、その働き（docs/詳細仕様.md「31. モバイル版」）
 const TOUCH_GROUPS = [
@@ -22,16 +23,34 @@ const TOUCH_GROUPS = [
   { color: COLORS.ink, name: '決定', text: '決定。最後まで進んだあと、リザルトへ' },
 ];
 
-function renderTouchControls(menu, weapon) {
+// ゲームパッドの操作説明（docs/詳細仕様.md「32. ゲームパッド」）。ボタンの名前は Xbox のもの
+const PAD_GROUPS = [
+  { color: COLORS.cyan, name: '左スティック・十字', text: '移動。メニューでは、項目を選ぶ' },
+  { color: COLORS.cyan, name: '右スティック', text: '倒している間、その向きを向く' },
+  { color: COLORS.amber, name: 'RB', text: '攻撃（押している間）。長押しで、溜め斬り・連射' },
+  { color: COLORS.amber, name: 'LB', text: '特殊アクション（武器ごとに違う。右の一覧）' },
+  { color: COLORS.cyan, name: 'LT', text: 'ダッシュ回避（無敵あり）' },
+  { color: COLORS.red, name: 'RT', text: 'ロックオンする敵を切り替える' },
+  { color: COLORS.green, name: 'X', text: '調べる。装備が落ちていれば、バッグに入れる' },
+  { color: COLORS.green, name: 'Y', text: '修復キットを使う（HP回復）' },
+  { color: COLORS.amber, name: 'B', text: '消耗品を切り替える（枠の順に）' },
+  { color: COLORS.amber, name: 'A', text: '選んでいる消耗品を使う。会話を進める' },
+  { color: COLORS.ink, name: '＋（メニュー）', text: 'ポーズ画面を開く・閉じる。会話を飛ばす' },
+  { color: COLORS.magenta, name: '−（ビュー）', text: 'エリアの地図' },
+  { color: COLORS.dim, name: 'メニューの中', text: 'LB・RB：タブ　A：決定　B：閉じる・戻る' },
+];
+
+function renderTouchControls(menu, weapon, groups = TOUCH_GROUPS) {
   const g = menu.graphics();
-  menu.text(60, 132, '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
-  menu.text(900, 132, '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
-  TOUCH_GROUPS.forEach((group, i) => {
+  const isPad = groups === PAD_GROUPS;
+  menu.text(60, 132, isPad ? 'ゲームパッド' : '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
+  menu.text(900, 132, isPad ? '右スティックを倒していない間は、オート（敵をロックオンして、その敵のほうを向く）' : '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
+  groups.forEach((group, i) => {
     const y = 156 + i * 21;
     g.fillStyle(hex(group.color), 0.3).fillRect(60, y + 2, 12, 12);
     g.lineStyle(1, hex(group.color), 1).strokeRect(60, y + 2, 12, 12);
     menu.text(80, y, group.name, 12, group.color, { fontStyle: '700' });
-    menu.text(166, y, group.text, 12, COLORS.ink);
+    menu.text(isPad ? 200 : 166, y, group.text, 12, COLORS.ink);
   });
   // 右：武器ごとの、攻撃と特殊
   menu.text(560, 156, '武器ごとの攻撃と特殊（今の武器は、明るい）', 12, COLORS.cyan, { fontStyle: '700' });
@@ -134,6 +153,11 @@ export function renderControls(menu, weapon) {
   menu.panel(40, 122, 880, 336);
   if (touch.enabled) {
     renderTouchControls(menu, weapon);
+    return;
+  }
+  // ゲームパッドで操作しているときは、ゲームパッドのボタンの一覧を出す
+  if (pad.active) {
+    renderTouchControls(menu, weapon, PAD_GROUPS);
     return;
   }
   const g = menu.graphics();

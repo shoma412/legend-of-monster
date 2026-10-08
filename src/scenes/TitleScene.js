@@ -13,7 +13,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
-    setTouchMode('menu');
+    setTouchMode('select');
     const { width: W, height: H } = SCREEN;
     setupView(this);
     this.drawBackdrop(W, H);

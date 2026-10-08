@@ -1,6 +1,7 @@
 // 戦闘画面の上に重ねるパネル（装備の比較、インプラント3択、装備とインプラントの一覧）
 import { LEVEL, LOOT, ROOM, SCREEN } from '../data/balance.js';
 import { species } from '../data/implants.js';
+import { pad } from '../game/padInput.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { describeItem } from '../logic/loot.js';
 import { bonusAt, implantDesc, speciesCounts } from '../logic/stats.js';
@@ -108,6 +109,12 @@ export function createChoicePanel(scene, onChoose) {
     return { bg, key, family, name, desc, note, parts: [bg, key, family, name, desc, note] };
   });
 
+  // ゲームパッド：左スティック・十字キーの左右で選び、A で決める
+  const cursor = scene.add.rectangle(0, 160 - 5, CARD_W + 10, CARD_H + 10).setOrigin(0).setStrokeStyle(3, hex(COLORS.amber)).setVisible(false);
+  c.add(cursor);
+  const padHint = 'インプラントを1つ選ぶ（左スティック・十字キーで選んで、A で決定）';
+  const keyHint = sub.text;
+
   let shown = null;
   return {
     update(choice, build) {
@@ -116,6 +123,9 @@ export function createChoicePanel(scene, onChoose) {
         c.setVisible(false);
         return;
       }
+      if (choice !== shown) pad.choice = 0;
+      cursor.setVisible(pad.active).setX((W - total) / 2 + Math.min(pad.choice, choice.options.length - 1) * (CARD_W + CARD_GAP) - 5);
+      if (sub.text !== (pad.active ? padHint : keyHint)) sub.setText(pad.active ? padHint : keyHint);
       if (choice === shown) return;
       shown = choice;
       title.setText(`LEVEL UP　Lv ${build.level}`);
