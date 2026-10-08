@@ -7,6 +7,7 @@ import { touch } from './game/touchInput.js';
 import { installMobileText } from './mobile/mobileText.js';
 import { initTouchControls } from './mobile/touchControls.js';
 import { initGamepad } from './gamepad/gamepad.js';
+import { installPadText, watchPadText } from './gamepad/padText.js';
 import { setRenderScale } from './render/view.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { EndingScene } from './scenes/EndingScene.js';
@@ -37,6 +38,7 @@ loadFonts().then(() => {
   touch.enabled = mobile;
   // ゲームパッド：つないで触ったときだけ働く
   initGamepad();
+  installPadText(Phaser);
   // 画面の案内をボタンの名前に言い換え、小さな文字を少し大きくする
   if (mobile) installMobileText(Phaser);
   // 画質：ゲームの中の座標は 960×540 のまま、描く先のキャンバスだけを倍の細かさで作る（src/render/view.js）
@@ -65,6 +67,7 @@ loadFonts().then(() => {
     },
     scene: [TitleScene, SaveSelectScene, HideoutScene, BattleScene, EndingScene],
   });
+  watchPadText(game);
   // モバイル版：画面にスティックとボタンを出す
   if (mobile) initTouchControls(document.getElementById('game'));
   // 表示の大きさ（設定）。フルスクリーンに出入りしたときも合わせ直す

@@ -30,7 +30,7 @@ const PAD_GROUPS = [
   { color: COLORS.amber, keys: ['RB'], name: 'RB', text: '攻撃（押している間）' },
   { color: COLORS.amber, keys: ['LB'], name: 'LB', text: '特殊アクション（武器ごとに違う）' },
   { color: COLORS.cyan, keys: ['LT'], name: 'LT', text: 'ダッシュ回避（無敵あり）' },
-  { color: COLORS.red, keys: ['RT'], name: 'RT', text: 'ロックオンの切り替え' },
+  { color: COLORS.red, keys: ['RT'], name: 'RT', text: 'ロックオンの切り替え（操作方法がオートのとき）' },
   { color: COLORS.green, keys: ['X'], name: 'X', text: '調べる／落ちている装備をバッグに入れる' },
   { color: COLORS.green, keys: ['Y'], name: 'Y', text: '修復キットを使う（HP回復）' },
   { color: COLORS.amber, keys: ['B'], name: 'B', text: '消耗品の切り替え（枠の順に）' },
@@ -113,7 +113,9 @@ function renderPadControls(menu, weapon) {
   const g = menu.graphics();
   menu.text(60, 132, 'ゲームパッド', 12, COLORS.cyan, { fontStyle: '700' });
   drawPadFigure(menu, g);
-  menu.text(60, 428, '右スティックを倒していない間は、オート（ロックオンした敵のほうを向く）', 10, COLORS.dim);
+  // 向きの決め方は、設定の「操作方法」で変わる
+  const auto = getSettings().controls === 'auto';
+  menu.text(60, 428, auto ? '操作方法：オート　右スティックを倒していない間は、ロックオンした敵を向く' : '操作方法：マニュアル　右スティックを倒していない間は、動いている向きを向く', 10, COLORS.dim);
   g.lineStyle(1, hex(COLORS.line), 1).lineBetween(436, 134, 436, 446);
   const lines = listLines(weapon, true);
   const start = menu.window(lines.length, VISIBLE, { x: 908, y: LIST_Y, h: VISIBLE * LINE });

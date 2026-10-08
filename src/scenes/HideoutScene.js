@@ -288,16 +288,19 @@ export class HideoutScene extends Phaser.Scene {
     // モバイル版：スティックと、攻撃・特殊のボタン。向きは、いつもオート
     const mobile = touch.enabled;
     const presses = mobile ? takeTouchPresses() : null;
-    // ゲームパッド：右スティックを倒している間は、その向き。倒していなければ、オート
+    // ゲームパッド：右スティックを倒している間は、その向き。倒していなければ、設定の操作方法のとおり
     const padPresses = takePadPresses();
     const aiming = padAiming();
     const p = this.world.player;
+    const auto = mobile || getSettings().controls === 'auto';
+    // マニュアル：右スティックを倒していなければ、動いている向きを向く（ロックオンはしない）
+    const aim = aiming ? { x: pad.ax, y: pad.ay } : pad.active && !auto && (pad.mx !== 0 || pad.my !== 0) ? { x: pad.mx, y: pad.my } : null;
     const input = {
       mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0) + pad.mx,
       my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0) + pad.my,
-      aimX: aiming ? p.x + pad.ax * PAD.aimReach : pointer.worldX,
-      aimY: aiming ? p.y + pad.ay * PAD.aimReach : pointer.worldY,
-      auto: !aiming && (mobile || pad.active || getSettings().controls === 'auto'), // 操作方法（設定）
+      aimX: aim ? p.x + aim.x * PAD.aimReach : pad.active ? null : pointer.worldX,
+      aimY: aim ? p.y + aim.y * PAD.aimReach : pad.active ? null : pointer.worldY,
+      auto: !aiming && auto, // 操作方法（設定）
       attack: (mobile ? touch.attack : pointer.leftButtonDown()) || pad.attack,
       attackPressed: this.attackPressed || !!presses?.attackPressed || padPresses.attackPressed,
       specialPressed: this.specialPressed || !!presses?.specialPressed || padPresses.specialPressed,

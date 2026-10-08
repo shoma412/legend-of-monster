@@ -98,7 +98,7 @@ export function padActions(mode, pressed, state) {
       if (name === 'A') key('interact');
       else if (name === 'X') key('digit1');
       else if (name === 'Y') key('digit2');
-      else if (name === 'plus') key('menu');
+      else if (name === 'B' || name === 'plus') key('menu');
     } else if (mode === 'choice') {
       const n = Math.max(1, state.options ?? 3);
       if (name === 'dir:left') out.choice = (out.choice + n - 1) % n;

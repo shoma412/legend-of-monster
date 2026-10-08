@@ -17,7 +17,15 @@ export const pad = {
   options: 3,
   loot: false, // 足元に装備が落ちているか（戦闘の画面が書く）
   canReturn: false, // 「帰還する」のボタンが出ているか（戦闘の画面が書く）
+  onActive: null, // active が変わったときに呼ぶ
 };
+
+// ゲームパッドで操作しているかを切り替える。変わったときは、画面の文字を出し直す（src/gamepad/padText.js）
+export function setPadActive(active) {
+  if (pad.active === active) return;
+  pad.active = active;
+  pad.onActive?.(active);
+}
 
 // 押した瞬間の入力を読んで、消す
 export function takePadPresses() {

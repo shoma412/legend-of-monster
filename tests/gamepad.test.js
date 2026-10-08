@@ -135,6 +135,7 @@ describe('ゲームパッドのボタンの働き', () => {
     expect(padActions('talk', ['A'], state()).keys).toEqual(['interact']);
     expect(padActions('talk', ['X'], state()).keys).toEqual(['digit1']);
     expect(padActions('talk', ['Y'], state()).keys).toEqual(['digit2']);
+    expect(padActions('talk', ['B'], state()).keys).toEqual(['menu']);
   });
 
   it('リザルト：A で戻る', () => {
