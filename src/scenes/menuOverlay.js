@@ -25,6 +25,7 @@ import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
 import { renderControls } from './controlsPanel.js';
+import { touch } from '../game/touchInput.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -45,6 +46,9 @@ const TREE_FILTERS = [
   { id: 'skill', label: '技', w: 34 },
   { id: 'gear', label: '備', w: 34 },
 ];
+
+// モバイル版：メニューを拡大する倍率（「拡大」ボタン。拡大中は、指でなぞって動かす）
+const MENU_ZOOM = 1.45;
 
 const TAB_LABELS = {
   status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
@@ -97,11 +101,20 @@ export class MenuOverlay {
     scene.input.keyboard.on('keydown', (event) => this.onKey(event));
     this.treeView = createTreeView(); // スキルツリーの円の、拡大と位置
     this.treeDrag = null; // 円を引っぱって動かしている最中の、前のマウスの位置
+    // モバイル版：メニューぜんたいの拡大（on のとき MENU_ZOOM 倍。x・y は、ずらした量）と、「拡大」ボタン
+    this.zoom = { on: false, x: 0, y: 0 };
+    this.zoomDrag = null;
+    this.zoomButton = null;
+    if (touch.enabled) {
+      this.zoomButton = scene.add.text(W - 40, 30, '拡大', { fontFamily: FONTS.body, fontSize: '15px', fontStyle: '700', color: COLORS.amber, backgroundColor: '#110f1d', padding: { x: 14, y: 8 } })
+        .setOrigin(1, 0).setDepth(31).setVisible(false).setInteractive({ useHandCursor: true });
+      this.zoomButton.on('pointerdown', () => this.setZoom(!this.zoom.on));
+    }
     // マウスのホイール：スキルツリーの円の上では拡大・縮小（上に回すと拡大）。それ以外では、長い一覧を上下に動かす
     scene.input.on('wheel', (pointer, _over, _dx, dy) => {
       if (!this.isOpen || this.dialog || dy === 0) return;
       if (this.overTree(pointer)) {
-        this.treeView = zoomAt(this.treeView, TREE_CENTER, { x: pointer.worldX, y: pointer.worldY }, dy < 0 ? 1 : -1);
+        this.treeView = zoomAt(this.treeView, TREE_CENTER, this.local(pointer), dy < 0 ? 1 : -1);
         this.render();
         return;
       }
@@ -109,28 +122,69 @@ export class MenuOverlay {
     });
     // スキルツリーの円は、拡大しているとき、引っぱって動かせる
     scene.input.on('pointerdown', (pointer) => {
-      this.treeDrag = this.overTree(pointer) ? { x: pointer.worldX, y: pointer.worldY, moved: false } : null;
+      const at = this.local(pointer);
+      this.treeDrag = this.overTree(pointer) ? { x: at.x, y: at.y, moved: false } : null;
+      // メニューを拡大しているとき：なぞって動かす（スキルツリーの円を動かしているときは、そちらが先）
+      const treePan = this.treeDrag && this.treeView.zoom > TREE_VIEW.min;
+      this.zoomDrag = this.isOpen && this.zoom.on && !treePan ? { x: pointer.worldX, y: pointer.worldY, moved: false } : null;
     });
     scene.input.on('pointerup', () => {
       this.treeDrag = null;
+      this.zoomDrag = null;
     });
     scene.input.on('pointermove', (pointer) => {
+      const zd = this.zoomDrag;
+      if (zd && pointer.isDown && this.isOpen && this.zoom.on) {
+        const dx = pointer.worldX - zd.x;
+        const dy = pointer.worldY - zd.y;
+        if (!zd.moved && Math.hypot(dx, dy) < 6) return;
+        zd.moved = true;
+        zd.x = pointer.worldX;
+        zd.y = pointer.worldY;
+        this.zoom.x += dx;
+        this.zoom.y += dy;
+        this.applyZoom();
+        return;
+      }
       const drag = this.treeDrag;
       if (!drag || !pointer.isDown || !this.isOpen || this.tabId !== 'upgrade' || this.treeView.zoom <= TREE_VIEW.min) return;
-      const dx = pointer.worldX - drag.x;
-      const dy = pointer.worldY - drag.y;
+      const at = this.local(pointer);
+      const dx = at.x - drag.x;
+      const dy = at.y - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) < 4) return; // クリックのつもりの、小さなぶれは無視する
       drag.moved = true;
-      drag.x = pointer.worldX;
-      drag.y = pointer.worldY;
+      drag.x = at.x;
+      drag.y = at.y;
       this.treeView = panBy(this.treeView, dx, dy);
       this.render();
     });
   }
 
+  // マウス（指）の位置を、メニューの中の位置に直す（メニューを拡大しているときは、そのぶんを戻す）
+  local(pointer) {
+    const z = this.zoom.on ? MENU_ZOOM : 1;
+    return { x: (pointer.worldX - this.root.x) / z, y: (pointer.worldY - this.root.y) / z };
+  }
+
+  // モバイル版：メニューを拡大する・戻す
+  setZoom(on) {
+    this.zoom = { on, x: 0, y: 0 };
+    this.applyZoom();
+  }
+
+  // 拡大と、ずらした量を、画面に反映する（画面の外まで、ずらしすぎないようにする）
+  applyZoom() {
+    const z = this.zoom.on ? MENU_ZOOM : 1;
+    this.zoom.x = Math.max(W - W * z, Math.min(0, this.zoom.x));
+    this.zoom.y = Math.max(H - H * z, Math.min(0, this.zoom.y));
+    this.root.setScale(z).setPosition(this.zoom.x, this.zoom.y);
+    this.zoomButton?.setText(this.zoom.on ? '戻す' : '拡大');
+  }
+
   // マウスが、スキルツリーの円の枠の上にあるか
   overTree(pointer) {
-    return this.isOpen && !this.dialog && this.tabId === 'upgrade' && inRect(pointer.worldX, pointer.worldY, TREE_RECT);
+    const at = this.local(pointer);
+    return this.isOpen && !this.dialog && this.tabId === 'upgrade' && inRect(at.x, at.y, TREE_RECT);
   }
 
   // スキルツリーのマスの、円の中での位置（中心が 0,0。拡大していないときの長さ）
@@ -152,6 +206,8 @@ export class MenuOverlay {
     this.scroll = 0;
     this.dialog = null;
     this.root.setVisible(true);
+    this.zoomButton?.setVisible(true);
+    this.setZoom(false);
     // スキルツリーは、今すぐ取れるマスがあれば、そこを選んだ状態で開く
     if (this.tabId === 'upgrade' && !this.options.readOnlyUpgrades) this.jumpToOpen(false);
     this.render();
@@ -162,12 +218,14 @@ export class MenuOverlay {
     this.dialog = null;
     this.root.setVisible(false);
     this.root.removeAll(true);
+    this.zoomButton?.setVisible(false);
     this.options.onClose?.();
   }
 
   // 「はい／いいえ」の確認を出す
   confirm(message, yes) {
     this.dialog = { message, yes };
+    if (this.zoom.on) this.setZoom(false); // 確認の案内は、画面の真ん中に出るので、拡大を戻す
     this.render();
   }
 
@@ -714,7 +772,16 @@ export class MenuOverlay {
     // 操作の案内と、今の倍率（マスや線と重ならないよう、下に帯を敷く）
     const strip = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.bottom - 25, TREE_RECT.right - TREE_RECT.left - 2, 24, PANEL, 0.96).setOrigin(0);
     this.root.add(strip);
-    this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）　　F：次の取れるマス', 11, COLORS.dim);
+    this.text(TREE_RECT.left + 10, TREE_RECT.bottom - 20, touch.enabled ? 'ドラッグ：動かす（拡大中）　F：次の取れるマス' : 'ホイール：拡大・縮小　　ドラッグ：動かす（拡大中）　　F：次の取れるマス', 11, COLORS.dim);
+    // モバイル版：ホイールがないので、拡大・縮小のボタンを出す
+    if (touch.enabled) {
+      [['−', -1, 108], ['＋', 1, 76]].forEach(([label, direction, dx]) => {
+        this.button(TREE_RECT.right - dx, TREE_RECT.bottom - 24, 28, 22, label, COLORS.cyan, () => {
+          this.treeView = zoomAt(this.treeView, TREE_CENTER, TREE_CENTER, direction);
+          this.render();
+        }, 14);
+      });
+    }
     // 絞り込みのボタン（枠の上の帯）。選んだもの以外のマスが、薄くなる
     const bar = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.top + 1, TREE_RECT.right - TREE_RECT.left - 2, 30, PANEL, 0.96).setOrigin(0);
     this.root.add(bar);
@@ -782,10 +849,10 @@ export class MenuOverlay {
     }
     // 凡例
     [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]].forEach(([mark, meaning, color], k) => {
-      this.text(X + 18 + k * 88, 436, mark, 11, color, { fontStyle: '700' });
-      this.text(X + 33 + k * 88, 436, meaning, 11, COLORS.dim);
+      this.text(X + 18 + k * 88, 431, mark, 11, color, { fontStyle: '700' });
+      this.text(X + 33 + k * 88, 431, meaning, 11, COLORS.dim);
     });
-    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 18 + dx, 449, `● ${label}`, 11, color, { fontStyle: '700' }));
+    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 18 + dx, 446, `● ${label}`, 11, color, { fontStyle: '700' }));
   }
 
   // ---- 記録 ----

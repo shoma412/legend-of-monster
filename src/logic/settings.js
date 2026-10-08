@@ -33,12 +33,13 @@ export const CONTROL_MODES = [
   { id: 'auto', label: 'オート' },
 ];
 
-export function createSettings() {
+// mobile: モバイル版（スマホ・タブレット）の初期値にする。画面が小さく、点が細かいので、画質の初期値を「高」にする（文字がくっきりする）
+export function createSettings({ mobile = false } = {}) {
   return {
     volume: { master: 0.7, bgm: 0.6, se: 0.8 }, // 0〜1
     muted: false,
     displaySize: 'fit',
-    quality: 1,
+    quality: mobile ? 2 : 1,
     frameRate: 0,
     controls: 'manual',
   };
@@ -47,8 +48,8 @@ export function createSettings() {
 const clamp01 = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback);
 
 // 壊れた値や知らない値は、初期値に戻す
-export function normalizeSettings(data) {
-  const base = createSettings();
+export function normalizeSettings(data, options = {}) {
+  const base = createSettings(options);
   if (!data || typeof data !== 'object') return base;
   return {
     volume: {
@@ -64,12 +65,12 @@ export function normalizeSettings(data) {
   };
 }
 
-export function loadSettings(storage) {
+export function loadSettings(storage, options = {}) {
   try {
     const raw = storage?.getItem(SETTINGS_KEY);
-    return normalizeSettings(raw ? JSON.parse(raw) : null);
+    return normalizeSettings(raw ? JSON.parse(raw) : null, options);
   } catch {
-    return createSettings();
+    return createSettings(options);
   }
 }
 

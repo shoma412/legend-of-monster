@@ -1,5 +1,6 @@
 // 設定をブラウザの localStorage に読み書きする窓口。ゲーム中はここの1つを共有する。
 import { DISPLAY_SIZES, loadSettings, storeSettings } from '../logic/settings.js';
+import { touch } from './touchInput.js';
 
 function storage() {
   try {
@@ -12,7 +13,7 @@ function storage() {
 let current = null;
 
 export function getSettings() {
-  current ??= loadSettings(storage());
+  current ??= loadSettings(storage(), { mobile: touch.enabled });
   return current;
 }
 

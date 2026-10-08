@@ -3,6 +3,8 @@ import { SCREEN } from './data/balance.js';
 import { COLORS, FONTS } from './data/theme.js';
 import { applyDisplaySize, getSettings, syncEscapeLock } from './game/settingsStore.js';
 import { detectMobile } from './logic/device.js';
+import { touch } from './game/touchInput.js';
+import { installMobileText } from './mobile/mobileText.js';
 import { initTouchControls } from './mobile/touchControls.js';
 import { setRenderScale } from './render/view.js';
 import { BattleScene } from './scenes/BattleScene.js';
@@ -24,6 +26,16 @@ async function loadFonts() {
 }
 
 loadFonts().then(() => {
+  // モバイル版：スマホ・タブレットで開いたときだけ。設定を読む前に決める（画質の初期値が変わるため）。パソコンでは、何も変わらない
+  const mobile = detectMobile({
+    search: window.location.search,
+    touchPoints: navigator.maxTouchPoints ?? 0,
+    coarse: window.matchMedia?.('(pointer: coarse)').matches ?? false,
+    userAgent: navigator.userAgent,
+  });
+  touch.enabled = mobile;
+  // 画面の案内をボタンの名前に言い換え、小さな文字を少し大きくする
+  if (mobile) installMobileText(Phaser);
   // 画質：ゲームの中の座標は 960×540 のまま、描く先のキャンバスだけを倍の細かさで作る（src/render/view.js）
   const quality = getSettings().quality;
   setRenderScale(quality);
@@ -50,13 +62,7 @@ loadFonts().then(() => {
     },
     scene: [TitleScene, SaveSelectScene, HideoutScene, BattleScene, EndingScene],
   });
-  // モバイル版：スマホ・タブレットで開いたときだけ、画面にスティックとボタンを出す（パソコンでは、何も変わらない）
-  const mobile = detectMobile({
-    search: window.location.search,
-    touchPoints: navigator.maxTouchPoints ?? 0,
-    coarse: window.matchMedia?.('(pointer: coarse)').matches ?? false,
-    userAgent: navigator.userAgent,
-  });
+  // モバイル版：画面にスティックとボタンを出す
   if (mobile) initTouchControls(document.getElementById('game'));
   // 表示の大きさ（設定）。フルスクリーンに出入りしたときも合わせ直す
   applyDisplaySize(game);

@@ -7,7 +7,16 @@ export const touch = {
   attack: false, // 攻撃ボタンを押している間 true
   attackPressed: false, // 攻撃ボタンを押した瞬間（読んだら消える）
   specialPressed: false, // 特殊ボタンを押した瞬間（読んだら消える）
+  mode: 'menu', // 今の画面。play（動き回る画面）/ menu（タイトル・セーブ枠・メニューなど）。menu の間は、戦闘用のボタンを隠す
+  onMode: null, // mode が変わったときに呼ぶ（ボタンを出し入れする）
 };
+
+// 今の画面が、動き回る画面（play）か、メニューの画面（menu）かを伝える。各画面が呼ぶ。パソコンでは何もしない
+export function setTouchMode(mode) {
+  if (!touch.enabled || touch.mode === mode) return;
+  touch.mode = mode;
+  touch.onMode?.(mode);
+}
 
 // 押した瞬間の入力を読んで、消す
 export function takeTouchPresses() {

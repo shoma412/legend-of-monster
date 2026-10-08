@@ -13,7 +13,7 @@ import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { drawRain, drawRoofs } from '../render/rain.js';
 import { drawAnchors, drawScreens, drawWind } from '../render/wind.js';
-import { takeTouchPresses, touch } from '../game/touchInput.js';
+import { setTouchMode, takeTouchPresses, touch } from '../game/touchInput.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -174,7 +174,8 @@ export class BattleScene extends Phaser.Scene {
       for (const mod of Object.values(import.meta.glob('../dev.local.js', { eager: true }))) mod.setupBattle?.(this);
     }
 
-    const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim };
+    // fixedSize: モバイル版でも、文字を大きくしない（上の帯は、ゲージの間が詰まっている）
+    const label = { fontFamily: FONTS.display, fontStyle: '500', fontSize: '11px', color: COLORS.dim, fixedSize: true };
     this.add.text(40, 4, 'HP', label);
     this.hpText = this.add.text(250, 4, '', { ...label, color: COLORS.ink });
     // 経験値ゲージの左にレベル、右に数字
@@ -377,6 +378,8 @@ export class BattleScene extends Phaser.Scene {
     const world = this.world;
     const seconds = Math.min(this.clock.tick(time), MAX_FRAME);
     const delta = seconds * 1000;
+    // モバイル版：ポーズ画面やリザルトが開いている間は、戦闘用のボタンを隠す
+    setTouchMode(this.menu.isOpen || this.result.visible || world.choice ? 'menu' : 'play');
     // ポーズ画面が開いている間は、ゲームを止める
     if (this.menu.isOpen) {
       this.readInput();

@@ -22,7 +22,7 @@ import { createDialogueBox } from './dialogueBox.js';
 import { createMapSelect } from './mapSelect.js';
 import { MenuOverlay, costText, ownedText } from './menuOverlay.js';
 import { getSettings } from '../game/settingsStore.js';
-import { takeTouchPresses, touch } from '../game/touchInput.js';
+import { setTouchMode, takeTouchPresses, touch } from '../game/touchInput.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -306,6 +306,8 @@ export class HideoutScene extends Phaser.Scene {
   update(time) {
     const world = this.world;
     const seconds = this.clock.tick(time);
+    // モバイル版：メニューやマップ選択が開いている間は、戦闘用のボタンを隠す
+    setTouchMode(this.menu.isOpen || this.mapSelect.isOpen ? 'menu' : 'play');
     if (this.menu.isOpen) {
       this.readInput(); // 開いている間の入力は捨てる
       return;

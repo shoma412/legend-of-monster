@@ -1,3 +1,4 @@
+import { setTouchMode } from '../game/touchInput.js';
 import * as Phaser from 'phaser';
 import { playBgm, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
@@ -20,6 +21,7 @@ export class EndingScene extends Phaser.Scene {
   }
 
   create() {
+    setTouchMode('menu');
     const { width: W, height: H } = SCREEN;
     setupView(this);
     this.cameras.main.fadeIn(600, 7, 6, 13);

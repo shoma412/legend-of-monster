@@ -1,3 +1,4 @@
+import { setTouchMode } from '../game/touchInput.js';
 import * as Phaser from 'phaser';
 import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
@@ -24,6 +25,7 @@ export class SaveSelectScene extends Phaser.Scene {
   }
 
   create() {
+    setTouchMode('menu');
     setupView(this);
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);

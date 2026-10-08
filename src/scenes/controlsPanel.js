@@ -4,6 +4,45 @@
 import { DATA } from '../data/index.js';
 import { COLORS, hex } from '../data/theme.js';
 import { getSettings } from '../game/settingsStore.js';
+import { touch } from '../game/touchInput.js';
+
+// モバイル版の操作説明：画面のボタンと、その働き（docs/詳細仕様.md「31. モバイル版」）
+const TOUCH_GROUPS = [
+  { color: COLORS.cyan, name: 'スティック', text: '移動。メニューでは、左右でタブ、上下で項目を選ぶ' },
+  { color: COLORS.amber, name: '攻撃', text: '押している間、攻撃する。長押しで、溜め斬り・連射' },
+  { color: COLORS.amber, name: '特殊', text: '特殊アクション（武器ごとに違う。下の一覧）' },
+  { color: COLORS.cyan, name: 'ダッシュ', text: 'ダッシュ回避（無敵あり）' },
+  { color: COLORS.green, name: '調べる', text: '扉を選ぶ・買う・装備を付ける・話しかける' },
+  { color: COLORS.green, name: 'キット', text: '修復キットを使う（HP回復）' },
+  { color: COLORS.green, name: 'しまう', text: '落ちている装備をバッグに入れる' },
+  { color: COLORS.amber, name: '1〜4', text: '消耗品を使う／レベルアップの3択を選ぶ' },
+  { color: COLORS.red, name: '標的', text: 'ロックオンする敵を切り替える' },
+  { color: COLORS.magenta, name: '地図', text: 'エリアの地図' },
+  { color: COLORS.ink, name: 'メニュー', text: 'ポーズ画面を開く・閉じる。会話を飛ばす' },
+  { color: COLORS.ink, name: '決定', text: '決定。最後まで進んだあと、リザルトへ' },
+];
+
+function renderTouchControls(menu, weapon) {
+  const g = menu.graphics();
+  menu.text(60, 132, '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
+  menu.text(900, 132, '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
+  TOUCH_GROUPS.forEach((group, i) => {
+    const y = 156 + i * 21;
+    g.fillStyle(hex(group.color), 0.3).fillRect(60, y + 2, 12, 12);
+    g.lineStyle(1, hex(group.color), 1).strokeRect(60, y + 2, 12, 12);
+    menu.text(80, y, group.name, 12, group.color, { fontStyle: '700' });
+    menu.text(166, y, group.text, 12, COLORS.ink);
+  });
+  // 右：武器ごとの、攻撃と特殊
+  menu.text(560, 156, '武器ごとの攻撃と特殊（今の武器は、明るい）', 12, COLORS.cyan, { fontStyle: '700' });
+  mouseLines(weapon).forEach((w, i) => {
+    const y = 180 + i * 36;
+    const color = w.current ? COLORS.ink : COLORS.dim;
+    menu.text(560, y, w.name, 12, w.current ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
+    menu.text(640, y, w.left, 11, color);
+    menu.text(640, y + 15, `特殊：${w.right}`, 11, color);
+  });
+}
 
 const KEY = 32; // キー1つの大きさ
 const GAP = 4;
@@ -93,6 +132,10 @@ function listLines(weapon) {
 // menu: MenuOverlay（text / panel / graphics / window を借りる）, weapon: 今持っている武器（なければ null）
 export function renderControls(menu, weapon) {
   menu.panel(40, 122, 880, 336);
+  if (touch.enabled) {
+    renderTouchControls(menu, weapon);
+    return;
+  }
   const g = menu.graphics();
 
   // ---- 左：キーボードの図 ----

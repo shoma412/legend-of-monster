@@ -57,6 +57,7 @@ html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select:
   border-radius: 50%; border: 2px solid rgba(46, 242, 255, 0.35); background: rgba(17, 15, 29, 0.3); touch-action: none; }
 #touch .knob { position: absolute; left: 50%; top: 50%; width: 42%; height: 42%; margin: -21% 0 0 -21%; border-radius: 50%;
   border: 2px solid rgba(46, 242, 255, 0.8); background: rgba(46, 242, 255, 0.25); }
+#touch.menu .play { display: none; }
 #touch .turn { display: none; position: fixed; inset: 0; pointer-events: auto; background: #07060d; color: #2ef2ff; align-items: center; justify-content: center;
   text-align: center; font-size: 5vw; line-height: 1.8; padding: 8vw; }
 @media (orientation: portrait) { #touch .turn { display: flex; } }
@@ -113,8 +114,14 @@ export function initTouchControls(parent) {
   const style = document.createElement('style');
   style.textContent = CSS;
   document.head.appendChild(style);
-  const root = el('div', '', parent);
+  const root = el('div', touch.mode, parent);
   root.id = 'touch';
+  // メニューの画面では、戦闘用のボタン（class に play が付いたもの）を隠す
+  touch.onMode = (mode) => {
+    root.className = mode;
+    if (mode === 'menu') touch.attack = false;
+  };
+  const PLAY_ONLY = ['attack', 'dash', 'special', 'interact', 'kit', 'stash', 'lock', 'map'];
 
   // スティック：倒した向きに動く。大きく倒すと、その向きのキーを1回押したことにもなる（メニューの上下左右）
   const stick = el('div', 'stick', root);
@@ -168,6 +175,7 @@ export function initTouchControls(parent) {
         tapKey(def.key);
       }
     }, def.id === 'attack' ? () => { touch.attack = false; } : null);
+    node.classList.add('play');
     node.style.right = `calc(var(--u) * ${def.right})`;
     node.style.bottom = `calc(var(--u) * ${def.bottom})`;
   }
@@ -176,11 +184,11 @@ export function initTouchControls(parent) {
     const col = el('div', `row col ${side}`, root);
     for (const def of defs) {
       if (def.id === 'full' && !document.fullscreenEnabled) continue; // フルスクリーンにできない端末（iPhone など）には出さない
-      button(col, def, '', () => (def.id === 'full' ? toggleFullscreen() : tapKey(def.key)));
+      button(col, def, PLAY_ONLY.includes(def.id) ? 'play' : '', () => (def.id === 'full' ? toggleFullscreen() : tapKey(def.key)));
     }
   }
   // 下（スティックの右）：消耗品（レベルアップの3択にも使える）
-  const items = el('div', 'row items', root);
+  const items = el('div', 'row items play', root);
   for (const def of ITEM_BUTTONS) button(items, def, '', () => tapKey(def.key));
   // 縦向きのときの案内
   el('div', 'turn', root, 'スマホを横向きにしてください<br>ROTATE YOUR DEVICE');

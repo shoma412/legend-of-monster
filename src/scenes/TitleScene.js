@@ -1,3 +1,4 @@
+import { setTouchMode } from '../game/touchInput.js';
 import * as Phaser from 'phaser';
 import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
@@ -12,6 +13,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    setTouchMode('menu');
     const { width: W, height: H } = SCREEN;
     setupView(this);
     this.drawBackdrop(W, H);
