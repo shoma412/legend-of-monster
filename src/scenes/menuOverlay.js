@@ -44,13 +44,19 @@ export function materialColor(def) {
   return ELEMENT_COLORS[def.color] ?? COLORS[def.color];
 }
 
-// その費用に使う素材を、いくつ持っているか（例：所持 ボアコア ×1）
-export function ownedText(save, cost) {
-  return `所持 ${Object.keys(cost).map((id) => `${DATA.materials.get(id).name} ×${save.materials[id] ?? 0}`).join('　')}`;
+// 素材の名前。1回も手に入れたことのない素材は、名前を伏せる（save を渡したときだけ）
+export function materialName(id, save = null) {
+  return !save || id in save.materials ? DATA.materials.get(id).name : '？？？';
 }
 
-export function costText(cost) {
-  return Object.entries(cost).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　');
+// その費用に使う素材を、いくつ持っているか（例：所持 ボアコア ×1）
+export function ownedText(save, cost) {
+  return `所持 ${Object.keys(cost).map((id) => `${materialName(id, save)} ×${save.materials[id] ?? 0}`).join('　')}`;
+}
+
+// 費用を文にする（例：ボアコア ×2）。save を渡すと、手に入れたことのない素材の名前は伏せる
+export function costText(cost, save = null) {
+  return Object.entries(cost).map(([id, n]) => `${materialName(id, save)} ×${n}`).join('　');
 }
 
 const percent = (v) => `${Math.round(v * 100)}%`;
@@ -676,7 +682,7 @@ export class MenuOverlay {
       const enough = st === 'owned' || own >= n;
       // 1回も手に入れたことのない素材は、名前を伏せる（どのボスの素材かが、先に分かってしまわないように）
       const known = id in save.materials;
-      this.text(X + 30, 300 + k * 20, `${known ? mat.name : '？？？'} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
+      this.text(X + 30, 300 + k * 20, `${materialName(id, save)} ×${n}`, 13, known ? materialColor(mat) : LOCKED, { fontStyle: '700' });
       if (st !== 'owned') this.text(X + 240, 300 + k * 20, `持っている数 ${own}`, 12, enough ? COLORS.dim : COLORS.red);
     });
     const status = {

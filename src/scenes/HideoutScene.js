@@ -204,8 +204,8 @@ export class HideoutScene extends Phaser.Scene {
         o.selected = save.selected === o.weapon;
         if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${note}（選択中）` });
         else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${note}）` });
-        else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost)}` });
-        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost), prompt: `E：${def.name}を解放する（${costText(def.cost)}）　${ownedText(save, def.cost)}` });
+        else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost, save)}` });
+        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost, save), prompt: `E：${def.name}を解放する（${costText(def.cost, save)}）　${ownedText(save, def.cost)}` });
       } else if (o.icon === 'gate') {
         o.prompt = `E：出撃先を選ぶ（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }
