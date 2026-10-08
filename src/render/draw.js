@@ -288,6 +288,12 @@ function drawTelegraph(g, e, world) {
     g.lineStyle(1.5, k > 0 ? red : hex(e.color), 0.55 + 0.4 * k);
     for (const side of [-1, 1]) g.lineBetween(e.x, e.y, e.x + Math.cos(e.cone.angle + side * half) * cone.range, e.y + Math.sin(e.cone.angle + side * half) * cone.range);
   }
+  if (e.def.behavior === 'cleanser') {
+    // 中和機：打ち消す範囲（薄い輪）と、打ち消した瞬間に広がる輪
+    const c = e.def.cleanse;
+    g.lineStyle(1, hex(e.color), 0.22).strokeCircle(e.x, e.y, c.radius);
+    if (e.pulseT > 0) g.lineStyle(3, hex(e.color), e.pulseT / 0.35).strokeCircle(e.x, e.y, c.radius * (1 - e.pulseT / 0.35));
+  }
   if (e.def.behavior === 'discharger' && e.state === 'windup') {
     // 蓄電器の放電の予告：外の輪へ向かって、内の輪が広がる
     const z = e.def.discharge;
@@ -1000,6 +1006,23 @@ BOSS_TELEGRAPHS.shadowstep = (g, b, act, world) => {
 };
 BOSS_TELEGRAPHS.mirror = BOSS_TELEGRAPHS.shadowstep;
 
+// 飽和：体の上に、これから出す色の印が並ぶ
+BOSS_TELEGRAPHS.saturate = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const n = act.sequence.length;
+  act.sequence.forEach((el, i) => {
+    const x = b.x + (i - (n - 1) / 2) * 30;
+    const y = b.y - b.r - 34;
+    const shown = k * (n + 0.5) > i; // 左から順に出る
+    const c = hex(ELEMENT_COLORS[el]);
+    g.lineStyle(2, c, 0.9).strokeCircle(x, y, 10);
+    if (shown) g.fillStyle(c, 0.95).fillCircle(x, y, 7);
+    g.fillStyle(hex(COLORS.ink), 0.9).fillRect(x - 1, y + 14, 2, 4);
+  });
+  g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+
 // 溶解：穴が開く場所の予告
 BOSS_TELEGRAPHS.melt = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1439,6 +1462,41 @@ SHAPES.moth = (g, b, color, world) => {
       const eye = local(b, r * 0.55, side * r * 0.12);
       g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
     }
+  }
+};
+
+// バッファータンク：丸いタンク。体の色が、今の弱点。色が変わる前には、次の色の輪が外に出る
+SHAPES.tank = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(b.x, b.y, r);
+  neonStroke(g, color, 3.5, () => g.strokeCircle(b.x, b.y, r));
+  // 中身（色のついた液。ゆれる）
+  const level = r * (0.55 + 0.06 * Math.sin(world.time * 3));
+  g.fillStyle(color, stunned ? 0.12 : 0.28).fillCircle(b.x, b.y, level);
+  g.lineStyle(2, color, 0.7).strokeCircle(b.x, b.y, level);
+  // 帯と、バルブ（向いている方向）
+  g.lineStyle(2, color, 0.5).strokeCircle(b.x, b.y, r * 0.8);
+  for (let i = 0; i < 4; i++) {
+    const a = b.angle + (i * Math.PI) / 2 + Math.PI / 4;
+    g.fillStyle(color, 0.8).fillRect(b.x + Math.cos(a) * r * 0.9 - 3, b.y + Math.sin(a) * r * 0.9 - 3, 6, 6);
+  }
+  const valve = local(b, r * 1.12, 0);
+  g.fillStyle(BODY_FILL, 1).fillCircle(valve.x, valve.y, r * 0.2);
+  neonStroke(g, color, 2.5, () => g.strokeCircle(valve.x, valve.y, r * 0.2));
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.5, side * r * 0.22);
+      g.fillStyle(hex(COLORS.ink), 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+  // 次の色の予告：外の輪が、だんだん閉じていく
+  if (b.attuneNext && b.def.attune) {
+    const k = 1 - Math.max(0, b.attuneT) / b.def.attune.telegraph;
+    const next = hex(ELEMENT_COLORS[b.attuneNext]);
+    g.lineStyle(4, next, 0.9);
+    arcPath(g, b.x, b.y, r + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
+    g.lineStyle(1, next, 0.5).strokeCircle(b.x, b.y, r + 12);
   }
 };
 

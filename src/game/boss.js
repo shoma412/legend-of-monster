@@ -1,6 +1,7 @@
 // ボスの進行。定義（src/data/bosses.js）の phases に従って、次の技を選び（src/logic/bossAi.js）、攻撃パターンの部品を実行する。
 import { BOSS_AI } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
+import { ELEMENT_NAMES_EN } from './bossPatterns.js';
 import { chooseMove } from '../logic/bossAi.js';
 import { angleDiff, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { DATA } from '../data/index.js';
@@ -49,6 +50,33 @@ export function createBoss(def, x, y, spawnT, { hpScale = 1, hard = false } = {}
     angle: Math.PI, // 向いている方向（描画用）
     dead: false,
   };
+}
+
+// 色（＝今の弱点）の切り替え（バッファータンク）。決まった間隔で、別の色に変わる。変わる少し前に、次の色が決まる（輪で予告する）
+function setAttune(world, b, element) {
+  b.attune = element;
+  b.color = ELEMENT_COLORS[element];
+  floatText(world, b.x, b.y - b.r - 30, ELEMENT_NAMES_EN[element], b.color, 20);
+  burst(world, b.x, b.y, b.color, 26, 280);
+}
+
+function updateAttune(world, b, dt) {
+  const a = b.def.attune;
+  const others = () => a.elements.filter((el) => el !== b.attune);
+  const pick = (list) => list[Math.min(list.length - 1, Math.floor(world.rng() * list.length))];
+  if (!b.attune) {
+    setAttune(world, b, pick(a.elements));
+    b.attuneT = a.every;
+    return;
+  }
+  if (b.frenzyT > 0) b.frenzyT -= dt;
+  b.attuneT -= dt;
+  if (b.attuneT <= a.telegraph && !b.attuneNext) b.attuneNext = pick(others());
+  if (b.attuneT <= 0) {
+    setAttune(world, b, b.attuneNext ?? pick(others()));
+    b.attuneNext = null;
+    b.attuneT = b.frenzyT > 0 ? a.frenzyEvery : a.every;
+  }
 }
 
 function currentPhaseIndex(b) {
@@ -236,6 +264,9 @@ export function updateBoss(world, b, dt) {
       }
     }
   }
+
+  // 色の切り替え（バッファータンク）
+  if (b.def.attune) updateAttune(world, b, dt);
 
   // 甲羅：向いている方向が正面。硬直中（recover・stun）と、甲羅が割れた段階では、開いていて防げない
   if (b.def.shield) {

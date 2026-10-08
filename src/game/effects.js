@@ -24,6 +24,10 @@ const CONDITIONS = {
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
   recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
+  // 属性を1つも持っていない
+  noElement: (world) => world.player.stats.elements.length === 0,
+  // 状態異常（燃焼・減速・凍結・腐食）が付いている敵
+  targetAfflicted: (world, mod, target) => !!target && (target.burnT > 0 || target.slowT > 0 || target.stopT > 0 || target.corrodeT > 0),
   // 腐食中の敵
   targetCorroded: (world, mod, target) => !!target && target.corrodeT > 0,
   // 照準灯で照らした敵

@@ -544,6 +544,40 @@ const THEMES = {
       block(g, x + 4, y + 4, PX, PX, 0x6a3a1c, 0.5);
     }
   },
+  // 中和プラント：並んだタンク、色のついた配管、計器、床の排水溝
+  neutralizer(g, rng, a) {
+    speckles(g, rng, a, 240, [0x0a0d12, 0x0e1219, 0x07090d, 0x151c26], 0.7);
+    const pipes = [0xb6ff3a, 0xff7a3d, 0x8fd8ff, 0xfff36b];
+    // 色のついた配管（上の壁ぎわを、4本並んで走る）
+    pipes.forEach((color, i) => {
+      const y = a.top + 10 + i * 7;
+      block(g, a.left + 10, y, a.w - 20, PX, 0x161c26, 0.95);
+      for (let x = a.left + 30 + i * 22; x < a.right - 30; x += 90) block(g, x, y, 14, PX, color, 0.28);
+    });
+    // 床の排水溝（縦に3本）
+    for (const fx of [0.25, 0.5, 0.75]) {
+      const x = a.left + a.w * fx;
+      block(g, x, a.top + 46, PX * 2, a.h - 70, 0x04060a, 0.9);
+      for (let y = a.top + 56; y < a.bottom - 30; y += 20) block(g, x, y, PX * 2, PX / 2, 0x1c2634, 0.8);
+    }
+    // 並んだタンク（下の壁ぎわ。丸い胴と、色の帯、計器）
+    let k = 0;
+    for (let x = a.left + 44; x < a.right - 70; x += 118, k++) {
+      const y = a.bottom - 44;
+      block(g, x, y, 44, 36, 0x121822, 0.95);
+      block(g, x + 2, y - 4, 40, PX, 0x1c2634, 0.95);
+      block(g, x, y + 12, 44, PX, pipes[k % pipes.length], 0.3);
+      block(g, x + 30, y + 22, PX * 2, PX * 2, 0x26324a, 0.95);
+      block(g, x + 32, y + 24, PX / 2, PX / 2, rng() < 0.3 ? 0xff4d5e : 0x5dffa0, 0.6);
+      block(g, x + 6, y + 6, PX / 2, 26, 0x26324a, 0.7);
+    }
+    // こぼれた薬のしみ（色ちがい）
+    for (let i = 0; i < 8; i++) {
+      const x = a.left + 50 + rng() * (a.w - 100);
+      const y = a.top + 70 + rng() * (a.h - 160);
+      blob(g, x, y, 10 + rng() * 16, 3 + rng() * 4, pipes[Math.floor(rng() * pipes.length)], 0.1);
+    }
+  },
   yard(g, rng, a) {
     speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
     // タイヤの跡（斜めに2本ずつ）

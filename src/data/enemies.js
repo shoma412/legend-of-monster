@@ -23,6 +23,7 @@
 //   discharger: 動かない。一定の間隔で、まわりに放電する（予告の円）
 //   decoy     : 自分では動かない（ボスの「残像」が動かす）
 //   shelterer : 近づいて殴る（brawler と同じ）。雨の予告が出ると、いちばん近い屋根の下へ急いで入り、雨の間はそこから出ない
+//   cleanser  : 離れた所にいて、攻撃はしない。一定の間隔で、まわりの敵の腐食・燃焼・減速を消す
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
@@ -632,5 +633,42 @@ export const enemies = [
     dropChance: 0.14,
     wobble: 0.4,
     corrodeHaste: 1.6,
+  },
+  // ---- ここからマップ5 エリア2「中和プラント」 ----
+  {
+    // 中和機：離れた所にいて、攻撃はしない。cleanse.interval 秒ごとに、まわり（radius）の敵の腐食・燃焼・減速を消す
+    id: 'neutralizer',
+    name: '中和機',
+    behavior: 'cleanser',
+    shape: 'hexagon',
+    color: 'ice',
+    radius: 14,
+    hp: 58,
+    speed: 64,
+    damage: 0,
+    xp: 13,
+    credits: 5,
+    cost: 2,
+    dropChance: 0.24,
+    keepDistance: { min: 260, max: 380 },
+    cleanse: { interval: 2.5, radius: 140 },
+  },
+  {
+    // 酸吐き：距離を取り、狙いをつけてから酸の弾を撃つ。当たると「腐食」（プレイヤーが受ける持続ダメージ）
+    id: 'spitter',
+    name: '酸吐き',
+    behavior: 'gunner',
+    shape: 'pentagon',
+    color: 'green',
+    radius: 13,
+    hp: 44,
+    speed: 46,
+    damage: 12,
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    keepDistance: { min: 220, max: 340 },
+    shot: { interval: 2.2, aim: 0.5, speed: 250, radius: 6, life: 3, dot: 'corrode' },
   },
 ];

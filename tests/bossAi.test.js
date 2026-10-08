@@ -75,7 +75,7 @@ describe('ボスの定義（行動の選び方）', () => {
       count[pattern] = (count[pattern] ?? 0) + 1;
       expect(boss.phases.at(-1).combos?.length, boss.id).toBeGreaterThanOrEqual(1);
     }
-    expect(count).toEqual({ endure: 3, safezone: 3, chase: 3, douse: 1, searchlight: 1, afterimage: 1, melt: 1 });
+    expect(count).toEqual({ endure: 3, safezone: 3, chase: 3, douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1 });
   });
 });
 

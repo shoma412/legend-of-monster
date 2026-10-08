@@ -436,4 +436,37 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'neutral',
+    code: 'ACID 02',
+    name: '中和プラント',
+    theme: 'neutralizer',
+    bgm: 'neutral',
+    bossBgm: 'bossNeutral',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'neutralizer', weight: 2 },
+      { id: 'spitter', weight: 3 },
+      { id: 'shelterer', weight: 2 },
+      { id: 'rusthound', weight: 3 },
+      { id: 'sludge', weight: 1 },
+      { id: 'shield', weight: 1 },
+      { id: 'turret', weight: 1 },
+    ],
+    eliteBases: ['spitter', 'shelterer', 'grunt'],
+    boss: 'buffertank',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 色が変わっている。あれが、中和槽だ。',
+        '@noise＞ 今の色が、弱点だ。合わない属性は、通りにくい。色の印が並んだら、その順に来る。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……色が、抜けた。もう、何も中和しない。',
+        '@noise＞ コアを回収しろ。残りは、降雨制御塔だ。',
+      ],
+    },
+  },
 ];

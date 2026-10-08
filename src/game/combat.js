@@ -114,14 +114,24 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
     if (world.time <= (p.restedUntil ?? -Infinity)) surgeMul += stats.restedBonus;
   }
   p.sinceHit = 0;
+  // 色が切り替わるボス（バッファータンク）：今の色が弱点。属性は付いているが色に合わない攻撃は、通りにくい
+  const attune = enemy.attune ?? null;
+  if (attune && stats.elements.length > 0 && !stats.elements.includes(attune)) {
+    base *= enemy.def.attune.resist;
+    if (world.time >= (enemy.resistTextAt ?? -Infinity)) {
+      enemy.resistTextAt = world.time + 0.6;
+      floatText(world, enemy.x, enemy.y - enemy.r - 22, 'Resist', COLORS.dim, 12);
+    }
+  }
   const result = calcDamage({
     base: options.heavy ? base * (1 + stats.heavyBonus) : base,
-    attackMul: statWith(world, 'attackMul', enemy) + comboMul + surgeMul,
+    // 種族「中和」：持っている属性の種類ごとに、攻撃力が上がる
+    attackMul: statWith(world, 'attackMul', enemy) + comboMul + surgeMul + (stats.elementPower ?? 0) * stats.elements.length,
     critChance: forceCrit ? 1 : statWith(world, 'critChance', enemy),
     critMul: stats.critMul,
     elements: stats.elements,
-    weakness: enemy.def.weakness ?? null,
-    weaknessMul: COMBAT.weaknessMultiplier,
+    weakness: attune ?? enemy.def.weakness ?? null,
+    weaknessMul: COMBAT.weaknessMultiplier + (stats.weakBonus ?? 0),
     rng: world.rng,
   });
   // ボスはひるまず、吹き飛ばない
@@ -156,8 +166,8 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
 export function effectDamage(world, enemy, base, element = null) {
   if (enemy.dead || enemy.spawnT > 0) return;
   const elements = element ? [element] : [];
-  const weak = element != null && enemy.def.weakness === element;
-  const amount = Math.max(1, Math.round(base * world.player.stats.attackMul * (weak ? COMBAT.weaknessMultiplier : 1)));
+  const weak = element != null && (enemy.attune ?? enemy.def.weakness) === element;
+  const amount = Math.max(1, Math.round(base * world.player.stats.attackMul * (weak ? COMBAT.weaknessMultiplier + (world.player.stats.weakBonus ?? 0) : 1)));
   damageEnemy(world, enemy, amount, { crit: false, weak, color: element ? ELEMENT_COLORS[element] : COLORS.dim, small: true });
   applyElementStatus(world, enemy, elements);
   fire(world, 'hit', { target: enemy, elements, primary: false });
@@ -299,6 +309,11 @@ export function healPlayer(world, amount) {
 
 // ---- プレイヤーへのダメージ ----
 
+// 自分が受ける状態異常（減速・目くらみ・持続ダメージ・錆）の時間の倍率。インプラント「中和剤」で短くなる（8割まで）
+export function debuffScale(world) {
+  return 1 - Math.min(0.8, world.player.stats.debuffResist ?? 0);
+}
+
 // 冷気を浴びたときの減速。無敵中（ダッシュ中など）は付かない
 // 持続ダメージを付ける（炎上・裂傷・腐食）。付け直すと、時間が元に戻る。ダッシュすると消える（src/game/player.js）
 export function afflictPlayer(world, id) {
@@ -307,7 +322,7 @@ export function afflictPlayer(world, id) {
   if (!def || world.mode !== 'play') return;
   const color = ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.red;
   if (!p.dot || p.dot.id !== id) floatText(world, p.x, p.y - 42, `${def.label ?? def.name}!`, color, 16);
-  p.dot = { id, name: def.name, color, damage: def.damage, tick: def.tick, acc: 0, t: def.duration };
+  p.dot = { id, name: def.name, color, damage: def.damage, tick: def.tick, acc: 0, t: def.duration * debuffScale(world) };
 }
 
 // 持続ダメージの進行。被弾後の無敵は関係なく効く。これで倒れることはない（HP は 1 残る）
@@ -339,7 +354,7 @@ export function updatePlayerDot(world, dt) {
 export function slowPlayer(world) {
   const p = world.player;
   if (p.inv > 0 || world.mode !== 'play') return;
-  p.slowT = STATUS.playerSlow.duration;
+  p.slowT = STATUS.playerSlow.duration * debuffScale(world);
 }
 
 export function hurtPlayer(world, damage) {

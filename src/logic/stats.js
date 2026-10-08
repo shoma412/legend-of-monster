@@ -193,6 +193,10 @@ export function computeStats(build) {
     corrodeTime: 0,
     corrodeBonus: 0,
     dotResist: 0,
+    // 種族「中和」：持っている属性の種類1つごとに足す攻撃力、弱点を突いたときの倍率に足す値、自分が受ける状態異常の時間が減る割合
+    elementPower: 0,
+    weakBonus: 0,
+    debuffResist: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

@@ -740,6 +740,59 @@ export const bosses = [
       },
     ],
   },
+  {
+    id: 'buffertank',
+    name: 'バッファータンク',
+    alias: '中和槽', // 登場時に出す異名
+    shape: 'tank',
+    color: 'ice',
+    weakness: null, // 弱点は、体の色（attune）で切り替わる
+    material: 'bufferCore',
+    radius: 46,
+    hp: 16500,
+    speed: 62,
+    contactDamage: 50,
+    xp: 760,
+    credits: 380,
+    drops: { count: 3, rarityBonus: 2 },
+    // 体の色（＝今の弱点）が、every 秒ごとに切り替わる。telegraph 秒前から、次の色の輪が出る。
+    //   属性は付いているが色に合わない攻撃は、resist 倍になる。大技のあとは、frenzyEvery 秒ごとに切り替わる
+    attune: { elements: ['shock', 'heat', 'cold', 'corrode'], every: 9, telegraph: 1.5, resist: 0.6, frenzyEvery: 3 },
+    attacks: {
+      // 固有「放出」：今の色に合わせた攻撃を出す（属性ごとに、ほかの部品の数値で書く）
+      emit: {
+        pattern: 'emit',
+        byElement: {
+          shock: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 110, width: 30, delay: 0.8, stagger: 0.2, damage: 46, recover: 0.6 },
+          heat: { pattern: 'pools', telegraph: 0.7, count: 4, radius: 58, spread: 130, arm: 0.6, life: 5, tick: 0.5, damage: 16, dot: 'burn', recover: 0.6 },
+          cold: { pattern: 'barrage', telegraph: 0.6, count: 12, spread: 360, waves: 3, interval: 0.35, rotate: 15, shotSpeed: 230, shotRadius: 7, damage: 32, slow: true, recover: 0.6 },
+          corrode: { pattern: 'pools', telegraph: 0.7, count: 3, radius: 70, spread: 150, arm: 0.6, life: 7, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
+        },
+      },
+      // 固有「飽和」：色の印が3つ並び、その順番で「放出」を続けて出す
+      saturate: { pattern: 'saturate', telegraph: 1.4, sequence: 3, move: 'emit' },
+      // 押しつぶし：周囲への一撃
+      crush: { pattern: 'slam', telegraph: 0.7, radius: 165, damage: 52, recover: 0.8, reach: 'near' },
+      // 転がり：突進。壁に当たると隙ができる
+      roll: { pattern: 'charge', telegraph: 0.75, lockTime: 0.22, speed: 620, duration: 0.7, damage: 52, recover: 0.7, wallStun: 1.4, reach: 'far' },
+      // しぶき：プレイヤーへ扇形に弾を撃つ（後半）
+      splash: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 64, waves: 3, interval: 0.38, track: true, shotSpeed: 300, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
+      // 大技「全属性飽和」：4つの色すべての「放出」を続けて出す。そのあと frenzy 秒のあいだ、色の切り替わりが速くなる
+      overflow: { pattern: 'saturate', telegraph: 1.8, sequence: 4, move: 'emit', frenzy: 12 },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'roll' }],
+    ultimate: { move: 'overflow', announce: '全属性飽和' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['emit', 'saturate', 'crush', 'roll'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['emit', 'saturate', 'crush', 'roll', 'splash'],
+        combos: [{ moves: ['roll', 'crush'] }, { moves: ['emit', 'splash'] }],
+        announce: '中和、開始',
+      },
+    ],
+  },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
   {
     id: 'nocturne',

@@ -13,7 +13,10 @@ import { startRain } from './acidRain.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
+const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
 const ELEMENT_COLORS_RUST = '#ff7a3d'; // 「錆」の文字と印の色
+// 色が切り替わるボス（バッファータンク）が、色を変えたときに出す文字
+export const ELEMENT_NAMES_EN = { shock: 'Shock', heat: 'Heat', cold: 'Cold', corrode: 'Corrode' };
 const BAR_FLASH = 0.16; // 線が光っている時間（秒）
 
 function aimAt(act, d) {
@@ -322,7 +325,7 @@ PATTERNS.barrage = {
           world.shots.push({
             x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r,
             vx: Math.cos(a) * def.shotSpeed, vy: Math.sin(a) * def.shotSpeed,
-            r: def.shotRadius, damage: def.damage, life: def.shotLife ?? 4, slow: !!def.slow, color: b.color,
+            r: def.shotRadius, damage: def.damage, life: def.shotLife ?? 4, slow: !!def.slow, color: act.color ?? b.color, // 「放出」のときは、その属性の色
           });
         }
         act.base += (def.rotate ?? 0) * DEG;
@@ -447,7 +450,7 @@ PATTERNS.pools = {
           clampToBounds(spot, world.bounds);
           world.hazards.push({
             type: 'pool', x: spot.x, y: spot.y, r: def.radius, arm: def.arm, armMax: def.arm, life: def.life,
-            tick: def.tick, acc: def.tick, damage: def.damage, slow: !!def.slow, color: b.color,
+            tick: def.tick, acc: def.tick, damage: def.damage, slow: !!def.slow, dot: def.dot, color: act.color ?? b.color,
           });
         }
         sfx(world, 'enemyShot');
@@ -1166,6 +1169,46 @@ PATTERNS.scales = {
       return true;
     }
     return false;
+  },
+};
+
+// 放出（バッファータンク）：今の色に合わせた攻撃を出す。中身は、属性ごとに、ほかの部品の数値で書く（byElement）。
+//   「飽和」のあとは、今の色ではなく、決められた順番の色（b.emitQueue）で出す
+PATTERNS.emit = {
+  start(world, b, act, d) {
+    const element = b.emitQueue?.shift() ?? b.attune ?? Object.keys(act.def.byElement)[0];
+    // ここから先は、その属性の部品として動く（予告の絵も、その部品のものになる）
+    act.element = element;
+    act.color = ELEMENT_COLORS_BY_ID[element];
+    act.def = act.def.byElement[element];
+    PATTERNS[act.def.pattern].start(world, b, act, d);
+  },
+  update() {
+    return true;
+  },
+};
+
+// 飽和（バッファータンク）：色の印が sequence 個並び、その順番で「放出」（move）を続けて出す。
+//   frenzy を書くと（大技）、そのあと frenzy 秒のあいだ、色の切り替わりが速くなる
+PATTERNS.saturate = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    const pool = Object.keys(b.def.attacks[act.def.move].byElement);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(world.rng() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    act.sequence = pool.slice(0, act.def.sequence);
+  },
+  update(world, b, dt, act) {
+    act.t -= dt;
+    if (act.t > 0) return false;
+    b.emitQueue = [...act.sequence];
+    b.queue = [...act.sequence.map(() => act.def.move), ...b.queue];
+    if (act.def.frenzy) b.frenzyT = act.def.frenzy;
+    sfx(world, 'bossCharge');
+    return true;
   },
 };
 

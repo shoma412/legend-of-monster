@@ -4,7 +4,7 @@ import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
-import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
+import { afflictPlayer, damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { breakLamp, flashAt, isVisible, litByLamp } from './darkness.js';
 import { nearestRoof, rainComing, underRoof } from './acidRain.js';
 import { updateEliteTrait } from './elite.js';
@@ -98,6 +98,25 @@ const BEHAVIORS = {
     }
     // 屋根の下：プレイヤーが届く所にいれば殴る。追いかけて外へは出ない
     if (d.dist <= e.def.attack.triggerRange) BEHAVIORS.brawler(world, e, dt, d);
+  },
+
+  // 中和機：離れた所にいて、攻撃はしない。一定の間隔で、まわりの敵の腐食・燃焼・減速を消す
+  cleanser(world, e, dt, d) {
+    const keep = e.def.keepDistance;
+    const c = e.def.cleanse;
+    const want = d.dist < keep.min ? -1 : d.dist > keep.max ? 1 : 0;
+    e.x += (d.dx / d.dist) * e.def.speed * want * dt;
+    e.y += (d.dy / d.dist) * e.def.speed * want * dt;
+    e.cleanT = (e.cleanT ?? c.interval * 0.5) - dt;
+    if (e.cleanT > 0) return;
+    e.cleanT = c.interval;
+    e.pulseT = 0.35; // 輪が広がる絵の残り時間
+    for (const other of world.enemies) {
+      if (other.dead || other.spawnT > 0 || Math.hypot(other.x - e.x, other.y - e.y) > c.radius + other.r) continue;
+      other.corrodeT = 0;
+      other.burnT = 0;
+      other.slowT = 0;
+    }
   },
 
   // 明滅機：近づいて殴る。姿が点いたり消えたりする（構えている間と、攻撃が当たった直後は、必ず見える）
@@ -686,6 +705,8 @@ function fireShot(world, e, d, shot) {
     r: shot.radius,
     damage: e.def.damage,
     life: shot.life,
+    dot: shot.dot ?? null, // 当たると付く、持続ダメージ（酸吐き）
+    color: shot.dot ? e.color : undefined,
   });
 }
 
@@ -733,6 +754,7 @@ export function updateEnemies(world, dt) {
     e.cd -= edt;
     e.stagger -= dt;
     if (e.swingT > 0) e.swingT -= dt;
+    if (e.pulseT > 0) e.pulseT -= dt;
     if (e.anchor) e.stagger = 0; // 首は、ひるんでも体から離れない
     if (e.stagger <= 0 && edt > 0) {
       const dx = p.x - e.x;
@@ -808,7 +830,10 @@ export function updateShots(world, dt) {
       // 無敵中（ダッシュ中など）はすり抜ける
       // 減速つきの弾（氷の破片）は、当たると動きも鈍る。減速は、ダメージの無敵時間が付く前にかける
       if (s.slow) slowPlayer(world);
-      if (hurtPlayer(world, s.damage)) s.life = 0;
+      if (hurtPlayer(world, s.damage)) {
+        s.life = 0;
+        if (s.dot) afflictPlayer(world, s.dot);
+      }
     }
   }
   world.shots = world.shots.filter((s) => s.life > 0);

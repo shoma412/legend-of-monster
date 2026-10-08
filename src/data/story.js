@@ -16,6 +16,7 @@ export const materials = [
   { id: 'lensCore', name: 'レンズコア', color: 'amber' },
   { id: 'breakerCore', name: 'ブレーカーコア', color: 'cyan' },
   { id: 'rustCore', name: 'ラストコア', color: 'heat' },
+  { id: 'bufferCore', name: 'バッファーコア', color: 'ice' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -216,6 +217,22 @@ export const fragments = [
   {
     id: 're-core', area: 'drainway', source: 'boss', title: 'ラストイーターのコアログ',
     text: '検出：錆。処理：溶解。回収：鉄。補修：自機。検出：錆（自機）。処理：溶解。——片づけが、終わらない。',
+  },
+  {
+    id: 'bt-01', area: 'neutral', source: 'vault', title: '中和槽 BT 運転手順',
+    text: '中和槽 BT は、流れてきた廃液の性質を調べて、反対の薬を足す。酸にはアルカリを、熱には冷却を。入ってくるものが変われば、中身も入れ替える。',
+  },
+  {
+    id: 'bt-02', area: 'neutral', source: 'vault', title: '薬品在庫 最終報告',
+    text: '中和に使う薬が、底をついた。補充の便は、もう来ない。あれは、足りない薬のかわりに、自分の中身を入れ替えて、つじつまを合わせている。',
+  },
+  {
+    id: 'bt-memo', area: 'neutral', source: 'vault', title: '試験室の付せん',
+    text: '色を見ろ。あれは今、何を中和しようとしているか、体の色に出る。その色のものをぶつければ、いちばん効く。違うものをぶつけても、打ち消されるだけ。',
+  },
+  {
+    id: 'bt-core', area: 'neutral', source: 'boss', title: 'バッファータンクのコアログ',
+    text: '流入：酸。投入：アルカリ。流入：熱。投入：冷却。流入：不明。投入：自機。——中和は、まだ完了していない。',
   },
   // ---- マップ3「建設区」 ----
   {

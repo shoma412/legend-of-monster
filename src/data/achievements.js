@@ -22,6 +22,7 @@ export const achievements = [
   { id: 'sentinel', icon: 'skull', color: 'amber', name: '照射番狩り', desc: 'サーチライト・センチネルを倒した', on: 'bossKill', check: 'bossIs', boss: 'sentinel' },
   { id: 'breaker', icon: 'skull', color: 'cyan', name: '主幹遮断器狩り', desc: 'ブレーカーを倒した', on: 'bossKill', check: 'bossIs', boss: 'breaker' },
   { id: 'rusteater', icon: 'skull', color: 'heat', name: '錆び喰い狩り', desc: 'ラストイーターを倒した', on: 'bossKill', check: 'bossIs', boss: 'rusteater' },
+  { id: 'buffertank', icon: 'skull', color: 'cold', name: '中和槽狩り', desc: 'バッファータンクを倒した', on: 'bossKill', check: 'bossIs', boss: 'buffertank' },
   { id: 'architect', icon: 'skull', color: 'amber', name: '設計変更', desc: '建設区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'architect' },
   { id: 'nocturne', icon: 'skull', color: 'magenta', name: '夜明け', desc: '停電区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'nocturne' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },

@@ -180,6 +180,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-buffertank',
+    trigger: { at: 'bossIntro', boss: 'buffertank' },
+    lines: [
+      { who: 'jin', text: '……色が、ころころ変わってる。' },
+      { who: 'noise', text: '中和槽だ。入ってきたものを、打ち消す。薬が尽きてからは、自分の中身を入れ替えて、続けている。' },
+      { who: 'jin', mood: 'angry', text: 'じゃあ、今度は俺を打ち消す気か。' },
+    ],
+  },
+  {
+    id: 'return-buffertank',
+    trigger: { at: 'hideout', bossKilled: 'buffertank' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……なんか、いろんな色のしみが付いてるけど。' },
+      { who: 'jin', text: '全部、あいつの中身だ。何を入れても、反対のものを足してくる。' },
+      { who: 'hal', text: '足し続けたら、いつか空っぽになるのにね。……洗ってくるから、脱いで。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -303,6 +321,7 @@ export const talks = {
     { after: 'sentinel', lines: [{ who: 'hal', text: '見張りのレンズ、磨いたらすごくきれいだった。誰かを探すためだけに、ずっと曇らないようにしてたんだね。' }] },
     { after: 'breaker', lines: [{ who: 'hal', text: '遮断器のレバー、すごく重かった。簡単に入れ直せないように、できてるんだね。' }] },
     { after: 'rusteater', lines: [{ who: 'hal', text: '解体機の歯、溶けた鉄を何度も継ぎ足してあった。自分を直すために、自分を食べてたんだね。' }] },
+    { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -339,7 +358,8 @@ export const talks = {
     { after: 'lampeater', lines: [{ who: 'noise', text: '消灯街が静かになった。次は、地下の変電所だ。止められた電気を、まだ見張っている者がいる。' }] },
     { after: 'sentinel', lines: [{ who: 'noise', text: '変電所の光が止まった。残りは、主幹制御室だ。この区の電気を、最初に止めた者がいる。' }] },
     { after: 'breaker', lines: [{ who: 'noise', text: '停電区に、灯りが戻った。次は溶解区だ。酸の雨が降る。……あそこへ入るには、停電区の通行証が要る。' }] },
-    { after: 'rusteater', lines: [{ who: 'noise', text: '廃液路が静かになった。次は中和プラントだ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'rusteater', lines: [{ who: 'noise', text: '廃液路が静かになった。次は中和プラントだ。色の変わる槽がいる。色を、よく見ろ。' }] },
+    { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

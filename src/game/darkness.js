@@ -75,7 +75,9 @@ export function blindPlayer(world, seconds = null) {
   if (!env || world.mode !== 'play') return;
   const p = world.player;
   if (!(p.blindT > 0)) floatText(world, p.x, p.y - 42, 'Blind!', COLORS.magenta, 16);
-  p.blindT = Math.max(p.blindT ?? 0, seconds ?? env.blind.duration);
+  // インプラント「中和剤」で、短くなる（8割まで）
+  const scale = 1 - Math.min(0.8, p.stats.debuffResist ?? 0);
+  p.blindT = Math.max(p.blindT ?? 0, (seconds ?? env.blind.duration) * scale);
 }
 
 // プレイヤーが、その場所のほうを向いているか（マウスカーソルの向き。half は、正面から左右に何度までか）

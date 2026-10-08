@@ -11,7 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
-//                    targetCorroded（相手が腐食中）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
+//                    targetCorroded（相手が腐食中）/ targetAfflicted（相手に、燃焼・減速・凍結・腐食のどれかが付いている）/ noElement（属性を1つも持っていない）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
 //                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
@@ -311,6 +311,32 @@ export const implants = [
     desc: (k) => `腐食中の敵を倒すと、HP +${Math.round(2 * k * 10) / 10}`,
     effect: (k) => ({ triggers: [{ on: 'kill', do: 'healSelf', ifTarget: 'corroded', amount: 2 * k }] }),
   },
+  // ---- 中和（バッファータンク由来・属性の使い分け） ----
+  {
+    id: 'reactant', species: 'buffer', name: '反応促進',
+    desc: (k) => `持っている属性の種類1つごとに、攻撃力 +${pct(0.06 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'elementPower', add: 0.06 * k }] }),
+  },
+  {
+    id: 'colorless', species: 'buffer', name: '無色',
+    desc: (k) => `属性を1つも持っていないとき、攻撃力 +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'noElement' }] }),
+  },
+  {
+    id: 'indicator', species: 'buffer', name: '指示薬',
+    desc: (k) => `弱点を突いたときのダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'weakBonus', add: 0.15 * k }] }),
+  },
+  {
+    id: 'saturation', species: 'buffer', name: '飽和',
+    desc: (k) => `状態異常（燃焼・減速・凍結・腐食）が付いている敵へのダメージ +${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.1 * k, when: 'targetAfflicted' }] }),
+  },
+  {
+    id: 'antidote', species: 'buffer', name: '中和剤',
+    desc: (k) => `自分が受ける状態異常（減速・目くらみ・持続ダメージ・錆）の時間 −${pct(Math.min(0.8, 0.4 * k))}`,
+    effect: (k) => ({ mods: [{ stat: 'debuffResist', add: 0.4 * k }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -495,6 +521,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '腐食の時間 +2秒', effect: { mods: [{ stat: 'corrodeTime', add: 2 }] } },
       { need: 3, desc: '腐食で増えるダメージ +10%', effect: { mods: [{ stat: 'corrodeBonus', add: 0.1 }] } },
+    ],
+  },
+  buffer: {
+    name: '中和', color: 'ice', boss: 'buffertank',
+    bonuses: [
+      { need: 2, desc: '弱点を突いたときのダメージ +15%', effect: { mods: [{ stat: 'weakBonus', add: 0.15 }] } },
+      { need: 3, desc: '持っている属性の種類1つごとに、攻撃力 +5%', effect: { mods: [{ stat: 'elementPower', add: 0.05 }] } },
     ],
   },
   spider: {

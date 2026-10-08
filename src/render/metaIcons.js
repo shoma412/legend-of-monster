@@ -126,6 +126,13 @@ export const MATERIAL_ICONS = {
       g.lineBetween(x + Math.cos(a) * s * 0.32, y + Math.sin(a) * s * 0.32, x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.6);
     }
   },
+  // バッファーコア：フラスコ
+  bufferCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    g.strokePoints([{ x: x - s * 0.14, y: y - s * 0.55 }, { x: x - s * 0.14, y: y - s * 0.15 }, { x: x - s * 0.48, y: y + s * 0.45 }, { x: x + s * 0.48, y: y + s * 0.45 }, { x: x + s * 0.14, y: y - s * 0.15 }, { x: x + s * 0.14, y: y - s * 0.55 }], false, false);
+    g.lineBetween(x - s * 0.32, y + s * 0.18, x + s * 0.32, y + s * 0.18);
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
