@@ -164,7 +164,7 @@ export function updatePlayer(world, dt, input) {
     fire(world, 'dashMove', { dash: p.dashState });
   } else {
     let slow = 1;
-    if (p.guard || p.siege) slow = weapon.special.moveSlow;
+    if (p.guard || p.siege || p.thrust) slow = weapon.special.moveSlow;
     else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
     if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
@@ -204,6 +204,7 @@ function startDash(p, dx, dy) {
   p.charge = null;
   p.guard = null;
   p.siege = null; // 徹甲砲撃の溜めも、ダッシュでやめられる（クールダウンは始まらない）
+  p.thrust = null; // 突進突き（槍）も、ダッシュでやめられる
 }
 
 // 近接攻撃の進行（振りかぶり → 斬る → 硬直）
@@ -333,6 +334,59 @@ const SPECIALS = {
     return false;
   },
 
+  // 突進突き（槍）：右クリックで、向いている方向へ踏み込み、通り道の敵すべてにダメージ。踏み込んでいる間は無敵
+  dashthrust(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (p.thrust) {
+      const th = p.thrust;
+      // 決まった距離ちょうどで止まるように、最後のフレームは、残りの時間ぶんだけ進む
+      const step = Math.max(0, Math.min(dt, special.duration - th.t));
+      th.t += dt;
+      p.x += th.vx * step;
+      p.y += th.vy * step;
+      ghost(world, p.x, p.y, p.r, COLORS.amber);
+      for (const e of world.enemies) {
+        if (e.dead || e.spawnT > 0 || e.hidden || th.hit.has(e)) continue;
+        if (Math.hypot(e.x - p.x, e.y - p.y) > e.r + special.width) continue;
+        th.hit.add(e);
+        hitEnemy(world, e, special.damage, th.vx, th.vy, special.knockback, { heavy: true });
+      }
+      if (th.t >= special.duration) {
+        if (th.hit.size > 0) {
+          addHitstop(world, FEEL.hitstop.charged);
+          addShake(world, FEEL.shake.charged);
+        }
+        p.thrust = null;
+      }
+      return true;
+    }
+    if (!input.specialPressed || p.specialCd > 0) return false;
+    const speed = special.distance / special.duration;
+    p.thrust = { t: 0, vx: p.fx * speed, vy: p.fy * speed, hit: new Set() };
+    p.specialCd = special.cooldown;
+    p.inv = Math.max(p.inv, special.duration + 0.05);
+    p.comboTimer = 0;
+    sfx(world, 'swingHeavy');
+    floatText(world, p.x, p.y - 30, special.name, COLORS.amber, 16);
+    return true;
+  },
+
+  // 設置（チャクラム）：右クリックで、少し前に、回り続ける輪を置く。中の敵を削り続ける（ダメージ床と同じ仕組み）
+  plant(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (!input.specialPressed || p.specialCd > 0) return false;
+    p.specialCd = special.cooldown;
+    const spot = { x: p.x + p.fx * special.offset, y: p.y + p.fy * special.offset, r: 0 };
+    clampToBounds(spot, world.bounds);
+    world.zones.push({ x: spot.x, y: spot.y, r: special.radius, life: special.life, max: special.life, damage: special.damage, tick: special.tick, acc: 0, color: COLORS.cyan, chakram: true });
+    sfx(world, 'swingHeavy');
+    floatText(world, p.x, p.y - 30, special.name, COLORS.amber, 16);
+    ring(world, spot.x, spot.y, special.radius, COLORS.cyan);
+    return false; // 置いたあと、すぐに通常の輪も投げられる
+  },
+
   // 拡散射撃：右クリックで、扇状に何発も同時に撃つ
   spread(world, dt, input) {
     const p = world.player;
@@ -371,6 +425,8 @@ function updateAttack(world, dt, input) {
 
   if (weapon.type === 'ranged') {
     // 銃：押している間、撃ち続ける
+    // チャクラム：投げた輪が戻るまで、次は投げられない
+    if (weapon.shot.boomerang && world.playerShots.some((s) => s.boomerang)) return;
     if (input.attack && p.shotCd <= 0) {
       p.shotCd = weapon.shot.interval / (1 + statWith(world, 'attackSpeed'));
       fireShot(world, Math.atan2(p.fy, p.fx), weapon.shot);
@@ -540,12 +596,14 @@ function fireShot(world, angle, shot) {
   world.playerShots.push({
     x: p.x + dx * (p.r + 6),
     y: p.y + dy * (p.r + 6),
-    vx: dx * shot.speed,
-    vy: dy * shot.speed,
+    vx: dx * shot.speed * (shot.boomerang ? 1 + statWith(world, 'attackSpeed') : 1),
+    vy: dy * shot.speed * (shot.boomerang ? 1 + statWith(world, 'attackSpeed') : 1),
     r: shot.radius,
     damage: shot.damage,
     knockback: shot.knockback,
-    pierce: shot.pierceAll ? Infinity : p.stats.pierce, // あと何体貫通できるか
+    pierce: shot.pierceAll || shot.boomerang ? Infinity : p.stats.pierce, // あと何体貫通できるか
+    // 戻ってくる輪（チャクラム）。攻撃速度が上がると、速く飛ぶ
+    boomerang: shot.boomerang ? { phase: 'out', left: shot.boomerang.range, back: shot.boomerang.back * (1 + statWith(world, 'attackSpeed')) } : null,
     heavy: !!shot.heavy,
     explode: shot.explode ?? null, // 当たった場所での爆発 { radius, damage }
     hit: new Set(),
@@ -570,10 +628,38 @@ function explodeShot(world, s, direct) {
 export function updatePlayerShots(world, dt) {
   const b = world.bounds;
   for (const s of world.playerShots) {
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
-    s.life -= dt;
-    if (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom) {
+    if (s.boomerang) {
+      // 戻ってくる輪（チャクラム）：決まった距離を飛ぶか、壁に当たると、手元へ戻る。戻りでは、もう一度当たる
+      const bm = s.boomerang;
+      const p = world.player;
+      if (bm.phase === 'out') {
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        bm.left -= Math.hypot(s.vx, s.vy) * dt;
+        const wall = s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom;
+        if (wall || bm.left <= 0) {
+          s.x = Math.max(b.left, Math.min(b.right, s.x));
+          s.y = Math.max(b.top, Math.min(b.bottom, s.y));
+          bm.phase = 'back';
+          s.hit = new Set();
+        }
+      } else {
+        const dx = p.x - s.x;
+        const dy = p.y - s.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        s.vx = (dx / dist) * bm.back;
+        s.vy = (dy / dist) * bm.back;
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        if (dist <= p.r + s.r + bm.back * dt) s.life = 0; // 手元に戻った
+      }
+      s.life -= dt;
+    } else {
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.life -= dt;
+    }
+    if (!s.boomerang && (s.x < b.left || s.x > b.right || s.y < b.top || s.y > b.bottom)) {
       s.life = 0;
       burst(world, s.x, s.y, COLORS.cyan, 2, 90);
       if (s.explode) explodeShot(world, s, null); // 砲弾は、壁に当たっても爆発する

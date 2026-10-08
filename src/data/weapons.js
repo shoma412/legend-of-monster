@@ -8,7 +8,10 @@
 //   spread : 右クリックで扇状に同時に撃つ（銃）
 //   siege  : 右クリックで溜め始め、少しして、敵をすべて貫く砲弾を撃つ（大砲）
 //   burst  : 敵に当てるたびにゲージが溜まり、満タンで右クリックの強烈な一撃（ナックル）
+//   dashthrust : 右クリックで、向いている方向へ踏み込み、通り道の敵すべてにダメージ。踏み込んでいる間は無敵（槍）
+//   plant  : 右クリックで、少し前に、回り続ける輪を置く。中の敵を削り続ける（チャクラム）
 // shot（遠距離の武器の弾）: damage / interval 撃つ間隔(秒) / speed / radius / life / knockback
+//   boomerang: { range, back } 投げて戻ってくる輪（チャクラム）。range px 飛ぶか壁に当たると、back の速さで手元へ戻る。敵をすべて貫き、行きと帰りで2回当たる。戻るまで、次は投げられない
 //   explode: { radius, damage } 当たった場所で爆発して、まわりの敵にもダメージ / recoil: 撃ったときに後ろへ下がる距離(px) / firing: 撃ったあと足が遅くなる時間(秒)
 // guardBreak: 盾や甲羅で防がれたときに通るダメージの割合（書いていなければ 0 ＝ 完全に防がれる）
 // dashSpeed: ダッシュの速さの倍率（書いていなければ 1）。小さいほど、同じ距離を進むのに時間がかかる
@@ -159,6 +162,55 @@ export const weapons = [
       moveSlow: 0.15, // 溜めている間の移動速度の倍率
       // 敵をすべて貫く太い砲弾。大剣の溜め斬りの最大（120）より高い
       shot: { damage: 170, speed: 980, radius: 15, life: 1.2, knockback: 900, heavy: true, pierceAll: true, recoil: 44, firing: 0.5 },
+    },
+  },
+  {
+    // 槍（2026-10-09 追加）：前へ長く、横に狭い突き。届く範囲の敵を、すべて貫く
+    id: 'spear',
+    name: '槍',
+    type: 'melee',
+    mods: [{ stat: 'critChance', add: 0.05 }, { stat: 'damageTaken', add: 0.05 }], // 急所を狙える。少し打たれ弱い
+    moveSlow: 0.7, // 突いている間の移動速度の倍率
+    comboReset: 0.6,
+    combo: [
+      { damage: 20, range: 130, arc: 16, windup: 0.06, swing: 0.12, recover: 0.14, knockback: 220, lunge: 12 },
+      { damage: 20, range: 130, arc: 16, windup: 0.06, swing: 0.12, recover: 0.14, knockback: 220, lunge: 12 },
+      { damage: 30, range: 150, arc: 16, windup: 0.1, swing: 0.16, recover: 0.3, knockback: 460, lunge: 22, heavy: true },
+    ],
+    special: {
+      type: 'dashthrust',
+      name: '突進突き',
+      hint: '右クリック 突進突き',
+      cooldown: 5, // 秒
+      distance: 190, // 踏み込む距離（px）
+      duration: 0.2, // 踏み込みにかかる時間（秒）。この間は無敵
+      width: 26, // 通り道の、当たる幅（自分の中心からの距離。敵の大きさのぶんは足す）
+      damage: 70,
+      knockback: 560,
+      moveSlow: 0, // 踏み込んでいる間は、向きを変えられない
+    },
+  },
+  {
+    // チャクラム（2026-10-09 追加）：投げて、戻ってくる輪。行きと帰りで2回当たる
+    id: 'chakram',
+    name: 'チャクラム',
+    type: 'ranged',
+    mods: [{ stat: 'moveSpeedMul', add: 0.05 }, { stat: 'damageTaken', add: 0.05 }], // 身軽。少し打たれ弱い
+    moveSlow: 0.85, // 投げた直後の移動速度の倍率
+    shot: {
+      damage: 22, interval: 0.2, speed: 560, radius: 13, life: 30, knockback: 150,
+      boomerang: { range: 300, back: 680 },
+    },
+    special: {
+      type: 'plant',
+      name: '設置',
+      hint: '右クリック 回る輪を置く',
+      cooldown: 8, // 秒
+      offset: 84, // 自分の少し前（px）に置く
+      radius: 66,
+      life: 5, // 秒
+      damage: 8, // tick 秒ごと
+      tick: 0.25,
     },
   },
 ];

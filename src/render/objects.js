@@ -98,6 +98,21 @@ const WEAPON_GLYPHS = {
     glowLine(g, c, 2, () => g.strokeCircle(x - 9, y + 9, 6));
     glowLine(g, c, 2, () => g.lineBetween(x + 13, y - 13, x + 13, y - 3));
   },
+  // 槍：長い柄と、先のとがった穂先
+  spear(g, x, y, c) {
+    glowLine(g, c, 2.5, () => g.lineBetween(x - 10, y + 18, x + 8, y - 12));
+    glowLine(g, c, 2, () => g.strokeTriangle(x + 8, y - 12, x + 4, y - 14, x + 13, y - 21));
+    glowLine(g, c, 2, () => g.strokeTriangle(x + 8, y - 12, x + 12, y - 9, x + 13, y - 21));
+  },
+  // チャクラム：輪と、内側の刃
+  chakram(g, x, y, c) {
+    glowLine(g, c, 3, () => g.strokeCircle(x, y, 13));
+    glowLine(g, c, 1.5, () => g.strokeCircle(x, y, 6));
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2 + Math.PI / 4;
+      glowLine(g, c, 2, () => g.lineBetween(x + Math.cos(a) * 13, y + Math.sin(a) * 13, x + Math.cos(a) * 18, y + Math.sin(a) * 18));
+    }
+  },
   // ナックル：握った拳（四角い拳と、指の線）
   knuckle(g, x, y, c) {
     glowLine(g, c, 2.5, () => g.strokeRect(x - 11, y - 9, 22, 16));

@@ -483,6 +483,15 @@ export function drawPlayerShots(g, world) {
   const elements = world.player.stats.elements;
   const color = hex(elements.length > 0 ? ELEMENT_COLORS[elements[0]] : COLORS.cyan);
   for (const s of world.playerShots) {
+    if (s.boomerang) {
+      // チャクラム：回る輪（外の輪と、内側の切れた輪）
+      const spin = world.time * 22;
+      g.lineStyle(7, color, 0.18).strokeCircle(s.x, s.y, s.r);
+      g.lineStyle(3, color, 1).strokeCircle(s.x, s.y, s.r);
+      g.lineStyle(2, WHITE, 0.9);
+      for (let i = 0; i < 3; i++) arcPath(g, s.x, s.y, s.r * 0.55, spin + (i * Math.PI * 2) / 3, spin + (i * Math.PI * 2) / 3 + 1.2);
+      continue;
+    }
     const len = Math.hypot(s.vx, s.vy) || 1;
     const tx = s.x - (s.vx / len) * 16;
     const ty = s.y - (s.vy / len) * 16;
@@ -2052,6 +2061,15 @@ export function drawZones(g, world) {
     const color = hex(z.color);
     g.fillStyle(color, 0.16 * k).fillCircle(z.x, z.y, z.r);
     g.lineStyle(1.5, color, 0.6 * k).strokeCircle(z.x, z.y, z.r * (0.85 + 0.15 * Math.sin(world.time * 10 + z.x)));
+    // 設置したチャクラム：真ん中で、輪が回り続ける
+    if (z.chakram) {
+      const spin = world.time * 16;
+      g.lineStyle(3, color, k).strokeCircle(z.x, z.y, 14);
+      g.lineStyle(2, WHITE, 0.9 * k);
+      for (let i = 0; i < 3; i++) arcPath(g, z.x, z.y, 8, spin + (i * Math.PI * 2) / 3, spin + (i * Math.PI * 2) / 3 + 1.2);
+      g.lineStyle(2, color, 0.7 * k);
+      for (let i = 0; i < 4; i++) arcPath(g, z.x, z.y, z.r * 0.6, -spin * 0.4 + (i * Math.PI) / 2, -spin * 0.4 + (i * Math.PI) / 2 + 0.9);
+    }
   }
 }
 

@@ -179,7 +179,7 @@ export class HideoutScene extends Phaser.Scene {
 
   // 部屋に置くもの。見た目と名前は refreshStations で今の状態に合わせる
   buildStations() {
-    const stations = weaponUnlocks.map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 210 + i * 120, y: 150, r: 52 }));
+    const stations = weaponUnlocks.map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 135 + i * 115, y: 150, r: 52 } /* 7つ並ぶ（135〜825） */));
     stations.push({ kind: 'station', id: 'menu:upgrade', icon: 'terminal', color: COLORS.green, label: '強化端末', sub: '恒久強化', prompt: 'E：恒久強化を買う', x: 240, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'menu:record', icon: 'terminal', color: COLORS.magenta, label: '記録端末', sub: '記録・データ片・実績', prompt: 'E：記録・データ片・実績を見る', x: 440, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'talk:hal', icon: 'npc', who: 'hal', color: COLORS.ink, label: 'ハル', sub: '整備士', prompt: 'E：ハルと話す', x: 110, y: 400, r: 50 });

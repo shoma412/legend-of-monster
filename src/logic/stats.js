@@ -111,7 +111,7 @@ export function bonusAt(speciesId, count) {
 }
 
 // 武器ごとのステータス補正を、文にする（例：被ダメージ −10%／移動速度 −5%）。補正がなければ空の文
-const WEAPON_STAT_LABELS = { damageTaken: '被ダメージ', moveSpeedMul: '移動速度', maxHp: '最大HP', attackMul: '攻撃力' };
+const WEAPON_STAT_LABELS = { damageTaken: '被ダメージ', moveSpeedMul: '移動速度', maxHp: '最大HP', attackMul: '攻撃力', critChance: '会心率' };
 export function weaponTraitText(weapon) {
   return (weapon?.mods ?? []).map((mod) => {
     const sign = mod.add < 0 ? '−' : '+';

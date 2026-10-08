@@ -32,8 +32,8 @@ function addEnemy(world, id, dx, dy = 0) {
 }
 
 describe('武器の定義', () => {
-  it('5種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
-    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun', 'knuckle', 'cannon']);
+  it('7種類あり、どれも隠れ家の武器ラックに並ぶ', () => {
+    expect(DATA.weapons.ids()).toEqual(['greatsword', 'sword', 'gun', 'knuckle', 'cannon', 'spear', 'chakram']);
     expect(weaponUnlocks.map((w) => w.weapon)).toEqual(DATA.weapons.ids());
     for (const w of DATA.weapons.all()) expect(w.special.hint, w.id).toBeTruthy();
   });
