@@ -8,6 +8,7 @@ import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
 import { getSave, persist, saveSuspend } from '../game/saveStore.js';
+import { permanentBonuses, recordCarryOver } from '../logic/meta.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { canSuspend } from '../logic/suspend.js';
@@ -502,7 +503,8 @@ export class BattleScene extends Phaser.Scene {
         const co = this.run.save.carryOver;
         const keep = co ? `\n次の出撃に持ち越し：クレジット ${co.credits} c${co.implants.length > 0 ? '、インプラント（出撃先を選ぶ画面で選ぶ）' : ''}` : '';
         this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.run.map.code} 完了\n装備を見終わったら、下のボタンか Enter で帰還する${keep}`).setVisible(true);
-        this.returnButton.setVisible(true);
+        // ボタンは、文の下に置く（持ち越しの行が出て文が長くなっても、重ならないように）
+        this.returnButton.setY(this.clearText.y + this.clearText.height + 30).setVisible(true);
       }
     } else if (world.room.waves.length > 0) {
       const bonus = world.room.clearCredits > 0 ? `　+${Math.round(world.room.clearCredits * world.player.stats.creditMul)} c` : '';
@@ -605,6 +607,14 @@ export class BattleScene extends Phaser.Scene {
   showResult() {
     const run = this.run;
     const dead = run.outcome === 'dead';
+    // クリアしたとき：持ち越しを、帰るときの持ち物で書き直す（ボスを倒したあとに選んだインプラントも入るように）
+    let carryNote = '';
+    if (!dead) {
+      const co = recordCarryOver(run.save, this.world.player.build);
+      persist();
+      const slots = permanentBonuses(run.save).keepImplants;
+      carryNote = `次の出撃に持ち越し：クレジット ${co.credits} c${co.implants.length > 0 ? `、インプラント ${Math.min(slots, co.implants.length)}つ（出撃先を選ぶ画面で選ぶ。Lv1 になる）` : ''}　／　`;
+    }
     this.bigMap.setVisible(false);
     this.clearText.setVisible(false);
     this.returnButton.setVisible(false);
@@ -614,7 +624,7 @@ export class BattleScene extends Phaser.Scene {
       reach: `${this.mapLabel()}　${this.area.code}-${run.plan.step + 1}（${this.area.name}／${this.roomDef.label}）`,
       kills: run.kills,
       gained: run.gained,
-      note: dead ? '装備・レベル・インプラント・クレジットは失われた' : 'ラン中の装備・レベル・インプラント・クレジットは持ち帰れない',
+      note: dead ? '装備・レベル・インプラント・クレジットは失われた' : `${carryNote}装備・レベルは持ち帰れない`,
       onDone: () => this.scene.start('Hideout'),
     });
   }
