@@ -27,6 +27,12 @@ export const FRAME_RATES = [
   { id: 120, label: '120' },
 ];
 
+// 操作方法。manual：カーソルのあるほうを向く（今までどおり）／auto：動いている向きを向き、敵がいるときは、いちばん近い敵のほうを向く
+export const CONTROL_MODES = [
+  { id: 'manual', label: 'マニュアル' },
+  { id: 'auto', label: 'オート' },
+];
+
 export function createSettings() {
   return {
     volume: { master: 0.7, bgm: 0.6, se: 0.8 }, // 0〜1
@@ -34,6 +40,7 @@ export function createSettings() {
     displaySize: 'fit',
     quality: 1,
     frameRate: 0,
+    controls: 'manual',
   };
 }
 
@@ -53,6 +60,7 @@ export function normalizeSettings(data) {
     displaySize: DISPLAY_SIZES.some((d) => d.id === data.displaySize) ? data.displaySize : base.displaySize,
     quality: QUALITIES.some((q) => q.id === data.quality) ? data.quality : base.quality,
     frameRate: FRAME_RATES.some((r) => r.id === data.frameRate) ? data.frameRate : base.frameRate,
+    controls: CONTROL_MODES.some((c) => c.id === data.controls) ? data.controls : base.controls,
   };
 }
 

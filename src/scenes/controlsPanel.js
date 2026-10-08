@@ -1,6 +1,7 @@
 // 操作説明：キーボードとマウスの図と、それぞれの操作。メニュー（src/scenes/menuOverlay.js）の「操作」タブに描く。
 import { DATA } from '../data/index.js';
 import { COLORS, hex } from '../data/theme.js';
+import { getSettings } from '../game/settingsStore.js';
 
 const KEY = 32; // キー1つの大きさ
 const GAP = 4;
@@ -71,7 +72,9 @@ export function renderControls(menu, weapon) {
   g.lineStyle(2, hex(COLORS.amber), 1).strokeRoundedRect(mx + 1, my, 33, 44, { tl: 0, tr: 26, bl: 0, br: 0 });
   menu.text(mx - 18, my + 22, '左', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(0.5);
   menu.text(mx + 18, my + 22, '右', 12, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
-  menu.text(mx, my + 122, 'カーソルの方向を向く\n攻撃もその方向に出る', 11, COLORS.dim, { align: 'center', lineSpacing: 3 }).setOrigin(0.5, 0);
+  // 向きの決め方は、設定の「操作方法」で変わる
+  const auto = getSettings().controls === 'auto';
+  menu.text(mx, my + 122, auto ? 'オート：近くの敵を向く\n（敵がいなければ、動く向き）' : 'カーソルの方向を向く\n攻撃もその方向に出る', 11, COLORS.dim, { align: 'center', lineSpacing: 3 }).setOrigin(0.5, 0);
 
   // 武器ごとの左・右クリック（今の武器は明るく）
   menu.text(510, 132, '武器ごとのクリック', 12, COLORS.cyan, { fontStyle: '700' });

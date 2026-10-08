@@ -3,6 +3,7 @@ import { FEEL, PLAYER, STATUS } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
+import { autoFacing } from './autoAim.js';
 import { createBuild } from '../logic/stats.js';
 import { recalcStats } from './build.js';
 import { healPlayer, hitEnemy } from './combat.js';
@@ -61,7 +62,8 @@ export function createPlayer(weaponId, x, y, carry = null) {
   return player;
 }
 
-// input: { mx, my, aimX, aimY, attack, attackPressed, specialPressed, dashPressed }
+// input: { mx, my, aimX, aimY, auto, attack, attackPressed, specialPressed, dashPressed }
+//   auto: true なら、操作方法「オート」（カーソルではなく、動いている向き・いちばん近い敵のほうを向く）
 //   aimX, aimY: マウスカーソルの位置。攻撃はこの方向に出る
 //   attack: 攻撃ボタン（左クリック）を押している間 true / attackPressed: 押した瞬間だけ true
 //   specialPressed: 特殊アクションのボタン（右クリック）を押した瞬間だけ true
@@ -106,8 +108,14 @@ export function updatePlayer(world, dt, input) {
     mx /= ml;
     my /= ml;
   }
-  // カーソルの方を向く。振っている間は向きを変えられない
-  if (!p.attack && input.aimX != null) {
+  // 向き。振っている間は変えられない。オート：動いている向き・いちばん近い敵のほう。マニュアル：カーソルのほう
+  if (!p.attack && input.auto) {
+    const f = autoFacing(world, mx, my);
+    if (f) {
+      p.fx = f.x;
+      p.fy = f.y;
+    }
+  } else if (!p.attack && input.aimX != null) {
     const ax = input.aimX - p.x;
     const ay = input.aimY - p.y;
     const al = Math.hypot(ax, ay);

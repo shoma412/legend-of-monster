@@ -18,7 +18,7 @@ import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { TREE_VIEW, centerOn, clipSegment, createTreeView, inRect, panBy, toScreen, zoomAt } from '../logic/treeView.js';
-import { DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
+import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
@@ -818,6 +818,18 @@ export class MenuOverlay {
       s.muted = !s.muted;
       changed();
     });
+
+    // 操作方法（マニュアル／オート）。音の欄の右に置く
+    this.text(660, 196, '操作方法', 12, COLORS.cyan, { fontStyle: '700' });
+    CONTROL_MODES.forEach((opt, i) => {
+      this.button(660 + i * 122, 216, 116, 26, opt.label, opt.id === s.controls ? COLORS.cyan : COLORS.dim, () => {
+        s.controls = opt.id;
+        saveSettings();
+        playSe('select');
+        this.render();
+      });
+    });
+    this.text(660, 248, s.controls === 'auto' ? '動いている向き・近くの敵を向く' : 'カーソルのあるほうを向く', 11, COLORS.dim);
 
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {

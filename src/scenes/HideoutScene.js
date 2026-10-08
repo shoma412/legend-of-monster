@@ -20,6 +20,7 @@ import { renderScale, setupView } from '../render/view.js';
 import { createDialogueBox } from './dialogueBox.js';
 import { createMapSelect } from './mapSelect.js';
 import { MenuOverlay, costText, ownedText } from './menuOverlay.js';
+import { getSettings } from '../game/settingsStore.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -280,6 +281,7 @@ export class HideoutScene extends Phaser.Scene {
       my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
       aimX: pointer.worldX,
       aimY: pointer.worldY,
+      auto: getSettings().controls === 'auto', // 操作方法（設定）
       attack: pointer.leftButtonDown(),
       attackPressed: this.attackPressed,
       specialPressed: this.specialPressed,

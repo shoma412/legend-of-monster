@@ -29,6 +29,7 @@ import { createChoicePanel, createCommLog, createComparePanel, createToasts } fr
 import { createDialogueBox } from './dialogueBox.js';
 import { createResultPanel } from './resultPanel.js';
 import { MenuOverlay } from './menuOverlay.js';
+import { getSettings } from '../game/settingsStore.js';
 
 const CHOICE_LOCK = 450; // 3択が出てから選べるようになるまで（ミリ秒）。攻撃の連打で誤って選ばないため
 const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -345,6 +346,7 @@ export class BattleScene extends Phaser.Scene {
       my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
       aimX: pointer.worldX,
       aimY: pointer.worldY,
+      auto: getSettings().controls === 'auto', // 操作方法（設定）
       attack: pointer.leftButtonDown(),
       attackPressed: this.attackPressed,
       specialPressed: this.specialPressed,
