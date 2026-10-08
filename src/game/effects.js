@@ -4,7 +4,7 @@
 // 新しい効果を足すときは、ここに部品を1つ足して、データ（src/data/）から名前で呼ぶ。
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
-import { applyBurn, applyCorrode, applySlow, applyStop, effectDamage } from './combat.js';
+import { applyBurn, applyCorrode, applySlow, applyStop, effectDamage, healPlayer } from './combat.js';
 import { addLight, isVisible } from './darkness.js';
 import { placeMine } from './devices.js';
 import { burst, ring } from './fx.js';
@@ -24,6 +24,8 @@ const CONDITIONS = {
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
   recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
+  // 腐食中の敵
+  targetCorroded: (world, mod, target) => !!target && target.corrodeT > 0,
   // 照準灯で照らした敵
   targetMarked: (world, mod, target) => !!target && target.litT > 0,
   // 近くにいる敵（range px 以内。敵の大きさのぶんは足す）
@@ -156,7 +158,19 @@ const ACTIONS = {
     const targets = enemiesNear(world, from.x, from.y, t.radius, from);
     if (targets.length === 0) return;
     ring(world, from.x, from.y, t.radius, ELEMENT_COLORS.corrode);
-    for (const e of targets) applyCorrode(e);
+    for (const e of targets) applyCorrode(e, world.player.stats.corrodeTime ?? 0);
+  },
+
+  // プレイヤーの周りの敵に、腐食を付ける
+  corrodeNearby(world, t) {
+    const p = world.player;
+    ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.corrode);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyCorrode(e, world.player.stats.corrodeTime ?? 0);
+  },
+
+  // HP が少し戻る
+  healSelf(world, t) {
+    healPlayer(world, t.amount);
   },
 
   // 閃光弾：ダッシュしたとき、まわりの敵を少しの間止める（cooldown 秒に1回）

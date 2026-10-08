@@ -402,4 +402,38 @@ export const areas = [
       ],
     },
   },
+  // ---- ここからマップ5「溶解区」 ----
+  {
+    id: 'drainway',
+    code: 'ACID 01',
+    name: '廃液路',
+    theme: 'acid',
+    bgm: 'drainway',
+    bossBgm: 'bossDrainway',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'shelterer', weight: 3 },
+      { id: 'rusthound', weight: 3 },
+      { id: 'sprayer', weight: 2 },
+      { id: 'sludge', weight: 2 },
+      { id: 'roller', weight: 1 },
+      { id: 'bomber', weight: 2 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['shelterer', 'grunt', 'sprayer'],
+    boss: 'rusteater',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 床が溶けている。あれが、溶かしている。',
+        '@noise＞ 穴は消えない。立てる場所が減る前に、決めろ。噛まれるな。腐食が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……もう、何も食べない。',
+        '@noise＞ コアを回収しろ。この先に、中和プラントがある。',
+      ],
+    },
+  },
 ];

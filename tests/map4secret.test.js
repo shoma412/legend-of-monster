@@ -174,11 +174,14 @@ describe('隠しボスの出し方（マップ4）：通ってきた部屋の非
     expect(secretDoor(walkToRest(r, true))).toBeUndefined();
   });
 
-  it('通行証を持っていても、マップ5は選べるようにならない（条件にするかは保留）', () => {
+  it('停電区の通行証は、マップ5に入る条件になる（マップ4の完了だけでは、入れない）', () => {
     const save = createSave();
+    const map5 = DATA.maps.all()[4];
     for (const id of ['map1', 'map2', 'map3', 'map4']) recordMapClear(save, id, 1);
-    save.passes.push('map3', 'map4');
-    expect(mapState(save, DATA.maps.all()[4])).not.toBe('open');
+    save.passes.push('map3');
+    expect(mapState(save, map5)).toBe('locked');
+    save.passes.push('map4');
+    expect(mapState(save, map5)).toBe('open');
   });
 
   it('中断：点けていない非常灯が残る部屋で中断すると、道は開かない。全部点けていれば、再開しても条件は残る', () => {

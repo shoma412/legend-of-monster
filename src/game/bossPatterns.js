@@ -9,9 +9,11 @@ import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSeg
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
 import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, startBlackout } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
+import { startRain } from './acidRain.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
+const ELEMENT_COLORS_RUST = '#ff7a3d'; // 「錆」の文字と印の色
 const BAR_FLASH = 0.16; // 線が光っている時間（秒）
 
 function aimAt(act, d) {
@@ -1157,6 +1159,107 @@ PATTERNS.scales = {
           });
         }
         sfx(world, 'enemyShot');
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 溶解（ラストイーター）：予告のあと、床が溶けて、酸の穴になる。穴は、ボスを倒すまで消えない（中にいると、tick 秒ごとにダメージ）。
+//   count 個ずつ増える（1つ目はプレイヤーの足元、残りはその近く）。全部で max 個まで。
+//   ring を書くと（大技）、部屋の外まわりにぐるりと並べる（真ん中だけが残る）。rain を書くと、同時に雨が降る
+function meltSpots(world, def) {
+  const p = world.player;
+  const wb = world.bounds;
+  if (def.ring) {
+    const cx = (wb.left + wb.right) / 2;
+    const cy = (wb.top + wb.bottom) / 2;
+    return Array.from({ length: def.ring.count }, (_, i) => {
+      const a = (i / def.ring.count) * Math.PI * 2;
+      return { x: cx + Math.cos(a) * def.ring.rx, y: cy + Math.sin(a) * def.ring.ry };
+    });
+  }
+  return Array.from({ length: def.count }, (_, i) => {
+    const a = world.rng() * Math.PI * 2;
+    const r = i === 0 ? 0 : def.radius * 1.2 + world.rng() * def.spread;
+    const spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: 0 };
+    clampToBounds(spot, wb);
+    return spot;
+  });
+}
+
+PATTERNS.melt = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    // 上限を超えるぶんは、出さない
+    const have = world.hazards.filter((h) => h.pit).length;
+    act.spots = meltSpots(world, act.def).slice(0, Math.max(0, act.def.max - have));
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const spot of act.spots) {
+          world.hazards.push({
+            type: 'pool', pit: true, x: spot.x, y: spot.y, r: def.radius, arm: def.arm, armMax: def.arm, life: Infinity,
+            tick: def.tick, acc: def.tick, damage: def.damage, slow: false, color: COLORS.green,
+          });
+        }
+        if (def.rain) startRain(world, def.rain);
+        sfx(world, 'steam');
+        addShake(world, FEEL.shake.hit);
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 噛みつき（ラストイーター）：予告線つきの突進。当たると、ダメージに加えて「錆」（しばらく、与えるダメージが下がる）。壁に当たると隙
+PATTERNS.gnaw = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    aimAt(act, d);
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t > def.lockTime) aimAt(act, d);
+      if (act.t <= 0) {
+        act.phase = 'active';
+        act.t = def.duration;
+        act.bit = false;
+        sfx(world, 'bossCharge');
+      }
+    } else if (act.phase === 'active') {
+      b.x += act.dirX * def.speed * dt;
+      b.y += act.dirY * def.speed * dt;
+      if (!act.bit && circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r) && hurtPlayer(world, def.damage) && world.mode === 'play' && !p.guard) {
+        // 錆：しばらく、与えるダメージが下がる（付け直すと、時間が戻る）
+        act.bit = true;
+        p.buffs = p.buffs.filter((x) => x.id !== 'rust');
+        p.buffs.push({ id: 'rust', stat: 'attackMul', add: -def.rust.amount, t: def.rust.duration, max: def.rust.duration, color: ELEMENT_COLORS_RUST });
+        floatText(world, p.x, p.y - 42, 'Rust!', ELEMENT_COLORS_RUST, 16);
+      }
+      if (clampToBounds(b, world.bounds)) {
+        act.phase = 'stun';
+        act.t = def.wallStun;
+        sfx(world, 'explode');
+        addShake(world, FEEL.shake.charged);
+        floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
+      } else if (act.t <= 0) {
         act.phase = 'recover';
         act.t = def.recover;
       }

@@ -11,6 +11,7 @@ import { getSave, persist, saveSuspend } from '../game/saveStore.js';
 import { permanentBonuses, recordCarryOver } from '../logic/meta.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
+import { drawRain, drawRoofs } from '../render/rain.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -418,6 +419,9 @@ export class BattleScene extends Phaser.Scene {
     drawBeams(g, world);
     drawBolts(g, world);
     drawPlayer(g, world);
+    // 酸の雨：雨と、屋根（下にいるものが見えるように、透けて描く）
+    drawRain(g, world);
+    drawRoofs(g, world);
     // 暗闇：暗い場所を塗り、その上に「暗闇でも見えるもの」をもう一度描く（目の光、攻撃の予告、残る攻撃、敵の弾）
     const dark = this.darkLayer;
     dark.clear();
@@ -451,6 +455,9 @@ export class BattleScene extends Phaser.Scene {
     const lamps = world.lamps ?? [];
     const litCount = lamps.filter((l) => l.lit).length;
     this.lampText.setVisible(lamps.length > 0 && !this.run.inSecret && this.run.plan.current !== 'boss').setText(`灯り ${litCount}/${lamps.length}`).setColor(litCount >= lamps.length ? COLORS.green : COLORS.amber);
+    // 酸の雨：雨までの秒数（降っている間は、残りの秒数）
+    const rain = world.rain;
+    if (rain) this.lampText.setVisible(true).setText(rain.phase === 'rain' ? `酸の雨　残り ${Math.ceil(rain.t)}` : `酸の雨まで ${Math.ceil(rain.t + (rain.phase === 'clear' ? world.room.environment.cycle.warn : 0))}`).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 
     const implantCount = Object.keys(p.build.implants).length;

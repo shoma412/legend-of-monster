@@ -24,7 +24,8 @@ export const maps = [
     // 隠しボスの出し方が、マップ3とは違う（rule: 'lamps'）：そのエリアで通ってきた部屋の非常灯を、すべて1回は点けていると、ボス前の補給部屋に道が開く
     secretBoss: { boss: 'nocturne', rule: 'lamps', hint: ['@noise＞ ……灯りを全部点けたな。壁の向こうで、何かが目を覚ました。'] },
   },
-  { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },
+  // 溶解区。環境は「酸の雨」。入るには、停電区の通行証（マップ4の隠しボス）が要る。エリア2・3と隠しボスは、これから足す
+  { id: 'map5', code: 'MAP 05', name: '溶解区', areas: ['drainway'], enemyScale: 4, environment: 'acidrain', requiresPass: 'map4' },
   { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },
   { id: 'map7', code: 'MAP 07', name: '？？？', areas: [], ready: false },
 ];

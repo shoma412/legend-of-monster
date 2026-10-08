@@ -42,6 +42,7 @@ export const AREA_THEMES = {
   night: { floor: 0x07070f, grid: 0x4a4a7a, wall: 0x101020, edge: '#b8a6ff' },
   substation: { floor: 0x06080c, grid: 0x3a5a7a, wall: 0x0e141c, edge: '#fff36b' },
   control: { floor: 0x05080a, grid: 0x2a7a8a, wall: 0x0a1418, edge: '#2ef2ff' },
+  acid: { floor: 0x070b06, grid: 0x5a7a2a, wall: 0x10160c, edge: '#b6ff3a' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

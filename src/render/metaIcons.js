@@ -116,6 +116,16 @@ export const MATERIAL_ICONS = {
     g.arc(x + s * 0.3, y, s * 0.42, Math.PI * 0.62, Math.PI * 1.38, false);
     g.strokePath();
   },
+  // ラストコア：欠けた歯車
+  rustCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1).strokeCircle(x, y, s * 0.32);
+    for (let i = 0; i < 6; i++) {
+      if (i === 1) continue; // 欠けている歯
+      const a = (i * Math.PI) / 3;
+      g.lineBetween(x + Math.cos(a) * s * 0.32, y + Math.sin(a) * s * 0.32, x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.6);
+    }
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

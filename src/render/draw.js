@@ -1000,6 +1000,31 @@ BOSS_TELEGRAPHS.shadowstep = (g, b, act, world) => {
 };
 BOSS_TELEGRAPHS.mirror = BOSS_TELEGRAPHS.shadowstep;
 
+// 溶解：穴が開く場所の予告
+BOSS_TELEGRAPHS.melt = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const red = hex(COLORS.red);
+  for (const spot of act.spots) {
+    g.fillStyle(red, 0.08 + 0.18 * k).fillCircle(spot.x, spot.y, act.def.radius);
+    g.lineStyle(2, red, 0.85).strokeCircle(spot.x, spot.y, act.def.radius);
+    g.lineStyle(2, hex(COLORS.green), 0.9).strokeCircle(spot.x, spot.y, act.def.radius * k);
+  }
+  g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+
+// 噛みつき：突進の線（開いた口の形に、先が広がる）
+BOSS_TELEGRAPHS.gnaw = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const len = def.speed * def.duration;
+  const locked = act.t <= def.lockTime;
+  const red = hex(COLORS.red);
+  g.lineStyle(b.r * 1.8, red, locked ? 0.5 : 0.18 + 0.18 * Math.abs(Math.sin(world.time * 16)));
+  g.lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+  g.lineStyle(2, hex(COLORS.amber), locked ? 1 : 0.6).lineBetween(b.x, b.y, b.x + act.dirX * len, b.y + act.dirY * len);
+};
+
 // 遮断：灯りが落ちる前の予告（ボスへ向かって縮む、暗い輪）
 BOSS_TELEGRAPHS.blackout = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1413,6 +1438,48 @@ SHAPES.moth = (g, b, color, world) => {
     for (const side of [-1, 1]) {
       const eye = local(b, r * 0.55, side * r * 0.12);
       g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+};
+
+// ラストイーター：欠けた歯車のような体と、前に開く大きなあご
+SHAPES.rusteater = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const biting = b.act?.def.pattern === 'gnaw' && (b.act.phase === 'telegraph' || b.act.phase === 'active');
+  // 体：歯の欠けた歯車（ゆっくり回る）
+  const spin = world.time * (stunned ? 0 : 0.5);
+  const pts = [];
+  for (let i = 0; i < 20; i++) {
+    const a = spin + (i / 20) * Math.PI * 2;
+    const tooth = i % 2 === 0 && i !== 6 && i !== 14 ? 1.12 : 0.9; // 2か所、歯が欠けている
+    pts.push({ x: b.x + Math.cos(a) * r * tooth, y: b.y + Math.sin(a) * r * tooth });
+  }
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(pts, true);
+  neonStroke(g, color, 3, () => g.strokePoints(pts, true, true));
+  g.lineStyle(2, color, 0.55).strokeCircle(b.x, b.y, r * 0.55);
+  // 錆のしみ
+  for (const [f, s] of [[-0.3, 0.35], [0.1, -0.45], [-0.5, -0.15]]) {
+    const q = local(b, r * f, r * s);
+    g.fillStyle(color, 0.35).fillCircle(q.x, q.y, r * 0.12);
+  }
+  // あご（上下に開く。噛みつきの間は、大きく開く）
+  const open = stunned ? 0.1 : biting ? 0.55 : 0.25 + 0.08 * Math.sin(world.time * 5);
+  for (const side of [-1, 1]) {
+    const jaw = [local(b, r * 0.5, side * r * 0.15), local(b, r * 1.45, side * r * (0.15 + open)), local(b, r * 1.15, side * r * (0.5 + open)), local(b, r * 0.45, side * r * 0.6)];
+    g.fillStyle(BODY_FILL, 1).fillPoints(jaw, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(jaw, true, true));
+    // 歯
+    for (const t of [0.75, 1.0, 1.25]) {
+      const base = local(b, r * t, side * r * (0.12 + open * ((t - 0.5) / 0.95)));
+      const tip = local(b, r * t, side * r * (0.12 + open * ((t - 0.5) / 0.95)) - side * r * 0.14);
+      g.lineStyle(2, hex(COLORS.ink), 0.9).lineBetween(base.x, base.y, tip.x, tip.y);
+    }
+  }
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.2, side * r * 0.3);
+      g.fillStyle(hex(COLORS.green), 1).fillCircle(eye.x, eye.y, 4);
     }
   }
 };

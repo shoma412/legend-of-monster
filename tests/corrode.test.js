@@ -61,10 +61,11 @@ describe('属性「腐食」の定義', () => {
     expect([...seen].sort()).toEqual(['cold', 'corrode', 'heat', 'shock']);
   });
 
-  it('今いるボスの弱点は、変わっていない（腐食が弱点のボスは、まだいない）', () => {
-    const count = {};
-    for (const b of DATA.bosses.all()) count[b.weakness ?? 'none'] = (count[b.weakness ?? 'none'] ?? 0) + 1;
-    expect(count.corrode).toBeUndefined();
+  it('マップ1〜4のボスの弱点は、変わっていない（腐食が弱点のボスは、マップ5から）', () => {
+    const early = ['map1', 'map2', 'map3', 'map4'].flatMap((id) => DATA.maps.get(id).areas.map((a) => DATA.bosses.get(DATA.areas.get(a).boss)));
+    expect(early).toHaveLength(12);
+    expect(early.some((b) => b.weakness === 'corrode')).toBe(false);
+    expect(DATA.bosses.get('rusteater').weakness).toBe('corrode');
   });
 });
 

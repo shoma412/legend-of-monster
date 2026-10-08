@@ -2,6 +2,7 @@
 import { ENEMY_SCALING, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
 import { roomBounds } from '../logic/geometry.js';
 import { allLampsLit, placeLamps } from './darkness.js';
+import { placeRoofs } from './acidRain.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
@@ -127,6 +128,8 @@ export function enterRoom(run) {
   if (run.map.environment) {
     room.environment = DATA.environments.get(run.map.environment);
     if (room.environment.dark && room.waves.length > 0) room.lamps = placeLamps(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
+    // 酸の雨のマップでは、戦闘のある部屋に屋根を置く
+    if (room.environment.rain && room.waves.length > 0) room.roofs = placeRoofs(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
   }
   room.lootTier = run.areaIndex;
   room.noBossLoot = !run.inSecret && plan.current === 'boss' && !hasNextArea(run);

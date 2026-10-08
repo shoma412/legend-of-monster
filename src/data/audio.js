@@ -98,6 +98,14 @@ export const BGM = {
   control: { file: 'audio/bgm/maou_loop_bgm_cyber05.ogg', song: 'tower' },
   bossControl: { file: 'audio/bgm/maou_loop_bgm_neorock55.ogg', song: 'bossTower' },
   bossNocturne: { file: 'audio/bgm/maou_loop_bgm_cyber31.ogg', song: 'bossTower' },
+  // マップ5「溶解区」。エリア2・3と隠しボスの曲は、先に入れてある（まだ使っていない）
+  drainway: { file: 'audio/bgm/maou_loop_bgm_cyber45.ogg', song: 'slum' },
+  bossDrainway: { file: 'audio/bgm/maou_loop_bgm_neorock60.ogg', song: 'bossSlum' },
+  neutral: { file: 'audio/bgm/maou_loop_bgm_cyber30.ogg', song: 'plant' },
+  bossNeutral: { file: 'audio/bgm/maou_loop_bgm_neorock74.ogg', song: 'bossPlant' },
+  raintower: { file: 'audio/bgm/maou_loop_bgm_cyber35.ogg', song: 'tower' },
+  bossRaintower: { file: 'audio/bgm/maou_loop_bgm_neorock76.ogg', song: 'bossTower' },
+  bossCatalyst: { file: 'audio/bgm/maou_loop_bgm_neorock67.ogg', song: 'bossTower' },
 };
 
 // ---- コードで鳴らす曲 ----

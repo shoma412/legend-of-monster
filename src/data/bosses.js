@@ -696,6 +696,50 @@ export const bosses = [
       },
     ],
   },
+  // ---- ここからマップ5「溶解区」 ----
+  {
+    id: 'rusteater',
+    name: 'ラストイーター',
+    alias: '錆び喰い', // 登場時に出す異名
+    shape: 'rusteater',
+    color: 'heat',
+    weakness: 'corrode',
+    material: 'rustCore',
+    radius: 44,
+    hp: 15000,
+    speed: 76,
+    contactDamage: 50,
+    xp: 720,
+    credits: 360,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「溶解」：床が溶けて、酸の穴になる。穴は、ボスを倒すまで消えない。count 個ずつ増えて、全部で max 個まで
+      melt: { pattern: 'melt', telegraph: 0.9, count: 2, max: 7, radius: 52, spread: 110, arm: 0.6, tick: 0.5, damage: 18, recover: 0.6 },
+      meltHard: { pattern: 'melt', telegraph: 0.8, count: 3, max: 10, radius: 52, spread: 130, arm: 0.5, tick: 0.5, damage: 18, recover: 0.6 },
+      // 固有「噛みつき」：予告線つきの突進。当たると「錆」（rust：duration 秒のあいだ、与えるダメージが amount の割合だけ下がる）
+      gnaw: { pattern: 'gnaw', telegraph: 0.7, lockTime: 0.2, speed: 660, duration: 0.6, damage: 52, rust: { amount: 0.3, duration: 5 }, wallStun: 1.3, recover: 0.7, reach: 'far' },
+      // 鉄片：プレイヤーへ扇形に弾を撃つ
+      shards: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 60, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
+      // 地ならし：足元からの衝撃波の輪
+      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 38, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 踏みつけ：周囲への一撃
+      stomp: { pattern: 'slam', telegraph: 0.7, radius: 160, damage: 52, recover: 0.8, reach: 'near' },
+      // 大技「大溶解」：部屋の外まわりが、ぐるりと酸の穴になる（rx・ry は、部屋の真ん中からの距離）。同時に、雨が rain 秒降る
+      meltdown: { pattern: 'melt', telegraph: 1.7, ring: { count: 12, rx: 330, ry: 150 }, max: 99, radius: 62, arm: 0.6, tick: 0.5, damage: 20, rain: 6, recover: 1.4 },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'gnaw' }],
+    ultimate: { move: 'meltdown', announce: '大溶解' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['melt', 'gnaw', 'shards', 'quake', 'stomp'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['meltHard', 'gnaw', 'shards', 'quake', 'stomp'],
+        combos: [{ moves: ['meltHard', 'gnaw'] }, { moves: ['quake', 'shards'] }],
+        announce: '錆を、寄こせ',
+      },
+    ],
+  },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
   {
     id: 'nocturne',

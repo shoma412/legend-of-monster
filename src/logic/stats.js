@@ -189,6 +189,10 @@ export function computeStats(build) {
     kitPower: 0,
     dashInvincible: 0,
     killDash: 0,
+    // 種族「錆」：腐食の時間に足す秒数、腐食で増えるダメージに足す割合、持続ダメージ（炎上・酸の雨など）で受ける量が減る割合
+    corrodeTime: 0,
+    corrodeBonus: 0,
+    dotResist: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

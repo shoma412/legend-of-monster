@@ -12,6 +12,7 @@ import { updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { updatePlayerDot } from './combat.js';
 import { updateDarkness } from './darkness.js';
+import { updateRain } from './acidRain.js';
 import { createEnemy, updateEnemies, updateShots } from './enemyAI.js';
 import { addShake, burst, createFx, floatText, sfx, updateFx } from './fx.js';
 import { updateDevices } from './devices.js';
@@ -42,6 +43,9 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     devices: [], // 設置物（地雷・小型タレット）。部屋を出ると消える
     lamps: (room.lamps ?? []).map((l) => ({ x: l.x, y: l.y, on: 0, broken: 0, lit: false })), // 非常灯（環境「暗闇」）。on は点いている残り秒数、broken は壊されていて点かない残り秒数、lit は1回でも点けたか（マップ4の隠しボスの条件）
     lights: [], // 一時的な光（攻撃が当たった瞬間など。環境「暗闇」）
+    roofs: (room.roofs ?? []).map((r) => ({ ...r, broken: 0 })), // 屋根（環境「酸の雨」）。下にいれば、雨に当たらない
+    rain: null, // 雨の周期 { phase: clear / warn / rain, t, max }（環境「酸の雨」。戦闘の間だけ）
+    rainHits: 0, // この部屋で、雨に当たった回数
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）
     room,
@@ -117,6 +121,7 @@ export function updateWorld(world, dt, input) {
   if (world.mode === 'clear') updatePlayerShots(world, dt);
   updateSecret(world);
   updateDarkness(world, dt);
+  updateRain(world, dt);
   for (const l of world.loot) l.t += dt;
   world.ougiReady = canUseOugi(world); // 表示用
   updateFocus(world);

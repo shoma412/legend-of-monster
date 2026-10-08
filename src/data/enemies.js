@@ -22,9 +22,11 @@
 //   blinker   : 近づいて殴る（brawler と同じ）。姿が点いたり消えたりする。消えている間は見えないが、攻撃は当たる
 //   discharger: 動かない。一定の間隔で、まわりに放電する（予告の円）
 //   decoy     : 自分では動かない（ボスの「残像」が動かす）
+//   shelterer : 近づいて殴る（brawler と同じ）。雨の予告が出ると、いちばん近い屋根の下へ急いで入り、雨の間はそこから出ない
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
+// corrodeHaste: 腐食が付いている間の、動きの速さの倍率（錆び犬）
 // decoy: true は、ボスの偽物（暗闇でも目の光が出る）
 // solid: true は、歩いて通れず、敵の弾も止める（ダッシュ中はすり抜けられる）
 // shape は見た目（src/render/draw.js）、color は src/data/theme.js の色名
@@ -593,5 +595,42 @@ export const enemies = [
     knockbackResist: 1,
     prop: true,
     decoy: true,
+  },
+  // ---- ここからマップ5「溶解区」（環境「酸の雨」） ----
+  {
+    // 雨宿り：雨の予告が出ると、いちばん近い屋根の下へ急ぐ（shelter.haste 倍の速さ）。雨の間は、屋根から出ない
+    id: 'shelterer',
+    name: '雨宿り',
+    behavior: 'shelterer',
+    shape: 'square',
+    color: 'ice',
+    radius: 15,
+    hp: 66,
+    speed: 100,
+    damage: 20,
+    xp: 13,
+    credits: 5,
+    cost: 2,
+    dropChance: 0.24,
+    shelter: { haste: 1.7 },
+    attack: { triggerRange: 50, range: 64, arc: 100, windup: 0.5, recover: 0.8 },
+  },
+  {
+    // 錆び犬：弱くて速い。腐食が付いている間は、もっと速くなる
+    id: 'rusthound',
+    name: '錆び犬',
+    behavior: 'swarm',
+    shape: 'triangle',
+    color: 'heat',
+    radius: 11,
+    hp: 26,
+    speed: 128,
+    damage: 13,
+    xp: 9,
+    credits: 3,
+    cost: 1,
+    dropChance: 0.14,
+    wobble: 0.4,
+    corrodeHaste: 1.6,
   },
 ];

@@ -65,7 +65,7 @@ describe('マップの定義', () => {
 });
 
 describe('マップの解放と完了', () => {
-  it('最初はマップ1だけ選べる。マップ2〜4は未解放、マップ5以降は準備中', () => {
+  it('最初はマップ1だけ選べる。マップ2〜5は未解放、マップ6以降は準備中', () => {
     const save = createSave();
     expect(mapState(save, maps[0])).toBe('open');
     expect(canSortie(save, maps[0])).toBe(true);
@@ -74,7 +74,8 @@ describe('マップの解放と完了', () => {
     expect(mapState(save, maps[2])).toBe('locked');
     expect(mapState(save, maps[3])).toBe('locked');
     expect(canSortie(save, maps[3])).toBe(false);
-    for (const map of maps.slice(4)) {
+    expect(mapState(save, maps[4])).toBe('locked');
+    for (const map of maps.slice(5)) {
       expect(mapState(save, map)).toBe('notReady');
       expect(canSortie(save, map)).toBe(false);
     }

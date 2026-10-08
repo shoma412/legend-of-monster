@@ -6,6 +6,7 @@ import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSeg
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { breakLamp, flashAt, isVisible, litByLamp } from './darkness.js';
+import { nearestRoof, rainComing, underRoof } from './acidRain.js';
 import { updateEliteTrait } from './elite.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
@@ -77,6 +78,26 @@ const BEHAVIORS = {
       breakLamp(world, target, e.def.breakTime);
       e.swingT = 0.15;
     }
+  },
+
+  // 雨宿り：近づいて殴る。雨の予告が出ると、いちばん近い屋根の下へ急いで入り、雨の間はそこから出ない（屋根の下で、近くに来たら殴る）
+  shelterer(world, e, dt, d) {
+    const roof = rainComing(world) && e.state === 'chase' ? nearestRoof(world, e.x, e.y) : null;
+    if (!roof) {
+      BEHAVIORS.brawler(world, e, dt, d);
+      return;
+    }
+    if (!underRoof(world, e.x, e.y)) {
+      // 屋根へ急ぐ
+      const dx = roof.x - e.x;
+      const dy = roof.y - e.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      e.x += (dx / dist) * e.def.speed * e.def.shelter.haste * dt;
+      e.y += (dy / dist) * e.def.speed * e.def.shelter.haste * dt;
+      return;
+    }
+    // 屋根の下：プレイヤーが届く所にいれば殴る。追いかけて外へは出ない
+    if (d.dist <= e.def.attack.triggerRange) BEHAVIORS.brawler(world, e, dt, d);
   },
 
   // 明滅機：近づいて殴る。姿が点いたり消えたりする（構えている間と、攻撃が当たった直後は、必ず見える）
@@ -703,6 +724,8 @@ export function updateEnemies(world, dt) {
       updateBoss(world, e, edt);
       continue;
     }
+    // 錆び犬：腐食が付いている間は、速くなる
+    if (e.def.corrodeHaste && e.corrodeT > 0) edt *= e.def.corrodeHaste;
     // 種族「番兵」のボーナス：照らされている（見えている）敵は、動きが遅くなる
     if (p.stats.litSlow > 0 && isVisible(world, e.x, e.y)) edt *= 1 - p.stats.litSlow;
     updateEliteTrait(world, e, dt);

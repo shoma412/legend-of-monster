@@ -15,6 +15,7 @@ export const materials = [
   { id: 'mothCore', name: 'モスコア', color: 'magenta' },
   { id: 'lensCore', name: 'レンズコア', color: 'amber' },
   { id: 'breakerCore', name: 'ブレーカーコア', color: 'cyan' },
+  { id: 'rustCore', name: 'ラストコア', color: 'heat' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -198,6 +199,23 @@ export const fragments = [
   {
     id: 'mb-core', area: 'control', source: 'boss', title: 'ブレーカーのコアログ',
     text: '異常：居住者 0。復旧条件：居住者の帰還。再投入：不可。再投入：不可。再投入：不可。——守っている。',
+  },
+  // ---- マップ5「溶解区」 ----
+  {
+    id: 're-01', area: 'drainway', source: 'vault', title: '解体機 RE 仕様書',
+    text: '解体機 RE シリーズは、錆びて使えなくなった設備を見つけて、溶かして片づける。溶かした鉄は、自分の補修に使ってよい。片づけるものがなくなれば、止まる。',
+  },
+  {
+    id: 're-02', area: 'drainway', source: 'vault', title: '降雨制御 異常報告',
+    text: '制御塔が、中和していない雨を降らせ続けている。雨に打たれた設備は、どれも錆びる。錆びたものは、あれが溶かしに来る。片づけるものは、もう、なくならない。',
+  },
+  {
+    id: 're-memo', area: 'drainway', source: 'vault', title: '作業員の走り書き',
+    text: '屋根の下にいろ。瓦だけは、なぜか溶けない。先代の工場長が、縁起をかついで葺かせたやつだ。笑ってたやつは、みんな雨で帰れなくなった。',
+  },
+  {
+    id: 're-core', area: 'drainway', source: 'boss', title: 'ラストイーターのコアログ',
+    text: '検出：錆。処理：溶解。回収：鉄。補修：自機。検出：錆（自機）。処理：溶解。——片づけが、終わらない。',
   },
   // ---- マップ3「建設区」 ----
   {

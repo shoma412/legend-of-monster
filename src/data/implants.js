@@ -11,7 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
-//                    targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
+//                    targetCorroded（相手が腐食中）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
 //                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
@@ -285,6 +285,32 @@ export const implants = [
     desc: (k) => `ダッシュの無敵時間 +${Math.round(0.15 * k * 100) / 100}秒`,
     effect: (k) => ({ mods: [{ stat: 'dashInvincible', add: 0.15 * k }] }),
   },
+  // ---- 錆（ラストイーター由来・腐食を使う） ----
+  {
+    id: 'rustedge', species: 'rust', name: '錆びた刃',
+    desc: (k) => `攻撃に腐食属性を付与（腐食中の敵は、受けるダメージ +15%）${k > 1 ? `。腐食の時間 +${Math.round((k - 1) * 5 * 10) / 10}秒` : ''}`,
+    effect: (k) => ({ element: 'corrode', mods: [{ stat: 'corrodeTime', add: (k - 1) * 5 }] }),
+  },
+  {
+    id: 'erosion', species: 'rust', name: '侵食',
+    desc: (k) => `腐食中の敵へのダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'targetCorroded' }] }),
+  },
+  {
+    id: 'acidblood', species: 'rust', name: '酸の血',
+    desc: (k) => `被弾したとき、周囲の敵に腐食を付ける（範囲 ${num(140 * k)}）`,
+    effect: (k) => ({ triggers: [{ on: 'hurt', do: 'corrodeNearby', radius: 140 * k }] }),
+  },
+  {
+    id: 'antirust', species: 'rust', name: '錆び止め',
+    desc: (k) => `持続ダメージ（炎上・裂傷・腐食・酸の雨）で受ける量 −${pct(Math.min(0.8, 0.4 * k))}`,
+    effect: (k) => ({ mods: [{ stat: 'dotResist', add: 0.4 * k }] }),
+  },
+  {
+    id: 'scavenge', species: 'rust', name: '朽ち喰い',
+    desc: (k) => `腐食中の敵を倒すと、HP +${Math.round(2 * k * 10) / 10}`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'healSelf', ifTarget: 'corroded', amount: 2 * k }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -462,6 +488,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '会心率 +5%', effect: { mods: [{ stat: 'critChance', add: 0.05 }] } },
       { need: 3, desc: '敵を倒すと、ダッシュが1回ぶん回復する（3秒に1回）', effect: { mods: [{ stat: 'killDash', add: 1 }] } },
+    ],
+  },
+  rust: {
+    name: '錆', color: 'heat', boss: 'rusteater',
+    bonuses: [
+      { need: 2, desc: '腐食の時間 +2秒', effect: { mods: [{ stat: 'corrodeTime', add: 2 }] } },
+      { need: 3, desc: '腐食で増えるダメージ +10%', effect: { mods: [{ stat: 'corrodeBonus', add: 0.1 }] } },
     ],
   },
   spider: {
