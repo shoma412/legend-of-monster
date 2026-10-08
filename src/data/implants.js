@@ -11,7 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
-//                    targetCorroded（相手が腐食中）/ targetAfflicted（相手に、燃焼・減速・凍結・腐食のどれかが付いている）/ noElement（属性を1つも持っていない）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
+//                    targetCorroded（相手が腐食中）/ targetAfflicted（相手に、燃焼・減速・凍結・腐食のどれかが付いている）/ noElement（属性を1つも持っていない）/ hasShock（電撃属性を持っている）/ targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
 //                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
@@ -337,6 +337,32 @@ export const implants = [
     desc: (k) => `自分が受ける状態異常（減速・目くらみ・持続ダメージ・錆）の時間 −${pct(Math.min(0.8, 0.4 * k))}`,
     effect: (k) => ({ mods: [{ stat: 'debuffResist', add: 0.4 * k }] }),
   },
+  // ---- 雨（レインメーカー由来・雨と雷） ----
+  {
+    id: 'raincoat', species: 'rain', name: '雨具',
+    desc: (k) => `酸の雨のダメージを受けない。被ダメージ −${pct(0.05 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'rainProof', add: 1 }, { stat: 'damageTaken', add: -0.05 * k }] }),
+  },
+  {
+    id: 'blessing', species: 'rain', name: '恵みの雷',
+    desc: (k) => `4秒ごとに、近くの敵1体に落雷（${num(30 * k)}ダメージ。電撃属性）`,
+    effect: (k) => ({ mods: [{ stat: 'skyBolt', add: 30 * k }] }),
+  },
+  {
+    id: 'eaves', species: 'rain', name: '軒下',
+    desc: (k) => `立ち止まっている間、1秒ごとに HP +${Math.round(k * 10) / 10}`,
+    effect: (k) => ({ mods: [{ stat: 'standRegen', add: 1 * k }] }),
+  },
+  {
+    id: 'thunderhead', species: 'rain', name: '雷雲',
+    desc: (k) => `電撃属性を持っているとき、攻撃力 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'hasShock' }] }),
+  },
+  {
+    id: 'flood', species: 'rain', name: '増水',
+    desc: (k) => `敵を倒すたびに、その部屋にいる間、攻撃力 +${pct(0.02 * k)}（10体ぶんまで）`,
+    effect: (k) => ({ mods: [{ stat: 'floodPower', add: 0.02 * k }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -528,6 +554,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '弱点を突いたときのダメージ +15%', effect: { mods: [{ stat: 'weakBonus', add: 0.15 }] } },
       { need: 3, desc: '持っている属性の種類1つごとに、攻撃力 +5%', effect: { mods: [{ stat: 'elementPower', add: 0.05 }] } },
+    ],
+  },
+  rain: {
+    name: '雨', color: 'shock', boss: 'rainmaker',
+    bonuses: [
+      { need: 2, desc: '移動速度 +8%', effect: { mods: [{ stat: 'moveSpeedMul', add: 0.08 }] } },
+      { need: 3, desc: '敵を倒すと、近くの敵1体に落雷（40ダメージ）', effect: { triggers: [{ on: 'kill', do: 'chainLightning', count: 1, range: 220, damage: 40 }] } },
     ],
   },
   spider: {

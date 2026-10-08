@@ -8,7 +8,7 @@ import { openImplantChoice } from './build.js';
 import { makeElite } from './elite.js';
 import { updateFocus } from './objects.js';
 import { SECRET_IN, doorObjects } from './rooms.js';
-import { updateZones } from './effects.js';
+import { updateSkyBolt, updateZones } from './effects.js';
 import { updateHazards } from './bossPatterns.js';
 import { updatePlayerDot } from './combat.js';
 import { updateDarkness } from './darkness.js';
@@ -110,6 +110,7 @@ export function updateWorld(world, dt, input) {
     updateShots(world, dt);
     updateGimmick(world, dt);
     updateDevices(world, dt);
+    updateSkyBolt(world, dt);
     updateHazards(world, dt);
     updatePlayerDot(world, dt);
     updateArena(world, dt);

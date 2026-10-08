@@ -61,12 +61,40 @@ function drawRoof(g, r, alpha) {
   g.lineStyle(1, hex(COLORS.ice), alpha * 0.55).strokeRect(x0 - 1, y0 - 1, r.w + 2, r.h + 2);
 }
 
+// 崩された屋根：枠だけが点線で残り、割れた瓦が散らばる。直るまでの時間が、枠の上の線で分かる
+function drawRubble(g, r) {
+  const x0 = r.x - r.w / 2;
+  const y0 = r.y - r.h / 2;
+  const c = hex(COLORS.dim);
+  g.lineStyle(1.5, c, 0.5);
+  for (let x = x0; x < x0 + r.w; x += 16) {
+    g.lineBetween(x, y0, Math.min(x0 + r.w, x + 8), y0);
+    g.lineBetween(x, y0 + r.h, Math.min(x0 + r.w, x + 8), y0 + r.h);
+  }
+  for (let y = y0; y < y0 + r.h; y += 16) {
+    g.lineBetween(x0, y, x0, Math.min(y0 + r.h, y + 8));
+    g.lineBetween(x0 + r.w, y, x0 + r.w, Math.min(y0 + r.h, y + 8));
+  }
+  // 割れた瓦（場所は、屋根ごとに決まっている）
+  for (let i = 0; i < 9; i++) {
+    const fx = ((i * 37 + Math.floor(r.x)) % 100) / 100;
+    const fy = ((i * 61 + Math.floor(r.y)) % 100) / 100;
+    g.fillStyle(TILE.face, 0.55).fillRect(x0 + 8 + fx * (r.w - 24), y0 + 8 + fy * (r.h - 22), 9, 6);
+    g.lineStyle(1, TILE.shade, 0.7).strokeRect(x0 + 8 + fx * (r.w - 24), y0 + 8 + fy * (r.h - 22), 9, 6);
+  }
+  const k = Math.max(0, Math.min(1, r.broken / (r.brokenMax || r.broken)));
+  g.lineStyle(3, hex(COLORS.ice), 0.7).lineBetween(x0, y0 - 6, x0 + r.w * (1 - k), y0 - 6);
+}
+
 // 屋根を描く。下にいるものが見えるように、少し透ける。プレイヤーが下にいる屋根は、もっと透ける
 export function drawRoofs(g, world) {
   if (!rainEnv(world)) return;
   const p = world.player;
   for (const r of world.roofs ?? []) {
-    if (r.broken > 0) continue;
+    if (r.broken > 0) {
+      drawRubble(g, r);
+      continue;
+    }
     const under = Math.abs(p.x - r.x) <= r.w / 2 && Math.abs(p.y - r.y) <= r.h / 2;
     drawRoof(g, r, under ? 0.3 : 0.62);
   }

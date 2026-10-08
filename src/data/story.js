@@ -17,6 +17,7 @@ export const materials = [
   { id: 'breakerCore', name: 'ブレーカーコア', color: 'cyan' },
   { id: 'rustCore', name: 'ラストコア', color: 'heat' },
   { id: 'bufferCore', name: 'バッファーコア', color: 'ice' },
+  { id: 'rainCore', name: 'レインコア', color: 'green' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -233,6 +234,22 @@ export const fragments = [
   {
     id: 'bt-core', area: 'neutral', source: 'boss', title: 'バッファータンクのコアログ',
     text: '流入：酸。投入：アルカリ。流入：熱。投入：冷却。流入：不明。投入：自機。——中和は、まだ完了していない。',
+  },
+  {
+    id: 'rm-01', area: 'raintower', source: 'vault', title: '降雨制御機 RM 設計思想',
+    text: '工場の排気で汚れた空を、雨で洗い流す。降雨制御機 RM は、空が汚れている間、雨を降らせる。空がきれいになれば、止まる。',
+  },
+  {
+    id: 'rm-02', area: 'raintower', source: 'vault', title: '中和設備 停止の連絡',
+    text: '中和プラントが止まった。これ以降、雨は中和されない。制御塔へ、降雨の中止を指示すること。——指示は、届かなかった。通信線が、先に溶けた。',
+  },
+  {
+    id: 'rm-memo', area: 'raintower', source: 'vault', title: '管理人の日記',
+    text: '雨が設備を錆びさせる。錆びた設備が、煙を出す。煙で空が汚れる。空が汚れているから、あれは雨を降らせる。誰も悪くないのに、止まらない。',
+  },
+  {
+    id: 'rm-core', area: 'raintower', source: 'boss', title: 'レインメーカーのコアログ',
+    text: '観測：大気汚染 あり。処置：降雨。観測：大気汚染 あり。処置：降雨。——空を、きれいにする。',
   },
   // ---- マップ3「建設区」 ----
   {

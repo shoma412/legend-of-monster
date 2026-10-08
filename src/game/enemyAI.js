@@ -6,7 +6,7 @@ import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSeg
 import { updateBoss } from './boss.js';
 import { afflictPlayer, damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
 import { breakLamp, flashAt, isVisible, litByLamp } from './darkness.js';
-import { nearestRoof, rainComing, underRoof } from './acidRain.js';
+import { isRaining, nearestRoof, rainComing, rainHit, rainEnv, underRoof } from './acidRain.js';
 import { updateEliteTrait } from './elite.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
@@ -116,6 +116,48 @@ const BEHAVIORS = {
       other.corrodeT = 0;
       other.burnT = 0;
       other.slowT = 0;
+    }
+  },
+
+  // 雨雲：ゆっくりプレイヤーを追い、自分の真下にだけ、いつも雨を降らせる（屋根の下なら当たらない）
+  raincloud(world, e, dt, d) {
+    const p = world.player;
+    if (d.dist > 6) {
+      e.x += (d.dx / d.dist) * e.def.speed * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * dt;
+    }
+    const env = rainEnv(world);
+    if (!env) return;
+    e.rainAcc = (e.rainAcc ?? 0) + dt;
+    if (e.rainAcc < env.damage.tick) return;
+    e.rainAcc -= env.damage.tick;
+    if (d.dist <= e.def.cloud.radius + p.r && !underRoof(world, p.x, p.y)) rainHit(world);
+  },
+
+  // 導雷針：動かない。雨が降っている間だけ、照準線を出して電撃を撃つ
+  stormcaller(world, e, dt, d) {
+    const snipe = e.def.snipe;
+    const p = world.player;
+    if (e.state === 'aim') {
+      e.t -= dt;
+      if (e.t > snipe.lock) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        const x2 = e.x + Math.cos(e.angle) * snipe.range;
+        const y2 = e.y + Math.sin(e.angle) * snipe.range;
+        if (distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + snipe.width / 2) hurtPlayer(world, e.def.damage);
+        sfx(world, 'zap');
+        world.fx.beams.push({ x1: e.x, y1: e.y, x2, y2, life: 0.18, max: 0.18, color: e.color, width: snipe.width });
+        e.state = 'chase';
+        e.cd = snipe.interval;
+      }
+      return;
+    }
+    e.state = 'chase';
+    e.active = isRaining(world); // 絵で、動いているかどうかを見分ける
+    if (e.active && e.cd <= 0) {
+      e.state = 'aim';
+      e.t = snipe.aim;
+      e.angle = Math.atan2(d.dy, d.dx);
     }
   },
 

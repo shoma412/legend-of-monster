@@ -126,7 +126,8 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
   const result = calcDamage({
     base: options.heavy ? base * (1 + stats.heavyBonus) : base,
     // 種族「中和」：持っている属性の種類ごとに、攻撃力が上がる
-    attackMul: statWith(world, 'attackMul', enemy) + comboMul + surgeMul + (stats.elementPower ?? 0) * stats.elements.length,
+    //   種族「雨」の増水：この部屋で倒した数ごとに、攻撃力が上がる
+    attackMul: statWith(world, 'attackMul', enemy) + comboMul + surgeMul + (stats.elementPower ?? 0) * stats.elements.length + (stats.floodPower ?? 0) * Math.min(STATUS.flood.cap, world.kills),
     critChance: forceCrit ? 1 : statWith(world, 'critChance', enemy),
     critMul: stats.critMul,
     elements: stats.elements,

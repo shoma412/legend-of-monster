@@ -469,4 +469,37 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'raintower',
+    code: 'ACID 03',
+    name: '降雨制御塔',
+    theme: 'raintower',
+    bgm: 'raintower',
+    bossBgm: 'bossRaintower',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'raincloud', weight: 2 },
+      { id: 'conductor', weight: 2 },
+      { id: 'shelterer', weight: 2 },
+      { id: 'rusthound', weight: 3 },
+      { id: 'neutralizer', weight: 1 },
+      { id: 'spitter', weight: 2 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['spitter', 'shelterer', 'grunt'],
+    boss: 'rainmaker',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ この雨を降らせているのは、あれだ。',
+        '@noise＞ 屋根を崩してくる。雨雲は、真下に雷を落とす。屋根を当てにするな。電撃が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……雨が、上がった。',
+        '@noise＞ 溶解区は、これで全部だ。帰ってこい。',
+      ],
+    },
+  },
 ];

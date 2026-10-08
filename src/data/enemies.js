@@ -24,6 +24,8 @@
 //   decoy     : 自分では動かない（ボスの「残像」が動かす）
 //   shelterer : 近づいて殴る（brawler と同じ）。雨の予告が出ると、いちばん近い屋根の下へ急いで入り、雨の間はそこから出ない
 //   cleanser  : 離れた所にいて、攻撃はしない。一定の間隔で、まわりの敵の腐食・燃焼・減速を消す
+//   raincloud : ゆっくりプレイヤーを追う雨雲。自分の真下にだけ、いつも雨を降らせる（屋根の下なら当たらない）
+//   stormcaller : 動かない。雨が降っている間だけ、照準線を出して電撃を撃つ
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
@@ -670,5 +672,41 @@ export const enemies = [
     dropChance: 0.24,
     keepDistance: { min: 220, max: 340 },
     shot: { interval: 2.2, aim: 0.5, speed: 250, radius: 6, life: 3, dot: 'corrode' },
+  },
+  // ---- ここからマップ5 エリア3「降雨制御塔」 ----
+  {
+    // 雨雲：ゆっくりプレイヤーを追い、自分の真下（cloud.radius）にだけ、いつも雨を降らせる。屋根の下なら当たらない
+    id: 'raincloud',
+    name: '雨雲',
+    behavior: 'raincloud',
+    shape: 'cloud',
+    color: 'green',
+    radius: 16,
+    hp: 46,
+    speed: 74,
+    damage: 0,
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.2,
+    cloud: { radius: 78 },
+  },
+  {
+    // 導雷針：動かない。雨が降っている間だけ、照準線を出して電撃を撃つ（屋根の下にいても当たる）
+    id: 'conductor',
+    name: '導雷針',
+    behavior: 'stormcaller',
+    shape: 'diamond',
+    color: 'shock',
+    radius: 13,
+    hp: 60,
+    speed: 0,
+    damage: 26,
+    xp: 13,
+    credits: 5,
+    cost: 3,
+    dropChance: 0.24,
+    knockbackResist: 1,
+    snipe: { interval: 1.5, aim: 0.9, lock: 0.3, range: 1100, width: 8 },
   },
 ];

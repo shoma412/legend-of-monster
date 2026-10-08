@@ -24,6 +24,8 @@ const CONDITIONS = {
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
   recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
+  // 電撃属性を持っている
+  hasShock: (world) => world.player.stats.elements.includes('shock'),
   // 属性を1つも持っていない
   noElement: (world) => world.player.stats.elements.length === 0,
   // 状態異常（燃焼・減速・凍結・腐食）が付いている敵
@@ -227,6 +229,26 @@ export function hasAction(name) {
 
 export function hasCondition(name) {
   return name in CONDITIONS;
+}
+
+// 恵みの雷（種族「雨」）：決まった間隔で、近くの敵1体に落雷
+export function updateSkyBolt(world, dt) {
+  const p = world.player;
+  const damage = p.stats.skyBolt;
+  if (!(damage > 0)) return;
+  p.skyBoltT = (p.skyBoltT ?? STATUS.skyBolt.interval) - dt;
+  if (p.skyBoltT > 0) return;
+  const target = enemiesNear(world, p.x, p.y, STATUS.skyBolt.range)
+    .filter((e) => !e.hidden && !e.def.prop && isVisible(world, e.x, e.y, e.r))
+    .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+  if (!target) {
+    p.skyBoltT = 0.3; // 敵が近くに来たら、すぐ落ちる
+    return;
+  }
+  p.skyBoltT = STATUS.skyBolt.interval;
+  world.fx.bolts.push({ x1: target.x, y1: target.y - 220, x2: target.x, y2: target.y, life: 0.2, max: 0.2 });
+  ring(world, target.x, target.y, 26, ELEMENT_COLORS.shock);
+  effectDamage(world, target, damage, 'shock');
 }
 
 // ダメージ床など、その場に残る効果

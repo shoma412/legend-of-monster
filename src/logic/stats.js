@@ -197,6 +197,12 @@ export function computeStats(build) {
     elementPower: 0,
     weakBonus: 0,
     debuffResist: 0,
+    // 種族「雨」：酸の雨のダメージを受けないか（0 より大きければ）、恵みの雷の1発のダメージ（0 なら落ちない）、
+    //   立ち止まっている間に1秒あたり戻る HP、敵を1体倒すごとに上がる攻撃力（その部屋にいる間）
+    rainProof: 0,
+    skyBolt: 0,
+    standRegen: 0,
+    floodPower: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

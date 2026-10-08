@@ -228,6 +228,23 @@ const SHAPES = {
     neonStroke(g, color, 2, () => g.strokeRect(e.x - s, e.y - s, s * 2, s * 2));
     g.lineStyle(1.5, color, 0.6).lineBetween(e.x - s, e.y - s, e.x + s, e.y + s).lineBetween(e.x + s, e.y - s, e.x - s, e.y + s);
   },
+  // 雨雲：もこもこした雲と、真下の雨の範囲
+  cloud(g, e, color, world) {
+    const radius = e.def.cloud?.radius ?? e.r * 3;
+    g.fillStyle(color, 0.07).fillCircle(e.x, e.y, radius);
+    g.lineStyle(1.5, color, 0.5).strokeCircle(e.x, e.y, radius);
+    for (let i = 0; i < 10; i++) {
+      const a = i * 2.4 + world.time * 0.3;
+      const rr = radius * (0.25 + ((i * 37) % 60) / 100);
+      const x = e.x + Math.cos(a) * rr;
+      const y = e.y + Math.sin(a) * rr + ((world.time * 60 + i * 13) % 14);
+      g.lineStyle(1.2, color, 0.5).lineBetween(x, y, x - 3, y + 9);
+    }
+    for (const [dx, dy, s] of [[-0.7, 0.1, 0.75], [0, -0.25, 1], [0.7, 0.1, 0.75]]) {
+      g.fillStyle(BODY_FILL, 0.95).fillCircle(e.x + dx * e.r, e.y + dy * e.r, e.r * s);
+      neonStroke(g, color, 2, () => g.strokeCircle(e.x + dx * e.r, e.y + dy * e.r, e.r * s));
+    }
+  },
   // 見張り灯：台座と、光を出している向きのレンズ
   lamp(g, e, color) {
     const pts = polygon(e.x, e.y, e.r, 8, Math.PI / 8);
@@ -288,6 +305,10 @@ function drawTelegraph(g, e, world) {
     g.lineStyle(1.5, k > 0 ? red : hex(e.color), 0.55 + 0.4 * k);
     for (const side of [-1, 1]) g.lineBetween(e.x, e.y, e.x + Math.cos(e.cone.angle + side * half) * cone.range, e.y + Math.sin(e.cone.angle + side * half) * cone.range);
   }
+  if (e.def.behavior === 'stormcaller' && e.active && e.state !== 'aim') {
+    // 導雷針：雨の間だけ動く。動いている間は、先に火花
+    g.lineStyle(2, hex(e.color), 0.5 + 0.5 * Math.abs(Math.sin(world.time * 14))).strokeCircle(e.x, e.y, e.r + 6);
+  }
   if (e.def.behavior === 'cleanser') {
     // 中和機：打ち消す範囲（薄い輪）と、打ち消した瞬間に広がる輪
     const c = e.def.cleanse;
@@ -310,7 +331,7 @@ function drawTelegraph(g, e, world) {
     g.lineStyle(3, hex(COLORS.ink), 0.5 + 0.5 * k).strokeCircle(e.x, e.y, e.r + (flash.radius - e.r) * (1 - k));
     g.fillStyle(hex(COLORS.ink), 0.2 + 0.6 * k).fillCircle(e.x, e.y, e.r * 0.6);
   }
-  if ((e.def.behavior === 'sniper' || e.def.behavior === 'watcher') && e.state === 'aim') {
+  if ((e.def.behavior === 'sniper' || e.def.behavior === 'watcher' || e.def.behavior === 'stormcaller') && e.state === 'aim') {
     // スナイパーの照準線。向きが固定されると太く明るくなる
     const snipe = e.def.snipe;
     const locked = e.t <= snipe.lock;
@@ -1023,6 +1044,27 @@ BOSS_TELEGRAPHS.saturate = (g, b, act) => {
   g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
 };
 
+// 瓦落とし：崩される屋根に、赤い枠
+BOSS_TELEGRAPHS.unroof = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const red = hex(COLORS.red);
+  for (const r of act.targets) {
+    g.fillStyle(red, 0.1 + 0.2 * k).fillRect(r.x - r.w / 2, r.y - r.h / 2, r.w, r.h);
+    g.lineStyle(3, red, 0.6 + 0.4 * Math.abs(Math.sin(k * 20))).strokeRect(r.x - r.w / 2, r.y - r.h / 2, r.w, r.h);
+    g.lineStyle(2, red, 0.3 + 0.5 * k).lineBetween(b.x, b.y, r.x, r.y);
+  }
+  g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+
+// 雨雲：呼ぶ前の予告
+BOSS_TELEGRAPHS.stormcloud = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+  g.lineStyle(2, hex(b.color), 0.7).strokeCircle(b.x, b.y, b.r + 40 * k);
+};
+
 // 溶解：穴が開く場所の予告
 BOSS_TELEGRAPHS.melt = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1465,6 +1507,37 @@ SHAPES.moth = (g, b, color, world) => {
   }
 };
 
+// レインメーカー：六角の塔と、まわりに突き出た散水のノズル（ゆっくり回る）。上に、雨つぶの印
+SHAPES.rainmaker = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const spin = world.time * (stunned ? 0 : 0.6);
+  // ノズル（6本）
+  for (let i = 0; i < 6; i++) {
+    const a = spin + (i * Math.PI) / 3;
+    const x1 = b.x + Math.cos(a) * r * 0.8;
+    const y1 = b.y + Math.sin(a) * r * 0.8;
+    const x2 = b.x + Math.cos(a) * r * 1.3;
+    const y2 = b.y + Math.sin(a) * r * 1.3;
+    neonStroke(g, color, 3, () => g.lineBetween(x1, y1, x2, y2));
+    g.fillStyle(color, 0.9).fillCircle(x2, y2, 4);
+  }
+  const body = polygon(b.x, b.y, r, 6, Math.PI / 6);
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(body, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(body, true, true));
+  const inner = polygon(b.x, b.y, r * 0.6, 6, Math.PI / 6 - spin);
+  g.lineStyle(2, color, 0.55).strokePoints(inner, true, true);
+  // 真ん中の計器（雨つぶの形）
+  g.fillStyle(color, stunned ? 0.2 : 0.5 + 0.3 * Math.sin(world.time * 4)).fillCircle(b.x, b.y + 3, r * 0.2);
+  g.fillStyle(color, stunned ? 0.2 : 0.8).fillTriangle(b.x - r * 0.16, b.y, b.x + r * 0.16, b.y, b.x, b.y - r * 0.3);
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.62, side * r * 0.2);
+      g.fillStyle(hex(COLORS.red), 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+};
+
 // バッファータンク：丸いタンク。体の色が、今の弱点。色が変わる前には、次の色の輪が外に出る
 SHAPES.tank = (g, b, color, world) => {
   const r = b.r;
@@ -1626,7 +1699,24 @@ export function drawBossTelegraph(g, world) {
 
 export function drawHazards(g, world) {
   for (const h of world.hazards) {
-    if (h.type === 'trail') {
+    if (h.type === 'cloud') {
+      // 雨雲：真下の雨の範囲（輪と雨すじ）と、雲。消える前は薄くなる
+      const c = hex(h.color);
+      const fade = Math.min(1, h.life / 0.8, (h.max - h.life) / 0.4 + 0.2);
+      g.fillStyle(c, 0.08 * fade).fillCircle(h.x, h.y, h.r);
+      g.lineStyle(2, c, 0.6 * fade).strokeCircle(h.x, h.y, h.r);
+      for (let i = 0; i < 12; i++) {
+        const a = i * 2.4 + world.time * 0.3;
+        const rr = h.r * (0.2 + ((i * 37) % 70) / 100);
+        const x = h.x + Math.cos(a) * rr;
+        const y = h.y + Math.sin(a) * rr + ((world.time * 70 + i * 13) % 16);
+        g.lineStyle(1.3, c, 0.55 * fade).lineBetween(x, y, x - 3, y + 10);
+      }
+      for (const [dx, dy, s] of [[-22, 4, 16], [0, -8, 22], [22, 4, 16]]) {
+        g.fillStyle(0x0a0814, 0.92 * fade).fillCircle(h.x + dx, h.y + dy, s);
+        g.lineStyle(2, c, 0.9 * fade).strokeCircle(h.x + dx, h.y + dy, s);
+      }
+    } else if (h.type === 'trail') {
       // 影踏み：これから攻撃される道すじ（覚えている道）を、薄い点で示す
       const c = hex(h.color);
       for (let i = 0; i < h.path.length; i += 6) g.fillStyle(c, 0.28).fillCircle(h.path[i].x, h.path[i].y, 3);

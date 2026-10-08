@@ -165,6 +165,9 @@ export const STATUS = {
   bigHit: { threshold: 0.2 },
   kitPower: { duration: 5 },
   killDash: { cooldown: 3 },
+  // 種族「雨」：恵みの雷（interval 秒ごとに、range px 以内の敵1体に落雷）、増水（敵を倒すたびに攻撃力が上がる。cap 体ぶんまで）
+  skyBolt: { interval: 4, range: 320 },
+  flood: { cap: 10 },
   // label は、付いた瞬間に画面に出す文字（状態が変わったときの文字は、英語にそろえる）
   dots: {
     burn: { name: '炎上', label: 'Burn', color: 'heat', damage: 5, tick: 0.5, duration: 3 },

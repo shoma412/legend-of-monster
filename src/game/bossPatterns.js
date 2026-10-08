@@ -9,7 +9,7 @@ import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSeg
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
 import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, startBlackout } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
-import { startRain } from './acidRain.js';
+import { breakRoof, rainHit, startRain, underRoof } from './acidRain.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
@@ -1172,6 +1172,72 @@ PATTERNS.scales = {
   },
 };
 
+// 雨雲を1つ呼ぶ（レインメーカー）。プレイヤーを追い、真下に雨を降らせ、決まった間隔で、雲の真下に落雷する
+function spawnCloud(world, b, def, index = 0) {
+  const a = world.rng() * Math.PI * 2;
+  world.hazards.push({
+    type: 'cloud', owner: b, x: b.x + Math.cos(a) * (b.r + 40 + index * 30), y: b.y + Math.sin(a) * (b.r + 40 + index * 30), r: def.radius, speed: def.speed, life: def.life, max: def.life,
+    acc: 0, strikeT: def.strike.every * (0.6 + 0.4 * index), strike: def.strike, color: b.color,
+  });
+}
+
+// 瓦落とし（レインメーカー）：予告のあと、屋根を count 個崩す（breakTime 秒。プレイヤーに近い屋根から）。崩れた瞬間に下にいると、がれきでダメージ。
+//   all: true なら、全部崩す（大技）。rain を書くと雨が降り、clouds を書くと雨雲も呼ぶ
+PATTERNS.unroof = {
+  start(world, b, act) {
+    const def = act.def;
+    const p = world.player;
+    act.phase = 'telegraph';
+    act.t = def.telegraph;
+    const intact = (world.roofs ?? []).filter((r) => !(r.broken > 0)).sort((r1, r2) => Math.hypot(r1.x - p.x, r1.y - p.y) - Math.hypot(r2.x - p.x, r2.y - p.y));
+    act.targets = def.all ? intact : intact.slice(0, def.count);
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const roof of act.targets) {
+          if (Math.abs(p.x - roof.x) <= roof.w / 2 + p.r && Math.abs(p.y - roof.y) <= roof.h / 2 + p.r) hurtPlayer(world, def.damage);
+          breakRoof(world, roof, def.breakTime);
+        }
+        if (act.targets.length > 0) addShake(world, FEEL.shake.charged);
+        if (def.rain) startRain(world, def.rain);
+        if (def.clouds) for (let i = 0; i < def.clouds.count; i++) spawnCloud(world, b, def.clouds, i);
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 雨雲（レインメーカー）：雨雲を count 個呼ぶ
+PATTERNS.stormcloud = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const h of world.hazards) if (h.type === 'cloud' && h.owner === b) h.dead = true;
+        for (let i = 0; i < act.def.count; i++) spawnCloud(world, b, act.def, i);
+        sfx(world, 'bossCharge');
+        act.phase = 'recover';
+        act.t = act.def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 放出（バッファータンク）：今の色に合わせた攻撃を出す。中身は、属性ごとに、ほかの部品の数値で書く（byElement）。
 //   「飽和」のあとは、今の色ではなく、決められた順番の色（b.emitQueue）で出す
 PATTERNS.emit = {
@@ -1575,7 +1641,32 @@ PATTERNS.flare = {
 export function updateHazards(world, dt) {
   const p = world.player;
   for (const h of world.hazards) {
-    if (h.type === 'trail' || h.type === 'echo') {
+    if (h.type === 'cloud') {
+      // 雨雲：プレイヤーを追い、真下に雨を降らせる（屋根の下なら当たらない）。決まった間隔で、雲の真下に落雷（屋根でも防げない）
+      if (h.dead || !h.owner || h.owner.dead) {
+        h.dead = true;
+        continue;
+      }
+      const dx = p.x - h.x;
+      const dy = p.y - h.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 4) {
+        h.x += (dx / dist) * h.speed * dt;
+        h.y += (dy / dist) * h.speed * dt;
+      }
+      h.life -= dt;
+      h.acc += dt;
+      if (h.acc >= 0.6) {
+        h.acc -= 0.6;
+        if (dist <= h.r + p.r && !underRoof(world, p.x, p.y)) rainHit(world);
+      }
+      h.strikeT -= dt;
+      if (h.strikeT <= 0) {
+        h.strikeT = h.strike.every;
+        world.hazards.push({ type: 'mark', x: h.x, y: h.y, r: h.strike.radius, t: h.strike.delay, max: h.strike.delay, damage: h.strike.damage, enemyDamage: 0, color: '#fff36b' });
+      }
+      if (h.life <= 0) h.dead = true;
+    } else if (h.type === 'trail' || h.type === 'echo') {
       // 影：プレイヤーの通った道を覚えておく（path は、古い順）
       if (!h.owner || h.owner.dead) {
         h.dead = true;

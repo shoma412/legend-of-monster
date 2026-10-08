@@ -793,6 +793,54 @@ export const bosses = [
       },
     ],
   },
+  {
+    id: 'rainmaker',
+    name: 'レインメーカー',
+    alias: '雨降らし', // 登場時に出す異名
+    shape: 'rainmaker',
+    color: 'green',
+    weakness: 'shock',
+    material: 'rainCore',
+    radius: 44,
+    hp: 18000,
+    speed: 60,
+    contactDamage: 52,
+    xp: 800,
+    credits: 400,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「瓦落とし」：屋根を count 個崩す（breakTime 秒のあいだ使えない）。崩れた瞬間に下にいると、damage
+      unroof: { pattern: 'unroof', telegraph: 1.2, count: 1, breakTime: 20, damage: 44, recover: 0.6 },
+      unroofHard: { pattern: 'unroof', telegraph: 1.1, count: 2, breakTime: 20, damage: 44, recover: 0.6 },
+      // 固有「雨雲」：プレイヤーを追う雨雲を呼ぶ。真下に雨が降り、strike.every 秒ごとに、雲の真下に落雷（delay は予告の時間）
+      cloud: { pattern: 'stormcloud', telegraph: 0.8, count: 1, radius: 84, speed: 82, life: 10, strike: { every: 2.5, delay: 0.85, radius: 56, damage: 46 }, recover: 0.5 },
+      cloudHard: { pattern: 'stormcloud', telegraph: 0.7, count: 2, radius: 84, speed: 88, life: 11, strike: { every: 2.3, delay: 0.8, radius: 56, damage: 46 }, recover: 0.5 },
+      // 斉射：プレイヤーへ扇形に弾を撃つ
+      spray: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 62, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
+      // 放電：足元からの衝撃波の輪
+      surge: { pattern: 'shockwave', telegraph: 0.8, damage: 38, ringSpeed: 330, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 配水管：部屋を横切る線が、順に光る
+      mains: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 4, spacing: 105, width: 32, delay: 0.8, stagger: 0.22, damage: 46, recover: 0.7, reach: 'far' },
+      mainsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 100, width: 30, delay: 0.75, stagger: 0.18, damage: 46, recover: 0.6 },
+      // 大技「豪雨」：すべての屋根を崩し、雨を rain 秒降らせ、雨雲を2つ呼ぶ
+      downpour: {
+        pattern: 'unroof', telegraph: 1.8, all: true, breakTime: 14, damage: 46, rain: 12,
+        clouds: { count: 2, radius: 84, speed: 86, life: 12, strike: { every: 2.4, delay: 0.85, radius: 56, damage: 46 } }, recover: 1.4,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'spray' }],
+    ultimate: { move: 'downpour', announce: '豪雨' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['unroof', 'cloud', 'spray', 'surge', 'mains'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['unroofHard', 'cloudHard', 'spray', 'surge', 'mainsHard'],
+        combos: [{ moves: ['cloudHard', 'mainsHard'] }, { moves: ['surge', 'spray'] }],
+        announce: '降雨量、最大',
+      },
+    ],
+  },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
   {
     id: 'nocturne',

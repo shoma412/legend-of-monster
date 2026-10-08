@@ -198,6 +198,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-rainmaker',
+    trigger: { at: 'bossIntro', boss: 'rainmaker' },
+    lines: [
+      { who: 'jin', text: '……こいつが、この雨を。' },
+      { who: 'noise', text: '降雨の制御機だ。空が汚れている間、雨を降らせる。その雨が設備を錆びさせ、煙を出させ、空を汚している。' },
+      { who: 'jin', mood: 'angry', text: '自分で汚して、自分で洗ってるのか。……止めてやる。' },
+    ],
+  },
+  {
+    id: 'return-rainmaker',
+    trigger: { at: 'hideout', bossKilled: 'rainmaker' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……溶解区、晴れたって。何年ぶりだろうね。' },
+      { who: 'jin', text: '晴れても、錆びたものは戻らない。' },
+      { who: 'noise', text: 'だが、これ以上は錆びない。それで、十分だ。……ありがとう。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -322,6 +340,7 @@ export const talks = {
     { after: 'breaker', lines: [{ who: 'hal', text: '遮断器のレバー、すごく重かった。簡単に入れ直せないように、できてるんだね。' }] },
     { after: 'rusteater', lines: [{ who: 'hal', text: '解体機の歯、溶けた鉄を何度も継ぎ足してあった。自分を直すために、自分を食べてたんだね。' }] },
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
+    { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -359,7 +378,8 @@ export const talks = {
     { after: 'sentinel', lines: [{ who: 'noise', text: '変電所の光が止まった。残りは、主幹制御室だ。この区の電気を、最初に止めた者がいる。' }] },
     { after: 'breaker', lines: [{ who: 'noise', text: '停電区に、灯りが戻った。次は溶解区だ。酸の雨が降る。……あそこへ入るには、停電区の通行証が要る。' }] },
     { after: 'rusteater', lines: [{ who: 'noise', text: '廃液路が静かになった。次は中和プラントだ。色の変わる槽がいる。色を、よく見ろ。' }] },
-    { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。この雨を降らせている者がいる。屋根を、当てにするな。' }] },
+    { after: 'rainmaker', lines: [{ who: 'noise', text: '溶解区の雨が、上がった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

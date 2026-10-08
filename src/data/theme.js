@@ -44,6 +44,7 @@ export const AREA_THEMES = {
   control: { floor: 0x05080a, grid: 0x2a7a8a, wall: 0x0a1418, edge: '#2ef2ff' },
   acid: { floor: 0x070b06, grid: 0x5a7a2a, wall: 0x10160c, edge: '#b6ff3a' },
   neutralizer: { floor: 0x07090c, grid: 0x4a6a8a, wall: 0x10151c, edge: '#8fd8ff' },
+  raintower: { floor: 0x08090a, grid: 0x6a7a4a, wall: 0x12140f, edge: '#fff36b' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

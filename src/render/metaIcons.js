@@ -133,6 +133,19 @@ export const MATERIAL_ICONS = {
     g.strokePoints([{ x: x - s * 0.14, y: y - s * 0.55 }, { x: x - s * 0.14, y: y - s * 0.15 }, { x: x - s * 0.48, y: y + s * 0.45 }, { x: x + s * 0.48, y: y + s * 0.45 }, { x: x + s * 0.14, y: y - s * 0.15 }, { x: x + s * 0.14, y: y - s * 0.55 }], false, false);
     g.lineBetween(x - s * 0.32, y + s * 0.18, x + s * 0.32, y + s * 0.18);
   },
+  // レインコア：雲と、雨つぶ
+  rainCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    g.beginPath();
+    g.arc(x - s * 0.2, y - s * 0.15, s * 0.24, Math.PI, Math.PI * 2, false);
+    g.strokePath();
+    g.beginPath();
+    g.arc(x + s * 0.18, y - s * 0.2, s * 0.3, Math.PI, Math.PI * 2, false);
+    g.strokePath();
+    g.lineBetween(x - s * 0.45, y - s * 0.15, x + s * 0.5, y - s * 0.15);
+    for (const dx of [-0.25, 0.05, 0.35]) g.lineBetween(x + dx * s, y + s * 0.05, x + (dx - 0.1) * s, y + s * 0.45);
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

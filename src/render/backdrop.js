@@ -578,6 +578,35 @@ const THEMES = {
       blob(g, x, y, 10 + rng() * 16, 3 + rng() * 4, pipes[Math.floor(rng() * pipes.length)], 0.1);
     }
   },
+  // 降雨制御塔：濡れた鉄板の床、散水のノズル、アンテナ、警告灯
+  raintower(g, rng, a) {
+    speckles(g, rng, a, 240, [0x0c0d0e, 0x111314, 0x08090a, 0x181b1c], 0.7);
+    // 鉄板の継ぎ目（大きなマス目）と、鋲
+    for (let x = a.left + 90; x < a.right - 20; x += 150) block(g, x, a.top + 10, PX / 2, a.h - 20, 0x04050a, 0.85);
+    for (let y = a.top + 90; y < a.bottom - 20; y += 130) block(g, a.left + 10, y, a.w - 20, PX / 2, 0x04050a, 0.85);
+    for (let x = a.left + 90; x < a.right - 20; x += 150) {
+      for (let y = a.top + 30; y < a.bottom - 20; y += 26) block(g, x + 6, y, PX / 2, PX / 2, 0x2a2e30, 0.8);
+    }
+    // 濡れた面の反射（横に長い、鈍い光）
+    for (let i = 0; i < 9; i++) {
+      const x = a.left + 30 + rng() * (a.w - 160);
+      const y = a.top + 50 + rng() * (a.h - 100);
+      block(g, x, y, 40 + rng() * 80, PX / 2, 0x6a7a4a, 0.18);
+    }
+    // 散水のノズル（上の壁ぎわに並ぶ。先から、しずく）
+    for (let x = a.left + 50; x < a.right - 30; x += 84) {
+      block(g, x, a.top + 8, PX * 2, 14, 0x20242a, 0.95);
+      block(g, x - 4, a.top + 20, PX * 4, PX, 0x343a42, 0.95);
+      if (rng() < 0.5) block(g, x + 2, a.top + 28 + rng() * 10, PX / 2, PX, 0xb6ff3a, 0.35);
+    }
+    // アンテナ（下の壁ぎわ。柱と、横棒、先の警告灯）
+    for (let x = a.left + 80; x < a.right - 60; x += 210) {
+      const y = a.bottom - 52;
+      block(g, x, y, PX / 2, 44, 0x2a2e34, 0.95);
+      for (const dy of [6, 16, 26]) block(g, x - 10 + dy / 3, y + dy, 22 - (dy / 3) * 2, PX / 2, 0x3a4048, 0.9);
+      block(g, x - 2, y - 4, PX, PX, rng() < 0.6 ? 0xff4d5e : 0x3a1a20, 0.9);
+    }
+  },
   yard(g, rng, a) {
     speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
     // タイヤの跡（斜めに2本ずつ）
