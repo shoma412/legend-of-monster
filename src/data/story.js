@@ -13,6 +13,7 @@ export const materials = [
   { id: 'spiderCore', name: 'スパイダーコア', color: 'ice' },
   { id: 'titanCore', name: 'タイタンコア', color: 'heat' },
   { id: 'mothCore', name: 'モスコア', color: 'magenta' },
+  { id: 'lensCore', name: 'レンズコア', color: 'amber' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）
@@ -161,6 +162,22 @@ export const fragments = [
   {
     id: 'le-core', area: 'darkstreet', source: 'boss', title: 'ランプイーターのコアログ',
     text: '点検：消灯。交換：在庫なし。回収：完了。点検：消灯。交換：在庫なし。回収：完了。——灯りを、探している。',
+  },
+  {
+    id: 'ss-01', area: 'substation', source: 'vault', title: '変電所 警備規程',
+    text: '第四変電所の警備機 SS は、構内に入った者を照らし、身分を確かめる。確かめられない者は、退去させる。照らすことをやめてはならない。',
+  },
+  {
+    id: 'ss-02', area: 'substation', source: 'vault', title: '送電停止後の点検記録',
+    text: '送電は止まったが、警備機は電池で動いている。構内に、確かめるべき者はもういない。それでも灯りは回り続けている。止める手順は、送電がある前提で書かれていた。',
+  },
+  {
+    id: 'ss-memo', area: 'substation', source: 'vault', title: '作業員の走り書き',
+    text: '光の中に立つな。あれは、照らした相手しか見えていない。暗い所にいれば、すぐ横を通っても気づかない。光ったら、顔を背けろ。',
+  },
+  {
+    id: 'ss-core', area: 'substation', source: 'boss', title: 'サーチライト・センチネルのコアログ',
+    text: '照合：該当なし。照合：該当なし。照合：該当なし。——登録された者は、誰も来ない。照らし続ける。',
   },
   // ---- マップ3「建設区」 ----
   {

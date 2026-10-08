@@ -39,6 +39,7 @@ export const AREA_THEMES = {
   bridge: { floor: 0x0a0d12, grid: 0x7f9ab8, wall: 0x161c26, edge: '#8fd8ff' },
   frame: { floor: 0x100c0a, grid: 0xd07a3a, wall: 0x241812, edge: '#ff7a3d' },
   night: { floor: 0x07070f, grid: 0x4a4a7a, wall: 0x101020, edge: '#b8a6ff' },
+  substation: { floor: 0x06080c, grid: 0x3a5a7a, wall: 0x0e141c, edge: '#fff36b' },
   hideout: { floor: 0x0d0b16, grid: 0x785aff, wall: 0x16122a, edge: '#2ef2ff' },
 };
 

@@ -82,6 +82,13 @@ export const MATERIAL_ICONS = {
     for (const side of [-1, 1]) g.strokePoints([{ x, y: y - s * 0.1 }, { x: x + side * s * 0.6, y: y - s * 0.45 }, { x: x + side * s * 0.5, y: y + s * 0.35 }, { x, y: y + s * 0.1 }], false, false);
     g.lineBetween(x, y - s * 0.45, x, y + s * 0.45);
   },
+  // レンズコア：レンズと、光の筋
+  lensCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1).strokeCircle(x, y, s * 0.42);
+    g.fillStyle(c, 1).fillCircle(x, y, s * 0.14);
+    for (const a of [-0.5, 0.5]) g.lineBetween(x + Math.cos(a - Math.PI / 2) * s * 0.42, y + Math.sin(a - Math.PI / 2) * s * 0.42, x + Math.cos(a - Math.PI / 2) * s * 0.8, y + Math.sin(a - Math.PI / 2) * s * 0.8);
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

@@ -5,7 +5,7 @@ import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { updateBoss } from './boss.js';
 import { damageEnemy, enemySpeedFactor, hurtPlayer, slowPlayer } from './combat.js';
-import { breakLamp, litByLamp } from './darkness.js';
+import { breakLamp, flashAt, isVisible, litByLamp } from './darkness.js';
 import { updateEliteTrait } from './elite.js';
 import { addShake, burst, ring, sfx } from './fx.js';
 
@@ -36,6 +36,7 @@ export function createEnemy(def, x, y, spawnT, rng, scale = 1, hpScale = 1) {
     angle: 0, // 構えている向き
     facing: Math.PI, // 盾を向けている方向（シールド兵）
     seed: rng() * 10,
+    litT: 0, // 照らされている残り時間（インプラント「照準灯」）
     dead: false,
   };
 }
@@ -74,6 +75,69 @@ const BEHAVIORS = {
     } else {
       breakLamp(world, target, e.def.breakTime);
       e.swingT = 0.15;
+    }
+  },
+
+  // 見張り灯：動かない。光の扇をゆっくり回し、扇の中にプレイヤーが居続けると、照準線を出して狙い撃つ
+  watcher(world, e, dt, d) {
+    const cone = e.def.cone;
+    const snipe = e.def.snipe;
+    const p = world.player;
+    if (e.coneAngle == null) {
+      e.coneAngle = e.seed * 0.63;
+      e.spinDir = e.seed >= 5 ? 1 : -1;
+      e.lock = 0;
+    }
+    const arc = cone.arc * DEG;
+    if (e.state === 'chase') {
+      e.coneAngle += cone.spin * e.spinDir * dt;
+      const inside = d.dist <= cone.range + p.r && Math.abs(angleDiff(Math.atan2(d.dy, d.dx), e.coneAngle)) <= arc / 2;
+      e.lock = inside ? e.lock + dt : Math.max(0, e.lock - cone.decay * dt);
+      if (e.lock >= cone.need && e.cd <= 0) {
+        e.lock = 0;
+        e.state = 'aim';
+        e.t = snipe.aim;
+        e.angle = Math.atan2(d.dy, d.dx);
+        sfx(world, 'select');
+      }
+    } else if (e.state === 'aim') {
+      e.t -= dt;
+      if (e.t > snipe.lock) e.angle = Math.atan2(d.dy, d.dx);
+      if (e.t <= 0) {
+        const x2 = e.x + Math.cos(e.angle) * snipe.range;
+        const y2 = e.y + Math.sin(e.angle) * snipe.range;
+        if (distToSegment(p.x, p.y, e.x, e.y, x2, y2) <= p.r + snipe.width / 2) hurtPlayer(world, e.def.damage);
+        sfx(world, 'snipe');
+        world.fx.beams.push({ x1: e.x, y1: e.y, x2, y2, life: 0.18, max: 0.18, color: e.color, width: snipe.width });
+        addShake(world, 4);
+        e.state = 'chase';
+        e.cd = snipe.interval;
+      }
+    }
+    e.cone = { angle: e.coneAngle, arc, range: cone.range };
+  },
+
+  // 閃光持ち：近づいてきて、予告のあとに光る。その瞬間にそちらを向いていると、目くらみ。光ったあとは体当たり
+  flasher(world, e, dt, d) {
+    const flash = e.def.flash;
+    const p = world.player;
+    if (e.state === 'chase') {
+      e.x += (d.dx / d.dist) * e.def.speed * dt;
+      e.y += (d.dy / d.dist) * e.def.speed * dt;
+      if (circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r)) hurtPlayer(world, e.def.damage);
+      if (e.cd <= 0 && d.dist <= flash.triggerRange) {
+        e.state = 'windup';
+        e.t = flash.windup;
+      }
+    } else if (e.state === 'windup') {
+      e.t -= dt;
+      if (e.t <= 0) {
+        flashAt(world, e.x, e.y, flash);
+        e.state = 'chase';
+        e.cd = flash.interval;
+      }
+    } else {
+      e.state = 'chase';
     }
   },
 
@@ -573,6 +637,7 @@ function fireShot(world, e, d, shot) {
 function updateStatus(world, e, dt) {
   e.slowT -= dt;
   e.stopT -= dt;
+  if (e.litT > 0) e.litT -= dt;
   if (e.burnT > 0) {
     e.burnT -= dt;
     e.burnAcc += dt;
@@ -597,11 +662,13 @@ export function updateEnemies(world, dt) {
     updateStatus(world, e, dt);
     if (e.dead) continue;
     // 減速・凍結中は、その敵の時間の進みを遅くする（動きも構えも遅くなる）
-    const edt = dt * enemySpeedFactor(e);
+    let edt = dt * enemySpeedFactor(e);
     if (e.boss) {
       updateBoss(world, e, edt);
       continue;
     }
+    // 種族「番兵」のボーナス：照らされている（見えている）敵は、動きが遅くなる
+    if (p.stats.litSlow > 0 && isVisible(world, e.x, e.y)) edt *= 1 - p.stats.litSlow;
     updateEliteTrait(world, e, dt);
     e.hit -= dt;
     e.cd -= edt;

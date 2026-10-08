@@ -5,9 +5,9 @@
 import { FEEL, ROOM } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
-import { DEG, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
+import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
-import { blindPlayer, breakLamp } from './darkness.js';
+import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
@@ -1167,11 +1167,127 @@ PATTERNS.scales = {
   },
 };
 
+// 照射（サーチライト・センチネル）：光の扇が、ボスを中心に回る（count 本、life 秒）。出したあとも、ボスはほかの攻撃をする。
+//   扇の中にプレイヤーが合計 need 秒いると「捕捉」され、予告つきの狙撃（snipe）が来る。点いている非常灯のそばにいても、捕捉が進む。
+//   touch を書くと（大技）、捕捉のかわりに、扇に触れるとそのダメージ。hold: true なら、扇が消えるまで、ボスはその場で待つ
+PATTERNS.searchlight = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    // 出たときに、プレイヤーが扇の中にいないように向きを決める（1本なら反対側、何本かあるなら隙間がプレイヤーに向く）
+    act.base = Math.atan2(d.dy, d.dx) + Math.PI / act.def.count;
+    act.spin = act.def.spin * (world.rng() < 0.5 ? 1 : -1);
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        for (const h of world.hazards) if (h.type === 'searchlight' && h.owner === b) h.dead = true;
+        world.hazards.push({
+          type: 'searchlight', owner: b, x: b.x, y: b.y, count: def.count, angle: act.base, spin: act.spin, arc: def.arc * DEG, range: def.range,
+          life: def.life, max: def.life, lock: 0, need: def.need ?? 0, decay: def.decay ?? 0, cool: 0, touch: def.touch ?? 0, snipe: def.snipe ?? null, color: b.color,
+        });
+        sfx(world, 'bossCharge');
+        act.phase = def.hold ? 'active' : 'recover';
+        act.t = def.hold ? def.life : def.recover;
+      }
+    } else if (act.phase === 'active') {
+      if (act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 閃光（サーチライト・センチネル）：溜めのあと、部屋全体が光る。その瞬間にボスのほうを向いていると、目くらみ。count 回くり返す（間は gap 秒）
+PATTERNS.flare = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.remaining = act.def.count ?? 1;
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        flashAt(world, b.x, b.y, { radius: 0, facing: def.facing, blind: def.blind, light: def.light, lightLife: def.lightLife });
+        addShake(world, FEEL.shake.hit);
+        act.remaining--;
+        if (act.remaining > 0) {
+          act.t = def.gap;
+          act.gapMax = def.gap;
+        } else {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
 // 広がる輪などの、ボスから離れて残る攻撃
 export function updateHazards(world, dt) {
   const p = world.player;
   for (const h of world.hazards) {
-    if (h.type === 'ring') {
+    if (h.type === 'searchlight') {
+      // 光の扇：ボスについて回る。扇の中にいる時間がたまると、狙撃が来る
+      const b = h.owner;
+      if (!b || b.dead || h.dead) {
+        h.dead = true;
+        continue;
+      }
+      h.x = b.x;
+      h.y = b.y;
+      h.angle += h.spin * dt;
+      h.life -= dt;
+      h.cool -= dt;
+      const toPlayer = Math.atan2(p.y - h.y, p.x - h.x);
+      const inBeam = Math.hypot(p.x - h.x, p.y - h.y) <= h.range + p.r && beamAngles(h).some((a) => Math.abs(angleDiff(toPlayer, a)) <= h.arc / 2);
+      if (h.touch > 0) {
+        if (inBeam) hurtPlayer(world, h.touch);
+      } else if (h.cool <= 0 && world.mode === 'play') {
+        h.inBeam = inBeam;
+        h.inLamp = !inBeam && nearLitLamp(world, p.x, p.y);
+        h.lock = h.inBeam || h.inLamp ? h.lock + dt : Math.max(0, h.lock - h.decay * dt);
+        if (h.lock >= h.need) {
+          h.lock = 0;
+          h.cool = h.snipe.aim + h.snipe.interval;
+          floatText(world, p.x, p.y - 42, '捕捉!', COLORS.red, 16);
+          sfx(world, 'select');
+          world.hazards.push({ type: 'snipe', owner: b, x: b.x, y: b.y, t: h.snipe.aim, max: h.snipe.aim, lockTime: h.snipe.lock, angle: toPlayer, width: h.snipe.width, range: h.snipe.range, damage: h.snipe.damage, color: b.color });
+        }
+      }
+      if (h.life <= 0) h.dead = true;
+    } else if (h.type === 'snipe') {
+      // 捕捉されたあとの狙撃：照準線がプレイヤーを追い、最後の少しの間だけ向きが固定されてから撃つ
+      const b = h.owner;
+      if (!b || b.dead) {
+        h.dead = true;
+        continue;
+      }
+      h.x = b.x;
+      h.y = b.y;
+      h.t -= dt;
+      if (h.t > h.lockTime) h.angle = Math.atan2(p.y - h.y, p.x - h.x);
+      if (h.t <= 0) {
+        const x2 = h.x + Math.cos(h.angle) * h.range;
+        const y2 = h.y + Math.sin(h.angle) * h.range;
+        if (distToSegment(p.x, p.y, h.x, h.y, x2, y2) <= p.r + h.width / 2) hurtPlayer(world, h.damage);
+        sfx(world, 'snipe');
+        world.fx.beams.push({ x1: h.x, y1: h.y, x2, y2, life: 0.2, max: 0.2, color: h.color, width: h.width });
+        addShake(world, FEEL.shake.hit);
+        h.dead = true;
+      }
+    } else if (h.type === 'ring') {
       h.r += h.speed * dt;
       const dist = Math.hypot(p.x - h.x, p.y - h.y);
       // 輪の線に触れたら当たる。ダッシュの無敵ですり抜けられる

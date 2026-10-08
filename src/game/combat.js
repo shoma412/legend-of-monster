@@ -87,6 +87,8 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
     p.comboTarget = enemy;
     p.comboHits = 0;
   }
+  // 照準灯（種族「番兵」）：攻撃を当てた敵を、しばらく照らす
+  if (stats.markTime > 0) enemy.litT = Math.max(enemy.litT ?? 0, stats.markTime);
   const comboMul = stats.comboBonus * Math.min(p.comboHits, stats.comboMax);
   p.comboHits++;
   const result = calcDamage({

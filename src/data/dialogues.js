@@ -126,6 +126,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-sentinel',
+    trigger: { at: 'bossIntro', boss: 'sentinel' },
+    lines: [
+      { who: 'jin', text: '……光が回ってる。誰かを探してるのか。' },
+      { who: 'noise', text: '変電所の見張りだ。入ってきた者を照らして、誰なのか確かめる。確かめる相手は、もう一人も残っていない。' },
+      { who: 'jin', mood: 'angry', text: 'じゃあ、俺は「該当なし」ってわけだ。' },
+    ],
+  },
+  {
+    id: 'return-sentinel',
+    trigger: { at: 'hideout', bossKilled: 'sentinel' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……なんで横を向いて入ってくるの。' },
+      { who: 'jin', text: '癖になった。光るものを、まっすぐ見ないようにしてた。' },
+      { who: 'hal', text: 'ここの灯りは、誰も確かめたりしないよ。ちゃんとこっち見て。' },
+    ],
+  },
+  {
     id: 'boss-intro-scraphound',
     trigger: { at: 'bossIntro', boss: 'scraphound' },
     lines: [
@@ -246,6 +264,7 @@ export const talks = {
       ],
     },
     { after: 'lampeater', lines: [{ who: 'hal', text: '蛾の羽、粉を落としたら、ただの薄い鉄板だった。光に寄っていくのは、取り替えるためだったんだね。' }] },
+    { after: 'sentinel', lines: [{ who: 'hal', text: '見張りのレンズ、磨いたらすごくきれいだった。誰かを探すためだけに、ずっと曇らないようにしてたんだね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -280,6 +299,7 @@ export const talks = {
     { after: 'tankcrab', lines: [{ who: 'noise', text: '残りは浄水プラントだ。そこにいるのは、いちばん長く、いちばん真面目に働いた者だ。' }] },
     { after: 'sludgehydra', lines: [{ who: 'noise', text: '排水区は止まった。次は建設区だ。街の外れで、まだ何かを建て続けている者たちがいる。' }] },
     { after: 'lampeater', lines: [{ who: 'noise', text: '消灯街が静かになった。次は、地下の変電所だ。止められた電気を、まだ見張っている者がいる。' }] },
+    { after: 'sentinel', lines: [{ who: 'noise', text: '変電所の光が止まった。残りは、主幹制御室だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。……次の区画は、まだ準備ができていない。体を直しておけ。' }] },

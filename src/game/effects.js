@@ -5,7 +5,7 @@
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyBurn, applySlow, applyStop, effectDamage } from './combat.js';
-import { isVisible } from './darkness.js';
+import { addLight, isVisible } from './darkness.js';
 import { placeMine } from './devices.js';
 import { burst, ring } from './fx.js';
 
@@ -24,6 +24,10 @@ const CONDITIONS = {
   targetWeak: (world, mod, target) => !!target && target.hp <= target.maxHp * 0.5,
   recentKill: (world, mod) => world.player.sinceKill <= (mod.window ?? 3),
   recentHurt: (world, mod) => world.player.sinceHurt <= (mod.window ?? 2),
+  // 照準灯で照らした敵
+  targetMarked: (world, mod, target) => !!target && target.litT > 0,
+  // 近くにいる敵（range px 以内。敵の大きさのぶんは足す）
+  targetNear: (world, mod, target) => !!target && Math.hypot(target.x - world.player.x, target.y - world.player.y) <= (mod.range ?? 120) + target.r,
   // 照らされている敵（見えている敵）。明るいマップでは、いつも満たされる
   targetLit: (world, mod, target) => !!target && isVisible(world, target.x, target.y),
 };
@@ -143,6 +147,18 @@ const ACTIONS = {
     ctx.dash.mine = true;
     const p = world.player;
     placeMine(world, p.x, p.y);
+  },
+
+  // 閃光弾：ダッシュしたとき、まわりの敵を少しの間止める（cooldown 秒に1回）
+  flashbang(world, t, ctx) {
+    if (ctx.dash.flashbang) return;
+    ctx.dash.flashbang = true;
+    const p = world.player;
+    if (world.time < (p.flashbangAt ?? -Infinity) + t.cooldown) return;
+    p.flashbangAt = world.time;
+    ring(world, p.x, p.y, t.radius, COLORS.ink);
+    addLight(world, p.x, p.y, t.radius, 0.6);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyStop(e, t.duration);
   },
 
   // プレイヤーの周りの敵にダメージ（属性なし）

@@ -334,4 +334,37 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'substation',
+    code: 'GRID 02',
+    name: '地下変電所',
+    theme: 'substation',
+    bgm: 'substation',
+    bossBgm: 'bossSubstation',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'watchlamp', weight: 3 },
+      { id: 'flasher', weight: 3 },
+      { id: 'stalker', weight: 2 },
+      { id: 'glowbug', weight: 2 },
+      { id: 'lampbreaker', weight: 1 },
+      { id: 'turret', weight: 2 },
+      { id: 'shield', weight: 1 },
+    ],
+    eliteBases: ['flasher', 'lampbreaker', 'grunt'],
+    boss: 'sentinel',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 光が回っている。あれが、見張りだ。',
+        '@noise＞ 光の中に長くいるな。非常灯のそばも同じだ。光ったら、目を背けろ。電撃が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……光が、止まった。',
+        '@noise＞ コアを回収しろ。この奥が、主幹制御室だ。',
+      ],
+    },
+  },
 ];

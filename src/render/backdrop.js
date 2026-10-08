@@ -415,6 +415,54 @@ const THEMES = {
       for (let x = 0; x < len; x += PX) block(g, x0 + x, y0 + Math.sin((x / len) * Math.PI) * 22, PX, PX / 2, 0x05050c, 0.85);
     }
   },
+  // 地下変電所：変圧器、碍子、太いケーブル、床の警告線
+  substation(g, rng, a) {
+    speckles(g, rng, a, 260, [0x0a0c12, 0x0e1118, 0x07080d, 0x141a24], 0.7);
+    // 床の警告線（黄色と黒のしま。かすれている）
+    for (const y of [a.top + 40, a.bottom - 44]) {
+      for (let x = a.left + 16; x < a.right - 16; x += 24) {
+        if (rng() < 0.25) continue;
+        block(g, x, y, 12, PX, 0x8a7420, 0.32);
+      }
+    }
+    // 太いケーブル（床を、うねりながら横切る）
+    for (let i = 0; i < 3; i++) {
+      const y0 = a.top + 80 + rng() * (a.h - 160);
+      const amp = 10 + rng() * 14;
+      const phase = rng() * 6;
+      for (let x = a.left + 10; x < a.right - 10; x += PX) {
+        const y = y0 + Math.sin(x / 90 + phase) * amp;
+        block(g, x, y, PX, PX * 2, 0x05060a, 0.9);
+        if (Math.floor(x / PX) % 14 === 0) block(g, x, y, PX, PX * 2, 0x26324a, 0.8); // 留め具
+      }
+    }
+    // 変圧器（上の壁ぎわ。箱と、冷却ひれと、碍子）
+    for (let x = a.left + 60; x < a.right - 90; x += 190) {
+      const w = 64;
+      const y = a.top + 14;
+      block(g, x, y, w, 30, 0x121722, 0.95);
+      for (let k = 6; k < w - 4; k += 8) block(g, x + k, y + 6, PX / 2, 20, 0x232c3e, 0.9);
+      for (const dx of [10, 30, 50]) {
+        block(g, x + dx, y - 8, PX, 8, 0x3a4660, 0.9);
+        block(g, x + dx - 2, y - 10, PX * 2, PX / 2, 0x5a6a8a, 0.8);
+      }
+      block(g, x + w - 10, y + 22, PX, PX, rng() < 0.4 ? 0xff4d5e : 0x1a2030, 0.8);
+    }
+    // 配電盤（下の壁ぎわ。扉と、消えた表示灯）
+    for (let x = a.left + 110; x < a.right - 60; x += 230) {
+      const y = a.bottom - 30;
+      block(g, x, y, 44, 24, 0x10141e, 0.95);
+      block(g, x + 20, y + 2, PX / 2, 20, 0x232c3e, 0.9);
+      for (let k = 0; k < 3; k++) block(g, x + 6 + k * 6, y + 4, PX, PX, rng() < 0.2 ? 0x8a7420 : 0x1a2030, 0.9);
+    }
+    // 床の点検口（格子）
+    for (let i = 0; i < 4; i++) {
+      const x = a.left + 60 + rng() * (a.w - 160);
+      const y = a.top + 70 + rng() * (a.h - 150);
+      block(g, x, y, 40, 28, 0x090b10, 0.8);
+      for (let k = 4; k < 40; k += 8) block(g, x + k, y, PX / 2, 28, 0x1c2434, 0.7);
+    }
+  },
   yard(g, rng, a) {
     speckles(g, rng, a, 300, [0x1c180e, 0x262013, 0x14110a, 0x302818], 0.7);
     // タイヤの跡（斜めに2本ずつ）

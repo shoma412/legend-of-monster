@@ -582,6 +582,58 @@ export const bosses = [
       },
     ],
   },
+  {
+    id: 'sentinel',
+    name: 'サーチライト・センチネル',
+    alias: '照射番', // 登場時に出す異名
+    shape: 'sentinel',
+    color: 'amber',
+    weakness: 'shock',
+    material: 'lensCore',
+    radius: 42,
+    hp: 12500,
+    speed: 58,
+    contactDamage: 46,
+    xp: 640,
+    credits: 320,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「照射」：光の扇が回る。扇の中（と、点いている非常灯のそば）に合計 need 秒いると捕捉され、予告つきの狙撃が来る
+      //   arc: 扇の広さ（度）, spin: 回る速さ（ラジアン/秒）, life: 続く秒数, decay: 扇の外にいる間、たまった時間が減る速さ
+      //   snipe: { aim: 照準線が出ている秒数, lock: 最後に向きが固定される秒数, interval: 次に捕捉が進み始めるまでの秒数 }
+      beam: {
+        pattern: 'searchlight', telegraph: 0.9, count: 1, arc: 46, range: 1100, spin: 0.55, life: 14, need: 0.8, decay: 0.4,
+        snipe: { aim: 0.75, lock: 0.25, width: 14, range: 1100, damage: 46, interval: 1.2 }, recover: 0.5,
+      },
+      beamHard: {
+        pattern: 'searchlight', telegraph: 0.8, count: 2, arc: 46, range: 1100, spin: 0.6, life: 15, need: 0.8, decay: 0.4,
+        snipe: { aim: 0.65, lock: 0.22, width: 14, range: 1100, damage: 46, interval: 1.0 }, recover: 0.5,
+      },
+      // 固有「閃光」：溜めのあと、部屋全体が光る。その瞬間にボスのほうを向いている（正面から左右 facing 度）と、blind 秒の目くらみ
+      flare: { pattern: 'flare', telegraph: 1.2, count: 1, gap: 0, facing: 70, blind: 6, light: 1400, lightLife: 2.5, recover: 0.7 },
+      flareHard: { pattern: 'flare', telegraph: 1.2, count: 2, gap: 0.75, facing: 70, blind: 6, light: 1400, lightLife: 2.5, recover: 0.7 },
+      // 斉射：プレイヤーへ扇形に弾を撃つ
+      volley: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 50, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shotRadius: 7, damage: 32, recover: 0.6, reach: 'far' },
+      // 全周弾：向きをずらしながら全方向に（後半）
+      ringshot: { pattern: 'barrage', telegraph: 0.65, count: 12, spread: 360, waves: 3, interval: 0.4, rotate: 15, shotSpeed: 220, shotRadius: 7, damage: 30, recover: 0.7 },
+      // 放電：足元からの衝撃波の輪
+      pulse: { pattern: 'shockwave', telegraph: 0.8, damage: 36, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 大技「全照射」：扇が4本になって速く回る。この間だけ、扇に触れるとダメージ
+      fullbeam: { pattern: 'searchlight', telegraph: 1.7, count: 4, arc: 36, range: 1100, spin: 0.6, life: 9, touch: 40, hold: true, recover: 1.6 },
+    },
+    reactions: [{ when: 'far', seconds: 4, move: 'volley' }],
+    ultimate: { move: 'fullbeam', announce: '全照射' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['beam', 'flare', 'volley', 'pulse'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.7, max: 1.2 },
+        moves: ['beamHard', 'flareHard', 'volley', 'ringshot', 'pulse'],
+        combos: [{ moves: ['flareHard', 'volley'] }, { moves: ['pulse', 'ringshot'] }],
+        announce: '侵入者、捕捉',
+      },
+    ],
+  },
   // ---- 隠しボス（docs/詳細仕様.md「21. 隠しボスと通行証」） ----
   // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材とデータ片は持たない
   {

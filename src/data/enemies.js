@@ -17,6 +17,8 @@
 //   builder   : 距離を取り、プレイヤーの行く手に柵を立てる
 //   lobber    : 距離を取り、ものを山なりに投げる（落下地点を表示）
 //   prop      : 動かない。攻撃もしない（柵や橋げたの杭）
+//   watcher   : 動かない。光の扇をゆっくり回し、扇の中にプレイヤーが居続けると、照準線を出して狙い撃つ
+//   flasher   : 近づいてきて、予告のあとに光る。その瞬間にそちらを向いていると、目くらみ。光ったあとは体当たり
 //   hydrahead : ボスの体から生えた首。ボスの周りに付いたまま、弾を吐く
 // split: { into, count } を書くと、倒したときにその敵に分かれる
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
@@ -491,5 +493,44 @@ export const enemies = [
     dropChance: 0.12,
     wobble: 0.5,
     deathLight: { radius: 130, life: 8 },
+  },
+  // ---- ここからマップ4 エリア2「地下変電所」（光が敵になる） ----
+  {
+    // 見張り灯：動かない。光の扇（cone）をゆっくり回す。扇の中にプレイヤーが need 秒いると、照準線を出して狙い撃つ
+    //   cone: { arc: 扇の広さ（度）, range: 届く距離, spin: 回る速さ（ラジアン/秒）, need: 捕捉までの秒数, decay: 扇の外にいる間、たまった時間が減る速さ }
+    id: 'watchlamp',
+    name: '見張り灯',
+    behavior: 'watcher',
+    shape: 'lamp',
+    color: 'amber',
+    radius: 14,
+    hp: 64,
+    speed: 0,
+    damage: 24,
+    xp: 13,
+    credits: 5,
+    cost: 3,
+    dropChance: 0.24,
+    knockbackResist: 1,
+    cone: { arc: 50, range: 360, spin: 0.7, need: 1.0, decay: 0.5 },
+    snipe: { interval: 1.4, aim: 0.8, lock: 0.3, range: 1100, width: 8 },
+  },
+  {
+    // 閃光持ち：近づいてきて、予告（縮む輪）のあとに光る。その瞬間にそちらを向いていると、目くらみ
+    //   flash: { triggerRange: この距離まで来たら構える, windup: 予告の秒数, radius: 光の届く距離, facing: 正面から左右に何度まで向いていると目くらみか, blind: 目くらみの秒数, interval: 次に光るまでの秒数 }
+    id: 'flasher',
+    name: '閃光持ち',
+    behavior: 'flasher',
+    shape: 'pentagon',
+    color: 'cyan',
+    radius: 13,
+    hp: 42,
+    speed: 118,
+    damage: 14,
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.24,
+    flash: { triggerRange: 170, windup: 0.9, radius: 250, facing: 75, blind: 4, interval: 5 },
   },
 ];

@@ -228,6 +228,17 @@ const SHAPES = {
     neonStroke(g, color, 2, () => g.strokeRect(e.x - s, e.y - s, s * 2, s * 2));
     g.lineStyle(1.5, color, 0.6).lineBetween(e.x - s, e.y - s, e.x + s, e.y + s).lineBetween(e.x + s, e.y - s, e.x - s, e.y + s);
   },
+  // 見張り灯：台座と、光を出している向きのレンズ
+  lamp(g, e, color) {
+    const pts = polygon(e.x, e.y, e.r, 8, Math.PI / 8);
+    g.fillStyle(BODY_FILL, 0.92).fillPoints(pts, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(pts, true, true));
+    const a = e.state === 'aim' ? e.angle : e.coneAngle ?? 0;
+    const lx = e.x + Math.cos(a) * e.r * 0.55;
+    const ly = e.y + Math.sin(a) * e.r * 0.55;
+    g.fillStyle(e.state === 'aim' ? hex(COLORS.red) : color, 1).fillCircle(lx, ly, e.r * 0.34);
+    g.lineStyle(1.5, color, 0.7).strokeCircle(e.x, e.y, e.r * 0.5);
+  },
   circle(g, e, color, world) {
     const p = world.player;
     const a = Math.atan2(p.y - e.y, p.x - e.x);
@@ -266,7 +277,26 @@ function drawTelegraph(g, e, world) {
     g.lineStyle(6, hex(e.color), e.swingT / 0.15);
     arcPath(g, e.x, e.y, atk.range * 0.85, e.angle - (atk.arc * DEG) / 2, e.angle + (atk.arc * DEG) / 2);
   }
-  if (e.def.behavior === 'sniper' && e.state === 'aim') {
+  if (e.def.behavior === 'watcher' && e.cone) {
+    // 見張り灯の光の扇。捕捉が進むほど、赤くなる
+    const cone = e.def.cone;
+    const k = Math.min(1, (e.lock ?? 0) / cone.need);
+    const aiming = e.state === 'aim';
+    const half = e.cone.arc / 2;
+    g.fillStyle(aiming || k > 0 ? red : hex(e.color), aiming ? 0.08 : 0.1 + 0.16 * k);
+    g.slice(e.x, e.y, cone.range, e.cone.angle - half, e.cone.angle + half, false).fillPath();
+    g.lineStyle(1.5, k > 0 ? red : hex(e.color), 0.55 + 0.4 * k);
+    for (const side of [-1, 1]) g.lineBetween(e.x, e.y, e.x + Math.cos(e.cone.angle + side * half) * cone.range, e.y + Math.sin(e.cone.angle + side * half) * cone.range);
+  }
+  if (e.def.behavior === 'flasher' && e.state === 'windup') {
+    // 閃光持ちの予告：外の輪（光の届く距離）へ向かって、内の輪が縮む。重なった瞬間に光る
+    const flash = e.def.flash;
+    const k = 1 - Math.max(0, e.t) / flash.windup;
+    g.lineStyle(1.5, red, 0.5).strokeCircle(e.x, e.y, flash.radius);
+    g.lineStyle(3, hex(COLORS.ink), 0.5 + 0.5 * k).strokeCircle(e.x, e.y, e.r + (flash.radius - e.r) * (1 - k));
+    g.fillStyle(hex(COLORS.ink), 0.2 + 0.6 * k).fillCircle(e.x, e.y, e.r * 0.6);
+  }
+  if ((e.def.behavior === 'sniper' || e.def.behavior === 'watcher') && e.state === 'aim') {
     // スナイパーの照準線。向きが固定されると太く明るくなる
     const snipe = e.def.snipe;
     const locked = e.t <= snipe.lock;
@@ -338,6 +368,7 @@ function drawStatus(g, e, world) {
   } else if (e.slowT > 0) {
     g.lineStyle(1.5, cold, 0.8).strokeCircle(e.x, e.y, e.r + 6);
   }
+  if (e.litT > 0) g.lineStyle(1.5, hex(COLORS.amber), 0.35 + 0.35 * Math.min(1, e.litT)).strokeCircle(e.x, e.y, e.r + 8);
   if (e.burnT > 0) {
     const heat = hex(ELEMENT_COLORS.heat);
     for (let i = 0; i < 3; i++) {
@@ -926,6 +957,33 @@ BOSS_TELEGRAPHS.douse = (g, b, act, world) => {
   }
 };
 
+// 照射：光の扇が出る場所の予告（細い線の扇）
+BOSS_TELEGRAPHS.searchlight = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const def = act.def;
+  const k = 1 - Math.max(0, act.t) / def.telegraph;
+  const red = hex(COLORS.red);
+  const half = (def.arc * DEG) / 2;
+  for (let i = 0; i < def.count; i++) {
+    const a = act.base + (i * Math.PI * 2) / def.count;
+    g.fillStyle(red, (def.touch ? 0.08 : 0.04) + 0.1 * k).slice(b.x, b.y, def.range, a - half, a + half, false).fillPath();
+    g.lineStyle(2, red, 0.4 + 0.5 * k);
+    for (const side of [-1, 1]) g.lineBetween(b.x, b.y, b.x + Math.cos(a + side * half) * def.range, b.y + Math.sin(a + side * half) * def.range);
+  }
+  g.lineStyle(3, red, 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+
+// 閃光：外の輪へ向かって、内の輪が縮む。重なった瞬間に光る。「背けろ」の合図として、ボスの体が白くなっていく
+BOSS_TELEGRAPHS.flare = (g, b, act) => {
+  if (act.phase !== 'telegraph') return;
+  const max = act.gapMax ?? act.def.telegraph;
+  const k = 1 - Math.max(0, act.t) / max;
+  const ink = hex(COLORS.ink);
+  g.lineStyle(2, hex(COLORS.red), 0.7).strokeCircle(b.x, b.y, b.r + 8);
+  g.lineStyle(4, ink, 0.4 + 0.6 * k).strokeCircle(b.x, b.y, b.r + 8 + 190 * (1 - k));
+  g.fillStyle(ink, 0.15 + 0.6 * k).fillCircle(b.x, b.y, b.r * 0.7);
+};
+
 // 鱗粉：雲が出る場所の予告
 BOSS_TELEGRAPHS.scales = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1288,6 +1346,25 @@ SHAPES.moth = (g, b, color, world) => {
   }
 };
 
+// サーチライト・センチネル：八角の土台と、向いている方向の大きなレンズ
+SHAPES.sentinel = (g, b, color, world) => {
+  const r = b.r;
+  const outer = polygon(b.x, b.y, r * 1.05, 8, Math.PI / 8);
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(outer, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(outer, true, true));
+  const inner = polygon(b.x, b.y, r * 0.66, 8, Math.PI / 8 + world.time * 0.4);
+  g.lineStyle(2, color, 0.55).strokePoints(inner, true, true);
+  // 灯具（レンズの入った箱）
+  const box = [local(b, r * 0.35, r * 0.42), local(b, r * 1.1, r * 0.5), local(b, r * 1.1, -r * 0.5), local(b, r * 0.35, -r * 0.42)];
+  g.fillStyle(BODY_FILL, 1).fillPoints(box, true);
+  neonStroke(g, color, 2.5, () => g.strokePoints(box, true, true));
+  const lens = local(b, r * 0.95, 0);
+  const charging = b.act?.def.pattern === 'flare' && b.act.phase === 'telegraph';
+  g.fillStyle(charging ? hex(COLORS.ink) : color, 0.6 + 0.4 * Math.abs(Math.sin(world.time * (charging ? 16 : 3)))).fillCircle(lens.x, lens.y, r * 0.26);
+  g.lineStyle(2, color, 0.9).strokeCircle(lens.x, lens.y, r * 0.34);
+  g.fillStyle(hex(COLORS.red), 1).fillCircle(b.x, b.y, 4);
+};
+
 // 雑魚の攻撃の予告だけを描く（暗闇の上に、もう一度描くために使う）
 export function drawEnemyTelegraphs(g, world) {
   for (const e of world.enemies) {
@@ -1306,7 +1383,32 @@ export function drawBossTelegraph(g, world) {
 
 export function drawHazards(g, world) {
   for (const h of world.hazards) {
-    if (h.type === 'ring') {
+    if (h.type === 'searchlight') {
+      // 光の扇。触れると当たるもの（大技）は赤い。捕捉が進むと、プレイヤーのまわりの輪が赤く閉じていく
+      const p = world.player;
+      const half = h.arc / 2;
+      const fade = Math.min(1, h.life / 0.6, (h.max - h.life) / 0.3 + 0.2);
+      const color = h.touch > 0 ? hex(COLORS.red) : hex(h.color);
+      for (let i = 0; i < h.count; i++) {
+        const a = h.angle + (i * Math.PI * 2) / h.count;
+        g.fillStyle(color, (h.touch > 0 ? 0.24 : 0.13) * fade).slice(h.x, h.y, h.range, a - half, a + half, false).fillPath();
+        g.lineStyle(2, color, 0.8 * fade);
+        for (const side of [-1, 1]) g.lineBetween(h.x, h.y, h.x + Math.cos(a + side * half) * h.range, h.y + Math.sin(a + side * half) * h.range);
+      }
+      if (h.touch <= 0 && h.lock > 0) {
+        const k = Math.min(1, h.lock / h.need);
+        g.lineStyle(3, hex(COLORS.red), 0.9);
+        arcPath(g, p.x, p.y, p.r + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
+      }
+    } else if (h.type === 'snipe') {
+      // 狙撃の照準線。向きが固定されると、太く明るくなる
+      const locked = h.t <= h.lockTime;
+      const red = hex(COLORS.red);
+      const x2 = h.x + Math.cos(h.angle) * h.range;
+      const y2 = h.y + Math.sin(h.angle) * h.range;
+      g.lineStyle(h.width, red, locked ? 0.3 : 0.1).lineBetween(h.x, h.y, x2, y2);
+      g.lineStyle(locked ? 4 : 1.5, red, locked ? 0.95 : 0.45 + 0.25 * Math.sin(world.time * 30)).lineBetween(h.x, h.y, x2, y2);
+    } else if (h.type === 'ring') {
       const color = hex(h.color);
       const fade = Math.min(1, (h.max - h.r) / 60);
       g.lineStyle(h.width + 10, color, 0.18 * fade).strokeCircle(h.x, h.y, h.r);

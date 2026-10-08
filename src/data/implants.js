@@ -11,6 +11,7 @@
 //              when: hpBelowHalf / hpFull / recentDash（window 秒以内にダッシュした）/ targetSlowed（相手が減速中）/ targetBurning（相手が燃えている）/
 //                    standing（立ち止まっている）/ recentHurt（window 秒以内に被弾した）/
 //                    moving（動いている）/ targetWeak（相手のHPが半分以下）/ recentKill（window 秒以内に敵を倒した）/
+//                    targetLit（相手が照らされている。明るいマップでは常に）/ targetMarked（照準灯で照らした相手）/ targetNear（相手が range px 以内にいる）/
 //                    targetStopped（相手が足止め・凍結・停止で動けない）/ targetFull（相手のHPが満タン）/ targetBig（相手がエリートかボス）
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
@@ -232,6 +233,32 @@ export const implants = [
     desc: (k) => `被弾後2秒間、被ダメージ −${pct(0.2 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.2 * k, when: 'recentHurt', window: 2 }] }),
   },
+  // ---- 番兵（サーチライト・センチネル由来・照らして、迎え撃つ） ----
+  {
+    id: 'spotlight', species: 'sentinel', name: '照準灯',
+    desc: (k) => `攻撃を当てた敵を4秒照らす（暗闇でも姿が見える）。照らした敵へのダメージ +${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'markTime', add: 4 }, { stat: 'attackMul', add: 0.08 * k, when: 'targetMarked' }] }),
+  },
+  {
+    id: 'lookout', species: 'sentinel', name: '見張り',
+    desc: (k) => `立ち止まっている間、攻撃力 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'standing' }] }),
+  },
+  {
+    id: 'intercept', species: 'sentinel', name: '迎撃',
+    desc: (k) => `近くの敵へのダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'targetNear', range: 120 }] }),
+  },
+  {
+    id: 'flashbang', species: 'sentinel', name: '閃光弾',
+    desc: (k) => `ダッシュしたとき、まわりの敵を${Math.round(0.8 * k * 10) / 10}秒止める（6秒に1回）`,
+    effect: (k) => ({ triggers: [{ on: 'dashMove', do: 'flashbang', radius: 130, duration: 0.8 * k, cooldown: 6 }] }),
+  },
+  {
+    id: 'vigil', species: 'sentinel', name: '警戒',
+    desc: (k) => `HPが満タンのとき、被ダメージ −${pct(0.25 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.25 * k, when: 'hpFull' }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -389,6 +416,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '会心ダメージ +20%', effect: { mods: [{ stat: 'critMul', add: 0.2 }] } },
       { need: 3, desc: '暗闇で見える範囲 +25%。照らされている敵へのダメージ +10%', effect: { mods: [{ stat: 'visionBonus', add: 0.25 }, { stat: 'attackMul', add: 0.1, when: 'targetLit' }] } },
+    ],
+  },
+  sentinel: {
+    name: '番兵', color: 'amber', boss: 'sentinel',
+    bonuses: [
+      { need: 2, desc: '攻撃を当てた敵を照らす時間 +2秒（照準灯がなくても、2秒照らす）', effect: { mods: [{ stat: 'markTime', add: 2 }] } },
+      { need: 3, desc: '照らされている敵の動きが20%遅くなる（ボスには効かない）', effect: { mods: [{ stat: 'litSlow', add: 0.2 }] } },
     ],
   },
   spider: {

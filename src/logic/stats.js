@@ -177,6 +177,9 @@ export function computeStats(build) {
     visionBonus: 0,
     lightBonus: 0,
     killLight: 0,
+    // 種族「番兵」：攻撃を当てた敵を照らす秒数（0 なら照らさない）、照らされている敵の動きが遅くなる割合
+    markTime: 0,
+    litSlow: 0,
   };
   const conditional = []; // 条件つきの補正。使うときに条件を調べる（src/game/effects.js）
   const triggers = {}; // { イベント名: [trigger, ...] }

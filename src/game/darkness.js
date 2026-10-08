@@ -1,7 +1,8 @@
 // 環境「暗闇」の動き（docs/詳細仕様.md「24. マップ4「停電区」と、環境「暗闇」」）。
 // 見える範囲、非常灯、攻撃の光、目くらみを扱う。明るいマップでは、どれも何もしない。
 import { COLORS } from '../data/theme.js';
-import { burst, floatText, sfx } from './fx.js';
+import { lightReach } from '../logic/darkCells.js';
+import { burst, floatText, ring, sfx } from './fx.js';
 
 // その部屋の環境が「暗闇」なら、その定義。そうでなければ null
 export function darkEnv(world) {
@@ -25,12 +26,23 @@ export function lightSources(world) {
   const list = [];
   for (const lamp of world.lamps ?? []) if (lamp.on > 0) list.push({ x: lamp.x, y: lamp.y, r: env.lamps.radius });
   for (const l of world.lights ?? []) list.push({ x: l.x, y: l.y, r: l.r * Math.min(1, (l.life / l.max) * 1.6) });
+  for (const e of world.enemies ?? []) {
+    if (e.dead || e.spawnT > 0) continue;
+    // 敵の光の扇（見張り灯）と、照らされた敵（インプラント「照準灯」）
+    if (e.cone) list.push({ x: e.x, y: e.y, r: e.cone.range, angle: e.cone.angle, arc: e.cone.arc });
+    if (e.litT > 0) list.push({ x: e.x, y: e.y, r: e.r + MARK_LIGHT });
+  }
+  // ボスの光の扇（照射）
+  for (const h of world.hazards ?? []) {
+    if (h.type !== 'searchlight') continue;
+    for (const angle of beamAngles(h)) list.push({ x: h.x, y: h.y, r: h.range, angle, arc: h.arc });
+  }
   return list;
 }
 
 // その場所が、灯り（非常灯か一時的な光）に照らされているか。プレイヤーのまわりの円は数えない。明るいマップでは false
 export function litByLamp(world, x, y) {
-  return lightSources(world).some((l) => Math.hypot(x - l.x, y - l.y) <= l.r);
+  return lightSources(world).some((l) => (l.arc == null ? Math.hypot(x - l.x, y - l.y) <= l.r : lightReach(l, x, y) < 1));
 }
 
 // その場所が見えているか（プレイヤーのまわりの円の中か、灯りに照らされている）。明るいマップでは、いつも true
@@ -54,14 +66,54 @@ export function flashLight(world, x, y) {
   addLight(world, x, y, env.flash.radius * (1 + (world.player.stats.lightBonus ?? 0)), env.flash.life);
 }
 
-// 目くらみ：見える円が、しばらく狭くなる。明るいマップでは何もしない
-export function blindPlayer(world) {
+// 目くらみ：見える円が、しばらく狭くなる。明るいマップでは何もしない。seconds を書くと、その長さになる
+export function blindPlayer(world, seconds = null) {
   const env = darkEnv(world);
   if (!env || world.mode !== 'play') return;
   const p = world.player;
   if (!(p.blindT > 0)) floatText(world, p.x, p.y - 42, '目くらみ!', COLORS.magenta, 16);
-  p.blindT = env.blind.duration;
+  p.blindT = Math.max(p.blindT ?? 0, seconds ?? env.blind.duration);
 }
+
+// プレイヤーが、その場所のほうを向いているか（マウスカーソルの向き。half は、正面から左右に何度までか）
+export function isFacing(world, x, y, half) {
+  const p = world.player;
+  const dx = x - p.x;
+  const dy = y - p.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  return (p.fx * dx + p.fy * dy) / dist >= Math.cos((half * Math.PI) / 180);
+}
+
+// 閃光：その場所が光る。光った瞬間に、そちらを向いていると目くらみ。背けていれば、何も起きない。目くらみになったら true
+//   def: { radius: 届く距離（0 なら部屋全体）, facing: 正面から左右に何度まで, blind: 目くらみの秒数, light / lightLife: 光の大きさと残る時間 }
+export function flashAt(world, x, y, def) {
+  const p = world.player;
+  addLight(world, x, y, def.light ?? def.radius, def.lightLife ?? 0.5);
+  ring(world, x, y, def.radius || 320, COLORS.ink);
+  sfx(world, 'zap');
+  if (world.mode !== 'play' || !darkEnv(world)) return false;
+  if (def.radius > 0 && Math.hypot(p.x - x, p.y - y) > def.radius) return false;
+  if (!isFacing(world, x, y, def.facing)) {
+    floatText(world, p.x, p.y - 42, '背けた', COLORS.cyan, 13);
+    return false;
+  }
+  blindPlayer(world, def.blind);
+  return true;
+}
+
+// その場所が、点いている非常灯の光の中か
+export function nearLitLamp(world, x, y) {
+  const env = darkEnv(world);
+  if (!env) return false;
+  return (world.lamps ?? []).some((lamp) => lamp.on > 0 && Math.hypot(x - lamp.x, y - lamp.y) <= env.lamps.radius);
+}
+
+// ボスの光の扇（照射）の、それぞれの向き
+export function beamAngles(h) {
+  return Array.from({ length: h.count }, (_, i) => h.angle + (i * Math.PI * 2) / h.count);
+}
+
+const MARK_LIGHT = 46; // 照らされた敵（照準灯）のまわりの、明るい範囲（px。敵の半径に足す）
 
 // 非常灯を壊す（seconds 秒のあいだ、点かなくなる）
 export function breakLamp(world, lamp, seconds) {
