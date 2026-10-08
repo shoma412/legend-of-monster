@@ -96,6 +96,26 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x, y + s * 0.15, x + s * 0.35, y - s * 0.4);
     g.fillStyle(c, 1).fillCircle(x, y + s * 0.15, s * 0.12);
   },
+  // アーキテクトコア：方眼と、定規の線
+  architectCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.2, c, 1);
+    for (const k of [-0.3, 0.3]) {
+      g.lineBetween(x + k * s, y - s * 0.55, x + k * s, y + s * 0.55);
+      g.lineBetween(x - s * 0.55, y + k * s, x + s * 0.55, y + k * s);
+    }
+  },
+  // ノクターンコア：欠けた月
+  nocturneCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.5, c, 1);
+    g.beginPath();
+    g.arc(x, y, s * 0.5, Math.PI * 0.35, Math.PI * 1.65, false);
+    g.strokePath();
+    g.beginPath();
+    g.arc(x + s * 0.3, y, s * 0.42, Math.PI * 0.62, Math.PI * 1.38, false);
+    g.strokePath();
+  },
   // ハウンドコア：牙
   houndCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

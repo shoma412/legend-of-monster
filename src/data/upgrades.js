@@ -14,6 +14,7 @@
 //   ougi        : その武器の奥義が使えるようになる（武器の id）
 //   carrySlots  : 持ち込みの種族の枠を増やす数
 //   itemSlots   : 消耗品の枠を増やす数
+//   keepImplants: マップをクリアしたあと、次の出撃に持ち越せるインプラントの数を増やす
 // since    : 何回目に足した強化か（書いていなければ 1 ＝ 最初の34マス）。2 以上のものは、最初の配置を作ったあとで、枝の先や空いている所に付け足す。
 //            今あるセーブデータの配置を変えないための決まり（docs/詳細仕様.md「23. スキルツリー」の「あとからマスを足すとき」）
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
@@ -118,6 +119,13 @@ export const upgrades = [
     costs: [{ mothCore: 1, lensCore: 1, breakerCore: 1 }],
     treeMaxDepth: 6,
     perLevel: { kits: 1 },
+  },
+  // ---- ここから、持ち越しのために足した強化（since: 3） ----
+  {
+    id: 'memory', category: 'skill', name: '記憶領域', desc: 'マップをクリアしたあと、次の出撃に持ち越せるインプラントが2つになる', max: 1, since: 3,
+    // 隠しボス2体の素材を1個ずつ（4〜5段目のマス）
+    costs: [{ architectCore: 1, nocturneCore: 1 }],
+    perLevel: { keepImplants: 1 },
   },
 ];
 

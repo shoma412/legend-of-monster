@@ -499,7 +499,9 @@ export class BattleScene extends Phaser.Scene {
         // マップの最後のボスを倒した
         finishRun(this.run, world, 'clear');
         persist();
-        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.run.map.code} 完了\n装備を見終わったら、下のボタンか Enter で帰還する`).setVisible(true);
+        const co = this.run.save.carryOver;
+        const keep = co ? `\n次の出撃に持ち越し：クレジット ${co.credits} c${co.implants.length > 0 ? '、インプラント（出撃先を選ぶ画面で選ぶ）' : ''}` : '';
+        this.clearText.setText(`> TARGET DOWN // ${boss.def.name} — ${this.run.map.code} 完了\n装備を見終わったら、下のボタンか Enter で帰還する${keep}`).setVisible(true);
         this.returnButton.setVisible(true);
       }
     } else if (world.room.waves.length > 0) {

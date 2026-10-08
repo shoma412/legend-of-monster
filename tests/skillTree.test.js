@@ -12,7 +12,8 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 41;
+const ALL_NODES = 42;
+const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
 
 const RANK = Object.fromEntries(materials.map((m, i) => [m.id, i]));
 const units = (cost) => Object.values(cost).reduce((a, b) => a + b, 0);
@@ -298,6 +299,9 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
       const tree = buildTree(seed);
       const extra = tree.nodes.filter((n) => n.since > 1);
       expect(extra).toHaveLength(ALL_NODES - FIRST_NODES);
+      expect(extra.filter((n) => n.since === 2)).toHaveLength(MAP4_NODES);
+      expect(tree.byId['memory#0'].depth).toBeGreaterThanOrEqual(4);
+      expect(tree.byId['memory#0'].depth).toBeLessThanOrEqual(5);
       expect(Math.max(...tree.nodes.map((n) => n.depth))).toBe(6);
       expect(tree.byId['sparekit#0'].depth).toBe(6);
       for (const n of extra) {
@@ -322,7 +326,7 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
 
   it('足した強化の値段と効果：モスコア2・レンズコア2・ブレーカーコア2と、3種類を1個ずつ', () => {
     const sum = {};
-    for (const def of allUpgrades.filter((d) => d.since > 1)) for (const cost of def.costs) for (const [id, n] of Object.entries(cost)) sum[id] = (sum[id] ?? 0) + n;
+    for (const def of allUpgrades.filter((d) => d.since === 2)) for (const cost of def.costs) for (const [id, n] of Object.entries(cost)) sum[id] = (sum[id] ?? 0) + n;
     expect(sum).toEqual({ mothCore: 3, lensCore: 3, breakerCore: 3 });
     const save = createSave();
     for (const def of allUpgrades) save.upgrades[def.id] = def.max;

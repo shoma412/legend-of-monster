@@ -15,6 +15,9 @@ export const materials = [
   { id: 'mothCore', name: 'モスコア', color: 'magenta' },
   { id: 'lensCore', name: 'レンズコア', color: 'amber' },
   { id: 'breakerCore', name: 'ブレーカーコア', color: 'cyan' },
+  // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
+  { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
+  { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）

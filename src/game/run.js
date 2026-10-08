@@ -5,7 +5,7 @@ import { allLampsLit, placeLamps } from './darkness.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
-import { permanentBonuses, pickFragment, processEvent, recordProgress, startRunRecord } from '../logic/meta.js';
+import { applyCarryOver, permanentBonuses, pickFragment, processEvent, recordCarryOver, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
 import { createBuild, runSpecies } from '../logic/stats.js';
 import { SECRET_IN, SECRET_OUT, buildRoom, makeCrack } from './rooms.js';
@@ -63,6 +63,8 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     run.secret = { boss: map.secretBoss.boss, areaIndex: Math.min(map.areas.length - 1, Math.floor(rng() * map.areas.length)), node: null, done: false };
     placeSecret(run);
   }
+  // 前の出撃でマップをクリアしていたら、持ち越しを使う（クレジットの半分と、選んだインプラント。使ったら消える）
+  run.carriedOver = applyCarryOver(save, run.build);
   run.build.species = runSpecies(map, carry);
   run.build.weaponId = weaponId; // 武器ごとのステータス補正が乗る
   startRunRecord(save);
@@ -211,6 +213,8 @@ export function handleEvents(run, world) {
 export function finishRun(run, world, outcome) {
   if (run.outcome) return;
   run.outcome = outcome;
+  // マップをクリアした：次の出撃に持ち越せるものを書く（死んだときは、何も残らない）
+  if (outcome === 'clear') recordCarryOver(run.save, world.player.build);
   run.kills += world.kills;
   run.hp = world.player.hp;
 }

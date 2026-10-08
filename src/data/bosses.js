@@ -706,7 +706,7 @@ export const bosses = [
     shape: 'nocturne',
     color: 'magenta',
     weakness: null,
-    material: null,
+    material: 'nocturneCore', // 倒すたびに1個（恒久強化「記憶領域」に使う）
     radius: 38,
     hp: 15500,
     speed: 96,
@@ -768,7 +768,7 @@ export const bosses = [
     ],
   },
   // ---- 隠しボス（docs/詳細仕様.md「21. 隠しボスと通行証」） ----
-  // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材とデータ片は持たない
+  // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材を1個落とす。データ片は持たない
   {
     id: 'architect',
     name: 'アーキテクト',
@@ -777,7 +777,7 @@ export const bosses = [
     shape: 'architect',
     color: 'amber',
     weakness: 'cold',
-    material: null,
+    material: 'architectCore', // 倒すたびに1個（恒久強化「記憶領域」に使う）
     radius: 42,
     hp: 12000,
     speed: 74,

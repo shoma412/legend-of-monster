@@ -172,7 +172,7 @@ describe('隠しボスの部屋', () => {
     expect(DATA.bosses.get('architect').phases).toHaveLength(3);
   });
 
-  it('倒すと通行証と実績が手に入り、装備（エピック以上）を落とす。マップの完了にはならず、素材もデータ片も増えない', () => {
+  it('倒すと通行証と実績が手に入り、装備（エピック以上）を落とす。マップの完了にはならず、データ片は増えない。素材は、アーキテクトコアが1個だけ増える', () => {
     const { run, save, boss } = enterSecret();
     while (!boss.boss || boss.boss.spawnT > 0) updateWorld(boss, DT, idle);
     const materials = JSON.stringify(save.materials);
@@ -183,7 +183,7 @@ describe('隠しボスの部屋', () => {
     expect(save.bossKills.architect).toBe(1);
     expect(save.achievements).toContain('architect');
     expect(notes.some((n) => n.text.includes('通行証'))).toBe(true);
-    expect(JSON.stringify(save.materials)).toBe(materials);
+    expect(save.materials).toEqual({ ...JSON.parse(materials), architectCore: 1 });
     expect(save.fragments.length).toBe(fragments);
     expect(mapState(save, maps[2])).toBe('open'); // マップ3は、まだ完了していない
     expect(run.outcome).toBeNull();

@@ -53,7 +53,7 @@ export function unlockWeapon(save, weaponId) {
 
 // ラン開始時に乗る恒久強化。{ effects: ステータス補正の並び, kits: 修復キットの追加, startChoice: 最初にインプラントを選べるか }
 export function permanentBonuses(save) {
-  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [], carrySlots: 1, itemSlots: 0 };
+  const bonus = { effects: [], kits: 0, startChoice: false, ougi: [], carrySlots: 1, itemSlots: 0, keepImplants: META.carryOver.implants };
   for (const def of DATA.upgrades.all()) {
     const level = upgradeLevel(save, def.id);
     for (let i = 0; i < level; i++) {
@@ -63,6 +63,7 @@ export function permanentBonuses(save) {
       if (def.perLevel.ougi) bonus.ougi.push(def.perLevel.ougi);
       bonus.carrySlots += def.perLevel.carrySlots ?? 0;
       bonus.itemSlots += def.perLevel.itemSlots ?? 0;
+      bonus.keepImplants += def.perLevel.keepImplants ?? 0;
     }
   }
   return bonus;
@@ -116,6 +117,13 @@ export function processEvent(save, run, event) {
   // 隠しボスを倒した：そのマップの通行証が手に入る（素材とデータ片はない）
   if (event.type === 'secretKill') {
     save.bossKills[event.boss] = (save.bossKills[event.boss] ?? 0) + 1;
+    // 隠しボスの素材：倒すたびに1個
+    const material = DATA.bosses.get(event.boss).material;
+    if (material) {
+      save.materials[material] = (save.materials[material] ?? 0) + 1;
+      run.gained.materials[material] = (run.gained.materials[material] ?? 0) + 1;
+      addNote(run, notes, { kind: 'material', text: `> 素材回収 // ${DATA.materials.get(material).name} ×1` });
+    }
     save.passes ??= [];
     if (!save.passes.includes(event.map)) {
       save.passes.push(event.map);
@@ -134,6 +142,44 @@ export function processEvent(save, run, event) {
 function addAchievement(run, notes, def) {
   run.gained.achievements.push(def.id);
   addNote(run, notes, { kind: 'achievement', text: `> 実績解除 // ${def.name}` });
+}
+
+// ---- マップをクリアしたあとの持ち越し（docs/詳細仕様.md「25. マップをクリアしたあとの持ち越し」） ----
+
+// マップをクリアしたとき：次の出撃に持ち越せるものを、セーブデータに書く。build はクリアした時点のもの
+//   credits : 持ち越すクレジット（持っていた額の半分）
+//   implants: 持ち越せるインプラントの候補（そのとき持っていたもの）
+//   picked  : 出撃先を選ぶ画面で選んだもの（枠ごと。選んでいなければ null）
+export function recordCarryOver(save, build) {
+  save.carryOver = {
+    credits: Math.floor((build.credits ?? 0) * META.carryOver.creditRate),
+    implants: Object.keys(build.implants ?? {}),
+    picked: [],
+  };
+  return save.carryOver;
+}
+
+// 今、持ち越しで選ばれているインプラント（枠ごと。候補にないものや、ほかの枠と同じものは null）
+export function carryOverPicks(save) {
+  const co = save.carryOver;
+  const slots = permanentBonuses(save).keepImplants;
+  const picked = [];
+  for (let slot = 0; slot < slots; slot++) {
+    const id = co?.picked?.[slot] ?? null;
+    picked.push(id && co.implants.includes(id) && DATA.implants.has(id) && !picked.includes(id) ? id : null);
+  }
+  return picked;
+}
+
+// 出撃したとき：持ち越しを使う。build にクレジットとインプラントを足して、セーブデータの持ち越しを消す
+export function applyCarryOver(save, build) {
+  const co = save.carryOver;
+  if (!co) return null;
+  const implants = carryOverPicks(save).filter(Boolean);
+  build.credits += co.credits ?? 0;
+  for (const id of implants) build.implants[id] = META.carryOver.level;
+  save.carryOver = null;
+  return { credits: co.credits ?? 0, implants };
 }
 
 // 出撃したとき

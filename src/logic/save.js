@@ -36,6 +36,8 @@ export function createSave() {
     // スキルツリー（版7で追加）。seed は配置を決める種（セーブデータごとに違う）、owned は取ったマスの id
     tree: { seed: newTreeSeed(), owned: [] },
     notices: [], // 次に隠れ家へ入ったときに、1回だけ出すお知らせ（版7で追加）
+    // マップをクリアしたあとの持ち越し（2026-10-08 追加。なければ null）。{ credits, implants: 候補の id, picked: 選んだ id }。次に出撃したら消える
+    carryOver: null,
   };
 }
 
@@ -96,6 +98,17 @@ export function refundUpgrades(owned) {
   return refund;
 }
 
+// 持ち越しの中身を確かめる。読めなければ null
+function normalizeCarryOver(co) {
+  if (!co || typeof co !== 'object') return null;
+  const strings = (list) => (Array.isArray(list) ? list.filter((x) => typeof x === 'string') : []);
+  return {
+    credits: Number.isFinite(co.credits) && co.credits > 0 ? Math.floor(co.credits) : 0,
+    implants: [...new Set(strings(co.implants))],
+    picked: Array.isArray(co.picked) ? co.picked.map((x) => (typeof x === 'string' ? x : null)) : [],
+  };
+}
+
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
 export function normalizeSave(data) {
   const base = createSave();
@@ -107,7 +120,8 @@ export function normalizeSave(data) {
   const owned = cleanOwned(tree, Array.isArray(d.tree?.owned) ? d.tree.owned : []);
   return {
     version: SAVE_VERSION,
-    materials: { ...base.materials, ...(d.materials ?? {}) },
+    // 隠しボスの素材（2026-10-08 追加）：足す前にアーキテクトを倒していたデータには、1個渡す（もう一度倒さなくてよい）
+    materials: { ...base.materials, ...((d.bossKills?.architect ?? 0) > 0 && d.materials?.architectCore === undefined ? { architectCore: 1 } : {}), ...(d.materials ?? {}) },
     upgrades: upgradeCounts(tree, owned),
     weapons: Array.isArray(d.weapons) && d.weapons.length > 0 ? [...new Set(d.weapons)] : base.weapons,
     selected: typeof d.selected === 'string' ? d.selected : base.selected,
@@ -126,6 +140,7 @@ export function normalizeSave(data) {
     passes: Array.isArray(d.passes) ? [...new Set(d.passes)] : [],
     tree: { seed, owned },
     notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
+    carryOver: normalizeCarryOver(d.carryOver),
   };
 }
 

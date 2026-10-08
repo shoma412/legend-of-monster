@@ -1,5 +1,6 @@
 // マップを選ぶ画面。隠れ家の出撃ゲートを調べると開く。
 //   A・D（← →）：マップを選ぶ　　W・S（↑ ↓）：周を選ぶ（2周目以降が選べるとき）　　Q・E：持ち込みの種族を選ぶ
+//   R・F：持ち越すインプラントを選ぶ（前の出撃でマップをクリアしたときだけ）
 //   Enter：出撃　　Tab（Esc でも可）：やめる　　クリックでも選べる
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
@@ -8,7 +9,7 @@ import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { species } from '../data/implants.js';
 import { canSortieCycle, clearedCycle, cycleNotes, lockReason, mapState } from '../logic/maps.js';
-import { permanentBonuses } from '../logic/meta.js';
+import { carryOverPicks, permanentBonuses } from '../logic/meta.js';
 import { carryOptions, mapSpecies } from '../logic/stats.js';
 
 const W = SCREEN.width;
@@ -116,6 +117,23 @@ export function createMapSelect(scene, options) {
     render();
   }
 
+  // 持ち越すインプラントを切り替える（なし → 1つ目 → 2つ目 → … → なし）。ほかの枠で選んでいるものは飛ばす
+  function changeKeep(delta, slot = 0) {
+    const save = options.save();
+    const co = save.carryOver;
+    if (!co || co.implants.length === 0) return;
+    const now = carryOverPicks(save);
+    if (slot >= now.length) return;
+    const others = now.filter((id, i) => i !== slot && id);
+    const list = [null, ...co.implants.filter((id) => DATA.implants.has(id) && !others.includes(id))];
+    const at = Math.max(0, list.indexOf(now[slot]));
+    now[slot] = list[(at + delta + list.length) % list.length];
+    co.picked = now;
+    playSe('select');
+    options.onChange?.();
+    render();
+  }
+
   function start() {
     const save = options.save();
     const map = maps[index];
@@ -161,7 +179,10 @@ export function createMapSelect(scene, options) {
     const state = mapState(save, map);
     const usable = state === 'open' || state === 'done';
     const py = 232;
-    const panel = scene.add.rectangle(60, py, W - 120, 186, PANEL, 0.95).setOrigin(0).setStrokeStyle(1, hex(COLORS.line));
+    // 前の出撃でマップをクリアしていると、持ち越しの欄が出る（そのぶん、枠が下に伸びる）
+    const co = save.carryOver;
+    const keepRow = co ? 34 : 0;
+    const panel = scene.add.rectangle(60, py, W - 120, 186 + keepRow, PANEL, 0.95).setOrigin(0).setStrokeStyle(1, hex(COLORS.line));
     root.add(panel);
     if (usable) {
       const areas = map.areas.map((id) => DATA.areas.get(id));
@@ -203,15 +224,33 @@ export function createMapSelect(scene, options) {
       } else {
         text(80, py + 128, '7つのマップをすべて完了すると、次の周（敵が強くなる）に進めるようになる', 12, COLORS.dim);
       }
+
+      // 持ち越し：クレジットと、インプラントを選ぶ枠（◀ 名前 ▶）
+      if (co) {
+        const ky = py + 176;
+        text(80, ky + 4, '持ち越し', 13, COLORS.dim, { fontStyle: '700' });
+        text(150, ky + 4, `クレジット ${co.credits} c`, 13, COLORS.amber, { fontStyle: '700' });
+        if (co.implants.length === 0) {
+          text(300, ky + 5, 'インプラントは、持っていなかった', 12, LOCKED);
+        } else {
+          carryOverPicks(save).forEach((id, slot) => {
+            const sx = 300 + slot * 250;
+            button(sx, ky - 2, 26, 26, '◀', COLORS.ink, () => changeKeep(-1, slot));
+            text(sx + 110, ky + 11, id ? `${DATA.implants.get(id).name} Lv1` : 'インプラント：なし', 14, id ? COLORS.magenta : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
+            button(sx + 194, ky - 2, 26, 26, '▶', COLORS.ink, () => changeKeep(1, slot));
+          });
+          text(W - 80, ky + 6, carryOverPicks(save).length > 1 ? 'R：1つ目　F：2つ目' : 'R で切り替え', 11, COLORS.dim).setOrigin(1, 0);
+        }
+      }
     } else {
       const why = lockReason(save, map);
       text(W / 2, py + 93, why, 15, LOCKED, { fontStyle: '700' }).setOrigin(0.5);
     }
 
     const weapon = DATA.weapons.get(save.selected);
-    button(W / 2 - 230, 438, 220, 38, `出撃する（Enter）`, usable ? COLORS.amber : LOCKED, start);
-    button(W / 2 + 10, 438, 220, 38, 'やめる（Tab）', COLORS.ink, () => box.close());
-    text(W / 2, 498, `武器：${weapon.name}　　A・D：マップ${save.cycle > 1 ? '　W・S：周回' : ''}　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
+    button(W / 2 - 230, 438 + keepRow, 220, 38, `出撃する（Enter）`, usable ? COLORS.amber : LOCKED, start);
+    button(W / 2 + 10, 438 + keepRow, 220, 38, 'やめる（Tab）', COLORS.ink, () => box.close());
+    text(W / 2, 498 + keepRow * 0.6, `武器：${weapon.name}　　A・D：マップ${save.cycle > 1 ? '　W・S：周回' : ''}　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
   }
 
   const kb = scene.input.keyboard;
@@ -224,6 +263,8 @@ export function createMapSelect(scene, options) {
   on(['E'], () => changeCarry(1, 0));
   on(['Z'], () => changeCarry(-1, 1));
   on(['C'], () => changeCarry(1, 1));
+  on(['R'], () => changeKeep(1, 0));
+  on(['F'], () => changeKeep(1, 1));
   on(['ENTER'], start);
   on(['ESC', 'TAB'], () => box.close());
 

@@ -161,7 +161,8 @@ describe('隠しボスの出し方（マップ4）：通ってきた部屋の非
     handleEvents(r, world);
     expect(save.passes).toEqual(['map3', 'map4']);
     expect(save.achievements).toContain('nocturne');
-    expect(save.materials.breakerCore ?? 0).toBe(0); // 素材は持たない
+    expect(save.materials).toMatchObject({ nocturneCore: 1 }); // 隠しボスの素材が1個
+    expect(save.materials.breakerCore ?? 0).toBe(0);
     leaveRoom(r, world, SECRET_OUT);
     world = enterRoom(r);
     expect(r.plan.current).toBe('rest');
@@ -207,7 +208,7 @@ describe('隠しボス「ノクターン」', () => {
   it('隠しボスで、マップ4でいちばん強い。弱点はない。専用の曲がある。3段階', () => {
     expect(def.hidden).toBe(true);
     expect(def.weakness).toBeNull();
-    expect(def.material).toBeNull();
+    expect(def.material).toBe('nocturneCore');
     for (const id of ['lampeater', 'sentinel', 'breaker']) expect(def.hp).toBeGreaterThan(DATA.bosses.get(id).hp);
     expect(BGM[def.bgm]).toBeDefined();
     expect(def.phases).toHaveLength(3);
