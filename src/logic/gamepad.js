@@ -29,6 +29,13 @@ export const PAD_KEYS = {
   digit2: ['Digit2', 50],
   digit3: ['Digit3', 51],
   digit4: ['Digit4', 52],
+  // メニューだけが見る、ゲームパッド専用のキー（キーボードにはない）
+  padUp: ['PadUp', 0],
+  padDown: ['PadDown', 0],
+  padLeft: ['PadLeft', 0],
+  padRight: ['PadRight', 0],
+  padZoomIn: ['PadZoomIn', 0],
+  padZoomOut: ['PadZoomOut', 0],
 };
 
 const held = (button) => !!button && (button.pressed || button.value > PAD.trigger);
@@ -107,11 +114,15 @@ export function padActions(mode, pressed, state) {
     } else if (mode === 'result') {
       if (name === 'A') out.confirm = true;
     } else if (mode === 'menu') {
-      // メニュー：LB・RB でタブ、左スティック・十字キーで項目
+      // メニュー：LB・RB でタブ、左スティック・十字キーで項目やボタンを選ぶ。スキルツリーは、RT で拡大、LT で縮小
       if (name === 'LB') key('left');
       else if (name === 'RB') key('right');
-      else if (name === 'dir:up' || name === 'dir:left') key('up');
-      else if (name === 'dir:down' || name === 'dir:right') key('down');
+      else if (name === 'dir:up') key('padUp');
+      else if (name === 'dir:down') key('padDown');
+      else if (name === 'dir:left') key('padLeft');
+      else if (name === 'dir:right') key('padRight');
+      else if (name === 'RT') key('padZoomIn');
+      else if (name === 'LT') key('padZoomOut');
       else if (name === 'A') key('enter');
       else if (name === 'Y') key('stash'); // スキルツリー：次の取れるマスへ（F）
       else if (name === 'B' || name === 'plus') key('menu');

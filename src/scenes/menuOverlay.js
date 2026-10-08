@@ -7,6 +7,8 @@ import { BAG, LOOT, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { CREDITS } from '../data/credits.js';
 import { isBackKey } from '../logic/keys.js';
+import { firstTarget, moveFocus, nearestTarget } from '../logic/focusNav.js';
+import { pad } from '../game/padInput.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
@@ -94,6 +96,10 @@ export class MenuOverlay {
     this.cursor = 0;
     this.dialog = null; // 確認の案内 { message, yes }
     this.iconLayers = [];
+    // ゲームパッド：押せるもの（ボタン）の場所と働き。描き直すたびに集め直す。focusAt は、選んでいるものの中心（なければ null）
+    this.targets = [];
+    this.focusAt = null;
+    this.collectAs = 'content'; // 今集めているのが、タブの中身（content）か、下のボタン（action）か
     this.root = scene.add.container(0, 0).setDepth(30).setVisible(false);
     this.scroll = 0; // 一覧が長いときの、いちばん上に出ている行（タブを切り替えると 0 に戻る）
     this.scrollMax = 0; // 今のタブで動かせる上限（描くたびに決まる）
@@ -204,6 +210,7 @@ export class MenuOverlay {
     this.tab = Math.max(0, this.options.tabs.indexOf(tabId));
     this.cursor = 0;
     this.scroll = 0;
+    this.focusAt = null;
     this.dialog = null;
     this.root.setVisible(true);
     this.zoomButton?.setVisible(true);
@@ -253,11 +260,60 @@ export class MenuOverlay {
     if (digit && Number(digit[1]) <= tabs.length) this.setTab(Number(digit[1]) - 1);
     else if (code === 'KeyA' || code === 'ArrowLeft') this.setTab((this.tab + tabs.length - 1) % tabs.length);
     else if (code === 'KeyD' || code === 'ArrowRight') this.setTab((this.tab + 1) % tabs.length);
+    else if (code.startsWith('Pad')) this.onPad(code);
     else if (code === 'KeyW' || code === 'ArrowUp') this.moveCursor(-1);
     else if (code === 'KeyS' || code === 'ArrowDown') this.moveCursor(1);
+    else if ((code === 'Enter' || code === 'KeyE') && this.focused()) this.focused().run();
     else if (code === 'Enter' || code === 'KeyE') this.confirmRow();
     else if (code === 'KeyF' && this.tabId === 'upgrade') this.jumpToOpen();
     else if (isBackKey(code)) this.close();
+  }
+
+  // ---- ゲームパッド：左スティック・十字キーで、ボタンを選ぶ ----
+
+  // 今選んでいるボタン（なければ null）
+  focused() {
+    if (!this.focusAt || this.targets.length === 0) return null;
+    return this.targets[nearestTarget(this.targets, this.focusAt)] ?? null;
+  }
+
+  setFocus(target) {
+    this.focusAt = target ? { x: target.x + target.w / 2, y: target.y + target.h / 2 } : null;
+    playSe('select');
+    this.render();
+  }
+
+  // ゲームパッド専用のキー（src/logic/gamepad.js の PAD_KEYS）
+  onPad(code) {
+    if (code === 'PadZoomIn' || code === 'PadZoomOut') {
+      if (this.tabId !== 'upgrade') return;
+      // スキルツリー：RT で拡大、LT で縮小（選んでいるマスが、見える位置に来る）
+      this.treeView = zoomAt(this.treeView, TREE_CENTER, TREE_CENTER, code === 'PadZoomIn' ? 1 : -1);
+      this.treeFollow = true;
+      this.render();
+      return;
+    }
+    const dir = code.slice(3).toLowerCase();
+    const vertical = dir === 'up' || dir === 'down';
+    const content = this.targets.filter((t) => t.kind === 'content');
+    const actions = this.targets.filter((t) => t.kind === 'action');
+    // 行を選ぶタブ（スキルツリー・データ片）と、ボタンのないタブ（記録・実績など）：上下で行を選ぶ（一覧を動かす）。左右で、下のボタンを選ぶ
+    if (this.rowCount() > 0 || content.length === 0) {
+      if (vertical) {
+        this.focusAt = null;
+        this.moveCursor(dir === 'up' ? -1 : 1);
+        return;
+      }
+      if (actions.length === 0) return;
+      const now = actions.indexOf(this.focused());
+      const step = dir === 'left' ? -1 : 1;
+      this.setFocus(actions[now < 0 ? (step > 0 ? 0 : actions.length - 1) : Math.max(0, Math.min(actions.length - 1, now + step))]);
+      return;
+    }
+    // ボタンのあるタブ（装備・設定）：上下左右で、ボタンを選ぶ
+    const now = this.focused();
+    const next = now ? moveFocus(this.targets, this.targets.indexOf(now), dir) : firstTarget(content.length > 0 ? content : this.targets);
+    this.setFocus(now ? this.targets[next] : (content.length > 0 ? content : this.targets)[next]);
   }
 
   setTab(index) {
@@ -265,6 +321,7 @@ export class MenuOverlay {
     this.tab = index;
     this.cursor = 0;
     this.scroll = 0;
+    this.focusAt = null;
     this.render();
   }
 
@@ -362,6 +419,7 @@ export class MenuOverlay {
   panel(x, y, w, h, stroke = COLORS.line, onClick = null) {
     const r = this.scene.add.rectangle(x, y, w, h, PANEL, 0.95).setOrigin(0).setStrokeStyle(1, hex(stroke));
     if (onClick) r.setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
+    if (onClick && this.collectAs) this.targets.push({ x, y, w, h, run: onClick, kind: this.collectAs });
     this.root.add(r);
     return r;
   }
@@ -385,6 +443,8 @@ export class MenuOverlay {
     const { save } = ctx;
     this.root.removeAll(true);
     this.iconLayers = [];
+    this.targets = [];
+    this.collectAs = 'content';
     this.scrollMax = 0;
     // 後ろの画面を暗くして、クリックも通さない
     const dim = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.92).setInteractive();
@@ -420,12 +480,21 @@ export class MenuOverlay {
     for (const layer of this.iconLayers) this.root.bringToTop(layer);
 
     // 下のボタン
+    this.collectAs = 'action';
     const actions = this.options.actions;
     actions.forEach((action, i) => {
       const bx = W / 2 + (i - (actions.length - 1) / 2) * 226;
       this.button(bx - 105, 470, 210, 34, action.label, action.color ?? COLORS.ink, action.run, 14);
     });
     this.text(W / 2, H - 20, `1〜${tabs.length} / A・D：切り替え　W・S：選ぶ　Enter：決定　Tab：閉じる`, 12, COLORS.dim).setOrigin(0.5);
+
+    // ゲームパッド：選んでいるボタンに、黄色い枠を付ける
+    this.collectAs = null;
+    const focus = pad.active && !this.dialog ? this.focused() : null;
+    if (focus) {
+      const mark = this.scene.add.rectangle(focus.x - 3, focus.y - 3, focus.w + 6, focus.h + 6).setOrigin(0).setStrokeStyle(2, hex(COLORS.amber));
+      this.root.add(mark);
+    }
 
     if (this.dialog) this.renderDialog();
   }

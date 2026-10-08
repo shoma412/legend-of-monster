@@ -87,6 +87,11 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 
+  // 設定・クレジットを開いている間は、ゲームパッドのボタンを、メニューの働きにする
+  update() {
+    setTouchMode(this.menu.isOpen ? 'menu' : 'select');
+  }
+
   select(index) {
     if (this.menu?.isOpen || index === this.cursor) return;
     this.cursor = index;

@@ -112,10 +112,12 @@ describe('ゲームパッドのボタンの働き', () => {
     const keys = (name) => padActions('menu', [name], state()).keys;
     expect(keys('LB')).toEqual(['left']);
     expect(keys('RB')).toEqual(['right']);
-    expect(keys('dir:up')).toEqual(['up']);
-    expect(keys('dir:down')).toEqual(['down']);
-    expect(keys('dir:left')).toEqual(['up']);
-    expect(keys('dir:right')).toEqual(['down']);
+    expect(keys('dir:up')).toEqual(['padUp']);
+    expect(keys('dir:down')).toEqual(['padDown']);
+    expect(keys('dir:left')).toEqual(['padLeft']);
+    expect(keys('dir:right')).toEqual(['padRight']);
+    expect(keys('RT')).toEqual(['padZoomIn']);
+    expect(keys('LT')).toEqual(['padZoomOut']);
     expect(keys('A')).toEqual(['enter']);
     expect(keys('B')).toEqual(['menu']);
   });
