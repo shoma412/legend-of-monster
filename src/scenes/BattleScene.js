@@ -422,6 +422,13 @@ export class BattleScene extends Phaser.Scene {
     // 酸の雨：雨と、屋根（下にいるものが見えるように、透けて描く）
     drawRain(g, world);
     drawRoofs(g, world);
+    // 攻撃の予告（赤い円や線）・残る攻撃・敵の弾は、屋根に隠れないように、屋根の上にもう一度描く
+    if ((world.roofs ?? []).length > 0) {
+      drawHazards(g, world);
+      drawEnemyTelegraphs(g, world);
+      drawBossTelegraph(g, world);
+      drawShots(g, world);
+    }
     // 暗闇：暗い場所を塗り、その上に「暗闇でも見えるもの」をもう一度描く（目の光、攻撃の予告、残る攻撃、敵の弾）
     const dark = this.darkLayer;
     dark.clear();
