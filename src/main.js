@@ -2,6 +2,8 @@ import * as Phaser from 'phaser';
 import { SCREEN } from './data/balance.js';
 import { COLORS, FONTS } from './data/theme.js';
 import { applyDisplaySize, getSettings, syncEscapeLock } from './game/settingsStore.js';
+import { detectMobile } from './logic/device.js';
+import { initTouchControls } from './mobile/touchControls.js';
 import { setRenderScale } from './render/view.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { EndingScene } from './scenes/EndingScene.js';
@@ -48,6 +50,14 @@ loadFonts().then(() => {
     },
     scene: [TitleScene, SaveSelectScene, HideoutScene, BattleScene, EndingScene],
   });
+  // モバイル版：スマホ・タブレットで開いたときだけ、画面にスティックとボタンを出す（パソコンでは、何も変わらない）
+  const mobile = detectMobile({
+    search: window.location.search,
+    touchPoints: navigator.maxTouchPoints ?? 0,
+    coarse: window.matchMedia?.('(pointer: coarse)').matches ?? false,
+    userAgent: navigator.userAgent,
+  });
+  if (mobile) initTouchControls(document.getElementById('game'));
   // 表示の大きさ（設定）。フルスクリーンに出入りしたときも合わせ直す
   applyDisplaySize(game);
   document.addEventListener('fullscreenchange', () => {

@@ -13,6 +13,7 @@ import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { drawRain, drawRoofs } from '../render/rain.js';
 import { drawAnchors, drawScreens, drawWind } from '../render/wind.js';
+import { takeTouchPresses, touch } from '../game/touchInput.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
@@ -95,6 +96,7 @@ export class BattleScene extends Phaser.Scene {
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
       if (this.world.choice || this.menu.isOpen || this.dialogue.blocking) return;
+      if (touch.enabled) return; // モバイル版：画面を触っても攻撃しない（攻撃は、攻撃ボタンで）
       if (pointer.leftButtonDown()) this.attackPressed = true;
       if (pointer.rightButtonDown()) this.specialPressed = true;
     });
@@ -112,7 +114,9 @@ export class BattleScene extends Phaser.Scene {
       }
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
-        useItem(this.world, i, { x: pointer.worldX, y: pointer.worldY });
+        const p = this.world.player;
+        // モバイル版：カーソルがないので、向いている先を狙う
+        useItem(this.world, i, touch.enabled ? { x: p.x + p.fx * 140, y: p.y + p.fy * 140 } : { x: pointer.worldX, y: pointer.worldY });
       }
     }));
     this.keys.ENTER.on('down', () => {
@@ -188,9 +192,11 @@ export class BattleScene extends Phaser.Scene {
       return this.add.text(bx + ITEM_SLOT_POS.size - 2, ITEM_SLOT_POS.y + ITEM_SLOT_POS.size - 1, '', { ...label, fontSize: '10px', color: COLORS.ink, fontStyle: '700' }).setOrigin(1, 1).setDepth(6);
     });
     this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
-    this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
+    // モバイル版：右下は攻撃のボタンに隠れるので、左へずらす
+    const cornerX = touch.enabled ? W - 250 : W - 40;
+    this.waveText = this.add.text(cornerX, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
     // 環境「暗闇」：この部屋の非常灯を、いくつ点けたか
-    this.lampText = this.add.text(W - 40, H - 62, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.amber }).setOrigin(1, 0).setAlpha(0.85);
+    this.lampText = this.add.text(cornerX, H - 62, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.amber }).setOrigin(1, 0).setAlpha(0.85);
 
     this.bossName = this.add.text(W / 2, H - 66, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0.5).setVisible(false);
     // 近くのものを調べるときの案内
@@ -345,16 +351,19 @@ export class BattleScene extends Phaser.Scene {
   readInput() {
     const k = this.keys;
     const pointer = this.input.activePointer;
+    // モバイル版：スティックと、攻撃・特殊のボタン。向きは、いつもオート（ロックオン）
+    const mobile = touch.enabled;
+    const presses = mobile ? takeTouchPresses() : null;
     const input = {
-      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0),
-      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
+      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0),
+      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0),
       aimX: pointer.worldX,
       aimY: pointer.worldY,
-      auto: getSettings().controls === 'auto', // 操作方法（設定）
+      auto: mobile || getSettings().controls === 'auto', // 操作方法（設定）
       lockPressed: this.lockPressed,
-      attack: pointer.leftButtonDown(),
-      attackPressed: this.attackPressed,
-      specialPressed: this.specialPressed,
+      attack: mobile ? touch.attack : pointer.leftButtonDown(),
+      attackPressed: this.attackPressed || !!presses?.attackPressed,
+      specialPressed: this.specialPressed || !!presses?.specialPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;

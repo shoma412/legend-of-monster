@@ -22,6 +22,7 @@ import { createDialogueBox } from './dialogueBox.js';
 import { createMapSelect } from './mapSelect.js';
 import { MenuOverlay, costText, ownedText } from './menuOverlay.js';
 import { getSettings } from '../game/settingsStore.js';
+import { takeTouchPresses, touch } from '../game/touchInput.js';
 
 const W = SCREEN.width;
 const H = SCREEN.height;
@@ -103,6 +104,7 @@ export class HideoutScene extends Phaser.Scene {
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', (pointer) => {
       if (this.menu.isOpen || this.dialogue.blocking || this.mapSelect.blocking) return;
+      if (touch.enabled) return; // モバイル版：画面を触っても攻撃しない（攻撃は、攻撃ボタンで）
       if (pointer.leftButtonDown()) this.attackPressed = true;
       if (pointer.rightButtonDown()) this.specialPressed = true;
     });
@@ -281,15 +283,18 @@ export class HideoutScene extends Phaser.Scene {
   readInput() {
     const k = this.keys;
     const pointer = this.input.activePointer;
+    // モバイル版：スティックと、攻撃・特殊のボタン。向きは、いつもオート
+    const mobile = touch.enabled;
+    const presses = mobile ? takeTouchPresses() : null;
     const input = {
-      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0),
-      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0),
+      mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0),
+      my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0),
       aimX: pointer.worldX,
       aimY: pointer.worldY,
-      auto: getSettings().controls === 'auto', // 操作方法（設定）
-      attack: pointer.leftButtonDown(),
-      attackPressed: this.attackPressed,
-      specialPressed: this.specialPressed,
+      auto: mobile || getSettings().controls === 'auto', // 操作方法（設定）
+      attack: mobile ? touch.attack : pointer.leftButtonDown(),
+      attackPressed: this.attackPressed || !!presses?.attackPressed,
+      specialPressed: this.specialPressed || !!presses?.specialPressed,
       dashPressed: this.dashPressed,
     };
     this.dashPressed = false;
