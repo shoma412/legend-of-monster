@@ -519,37 +519,37 @@ export class MenuOverlay {
     this.text(W / 2, 440, '白い枠＝今いる部屋　明るい線＝進める道　暗い部屋＝もう行けない', 12, COLORS.dim).setOrigin(0.5);
   }
 
-  // 持っているボス素材を、アイコンつきで横に並べる（持っていないものは出さない）。幅に入りきらなければ折り返す。
-  // 返り値は、使った高さ
-  renderMaterials(save, x, y, width, maxLines = 2) {
+  // ボス素材1つぶん（アイコン・名前・個数）を描く。withName が false なら、アイコンと個数だけ。返り値は、使った幅
+  materialCell(g, def, count, x, y, withName = true) {
+    const color = materialColor(def);
+    drawMaterialIcon(g, def.id, x + 7, y + 8, 6, hex(color));
+    const t = this.text(x + 18, y, withName ? `${def.name} ×${count}` : `×${count}`, 12, color, { fontStyle: '700' });
+    return 18 + t.width;
+  }
+
+  // 持っているボス素材を、1行の帯に並べる（恒久強化の画面の上）。素材の種類が多いので、名前は出さず、アイコンと個数だけにする
+  //   （どのアイコンが何の素材かは、マスを選ぶと右の欄に名前つきで出る）。幅に入りきらないぶんは「ほか n 種類」
+  renderMaterialStrip(save, x, y, width) {
     const g = this.graphics();
     const owned = DATA.materials.all().filter((def) => (save.materials[def.id] ?? 0) > 0);
     const label = this.text(x, y, 'ボス素材', 12, COLORS.dim, { fontStyle: '700' });
+    let cx = x + label.width + 16;
     if (owned.length === 0) {
-      this.text(x + label.width + 14, y, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED);
-      return 20;
+      this.text(cx, y, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED);
+      return;
     }
-    let cx = x + label.width + 14;
-    let line = 0;
-    let shown = 0;
-    for (const def of owned) {
-      const color = materialColor(def);
-      const t = this.text(0, 0, `${def.name} ×${save.materials[def.id]}`, 12, color, { fontStyle: '700' });
-      const w = 18 + t.width + 18;
-      if (cx + w > x + width) {
-        line++;
-        cx = x + label.width + 14;
+    const REST = 86; // 「ほか n 種類」を書くために、右に残しておく幅
+    for (let i = 0; i < owned.length; i++) {
+      const def = owned[i];
+      const count = save.materials[def.id];
+      const w = 18 + 8 * `×${count}`.length + 16; // 描く前に、だいたいの幅で入るかを見る
+      const last = i === owned.length - 1;
+      if (cx + w > x + width - (last ? 0 : REST)) {
+        this.text(x + width, y, `ほか ${owned.length - i} 種類`, 12, COLORS.dim).setOrigin(1, 0);
+        return;
       }
-      if (line >= maxLines) {
-        t.setText(`ほか ${owned.length - shown} 種類`).setColor(COLORS.dim).setPosition(x + width - 4, y + (maxLines - 1) * 20).setOrigin(1, 0);
-        break;
-      }
-      drawMaterialIcon(g, def.id, cx + 7, y + 8, 6, hex(color));
-      t.setPosition(cx + 18, y);
-      cx += w;
-      shown++;
+      cx += this.materialCell(g, def, count, cx, y, false) + 16;
     }
-    return (Math.min(line, maxLines - 1) + 1) * 20;
   }
 
   // ---- 恒久強化（スキルツリー） ----
@@ -567,7 +567,7 @@ export class MenuOverlay {
     this.text(40, 114, readOnly ? '取った恒久強化（取るのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を取る。中心から線でつながったマスを、外へ向かって順に取っていく', 12, COLORS.dim);
     // 持っているボス素材（ここで使うので、ここに出す）
     this.panel(40, 132, 880, 28);
-    this.renderMaterials(save, 54, 138, 852, 1);
+    this.renderMaterialStrip(save, 54, 138, 852);
 
     const tree = saveTree(save);
     const layout = layoutTree(tree);
@@ -695,30 +695,60 @@ export class MenuOverlay {
   }
 
   // ---- 記録 ----
+  // 行が多いので、1行ずつの一覧にして、ホイールや W・S で上下に動かせるようにする
   renderRecords(save) {
     const r = save.records;
     const best = bestReachText(save, (id) => DATA.areas.get(id));
-    // 隠しボスは、倒すまで名前を出さない
-    const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0).map((b) => `${b.name} ×${save.bossKills[b.id] ?? 0}`).join('　');
-    const rows = [
-      ['出撃した回数', `${r.runs}`],
-      ['クリアした回数', `${r.clears}`],
-      ['最高到達', best],
-      ['倒した敵の数（累計）', `${r.kills}`],
-      ['ボス撃破', bosses],
-      ['データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`],
-      ['実績', `${save.achievements.length} / ${DATA.achievements.all().length}`],
-    ];
+    const X = 60;
+    const TOP = 138;
+    const LINE = 24;
+    const VISIBLE = 13;
+    const g = this.graphics();
     this.panel(40, 122, 880, 336);
-    // 長い行（ボス撃破など）は折り返すので、行の高さに合わせて下へ送る
-    let y = 136;
-    for (const [label, value] of rows) {
-      this.text(60, y, label, 14, COLORS.dim);
-      const t = this.text(300, y, value, 14, COLORS.ink, { fontStyle: '700', lineSpacing: 4, wordWrap: { width: 600, useAdvancedWrap: true } });
-      y += Math.max(30, t.height + 12);
-    }
+
+    const lines = []; // 1行ぶんを描く関数（y を受け取る）の並び
+    const row = (label, value) => lines.push((y) => {
+      this.text(X, y + 3, label, 14, COLORS.dim);
+      this.text(X + 240, y + 3, value, 14, COLORS.ink, { fontStyle: '700' });
+    });
+    const head = (label) => lines.push((y) => {
+      g.lineStyle(1, hex(COLORS.line), 1).lineBetween(X, y + LINE - 3, X + 830, y + LINE - 3);
+      this.text(X, y + 4, label, 12, COLORS.cyan, { fontStyle: '700' });
+    });
+    // items を columns 列のマス目にして、1段ずつ行に足す
+    const grid = (items, columns, cell) => {
+      const cw = 830 / columns;
+      for (let i = 0; i < items.length; i += columns) {
+        const part = items.slice(i, i + columns);
+        lines.push((y) => part.forEach((item, k) => cell(item, X + k * cw, y + 4)));
+      }
+    };
+
+    row('出撃した回数', `${r.runs}`);
+    row('クリアした回数', `${r.clears}`);
+    row('最高到達', best);
+    row('倒した敵の数（累計）', `${r.kills}`);
+    row('データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`);
+    row('実績', `${save.achievements.length} / ${DATA.achievements.all().length}`);
+
+    // ボス撃破。隠しボスは、倒すまで名前を出さない
+    const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0);
+    lines.push(() => {});
+    head('ボス撃破');
+    grid(bosses, 3, (b, x, y) => {
+      const n = save.bossKills[b.id] ?? 0;
+      this.text(x, y, `${b.name}　×${n}`, 13, n > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
+    });
+
     // 持っているボス素材
-    this.renderMaterials(save, 60, y + 6, 840, 3);
+    const owned = DATA.materials.all().filter((def) => (save.materials[def.id] ?? 0) > 0);
+    lines.push(() => {});
+    head('ボス素材（持っているもの）');
+    if (owned.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED));
+    else grid(owned, 4, (def, x, y) => this.materialCell(g, def, save.materials[def.id], x, y));
+
+    const start = this.window(lines.length, VISIBLE, { x: 908, y: TOP, h: VISIBLE * LINE });
+    lines.slice(start, start + VISIBLE).forEach((draw, i) => draw(TOP + i * LINE));
   }
 
   // ---- データ片 ----

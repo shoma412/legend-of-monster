@@ -1,4 +1,6 @@
-// 操作説明：キーボードとマウスの図と、それぞれの操作。メニュー（src/scenes/menuOverlay.js）の「操作」タブに描く。
+// 操作説明。メニュー（src/scenes/menuOverlay.js）の「操作」タブに描く。
+//   左：キーボードとマウスの図（動かない）
+//   右：キーの操作と、武器ごとのクリックの一覧（長いので、ホイールや W・S で上下に動かせる）
 import { DATA } from '../data/index.js';
 import { COLORS, hex } from '../data/theme.js';
 import { getSettings } from '../game/settingsStore.js';
@@ -6,6 +8,14 @@ import { getSettings } from '../game/settingsStore.js';
 const KEY = 32; // キー1つの大きさ
 const GAP = 4;
 const PANEL = 0x110f1d;
+const LOCKED = '#4a4470';
+
+// 右の一覧の場所と、1行の高さ
+const LIST_X = 452;
+const LIST_Y = 156;
+const LIST_W = 446;
+const LINE = 22;
+const VISIBLE = 13; // 一度に見える行の数
 
 // 操作の種類ごとの色と説明。keys に書いたキーが、図の中でその色になる
 const GROUPS = [
@@ -14,7 +24,8 @@ const GROUPS = [
   { color: COLORS.green, keys: ['E'], name: 'E', text: '調べる・装備を付ける・扉を選ぶ' },
   { color: COLORS.green, keys: ['F'], name: 'F', text: '落ちている装備をバッグに入れる' },
   { color: COLORS.green, keys: ['Q'], name: 'Q', text: '修復キットを使う（HP回復）' },
-  { color: COLORS.amber, keys: ['1', '2', '3'], name: '1・2（・3）', text: '消耗品を使う／レベルアップの3択を選ぶ' },
+  { color: COLORS.amber, keys: ['1', '2', '3', '4'], name: '1〜4', text: '消耗品を使う／レベルアップの3択を選ぶ' },
+  { color: COLORS.red, keys: ['R'], name: 'R', text: 'ロックオンの切り替え（操作方法がオートのとき）' },
   { color: COLORS.magenta, keys: ['M'], name: 'M', text: 'エリアの地図' },
   { color: COLORS.ink, keys: ['Esc', 'Tab'], name: 'Tab・Esc', text: 'ポーズ画面（装備の付け替え、設定など）' },
 ];
@@ -38,12 +49,53 @@ function mouseLines(weapon) {
   return DATA.weapons.all().map((w) => ({ name: w.name, left: lines[w.id]?.[0] ?? '攻撃', right: lines[w.id]?.[1] ?? w.special.name, current: weapon?.id === w.id }));
 }
 
-// menu: MenuOverlay（text / panel / graphics を借りる）, weapon: 今持っている武器（なければ null）
+// 右の一覧の行。{ draw(menu, g, y) } の並び。1行は LINE px
+function listLines(weapon) {
+  const head = (label) => ({
+    draw(menu, g, y) {
+      g.lineStyle(1, hex(COLORS.line), 1).lineBetween(LIST_X, y + LINE - 3, LIST_X + LIST_W, y + LINE - 3);
+      menu.text(LIST_X, y + 3, label, 12, COLORS.cyan, { fontStyle: '700' });
+    },
+  });
+  const blank = { draw() {} };
+  const lines = [head('キーの操作')];
+  for (const group of GROUPS) {
+    lines.push({
+      draw(menu, g, y) {
+        g.fillStyle(hex(group.color), 0.3).fillRect(LIST_X, y + 5, 12, 12);
+        g.lineStyle(1.5, hex(group.color), 1).strokeRect(LIST_X, y + 5, 12, 12);
+        menu.text(LIST_X + 20, y + 3, group.name, 12, group.color, { fontStyle: '700' });
+        menu.text(LIST_X + 104, y + 3, group.text, 12, COLORS.ink);
+      },
+    });
+  }
+  lines.push(blank, head('武器ごとのクリック（今の武器は、明るい）'));
+  for (const line of mouseLines(weapon)) {
+    const on = line.current || !weapon;
+    lines.push(
+      { draw: (menu, g, y) => menu.text(LIST_X, y + 4, `${line.name}${line.current ? '　← 今の武器' : ''}`, 13, on ? COLORS.ink : COLORS.dim, { fontStyle: '700' }) },
+      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `左クリック：${line.left}`, 12, on ? COLORS.cyan : LOCKED) },
+      { draw: (menu, g, y) => menu.text(LIST_X + 20, y + 3, `右クリック：${line.right}`, 12, on ? COLORS.amber : LOCKED) },
+    );
+  }
+  // 確認用のキー（開発中の画面だけ。公開版では出ないし、効かない）
+  if (import.meta.env.DEV) {
+    lines.push(
+      blank,
+      head('確認用（開発中の画面だけ）'),
+      { draw: (menu, g, y) => menu.text(LIST_X, y + 3, '戦闘中：B ボス部屋へ／N 次のエリアへ／O 奥義を使える状態に', 11, COLORS.dim) },
+      { draw: (menu, g, y) => menu.text(LIST_X, y + 3, '隠れ家：U 武器を全解放', 11, COLORS.dim) },
+    );
+  }
+  return lines;
+}
+
+// menu: MenuOverlay（text / panel / graphics / window を借りる）, weapon: 今持っている武器（なければ null）
 export function renderControls(menu, weapon) {
   menu.panel(40, 122, 880, 336);
   const g = menu.graphics();
 
-  // ---- キーボード ----
+  // ---- 左：キーボードの図 ----
   menu.text(60, 132, 'キーボード', 12, COLORS.cyan, { fontStyle: '700' });
   ROWS.forEach((row, r) => {
     let x = 60;
@@ -53,52 +105,35 @@ export function renderControls(menu, weapon) {
       const color = keyColor(key.k);
       g.fillStyle(color ? hex(color) : PANEL, color ? 0.22 : 1).fillRect(x, y, w, KEY);
       g.lineStyle(color ? 2 : 1, color ? hex(color) : hex(COLORS.line), 1).strokeRect(x, y, w, KEY);
-      if (color || key.w) menu.text(x + w / 2, y + KEY / 2, key.k, key.k.length > 1 ? 10 : 13, color ?? '#4a4470', { fontStyle: '700' }).setOrigin(0.5);
+      if (color || key.w) menu.text(x + w / 2, y + KEY / 2, key.k, key.k.length > 1 ? 10 : 13, color ?? LOCKED, { fontStyle: '700' }).setOrigin(0.5);
       x += w + GAP;
     }
   });
 
-  // ---- マウス ----
-  const mx = 452;
-  const my = 160;
-  menu.text(mx - 34, 132, 'マウス', 12, COLORS.cyan, { fontStyle: '700' });
-  // 本体
-  g.fillStyle(PANEL, 1).fillRoundedRect(mx - 34, my, 68, 104, 26);
-  g.lineStyle(2, hex(COLORS.dim), 1).strokeRoundedRect(mx - 34, my, 68, 104, 26);
+  // ---- 左下：マウスの図と、向きの決め方 ----
+  const mx = 94;
+  const my = 362;
+  menu.text(60, 342, 'マウス', 12, COLORS.cyan, { fontStyle: '700' });
+  g.fillStyle(PANEL, 1).fillRoundedRect(mx - 34, my, 68, 86, 24);
+  g.lineStyle(2, hex(COLORS.dim), 1).strokeRoundedRect(mx - 34, my, 68, 86, 24);
   // 左ボタン（攻撃）と右ボタン（特殊）
-  g.fillStyle(hex(COLORS.cyan), 0.3).fillRoundedRect(mx - 34, my, 33, 44, { tl: 26, tr: 0, bl: 0, br: 0 });
-  g.lineStyle(2, hex(COLORS.cyan), 1).strokeRoundedRect(mx - 34, my, 33, 44, { tl: 26, tr: 0, bl: 0, br: 0 });
-  g.fillStyle(hex(COLORS.amber), 0.3).fillRoundedRect(mx + 1, my, 33, 44, { tl: 0, tr: 26, bl: 0, br: 0 });
-  g.lineStyle(2, hex(COLORS.amber), 1).strokeRoundedRect(mx + 1, my, 33, 44, { tl: 0, tr: 26, bl: 0, br: 0 });
-  menu.text(mx - 18, my + 22, '左', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(0.5);
-  menu.text(mx + 18, my + 22, '右', 12, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
+  g.fillStyle(hex(COLORS.cyan), 0.3).fillRoundedRect(mx - 34, my, 33, 38, { tl: 24, tr: 0, bl: 0, br: 0 });
+  g.lineStyle(2, hex(COLORS.cyan), 1).strokeRoundedRect(mx - 34, my, 33, 38, { tl: 24, tr: 0, bl: 0, br: 0 });
+  g.fillStyle(hex(COLORS.amber), 0.3).fillRoundedRect(mx + 1, my, 33, 38, { tl: 0, tr: 24, bl: 0, br: 0 });
+  g.lineStyle(2, hex(COLORS.amber), 1).strokeRoundedRect(mx + 1, my, 33, 38, { tl: 0, tr: 24, bl: 0, br: 0 });
+  menu.text(mx - 18, my + 19, '左', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(0.5);
+  menu.text(mx + 18, my + 19, '右', 12, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
+  menu.text(146, my + 2, '左クリック：攻撃', 12, COLORS.cyan, { fontStyle: '700' });
+  menu.text(146, my + 22, '右クリック：特殊（武器ごとに違う）', 12, COLORS.amber, { fontStyle: '700' });
   // 向きの決め方は、設定の「操作方法」で変わる
   const auto = getSettings().controls === 'auto';
-  menu.text(mx, my + 122, auto ? 'オート：ロックオンした敵を向く\nR：ロックオンの切り替え' : 'カーソルの方向を向く\n攻撃もその方向に出る', 11, COLORS.dim, { align: 'center', lineSpacing: 3 }).setOrigin(0.5, 0);
+  menu.text(146, my + 48, auto ? '操作方法：オート\nロックオンした敵のほうを向く（R で切り替え）' : '操作方法：マニュアル\nカーソルのあるほうを向く。攻撃もその向きに出る', 11, COLORS.dim, { lineSpacing: 4 });
 
-  // 武器ごとの左・右クリック（今の武器は明るく）
-  menu.text(510, 132, '武器ごとのクリック', 12, COLORS.cyan, { fontStyle: '700' });
-  mouseLines(weapon).forEach((line, i) => {
-    const y = 154 + i * 62;
-    const on = line.current || !weapon;
-    menu.panel(510, y, 396, 56, on ? COLORS.ink : COLORS.line);
-    menu.text(522, y + 6, line.name, 13, on ? COLORS.ink : COLORS.dim, { fontStyle: '700' });
-    menu.text(586, y + 7, `左：${line.left}`, 11, on ? COLORS.cyan : '#4a4470');
-    menu.text(586, y + 30, `右：${line.right}`, 11, on ? COLORS.amber : '#4a4470');
-  });
+  // 左と右を分ける線
+  g.lineStyle(1, hex(COLORS.line), 1).lineBetween(436, 134, 436, 446);
 
-  // ---- キーの説明（2列） ----
-  GROUPS.forEach((group, i) => {
-    const x = 60 + (i % 2) * 430;
-    const y = 352 + Math.floor(i / 2) * 24;
-    g.fillStyle(hex(group.color), 0.3).fillRect(x, y + 2, 12, 12);
-    g.lineStyle(1.5, hex(group.color), 1).strokeRect(x, y + 2, 12, 12);
-    menu.text(x + 20, y, group.name, 12, group.color, { fontStyle: '700' });
-    menu.text(x + 110, y, group.text, 12, COLORS.ink);
-  });
-
-  // 確認用のキー（開発中の画面だけ。公開版では出ないし、効かない）
-  if (import.meta.env.DEV) {
-    menu.text(60, 443, '確認用（開発中の画面だけ）：戦闘中に B ボス部屋へ／N 次のエリアへ／O 奥義を使える状態に　隠れ家で U 武器を全解放', 10, COLORS.dim);
-  }
+  // ---- 右：一覧（上下に動かせる） ----
+  const lines = listLines(weapon);
+  const start = menu.window(lines.length, VISIBLE, { x: 908, y: LIST_Y, h: VISIBLE * LINE });
+  lines.slice(start, start + VISIBLE).forEach((line, i) => line.draw(menu, g, LIST_Y + i * LINE));
 }
