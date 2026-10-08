@@ -23,7 +23,23 @@ export function createBuild(bonus = null) {
     ougiUsed: false, // このエリアで奥義を使ったか（エリアごとに1回）
     reviveUsed: false, // この出撃で、もう起き上がったか（種族「多頭」の予備の首）
     weaponId: null, // 持っている武器（武器ごとのステータス補正に使う。null なら補正なし）
+    weaponMods: bonus?.weaponMods ?? {}, // 武器ごとの恒久強化（特殊アクションを強くする）
   };
+}
+
+// その武器の定義に、恒久強化（武器ごとの強化）を当てたもの。強化がなければ、元の定義のまま
+//   mod: { special: 書き換える値, scale: 掛ける倍率, stageTime: 溜めの段階の時間に掛ける倍率 }
+export function upgradedWeapon(def, mod = null) {
+  if (!mod) return def;
+  const special = { ...def.special, ...(mod.special ?? {}) };
+  for (const [key, mul] of Object.entries(mod.scale ?? {})) special[key] = def.special[key] * mul;
+  if (mod.stageTime && def.special.stages) special.stages = def.special.stages.map((s) => ({ ...s, time: s.time * mod.stageTime }));
+  return { ...def, special };
+}
+
+// そのビルドで使う、武器の定義（恒久強化を当てたもの）
+export function weaponFor(build, weaponId) {
+  return upgradedWeapon(DATA.weapons.get(weaponId), build?.weaponMods?.[weaponId] ?? null);
 }
 
 // インプラントの強さの倍率。Lv1 で 1、Lv が1上がるごとに implantGrowth ずつ増える

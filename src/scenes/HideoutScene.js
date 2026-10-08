@@ -9,6 +9,7 @@ import { recalcStats } from '../game/build.js';
 import { floatText, ring } from '../game/fx.js';
 import { interact } from '../game/objects.js';
 import { currentSlot, getSave, persist } from '../game/saveStore.js';
+import { weaponFor } from '../logic/stats.js';
 import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
@@ -257,7 +258,7 @@ export class HideoutScene extends Phaser.Scene {
     }
     if (this.usable(weaponId)) {
       this.save.selected = weaponId;
-      p.weapon = DATA.weapons.get(weaponId);
+      p.weapon = weaponFor(p.build, weaponId);
       // 武器ごとのステータス補正を付け替える
       p.build.weaponId = weaponId;
       recalcStats(p);

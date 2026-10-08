@@ -4,7 +4,7 @@ import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { autoFacing } from './autoAim.js';
-import { createBuild } from '../logic/stats.js';
+import { createBuild, weaponFor } from '../logic/stats.js';
 import { recalcStats } from './build.js';
 import { healPlayer, hitEnemy } from './combat.js';
 import { updateItemEffects } from './consumables.js';
@@ -56,6 +56,7 @@ export function createPlayer(weaponId, x, y, carry = null) {
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
     forceCrit: false, // 次の攻撃が必ず会心
   };
+  player.weapon = weaponFor(player.build, weaponId); // 恒久強化（武器ごとの強化）を当てた定義
   recalcStats(player);
   player.hp = Math.min(player.stats.maxHp, carry?.hp ?? player.stats.maxHp);
   player.dashCharges = player.stats.dashCharges;
@@ -377,7 +378,10 @@ const SPECIALS = {
     const p = world.player;
     const special = p.weapon.special;
     if (!input.specialPressed || p.specialCd > 0) return false;
-    p.specialCd = special.cooldown;
+    // 続けて置ける数（恒久強化「二枚刃」で2つ）。置ける数まで置いたら、クールダウンに入る
+    const placed = world.zones.filter((z) => z.chakram).length;
+    if (placed >= (special.maxPlaced ?? 1)) return false;
+    p.specialCd = placed + 1 >= (special.maxPlaced ?? 1) ? special.cooldown : 0.3;
     const spot = { x: p.x + p.fx * special.offset, y: p.y + p.fy * special.offset, r: 0 };
     clampToBounds(spot, world.bounds);
     world.zones.push({ x: spot.x, y: spot.y, r: special.radius, life: special.life, max: special.life, damage: special.damage, tick: special.tick, acc: 0, color: COLORS.cyan, chakram: true });

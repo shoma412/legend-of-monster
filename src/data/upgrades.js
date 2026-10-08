@@ -15,6 +15,7 @@
 //   carrySlots  : 持ち込みの種族の枠を増やす数
 //   itemSlots   : 消耗品の枠を増やす数
 //   keepImplants: マップをクリアしたあと、次の出撃に持ち越せるインプラントの数を増やす
+//   weaponMod   : その武器の特殊アクションを強くする。{ weapon: 武器の id, special: 書き換える値, scale: 掛ける倍率, stageTime: 溜めの段階の時間に掛ける倍率 }
 // since    : 何回目に足した強化か（書いていなければ 1 ＝ 最初の34マス）。2 以上のものは、最初の配置を作ったあとで、枝の先や空いている所に付け足す。
 //            今あるセーブデータの配置を変えないための決まり（docs/詳細仕様.md「23. スキルツリー」の「あとからマスを足すとき」）
 // ready: false は、まだ中身ができていないもの（隠れ家には「準備中」と出て、買えない）
@@ -155,6 +156,42 @@ export const upgrades = [
     // 隠しボス「カタリスト」の素材を使う（4〜5段目のマス）
     costs: [{ catalystCore: 1, bufferCore: 1 }],
     perLevel: { mods: [{ stat: 'statusTime', add: 0.2 }] },
+  },
+  // ---- ここから、武器ごとの強化（since: 5）。その武器の特殊アクションだけを強くする。その武器を持っているときだけ効く ----
+  {
+    id: 'wm-greatsword', category: 'skill', name: '溜めの心得', desc: '大剣：溜め斬りの溜め時間 −20%', max: 1, since: 5,
+    costs: [{ overCore: 1, hydraCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'greatsword', stageTime: 0.8 } },
+  },
+  {
+    id: 'wm-sword', category: 'skill', name: '見切り', desc: '片手剣：ジャストガードの受付 0.15秒 → 0.20秒', max: 1, since: 5,
+    costs: [{ boarCore: 1, houndCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'sword', special: { window: 0.2 } } },
+  },
+  {
+    id: 'wm-gun', category: 'skill', name: '拡張弾倉', desc: '銃：拡散射撃 5発 → 7発', max: 1, since: 5,
+    costs: [{ cryoCore: 1, spiderCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'gun', special: { count: 7 } } },
+  },
+  {
+    id: 'wm-knuckle', category: 'skill', name: '闘気', desc: 'ナックル：バーストブローのゲージの溜まり +25%', max: 1, since: 5,
+    costs: [{ serpentCore: 1, titanCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'knuckle', scale: { gain: 1.25, gainHeavy: 1.25 } } },
+  },
+  {
+    id: 'wm-cannon', category: 'skill', name: '急速装填', desc: '大砲：徹甲砲撃のクールダウン 7秒 → 5秒', max: 1, since: 5,
+    costs: [{ crabCore: 1, mothCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'cannon', special: { cooldown: 5 } } },
+  },
+  {
+    id: 'wm-spear', category: 'skill', name: '踏み込み', desc: '槍：突進突きの距離 +25%、クールダウン 5秒 → 4秒', max: 1, since: 5,
+    costs: [{ titanCore: 1, lensCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'spear', special: { cooldown: 4 }, scale: { distance: 1.25 } } },
+  },
+  {
+    id: 'wm-chakram', category: 'skill', name: '二枚刃', desc: 'チャクラム：設置を、続けて2つ置ける', max: 1, since: 5,
+    costs: [{ mothCore: 1, breakerCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'chakram', special: { maxPlaced: 2 } } },
   },
 ];
 

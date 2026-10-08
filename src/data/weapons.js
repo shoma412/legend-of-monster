@@ -35,7 +35,7 @@ export const weapons = [
     // 奥義（恒久強化「大剣の奥義」を買うと使える）：残りHPが hpBelow 以下のとき、エリアごとに1回だけ、
     // 右クリックで自分を中心とした円の衝撃波を出す。威力は damage × multiplier
     ougi: { name: '奥義', hpBelow: 0.2, damage: 120, multiplier: 1.75, radius: 260, knockback: 900, invincible: 0.6 },
-    moveSlow: 0.45, // 振っている間の移動速度の倍率
+    moveSlow: 0.55, // 振っている間の移動速度の倍率（2026-10-09：0.45 から上げた。当てやすくするため）
     comboReset: 0.7, // この秒数攻撃しないと1段目に戻る
     combo: [
       { damage: 30, range: 80, arc: 45, windup: 0.1, swing: 0.2, recover: 0.26, knockback: 380, lunge: 16 },
@@ -129,8 +129,9 @@ export const weapons = [
       hint: '右クリック バーストブロー（ゲージ満タンで）',
       cooldown: 0.5, // 撃ったあと、次に撃てるようになるまで（秒）。ゲージが要るので、短くてよい
       gaugeMax: 100,
-      gain: 4, // 通常攻撃を当てるたびに溜まる量（1回の攻撃で何体に当てても同じ）
-      gainHeavy: 8, // フックを当てたときに溜まる量
+      // 2026-10-09：4・8 から下げた（殴り続けて満タンになるまでが、約5秒 → 約7秒に）
+      gain: 3, // 通常攻撃を当てるたびに溜まる量（1回の攻撃で何体に当てても同じ）
+      gainHeavy: 6, // フックを当てたときに溜まる量
       hold: 3, // この秒数、敵に当てないでいると、ゲージが減り始める
       decay: 20, // 減る速さ（1秒あたり）
       // 一撃：前に踏み込んで殴る
@@ -198,8 +199,9 @@ export const weapons = [
     mods: [{ stat: 'moveSpeedMul', add: 0.05 }, { stat: 'damageTaken', add: 0.05 }], // 身軽。少し打たれ弱い
     moveSlow: 0.85, // 投げた直後の移動速度の倍率
     shot: {
-      damage: 22, interval: 0.2, speed: 560, radius: 13, life: 30, knockback: 150,
-      boomerang: { range: 300, back: 680 },
+      // 2026-10-09：威力 22 → 28、戻りの速さ 680 → 820（7種類の中で、いちばん弱かったため）
+      damage: 28, interval: 0.2, speed: 560, radius: 13, life: 30, knockback: 150,
+      boomerang: { range: 300, back: 820 },
     },
     special: {
       type: 'plant',
@@ -211,6 +213,7 @@ export const weapons = [
       life: 5, // 秒
       damage: 8, // tick 秒ごと
       tick: 0.25,
+      maxPlaced: 1, // 続けて置ける数（恒久強化「二枚刃」で 2 になる）
     },
   },
 ];

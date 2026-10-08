@@ -12,7 +12,8 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 50;
+const ALL_NODES = 57;
+const WEAPON_NODES = 7; // 武器ごとの強化（since: 5）
 const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
 
@@ -302,6 +303,10 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
       expect(extra).toHaveLength(ALL_NODES - FIRST_NODES);
       expect(extra.filter((n) => n.since === 2)).toHaveLength(MAP4_NODES);
       expect(extra.filter((n) => n.since === 4)).toHaveLength(MAP5_NODES);
+      for (const n of extra.filter((x) => x.since === 5)) {
+        expect(n.depth, n.id).toBeGreaterThanOrEqual(4);
+        expect(n.depth, n.id).toBeLessThanOrEqual(5);
+      }
       expect(tree.byId['hardshell#0'].depth).toBe(6);
       expect(tree.byId['catalyzer#0'].depth).toBeGreaterThanOrEqual(4);
       expect(tree.byId['catalyzer#0'].depth).toBeLessThanOrEqual(5);
@@ -372,6 +377,30 @@ describe('マップ5で足した8マス（since: 4）', () => {
       expect(tree.nodes).toHaveLength(ALL_NODES);
       const { pos, maxDepth } = layoutTree(tree);
       expect(maxDepth).toBe(6);
+      expect(new Set(tree.nodes.map((n) => `${pos[n.id].col}/${pos[n.id].row.toFixed(4)}`)).size).toBe(ALL_NODES);
+    }
+  });
+});
+
+describe('武器ごとの強化（since: 5）', () => {
+  it('足す前の50マスの場所は、変わらない', () => {
+    const v4 = JSON.parse(readFileSync(new URL('./fixtures/tree-v4.json', import.meta.url), 'utf8'));
+    expect(Object.keys(v4)).toHaveLength(20);
+    for (const [seed, list] of Object.entries(v4)) {
+      expect(list).toHaveLength(50);
+      const now = buildTree(Number(seed)).nodes.filter((n) => n.since <= 4).map((n) => `${n.id}<${n.parent}@${n.depth}`);
+      expect(now, seed).toEqual(list);
+    }
+  });
+
+  it('武器7種類に、1マスずつ。どれも素材2種類。画面でも重ならない', () => {
+    const defs = allUpgrades.filter((d) => d.since === 5);
+    expect(defs).toHaveLength(WEAPON_NODES);
+    expect(defs.map((d) => d.perLevel.weaponMod.weapon).sort()).toEqual(DATA.weapons.ids().sort());
+    for (const d of defs) expect(Object.keys(d.costs[0]), d.id).toHaveLength(2);
+    for (const seed of SEEDS.slice(0, 60)) {
+      const tree = buildTree(seed);
+      const { pos } = layoutTree(tree);
       expect(new Set(tree.nodes.map((n) => `${pos[n.id].col}/${pos[n.id].row.toFixed(4)}`)).size).toBe(ALL_NODES);
     }
   });

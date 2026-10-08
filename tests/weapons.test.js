@@ -424,11 +424,11 @@ describe('ナックル（2026-10-07 追加）', () => {
 
     const w2 = makeWorld('knuckle');
     const e = addEnemy(w2, 'grunt', 30);
-    punch(w2, e, special.hold + 2);
+    punch(w2, e, special.hold + 6);
     expect(w2.player.gauge).toBe(special.gaugeMax);
   });
 
-  it('殴り続けて満タンになるまでは、4秒前後', () => {
+  it('殴り続けて満タンになるまでは、7秒前後（2026-10-09：ゲージの溜まりを下げた。前は5秒前後）', () => {
     const world = makeWorld('knuckle');
     const e = addEnemy(world, 'grunt', 30);
     let t = 0;
@@ -437,8 +437,8 @@ describe('ナックル（2026-10-07 追加）', () => {
       e.y = world.player.y;
       updateWorld(world, DT, { ...idle, attack: true });
     }
-    expect(t).toBeGreaterThan(2.5);
-    expect(t).toBeLessThan(5.5);
+    expect(t).toBeGreaterThan(5.5);
+    expect(t).toBeLessThan(8);
   });
 
   it('ステータス：移動速度 +10%、被ダメージ +5%。解放はサーペントコア2個', () => {
