@@ -19,8 +19,11 @@ export const maps = [
     secretBoss: { boss: 'architect', hint: ['@noise＞ ……壁の向こうに、反応がある。'] },
   },
   // requiresPass: このマップに入るのに必要な通行証（そのマップの id）
-  // 停電区。environment は、このマップのすべての部屋に効く決まり（src/data/environments.js）。エリア2・3は、これから足す
-  { id: 'map4', code: 'MAP 04', name: '停電区', areas: ['darkstreet', 'substation', 'control'], enemyScale: 3, environment: 'dark', requiresPass: 'map3' },
+  // 停電区。environment は、このマップのすべての部屋に効く決まり（src/data/environments.js）
+  { id: 'map4', code: 'MAP 04', name: '停電区', areas: ['darkstreet', 'substation', 'control'], enemyScale: 3, environment: 'dark', requiresPass: 'map3',
+    // 隠しボスの出し方が、マップ3とは違う（rule: 'lamps'）：そのエリアで通ってきた部屋の非常灯を、すべて1回は点けていると、ボス前の補給部屋に道が開く
+    secretBoss: { boss: 'nocturne', rule: 'lamps', hint: ['@noise＞ ……灯りを全部点けたな。壁の向こうで、何かが目を覚ました。'] },
+  },
   { id: 'map5', code: 'MAP 05', name: '？？？', areas: [], ready: false },
   { id: 'map6', code: 'MAP 06', name: '？？？', areas: [], ready: false },
   { id: 'map7', code: 'MAP 07', name: '？？？', areas: [], ready: false },

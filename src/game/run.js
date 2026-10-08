@@ -1,7 +1,7 @@
 // 1回のラン（出撃から死亡またはクリアまで）の進行。部屋をまたいで持ち越すものをまとめる。
-import { ENEMY_SCALING, ROOM, ROOMGEN, SCREEN } from '../data/balance.js';
+import { ENEMY_SCALING, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
 import { roomBounds } from '../logic/geometry.js';
-import { placeLamps } from './darkness.js';
+import { allLampsLit, placeLamps } from './darkness.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
@@ -21,7 +21,7 @@ export { SECRET_IN, SECRET_OUT };
 // ひび割れた壁を置く部屋を、今のエリアの地図から1つ選ぶ（最初の部屋・ボス前の補給・ボス部屋は除く）
 function placeSecret(run) {
   const s = run.secret;
-  if (!s || s.areaIndex !== run.areaIndex) return;
+  if (!s || s.rule === 'lamps' || s.areaIndex !== run.areaIndex) return;
   const ids = Object.keys(run.plan.nodes).filter((id) => !['start', 'rest', 'boss'].includes(id));
   s.node = ids.length > 0 ? ids[Math.min(ids.length - 1, Math.floor(run.rng() * ids.length))] : null;
 }
@@ -56,7 +56,10 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
   };
   // このランで選択肢に出る種族：そのマップのボスの種族と、持ち込みの種族
   // 隠しボスのいるマップ：出撃ごとに、どこか1部屋にひび割れた壁が出る（エリアも部屋も毎回変わる）
-  if (map.secretBoss) {
+  if (map.secretBoss?.rule === 'lamps') {
+    // 灯りを点けて回るマップ：lampsOk は、今のエリアで通ってきた部屋の非常灯を、すべて点けてきたか
+    run.secret = { boss: map.secretBoss.boss, rule: 'lamps', lampsOk: true, done: false };
+  } else if (map.secretBoss) {
     run.secret = { boss: map.secretBoss.boss, areaIndex: Math.min(map.areas.length - 1, Math.floor(rng() * map.areas.length)), node: null, done: false };
     placeSecret(run);
   }
@@ -101,7 +104,13 @@ export function enterRoom(run) {
   const room = buildRoom(type, ctx, doors);
   // ひび割れた壁のある部屋（まだ隠しボスを倒していないとき）
   const s = run.secret;
-  if (s && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
+  if (s && s.rule !== 'lamps' && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
+  // 灯りを点けて回るマップ：条件を満たしてボス前の補給部屋に着くと、隠しエリアへの道が開いている
+  if (s && s.rule === 'lamps' && !run.inSecret && !s.done && s.lampsOk && plan.current === 'rest') {
+    room.secretOpen = true;
+    // 左の壁の下のほう（上の壁は、区画名と通信の文字に重なる）
+    room.objects.push({ kind: 'secretDoor', x: ROOM.wall + SECRET.wallMargin, y: SCREEN.height - ROOM.wall - 120, r: SECRET.doorRadius, side: 'left', target: SECRET_IN });
+  }
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex * (run.map.enemyScale ?? 1);
   // 周回による変化（敵の HP、受けるダメージ、装備のレア度、ボスの行動、補給の回復量）
@@ -138,6 +147,8 @@ export function enterRoom(run) {
 export function leaveRoom(run, world, nextId) {
   run.hp = world.player.hp;
   run.kills += world.kills;
+  // 灯りを点けて回るマップ：点けていない非常灯を残して部屋を出たら、このエリアでは道が開かない
+  if (run.secret?.rule === 'lamps' && !run.inSecret && !allLampsLit(world)) run.secret.lampsOk = false;
   // 隠し扉に入る：地図の上では、同じ部屋にいるまま
   if (nextId === SECRET_IN) {
     run.inSecret = true;
@@ -155,6 +166,7 @@ export function leaveRoom(run, world, nextId) {
     run.areaIndex++;
     run.plan = createAreaPlan(currentArea(run), run.rng);
     placeSecret(run);
+    if (run.secret?.rule === 'lamps') run.secret.lampsOk = true; // 判定は、エリアごとにやり直す
     run.build.ougiUsed = false; // 奥義はエリアごとに1回
     return;
   }

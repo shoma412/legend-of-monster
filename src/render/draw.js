@@ -967,6 +967,18 @@ BOSS_TELEGRAPHS.douse = (g, b, act, world) => {
   }
 };
 
+// 影踏み・写し身：出す前の予告（プレイヤーの足元に、影が集まる）
+BOSS_TELEGRAPHS.shadowstep = (g, b, act, world) => {
+  if (act.phase !== 'telegraph') return;
+  const p = world.player;
+  const k = 1 - Math.max(0, act.t) / act.def.telegraph;
+  const c = hex(b.color);
+  g.lineStyle(2, c, 0.4 + 0.5 * k).lineBetween(b.x, b.y, p.x, p.y);
+  g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(p.x, p.y, p.r + 30 * (1 - k) + 6);
+  g.lineStyle(3, hex(COLORS.red), 0.5 + 0.4 * k).strokeCircle(b.x, b.y, b.r + 26 - 14 * k);
+};
+BOSS_TELEGRAPHS.mirror = BOSS_TELEGRAPHS.shadowstep;
+
 // 遮断：灯りが落ちる前の予告（ボスへ向かって縮む、暗い輪）
 BOSS_TELEGRAPHS.blackout = (g, b, act) => {
   if (act.phase !== 'telegraph') return;
@@ -1384,6 +1396,28 @@ SHAPES.moth = (g, b, color, world) => {
   }
 };
 
+// ノクターン：輪郭だけの、黒い人影。まわりを、欠けた輪がゆっくり回る
+SHAPES.nocturne = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  g.fillStyle(0x000000, 0.92).fillCircle(b.x, b.y, r);
+  neonStroke(g, color, 3, () => g.strokeCircle(b.x, b.y, r));
+  // 外套のすそ（後ろへ流れる）
+  const cloak = [local(b, -r * 0.2, r * 0.95), local(b, -r * 1.7, r * 0.5), local(b, -r * 1.25, 0), local(b, -r * 1.7, -r * 0.5), local(b, -r * 0.2, -r * 0.95)];
+  g.fillStyle(0x000000, 0.9).fillPoints(cloak, true);
+  g.lineStyle(2, color, 0.7).strokePoints(cloak, false, false);
+  // 欠けた輪
+  const spin = world.time * (stunned ? 0.2 : 0.9);
+  g.lineStyle(2, color, 0.55);
+  for (let i = 0; i < 3; i++) arcPath(g, b.x, b.y, r * 1.35, spin + (i * Math.PI * 2) / 3, spin + (i * Math.PI * 2) / 3 + 1.2);
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.5, side * r * 0.28);
+      g.fillStyle(WHITE, 1).fillCircle(eye.x, eye.y, 3.5);
+    }
+  }
+};
+
 // ブレーカー：四角い箱と、向いている方向に倒れた大きなレバー。残像（偽物）も、同じ形で描く
 //   残像を出している間、本物だけが細かく明滅する（偽物は、点いたまま）
 SHAPES.breaker = (g, b, color, world) => {
@@ -1446,7 +1480,18 @@ export function drawBossTelegraph(g, world) {
 
 export function drawHazards(g, world) {
   for (const h of world.hazards) {
-    if (h.type === 'searchlight') {
+    if (h.type === 'trail') {
+      // 影踏み：これから攻撃される道すじ（覚えている道）を、薄い点で示す
+      const c = hex(h.color);
+      for (let i = 0; i < h.path.length; i += 6) g.fillStyle(c, 0.28).fillCircle(h.path[i].x, h.path[i].y, 3);
+    } else if (h.type === 'echo') {
+      // 写し身：黒い人影。動き始める前は、薄い
+      const c = hex(h.color);
+      const fade = Math.min(1, h.life / 0.5) * (h.armed ? 1 : 0.4);
+      g.fillStyle(0x000000, 0.9 * fade).fillCircle(h.x, h.y, h.r);
+      g.lineStyle(2.5, c, 0.9 * fade).strokeCircle(h.x, h.y, h.r);
+      g.lineStyle(1.5, hex(COLORS.red), 0.6 * fade).strokeCircle(h.x, h.y, h.r + 5 + 2 * Math.sin(world.time * 10));
+    } else if (h.type === 'searchlight') {
       // 光の扇。触れると当たるもの（大技）は赤い。捕捉が進むと、プレイヤーのまわりの輪が赤く閉じていく
       const p = world.player;
       const half = h.arc / 2;

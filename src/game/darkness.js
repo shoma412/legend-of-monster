@@ -104,6 +104,11 @@ export function flashAt(world, x, y, def) {
   return true;
 }
 
+// その部屋の非常灯を、すべて1回は点けたか（非常灯のない部屋は、点けたものとして数える）
+export function allLampsLit(world) {
+  return (world.lamps ?? []).every((lamp) => lamp.lit);
+}
+
 // 遮断（ボス「ブレーカー」）：seconds 秒のあいだ、非常灯がすべて消えて点かず、見える円が scale 倍になる
 export function startBlackout(world, seconds, scale) {
   if (!darkEnv(world)) return;
@@ -126,6 +131,7 @@ export function lightAllLamps(world) {
   for (const lamp of world.lamps) {
     lamp.broken = 0;
     lamp.on = env.lamps.duration;
+    lamp.lit = true;
   }
 }
 
@@ -177,6 +183,7 @@ export function updateDarkness(world, dt) {
     if (Math.hypot(p.x - lamp.x, p.y - lamp.y) <= env.lamps.trigger) {
       if (lamp.on <= 0) sfx(world, 'select');
       lamp.on = env.lamps.duration;
+      lamp.lit = true;
     }
   }
   for (const l of world.lights) l.life -= dt;

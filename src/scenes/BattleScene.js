@@ -62,7 +62,9 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.fadeIn(200, 7, 6, 13);
     unlockAudio(this);
     const bossRoom = !!this.world.room.waves[0]?.boss;
-    playBgm(bossRoom ? this.area.bossBgm : this.area.bgm);
+    // 隠しボスに専用の曲があれば、それを流す（ボスの定義の bgm）
+    const secretBgm = run.inSecret ? DATA.bosses.get(run.secret.boss).bgm : null;
+    playBgm(bossRoom ? secretBgm ?? this.area.bossBgm : this.area.bgm);
     if (bossRoom) playSe('warning');
 
     this.floor = this.add.graphics();
@@ -181,6 +183,8 @@ export class BattleScene extends Phaser.Scene {
     });
     this.creditText = this.add.text(700, 9, '', { ...label, color: COLORS.amber, fontStyle: '700' });
     this.waveText = this.add.text(W - 40, H - 46, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.cyan }).setOrigin(1, 0).setAlpha(0.85);
+    // 環境「暗闇」：この部屋の非常灯を、いくつ点けたか
+    this.lampText = this.add.text(W - 40, H - 62, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '12px', color: COLORS.amber }).setOrigin(1, 0).setAlpha(0.85);
 
     this.bossName = this.add.text(W / 2, H - 66, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0.5).setVisible(false);
     // 近くのものを調べるときの案内
@@ -211,7 +215,7 @@ export class BattleScene extends Phaser.Scene {
     this.countWasOn = false;
     this.showSectorBanner();
     // ひび割れた壁のある部屋：通信でひとこと
-    if (this.world.room.secret && this.run.map.secretBoss?.hint) this.commLog.play(resolveNames(this.run.map.secretBoss.hint));
+    if ((this.world.room.secret || this.world.room.secretOpen) && this.run.map.secretBoss?.hint) this.commLog.play(resolveNames(this.run.map.secretBoss.hint));
     this.createBossWarning();
     this.bossIntroDone = false;
     this.clearShown = false;
@@ -437,6 +441,9 @@ export class BattleScene extends Phaser.Scene {
     this.kitText.setText(`修復キット ×${p.build.kits}`);
     this.creditText.setText(`${p.build.credits} c`);
     const fighting = world.mode === 'play' && !boss && world.waves.length > 0 && world.countdown <= 0;
+    const lamps = world.lamps ?? [];
+    const litCount = lamps.filter((l) => l.lit).length;
+    this.lampText.setVisible(lamps.length > 0 && !this.run.inSecret && this.run.plan.current !== 'boss').setText(`灯り ${litCount}/${lamps.length}`).setColor(litCount >= lamps.length ? COLORS.green : COLORS.amber);
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 
     const implantCount = Object.keys(p.build.implants).length;

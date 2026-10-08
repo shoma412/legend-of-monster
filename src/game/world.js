@@ -40,7 +40,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     arena: null, // ボスが部屋を狭めているとき { inset, target, speed, base }
     zones: [], // ダメージ床など、プレイヤー側のその場に残る効果
     devices: [], // 設置物（地雷・小型タレット）。部屋を出ると消える
-    lamps: (room.lamps ?? []).map((l) => ({ x: l.x, y: l.y, on: 0, broken: 0 })), // 非常灯（環境「暗闇」）。on は点いている残り秒数、broken は壊されていて点かない残り秒数
+    lamps: (room.lamps ?? []).map((l) => ({ x: l.x, y: l.y, on: 0, broken: 0, lit: false })), // 非常灯（環境「暗闇」）。on は点いている残り秒数、broken は壊されていて点かない残り秒数、lit は1回でも点けたか（マップ4の隠しボスの条件）
     lights: [], // 一時的な光（攻撃が当たった瞬間など。環境「暗闇」）
     loot: [], // 落ちている装備 { x, y, item }
     focusLoot: null, // 足元の装備（比較表示と付け替えの対象）

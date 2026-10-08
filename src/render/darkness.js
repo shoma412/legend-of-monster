@@ -63,6 +63,8 @@ export function drawLamps(g, world) {
     g.fillStyle(color, on ? flicker : 0.5).fillCircle(lamp.x, lamp.y - 16, on ? 6 : 4);
     if (on) g.lineStyle(4, hex(COLORS.amber), 0.3 * flicker).strokeCircle(lamp.x, lamp.y - 16, 9);
     if (broken) g.lineStyle(2, hex(COLORS.red), 0.8).lineBetween(lamp.x - 7, lamp.y - 21, lamp.x + 7, lamp.y - 11);
+    // 1回でも点けた非常灯には、足元に緑の印が付く
+    if (lamp.lit) g.fillStyle(hex(COLORS.green), 0.9).fillRect(lamp.x - 5, lamp.y + 15, 10, 3);
     // まだ点いていない非常灯には、近づく範囲の目安を薄く出す
     if (!on && !broken) g.lineStyle(1, hex(COLORS.dim), 0.35).strokeCircle(lamp.x, lamp.y, env.lamps.trigger);
   }

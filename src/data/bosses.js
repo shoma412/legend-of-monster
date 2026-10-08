@@ -696,6 +696,77 @@ export const bosses = [
       },
     ],
   },
+  // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
+  {
+    id: 'nocturne',
+    name: 'ノクターン',
+    alias: '影', // 登場時に出す異名
+    hidden: true,
+    bgm: 'bossNocturne', // この隠しボスだけの曲
+    shape: 'nocturne',
+    color: 'magenta',
+    weakness: null,
+    material: null,
+    radius: 38,
+    hp: 15500,
+    speed: 96,
+    contactDamage: 50,
+    xp: 760,
+    credits: 360,
+    drops: { count: 3, rarityBonus: 2, minRarity: 2 }, // 装備は、エピック以上を保証
+    comms: {
+      intro: [
+        '@noise＞ ……灯りを点けたから、影ができた。あれは、お前の影だ。',
+        '@noise＞ 通った道を、遅れてなぞってくる。同じ場所に戻るな。弱点は、ない。',
+      ],
+      defeated: [
+        '@noise＞ ……影が、足元に戻った。',
+        '@noise＞ 通行証を拾え。いつか、要るかもしれない。',
+      ],
+    },
+    attacks: {
+      // 固有「影踏み」：lag 秒前にいた場所が、interval 秒ごとに攻撃される（delay は、予告が出ている時間）
+      shadowstep: { pattern: 'shadowstep', telegraph: 0.8, trail: { life: 9, lag: 2, interval: 0.4, delay: 0.7, radius: 44, damage: 46 }, recover: 0.5 },
+      shadowstepHard: { pattern: 'shadowstep', telegraph: 0.7, trail: { life: 11, lag: 1.7, interval: 0.3, delay: 0.65, radius: 46, damage: 46 }, recover: 0.5 },
+      // 固有「写し身」：動きを delays 秒遅れて真似る影。触れるとダメージ
+      mirror: { pattern: 'mirror', telegraph: 0.8, echoes: { delays: [1.5], life: 10, radius: 20, damage: 44 }, recover: 0.5 },
+      mirrorHard: { pattern: 'mirror', telegraph: 0.7, echoes: { delays: [1.2, 2.4], life: 11, radius: 20, damage: 44 }, recover: 0.5 },
+      // 突進。壁に当たると隙ができる
+      lunge: { pattern: 'charge', telegraph: 0.65, lockTime: 0.2, speed: 680, duration: 0.65, damage: 52, recover: 0.7, wallStun: 1.2, reach: 'far' },
+      // 弾：プレイヤーへ扇形に
+      notes: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 5, spread: 56, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6 },
+      notesHard: { pattern: 'barrage', telegraph: 0.5, count: 12, spread: 360, waves: 4, interval: 0.32, rotate: 14, shotSpeed: 235, shotRadius: 7, damage: 34, recover: 0.6 },
+      // 追尾の照準
+      gaze: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 330, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
+      // 大技「夜想」：暗闇の中で、影踏みと、写し身2体が同時に来る。ボスは、そのまま攻撃を続ける
+      nocturne: {
+        pattern: 'shadowstep', telegraph: 1.6,
+        trail: { life: 14, lag: 1.7, interval: 0.3, delay: 0.65, radius: 46, damage: 48 },
+        echoes: { delays: [1.2, 2.4], life: 14, radius: 20, damage: 46 },
+        blackout: { duration: 14, vision: 0.7 }, recover: 0.8,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'lunge' }],
+    ultimate: { move: 'nocturne', announce: '夜想' },
+    phases: [
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['shadowstep', 'mirror', 'lunge', 'notes'] },
+      {
+        hpAbove: 0.3,
+        idle: { min: 0.8, max: 1.3 },
+        moves: ['shadowstepHard', 'mirror', 'gaze', 'lunge', 'notes'],
+        combos: [{ moves: ['mirror', 'lunge'] }, { moves: ['shadowstepHard', 'notes'] }],
+        announce: '影が、濃くなる',
+      },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        speed: 1.15,
+        moves: ['shadowstepHard', 'mirrorHard', 'gaze', 'lunge', 'notesHard'],
+        combos: [{ moves: ['mirrorHard', 'lunge'] }, { moves: ['shadowstepHard', 'gaze'] }, { moves: ['notesHard', 'lunge'] }],
+        announce: '夜は、明けない',
+      },
+    ],
+  },
   // ---- 隠しボス（docs/詳細仕様.md「21. 隠しボスと通行証」） ----
   // hidden: true のボスは、エリアのボスではない。ひび割れた壁の奥にいて、倒すとそのマップの通行証が手に入る。素材とデータ片は持たない
   {

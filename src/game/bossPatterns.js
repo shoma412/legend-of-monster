@@ -1167,6 +1167,51 @@ PATTERNS.scales = {
   },
 };
 
+// 影（ノクターン）の攻撃を始める。どちらも、出したあとに残り続けて、ボスはほかの攻撃をする。
+//   trail  : 影踏み。プレイヤーが lag 秒前にいた場所が、次々に攻撃される（interval 秒ごと、life 秒のあいだ）
+//   echoes : 写し身。プレイヤーの動きを、それぞれの秒数だけ遅れて真似る影（触れるとダメージ。life 秒のあいだ）
+//   blackout : その間、遮断の暗闇になる（大技）
+function castShadow(world, b, def) {
+  const p = world.player;
+  if (def.blackout) startBlackout(world, def.blackout.duration, def.blackout.vision);
+  if (def.trail) {
+    for (const h of world.hazards) if (h.type === 'trail' && h.owner === b) h.dead = true;
+    world.hazards.push({ type: 'trail', owner: b, clock: 0, life: def.trail.life, lag: def.trail.lag, interval: def.trail.interval, next: 0, delay: def.trail.delay, radius: def.trail.radius, damage: def.trail.damage, path: [{ x: p.x, y: p.y, t: 0 }], color: b.color });
+  }
+  if (def.echoes) {
+    for (const h of world.hazards) if (h.type === 'echo' && h.owner === b) h.dead = true;
+    for (const delay of def.echoes.delays) {
+      world.hazards.push({ type: 'echo', owner: b, clock: 0, life: def.echoes.life + delay, delay, r: def.echoes.radius, damage: def.echoes.damage, x: p.x, y: p.y, armed: false, path: [{ x: p.x, y: p.y, t: 0 }], color: b.color });
+    }
+  }
+  sfx(world, 'bossCharge');
+}
+
+const SHADOW_PATTERN = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+  },
+  update(world, b, dt, act) {
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        castShadow(world, b, act.def);
+        act.phase = 'recover';
+        act.t = act.def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 影踏み（ノクターン）：自分が少し前にいた場所が、次々に攻撃される
+PATTERNS.shadowstep = SHADOW_PATTERN;
+// 写し身（ノクターン）：自分の動きを、遅れて真似る影が出る
+PATTERNS.mirror = SHADOW_PATTERN;
+
 // 遮断（ブレーカー）：部屋の灯りがすべて落ち、見える円も狭くなる（duration 秒）。その間、プレイヤーの足元に落雷の予告が次々に出る（strikes）。
 //   終わると「復電」で部屋全体が明るくなり（surge 秒）、ボスは過負荷で overload 秒動けない
 PATTERNS.blackout = {
@@ -1384,7 +1429,34 @@ PATTERNS.flare = {
 export function updateHazards(world, dt) {
   const p = world.player;
   for (const h of world.hazards) {
-    if (h.type === 'searchlight') {
+    if (h.type === 'trail' || h.type === 'echo') {
+      // 影：プレイヤーの通った道を覚えておく（path は、古い順）
+      if (!h.owner || h.owner.dead) {
+        h.dead = true;
+        continue;
+      }
+      h.clock += dt;
+      h.life -= dt;
+      h.path.push({ x: p.x, y: p.y, t: h.clock });
+      if (h.type === 'trail') {
+        // 影踏み：lag 秒前にいた場所に、予告つきの攻撃を置く（予告の時間ぶんだけ、早めに置く）
+        const back = h.lag - h.delay;
+        while (h.path.length > 1 && h.clock - h.path[1].t >= back) h.path.shift();
+        if (h.clock >= h.next && h.clock >= back) {
+          h.next = h.clock + h.interval;
+          const spot = h.path[0];
+          world.hazards.push({ type: 'mark', x: spot.x, y: spot.y, r: h.radius, t: h.delay, max: h.delay, damage: h.damage, enemyDamage: 0, color: h.color });
+        }
+      } else {
+        // 写し身：delay 秒前のプレイヤーの場所にいる。動き始めてから、触れるとダメージ
+        while (h.path.length > 1 && h.clock - h.path[1].t >= h.delay) h.path.shift();
+        h.x = h.path[0].x;
+        h.y = h.path[0].y;
+        h.armed = h.clock >= h.delay;
+        if (h.armed && circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+      }
+      if (h.life <= 0) h.dead = true;
+    } else if (h.type === 'searchlight') {
       // 光の扇：ボスについて回る。扇の中にいる時間がたまると、狙撃が来る
       const b = h.owner;
       if (!b || b.dead || h.dead) {

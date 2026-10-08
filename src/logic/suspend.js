@@ -35,7 +35,8 @@ export function snapshotRun(run, world) {
     kills: run.kills + world.kills,
     visualSeed: run.visualSeed,
     gained: run.gained,
-    secret: run.secret ?? null,
+    // 灯りを点けて回るマップ：中断した部屋に、点けていない非常灯が残っていたら、このエリアでは道が開かない
+    secret: run.secret ? { ...run.secret, ...(run.secret.rule === 'lamps' ? { lampsOk: run.secret.lampsOk && (world.lamps ?? []).every((l) => l.lit) } : {}) } : null,
   }));
 }
 
