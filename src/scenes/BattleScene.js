@@ -168,7 +168,7 @@ export class BattleScene extends Phaser.Scene {
     // 経験値ゲージの左にレベル、右に数字
     this.levelText = this.add.text(40, 17, '', { ...label, color: COLORS.magenta, fontStyle: '700' });
     this.xpText = this.add.text(250, 17, '', { ...label, fontSize: '10px' });
-    this.add.text(326, 9, 'DASH', label);
+    this.add.text(356, 9, 'ダッシュ', label).setOrigin(1, 0); // ゲージ（x=362〜）の左に、右寄せで置く
     const weapon = this.world.player.weapon;
     // 特殊アクションの名前（長い名前は縮めて、クールダウンの棒に重ならないようにする）
     this.add.text(510, 8, weapon.special.name, { ...label, fontFamily: FONTS.body }).setOrigin(1, 0);

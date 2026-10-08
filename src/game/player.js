@@ -440,7 +440,7 @@ export function triggerCounter(world) {
   p.attack.phase = 'swing';
   // 反撃の角度は広角ブレードの影響を受けない（全方位のまま）
   p.attack.arc = c.arc * DEG;
-  floatText(world, p.x, p.y - 30, 'JUST GUARD', COLORS.amber, 16);
+  floatText(world, p.x, p.y - 30, 'Just Guard', COLORS.amber, 16);
   sfx(world, 'guard');
   world.events.push({ type: 'guard' });
   ring(world, p.x, p.y, c.range, COLORS.amber);

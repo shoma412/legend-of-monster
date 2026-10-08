@@ -156,10 +156,11 @@ export const STATUS = {
   playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
   killLight: { radius: 120, life: 6 }, // インプラント「誘蛾灯」：敵を倒した場所に残る光（暗闇のマップだけ）
   // プレイヤーが受ける持続ダメージ。tick 秒ごとに damage を、duration 秒のあいだ受ける。ダッシュすると消える。これで HP が 0 になることはない（1 残る）
+  // label は、付いた瞬間に画面に出す文字（状態が変わったときの文字は、英語にそろえる）
   dots: {
-    burn: { name: '炎上', color: 'heat', damage: 5, tick: 0.5, duration: 3 },
-    bleed: { name: '裂傷', color: 'red', damage: 4, tick: 0.4, duration: 3 },
-    corrode: { name: '腐食', color: 'green', damage: 6, tick: 0.5, duration: 3.5 },
+    burn: { name: '炎上', label: 'Burn', color: 'heat', damage: 5, tick: 0.5, duration: 3 },
+    bleed: { name: '裂傷', label: 'Bleed', color: 'red', damage: 4, tick: 0.4, duration: 3 },
+    corrode: { name: '腐食', label: 'Corrode', color: 'green', damage: 6, tick: 0.5, duration: 3.5 },
   },
 };
 

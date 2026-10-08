@@ -71,7 +71,7 @@ export function blindPlayer(world, seconds = null) {
   const env = darkEnv(world);
   if (!env || world.mode !== 'play') return;
   const p = world.player;
-  if (!(p.blindT > 0)) floatText(world, p.x, p.y - 42, '目くらみ!', COLORS.magenta, 16);
+  if (!(p.blindT > 0)) floatText(world, p.x, p.y - 42, 'Blind!', COLORS.magenta, 16);
   p.blindT = Math.max(p.blindT ?? 0, seconds ?? env.blind.duration);
 }
 
@@ -94,7 +94,7 @@ export function flashAt(world, x, y, def) {
   if (world.mode !== 'play' || !darkEnv(world)) return false;
   if (def.radius > 0 && Math.hypot(p.x - x, p.y - y) > def.radius) return false;
   if (!isFacing(world, x, y, def.facing)) {
-    floatText(world, p.x, p.y - 42, '背けた', COLORS.cyan, 13);
+    floatText(world, p.x, p.y - 42, 'Averted', COLORS.cyan, 13);
     return false;
   }
   blindPlayer(world, def.blind);

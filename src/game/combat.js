@@ -69,11 +69,11 @@ export function hitEnemy(world, enemy, base, dirX, dirY, knockback, options = {}
       sfx(world, 'block');
       const through = world.player.weapon.guardBreak ?? 0;
       if (through <= 0) {
-        floatText(world, enemy.x, enemy.y - enemy.r - 6, 'ガード', COLORS.dim, 13);
+        floatText(world, enemy.x, enemy.y - enemy.r - 6, 'Guard', COLORS.dim, 13);
         return { amount: 0, crit: false, weak: false, blocked: true };
       }
       // 盾の上から、割合ぶんだけ通す。吹き飛ばしも同じ割合に弱まる
-      floatText(world, enemy.x, enemy.y - enemy.r - 20, 'ガードの上から', COLORS.dim, 11);
+      floatText(world, enemy.x, enemy.y - enemy.r - 20, 'Guard Break', COLORS.dim, 11);
       base *= through;
       knockback *= through;
     }
@@ -150,7 +150,7 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
     amount -= absorbed;
     enemy.hit = 0.1;
     if (amount <= 0) {
-      floatText(world, enemy.x, enemy.y - enemy.r - 6, enemy.barrier > 0 ? '障壁' : '障壁破壊', COLORS.cyan, 13);
+      floatText(world, enemy.x, enemy.y - enemy.r - 6, enemy.barrier > 0 ? 'Barrier' : 'Barrier Break', COLORS.cyan, 13);
       return;
     }
   }
@@ -159,7 +159,7 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
   enemy.hp -= amount;
   enemy.hit = 0.1;
   // クリティカルは、数字を大きく・黄色にして見分ける（「!」は数字の 1 に見えるので付けない）
-  const label = amount + (weak ? ' 弱点' : '');
+  const label = amount + (weak ? ' Weakness' : '');
   const textColor = color ?? (crit ? COLORS.amber : weak ? ELEMENT_COLORS[enemy.def.weakness] : COLORS.ink);
   floatText(world, enemy.x + (world.rng() - 0.5) * 14, enemy.y - enemy.r - 6, label, textColor, small ? 12 : crit ? FEEL.critTextSize : weak ? 20 : 15);
   if (enemy.hp <= 0) killEnemy(world, enemy);
@@ -267,7 +267,7 @@ export function afflictPlayer(world, id) {
   const def = STATUS.dots[id];
   if (!def || world.mode !== 'play') return;
   const color = ELEMENT_COLORS[def.color] ?? COLORS[def.color] ?? COLORS.red;
-  if (!p.dot || p.dot.id !== id) floatText(world, p.x, p.y - 42, `${def.name}!`, color, 16);
+  if (!p.dot || p.dot.id !== id) floatText(world, p.x, p.y - 42, `${def.label ?? def.name}!`, color, 16);
   p.dot = { id, name: def.name, color, damage: def.damage, tick: def.tick, acc: 0, t: def.duration };
 }
 

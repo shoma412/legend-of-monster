@@ -51,7 +51,7 @@ export const PATTERNS = {
           sfx(world, 'explode');
           addShake(world, FEEL.shake.charged);
           burst(world, b.x + act.dirX * b.r, b.y + act.dirY * b.r, b.color, 24, 260);
-          floatText(world, b.x, b.y - b.r - 12, 'スタン!', COLORS.amber, 20);
+          floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
         } else if (act.t <= 0) {
           act.remaining--;
           if (act.remaining > 0) {
@@ -277,7 +277,7 @@ PATTERNS.vent = {
   start(world, b, act) {
     act.phase = 'stun';
     act.t = act.def.duration;
-    floatText(world, b.x, b.y - b.r - 14, '冷却中', COLORS.cyan, 20);
+    floatText(world, b.x, b.y - b.r - 14, 'Cooling', COLORS.cyan, 20);
     burst(world, b.x, b.y, COLORS.ink, 30, 220);
   },
   update(world, b, dt, act) {
@@ -697,7 +697,7 @@ PATTERNS.endure = {
         sfx(world, 'explode');
         addShake(world, FEEL.shake.charged);
         burst(world, b.x, b.y, COLORS.amber, 40, 340);
-        floatText(world, b.x, b.y - b.r - 12, 'ブレイク!', COLORS.amber, 24);
+        floatText(world, b.x, b.y - b.r - 12, 'Break!', COLORS.amber, 24);
         return false;
       }
       if (def.pulse) {
@@ -713,7 +713,7 @@ PATTERNS.endure = {
         act.next = 0;
         if (def.heal) {
           b.hp = Math.min(b.maxHp, b.hp + Math.round(b.maxHp * def.heal));
-          floatText(world, b.x, b.y - b.r - 12, '再生', COLORS.green, 22);
+          floatText(world, b.x, b.y - b.r - 12, 'Regen', COLORS.green, 22);
         }
         if (def.regrow) b.regrowAll = true;
       }
@@ -1114,7 +1114,7 @@ PATTERNS.douse = {
         act.t = def.wallStun;
         sfx(world, 'explode');
         addShake(world, FEEL.shake.charged);
-        floatText(world, b.x, b.y - b.r - 12, 'スタン!', COLORS.amber, 20);
+        floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
       } else if (act.t <= 0) {
         act.remaining--;
         if (act.remaining > 0) shift();
@@ -1261,7 +1261,7 @@ export function updateHazards(world, dt) {
         if (h.lock >= h.need) {
           h.lock = 0;
           h.cool = h.snipe.aim + h.snipe.interval;
-          floatText(world, p.x, p.y - 42, '捕捉!', COLORS.red, 16);
+          floatText(world, p.x, p.y - 42, 'Locked On!', COLORS.red, 16);
           sfx(world, 'select');
           world.hazards.push({ type: 'snipe', owner: b, x: b.x, y: b.y, t: h.snipe.aim, max: h.snipe.aim, lockTime: h.snipe.lock, angle: toPlayer, width: h.snipe.width, range: h.snipe.range, damage: h.snipe.damage, color: b.color });
         }
