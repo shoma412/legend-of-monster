@@ -32,6 +32,7 @@ export function createBoss(def, x, y, spawnT, { hpScale = 1, hard = false } = {}
     stopT: 0,
     spawnT,
     litT: 0, // 照らされている残り時間（インプラント「照準灯」）
+    corrodeT: 0, // 腐食の残り時間（受けるダメージが増える）
     act: null, // 実行中の攻撃
     phaseIndex: 0,
     next: null, // 次に必ず出す技の名前（テストや、決め打ちしたいとき用）

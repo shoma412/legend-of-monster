@@ -377,6 +377,15 @@ function drawStatus(g, e, world) {
     g.lineStyle(1.5, cold, 0.8).strokeCircle(e.x, e.y, e.r + 6);
   }
   if (e.litT > 0) g.lineStyle(1.5, hex(COLORS.amber), 0.35 + 0.35 * Math.min(1, e.litT)).strokeCircle(e.x, e.y, e.r + 8);
+  // 腐食：黄緑の泡が、体のまわりに浮かぶ
+  if (e.corrodeT > 0) {
+    const acid = hex(ELEMENT_COLORS.corrode);
+    for (let i = 0; i < 4; i++) {
+      const a = world.time * 2.2 + i * 1.57 + e.y * 0.03;
+      const rr = e.r * (0.7 + 0.3 * Math.sin(world.time * 3 + i));
+      g.lineStyle(1.5, acid, 0.9).strokeCircle(e.x + Math.cos(a) * rr, e.y + Math.sin(a) * rr - 2, 2.5 + (i % 2));
+    }
+  }
   if (e.burnT > 0) {
     const heat = hex(ELEMENT_COLORS.heat);
     for (let i = 0; i < 3; i++) {

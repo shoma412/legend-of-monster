@@ -21,6 +21,12 @@ export function applyBurn(enemy) {
   enemy.burnT = STATUS.burn.duration;
 }
 
+// 腐食：しばらくの間、受けるダメージが増える。当て直すと、時間が戻る
+export function applyCorrode(enemy) {
+  if (enemy.dead) return;
+  enemy.corrodeT = STATUS.corrode.duration;
+}
+
 // mul: 減速の時間の倍率（種族ボーナスなどで伸びる）
 export function applySlow(enemy, mul = 1) {
   enemy.slowT = Math.max(enemy.slowT, STATUS.slow.duration * mul);
@@ -32,10 +38,11 @@ export function applyStop(enemy, duration) {
   enemy.stopT = Math.max(enemy.stopT, duration);
 }
 
-// 属性つきの攻撃が当たったときの状態異常。熱は燃焼、冷却は減速
+// 属性つきの攻撃が当たったときの状態異常。熱は燃焼、冷却は減速、腐食は受けるダメージの増加
 function applyElementStatus(world, enemy, elements) {
   if (enemy.dead) return;
   if (elements.includes('heat')) applyBurn(enemy);
+  if (elements.includes('corrode')) applyCorrode(enemy);
   if (elements.includes('cold')) {
     // 種族ボーナスなど：すでに減速している敵は凍結することがある
     const chance = world.player.stats.freezeChance;
@@ -168,6 +175,13 @@ export function damageEnemy(world, enemy, amount, { crit = false, weak = false, 
       floatText(world, enemy.x, enemy.y - enemy.r - 6, enemy.barrier > 0 ? 'Barrier' : 'Barrier Break', COLORS.cyan, 13);
       return;
     }
+  }
+  // 腐食中の敵は、受けるダメージが増える（どのダメージにも効く）
+  //   燃焼のような小さなダメージでも増えるように、1に満たない端数は、次のダメージに繰り越す
+  if (enemy.corrodeT > 0) {
+    const exact = amount * (1 + (enemy.boss ? STATUS.corrode.bossAmount : STATUS.corrode.amount)) + (enemy.corrodeFrac ?? 0);
+    amount = Math.floor(exact + 1e-6);
+    enemy.corrodeFrac = Math.max(0, exact - amount);
   }
   // 首が残っているボス：本体へのダメージが減る
   if (enemy.armor > 0) amount = Math.max(1, Math.round(amount * (1 - enemy.armor)));

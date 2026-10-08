@@ -16,8 +16,8 @@
 //   triggers : イベントで発動する効果。{ on, do, ... }
 //              on: hit（攻撃が当たった）/ crit / kill / hurt（被弾）/ dashMove（ダッシュ中）
 //              do: 発動する効果の部品の名前（src/game/effects.js の ACTIONS）
-//              ifElement: その属性の攻撃のときだけ / ifTarget: slowed, burning の相手のときだけ / chance: 確率
-//   element  : 攻撃に属性を付ける（shock / heat / cold）
+//              ifElement: その属性の攻撃のときだけ / ifTarget: slowed, burning, corroded の相手のときだけ / chance: 確率
+//   element  : 攻撃に属性を付ける（shock / heat / cold / corrode）
 // requires: まだ実装していない仕組みが必要なもの。balance の FEATURES で有効になるまで選択肢に出ない
 const pct = (v) => `${Math.round(v * 100)}%`;
 const num = (v) => `${Math.round(v)}`;
@@ -373,6 +373,12 @@ export const implants = [
     id: 'nano', species: 'general', name: 'ナノ修復',
     desc: (k) => `撃破するたびHP +${Math.round(2 * k * 10) / 10}`,
     effect: (k) => ({ mods: [{ stat: 'killHeal', add: Math.round(2 * k * 10) / 10 }] }),
+  },
+  {
+    // 4つ目の属性「腐食」を付ける（2026-10-09 追加）。Lv2 以降は、腐食中の敵を倒すと、近くの敵に腐食が移る
+    id: 'acid', species: 'general', name: '腐食液',
+    desc: (k) => `攻撃に腐食属性を付与（腐食中の敵は、受けるダメージ +15%）${k > 1 ? `。腐食中の敵を倒すと、近くの敵に移る（範囲 ${num(110 * k)}）` : ''}`,
+    effect: (k) => ({ element: 'corrode', triggers: k > 1 ? [{ on: 'kill', do: 'spreadCorrode', ifTarget: 'corroded', radius: 110 * k }] : [] }),
   },
   {
     id: 'greed', species: 'general', name: '強欲プロトコル', requires: 'credits',

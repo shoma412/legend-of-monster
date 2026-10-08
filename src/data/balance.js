@@ -152,6 +152,9 @@ export const STATUS = {
   burn: { duration: 3, dps: 6, tick: 0.5 }, // 熱：継続ダメージ
   slow: { duration: 2, amount: 0.4 }, // 冷却：減速
   freeze: { duration: 1.5 }, // 凍結：動けない
+  // 腐食（4つ目の属性）：duration 秒のあいだ、受けるダメージが amount の割合だけ増える（ボスは bossAmount）。
+  //   spread は、インプラント「腐食液」Lv2 以降：腐食中の敵を倒すと、この範囲（px。レベルで広がる）の敵に移る
+  corrode: { duration: 4, amount: 0.15, bossAmount: 0.08, spread: 110 },
   bossSlowScale: 0.5, // ボスへの減速はこの倍率に弱まる。ボスは凍結・停止しない
   playerSlow: { duration: 1.5, amount: 0.4 }, // プレイヤーが冷気を浴びたときの減速
   killLight: { radius: 120, life: 6 }, // インプラント「誘蛾灯」：敵を倒した場所に残る光（暗闇のマップだけ）

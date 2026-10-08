@@ -3,8 +3,8 @@ import { LOOT } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { isAvailable } from './stats.js';
 
-const ELEMENTS = ['shock', 'heat', 'cold'];
-export const ELEMENT_NAMES = { shock: '電撃', heat: '熱', cold: '冷却' };
+const ELEMENTS = ['shock', 'heat', 'cold', 'corrode'];
+export const ELEMENT_NAMES = { shock: '電撃', heat: '熱', cold: '冷却', corrode: '腐食' };
 
 function pick(list, rng) {
   return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];

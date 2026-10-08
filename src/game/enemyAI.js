@@ -37,6 +37,7 @@ export function createEnemy(def, x, y, spawnT, rng, scale = 1, hpScale = 1) {
     facing: Math.PI, // 盾を向けている方向（シールド兵）
     seed: rng() * 10,
     litT: 0, // 照らされている残り時間（インプラント「照準灯」）
+    corrodeT: 0, // 腐食の残り時間（受けるダメージが増える）
     dead: false,
   };
 }
@@ -672,6 +673,7 @@ function updateStatus(world, e, dt) {
   e.slowT -= dt;
   e.stopT -= dt;
   if (e.litT > 0) e.litT -= dt;
+  if (e.corrodeT > 0) e.corrodeT -= dt;
   if (e.burnT > 0) {
     e.burnT -= dt;
     e.burnAcc += dt;

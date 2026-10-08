@@ -18,6 +18,7 @@ export const ELEMENT_COLORS = {
   shock: '#fff36b',
   heat: '#ff7a3d',
   cold: '#8fd8ff',
+  corrode: '#b6ff3a',
 };
 
 export const RARITY_COLORS = {

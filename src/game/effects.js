@@ -4,7 +4,7 @@
 // 新しい効果を足すときは、ここに部品を1つ足して、データ（src/data/）から名前で呼ぶ。
 import { STATUS } from '../data/balance.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
-import { applyBurn, applySlow, applyStop, effectDamage } from './combat.js';
+import { applyBurn, applyCorrode, applySlow, applyStop, effectDamage } from './combat.js';
 import { addLight, isVisible } from './darkness.js';
 import { placeMine } from './devices.js';
 import { burst, ring } from './fx.js';
@@ -50,6 +50,7 @@ export function statWith(world, stat, target = null) {
 const TARGET_CHECKS = {
   slowed: (e) => e.slowT > 0 || e.stopT > 0,
   burning: (e) => e.burnT > 0,
+  corroded: (e) => e.corrodeT > 0,
 };
 
 function liveEnemies(world) {
@@ -147,6 +148,15 @@ const ACTIONS = {
     ctx.dash.mine = true;
     const p = world.player;
     placeMine(world, p.x, p.y);
+  },
+
+  // 倒した敵の腐食が、近くの敵に移る
+  spreadCorrode(world, t, ctx) {
+    const from = ctx.target;
+    const targets = enemiesNear(world, from.x, from.y, t.radius, from);
+    if (targets.length === 0) return;
+    ring(world, from.x, from.y, t.radius, ELEMENT_COLORS.corrode);
+    for (const e of targets) applyCorrode(e);
   },
 
   // 閃光弾：ダッシュしたとき、まわりの敵を少しの間止める（cooldown 秒に1回）
