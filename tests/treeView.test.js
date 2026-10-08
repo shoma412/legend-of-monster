@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt } from '../src/logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, easeTo, nearestNode, panStick, zoomKeep, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt } from '../src/logic/treeView.js';
 
 // スキルツリーの円の、拡大・縮小と移動（docs/詳細仕様.md「23. スキルツリー → 画面」）
 
@@ -88,5 +88,38 @@ describe('枠からはみ出さない', () => {
     expect(inRect(45, 314, rect)).toBe(true);
     expect(inRect(45, 314, rect, 10)).toBe(false);
     expect(inRect(501, 314, rect)).toBe(false);
+  });
+});
+
+describe('ゲームパッド：真ん中の照準にマスを合わせる', () => {
+  const bounds = { x: 100, y: 50 };
+  const points = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 0, y: 40 }];
+
+  it('スティックで動かせる。いちばん引いた状態でも動く。範囲の外には出ない', () => {
+    const v = panStick({ zoom: 1, x: 0, y: 0 }, 1, 0, 0.1, bounds);
+    expect(v.x).toBeCloseTo(TREE_PAD.speed * 0.1);
+    expect(panStick({ zoom: 1, x: 99, y: 0 }, 1, 1, 1, bounds)).toEqual({ zoom: 1, x: 100, y: 50 });
+  });
+
+  it('寄っているときは、同じ倒し方で、動く量が小さい（画面の上では同じ速さ）', () => {
+    expect(panStick({ zoom: 2, x: 0, y: 0 }, 1, 0, 0.1, bounds).x).toBeCloseTo((TREE_PAD.speed * 0.1) / 2);
+  });
+
+  it('照準に重なったマスを選ぶ。離れていれば、選ばない', () => {
+    expect(nearestNode({ zoom: 1, x: 38, y: 2 }, points, TREE_PAD.pick)).toBe(1);
+    expect(nearestNode({ zoom: 1, x: 20, y: 20 }, points, TREE_PAD.pick)).toBe(-1);
+  });
+
+  it('スティックを離すと、近くのマスへ寄っていき、ぴったり合う', () => {
+    let v = { zoom: 1, x: 30, y: 4 };
+    for (let i = 0; i < 120; i++) v = easeTo(v, points[1], 1 / 60);
+    expect(v).toEqual({ zoom: 1, x: 40, y: 0 });
+  });
+
+  it('拡大・縮小しても、見ている場所は変わらない', () => {
+    const v = zoomKeep({ zoom: 1, x: 40, y: 10 }, 1);
+    expect(v.zoom).toBeCloseTo(TREE_VIEW.step);
+    expect([v.x, v.y]).toEqual([40, 10]);
+    expect(zoomKeep({ zoom: 1, x: 40, y: 10 }, -1).zoom).toBe(TREE_VIEW.min);
   });
 });

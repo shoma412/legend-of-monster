@@ -20,7 +20,7 @@ import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
-import { TREE_VIEW, centerOn, clipSegment, createTreeView, inRect, panBy, toScreen, zoomAt } from '../logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -107,6 +107,11 @@ export class MenuOverlay {
     scene.input.keyboard.on('keydown', (event) => this.onKey(event));
     this.treeView = createTreeView(); // スキルツリーの円の、拡大と位置
     this.treeDrag = null; // 円を引っぱって動かしている最中の、前のマウスの位置
+    // ゲームパッド：スキルツリーは、真ん中の照準にマスを合わせて選ぶ（左スティックで、ツリーのほうを動かす）
+    this.treePoints = []; // マスの位置（treeOrder と同じ順。描くたびに決まる）
+    this.treeBounds = { x: 0, y: 0 }; // 動かせる範囲
+    this.treeDrawT = 0;
+    scene.events.on('update', (_time, delta) => this.updatePadTree(delta / 1000));
     // モバイル版：メニューぜんたいの拡大（on のとき MENU_ZOOM 倍。x・y は、ずらした量）と、「拡大」ボタン
     this.zoom = { on: false, x: 0, y: 0 };
     this.zoomDrag = null;
@@ -283,13 +288,45 @@ export class MenuOverlay {
     this.render();
   }
 
+  // ゲームパッドで、スキルツリーを動かしているか（下のボタンを選んでいる間は、動かさない）
+  padTreeOn() {
+    return this.isOpen && !this.dialog && this.tabId === 'upgrade' && pad.active && !this.focused();
+  }
+
+  // 毎コマ：左スティックで、ツリーを動かす。照準に重なったマスを選ぶ。スティックを離すと、近くのマスへ自動で合わせる
+  updatePadTree(dt) {
+    if (!this.padTreeOn() || this.treePoints.length === 0) return;
+    const before = this.treeView;
+    const moving = pad.lx !== 0 || pad.ly !== 0;
+    let view = before;
+    if (moving) {
+      view = panStick(view, pad.lx, pad.ly, dt, this.treeBounds);
+    } else {
+      const near = nearestNode(view, this.treePoints, TREE_PAD.snap);
+      if (near >= 0) view = easeTo(view, this.treePoints[near], dt);
+    }
+    const picked = nearestNode(view, this.treePoints, TREE_PAD.pick);
+    const changed = picked >= 0 && picked !== this.cursor;
+    if (changed) {
+      this.cursor = picked;
+      playSe('select');
+    }
+    if (!changed && view.x === before.x && view.y === before.y) return;
+    this.treeView = view;
+    // 描き直しは重いので、動かしている間は、間をあける（選ぶマスが変わったときと、止まったときは、すぐ描く）
+    this.treeDrawT -= dt;
+    if (changed || !moving || this.treeDrawT <= 0) {
+      this.treeDrawT = 1 / 40;
+      this.render();
+    }
+  }
+
   // ゲームパッド専用のキー（src/logic/gamepad.js の PAD_KEYS）
   onPad(code) {
     if (code === 'PadZoomIn' || code === 'PadZoomOut') {
       if (this.tabId !== 'upgrade') return;
-      // スキルツリー：RT で拡大、LT で縮小（選んでいるマスが、見える位置に来る）
-      this.treeView = zoomAt(this.treeView, TREE_CENTER, TREE_CENTER, code === 'PadZoomIn' ? 1 : -1);
-      this.treeFollow = true;
+      // スキルツリー：RT で拡大、LT で縮小（照準の場所は、そのまま）
+      this.treeView = zoomKeep(this.treeView, code === 'PadZoomIn' ? 1 : -1);
       this.render();
       return;
     }
@@ -306,6 +343,18 @@ export class MenuOverlay {
     const vertical = dir === 'up' || dir === 'down';
     const content = this.targets.filter((t) => t.kind === 'content');
     const actions = this.targets.filter((t) => t.kind === 'action');
+    // スキルツリー：ツリーは、左スティックでなめらかに動かす（updatePadTree）。
+    //   いちばん下まで動かして、さらに下に倒すと、下のボタンへ。下のボタンからは、上でツリーに戻る
+    if (this.tabId === 'upgrade') {
+      const now = actions.indexOf(this.focused());
+      if (now < 0) {
+        if (dir === 'down' && actions.length > 0 && this.treeView.y >= this.treeBounds.y - 0.5) this.setFocus(actions[0]);
+        return;
+      }
+      if (dir === 'up') this.setFocus(null);
+      else if (!vertical) this.setFocus(actions[Math.max(0, Math.min(actions.length - 1, now + (dir === 'left' ? -1 : 1)))]);
+      return;
+    }
     // 行を選ぶタブ（スキルツリー・データ片）と、ボタンのないタブ（記録・実績など）：上下で行を選ぶ（一覧を動かす）。左右で、下のボタンを選ぶ
     if (this.rowCount() > 0 || content.length === 0) {
       if (vertical) {
@@ -745,11 +794,22 @@ export class MenuOverlay {
     this.cursor = Math.max(0, Math.min(order.length - 1, this.cursor));
     const picked = order[this.cursor];
     // 位置：円の真ん中が中心で、外の輪ほど奥の段。枝は、中心から放射状に広がる。ホイールで拡大・縮小、引っぱって動かせる
+    // ゲームパッド：マスの位置と、動かせる範囲（照準を、いちばん外のマスまで持っていける）
+    this.treePoints = order.map((n) => this.treeLocal(layout, n.id));
+    this.treeBounds = {
+      x: Math.max(...this.treePoints.map((p) => Math.abs(p.x))) + TREE_PAD.margin,
+      y: Math.max(...this.treePoints.map((p) => Math.abs(p.y))) + TREE_PAD.margin,
+    };
+    const padTree = pad.active;
     if (this.treeFollow) {
       this.treeFollow = false;
       const p = toScreen(this.treeView, TREE_CENTER, this.treeLocal(layout, picked.id));
-      if (!inRect(p.x, p.y, TREE_RECT, 16)) this.treeView = centerOn(this.treeView, this.treeLocal(layout, picked.id));
+      // ゲームパッドでは、選んだマスを照準に合わせる（Y で「次の取れるマス」に飛んだときなど）
+      if (padTree) this.treeView = { zoom: this.treeView.zoom, ...this.treeLocal(layout, picked.id) };
+      else if (!inRect(p.x, p.y, TREE_RECT, 16)) this.treeView = centerOn(this.treeView, this.treeLocal(layout, picked.id));
     }
+    // マウスに持ち替えたら、ゲームパッドで動かしたぶんを、マウスで動かせる範囲に戻す
+    if (!padTree) this.treeView = clampView(this.treeView);
     const view = this.treeView;
     const zoom = view.zoom;
     const at = (id) => toScreen(view, TREE_CENTER, this.treeLocal(layout, id));
@@ -847,6 +907,13 @@ export class MenuOverlay {
       });
       this.root.add(hit);
     });
+    // ゲームパッド：真ん中の照準（ここに重なったマスを選ぶ）
+    if (padTree) {
+      const cg = this.graphics();
+      const { x: cx, y: cy } = TREE_CENTER;
+      cg.lineStyle(2, hex(COLORS.amber), 0.95).strokeCircle(cx, cy, R + 7);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) cg.lineBetween(cx + dx * (R + 7), cy + dy * (R + 7), cx + dx * (R + 15), cy + dy * (R + 15));
+    }
     // 操作の案内と、今の倍率（マスや線と重ならないよう、下に帯を敷く）
     const strip = this.scene.add.rectangle(TREE_RECT.left + 1, TREE_RECT.bottom - 25, TREE_RECT.right - TREE_RECT.left - 2, 24, PANEL, 0.96).setOrigin(0);
     this.root.add(strip);

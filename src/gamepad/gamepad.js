@@ -14,6 +14,8 @@ function tapKey([code, keyCode]) {
 function release() {
   pad.mx = 0;
   pad.my = 0;
+  pad.lx = 0;
+  pad.ly = 0;
   pad.ax = 0;
   pad.ay = 0;
   pad.attack = false;
@@ -53,6 +55,8 @@ export function initGamepad() {
       return;
     }
     const playing = pad.mode === 'play';
+    pad.lx = now.move.x;
+    pad.ly = now.move.y;
     pad.mx = playing ? now.move.x : 0;
     pad.my = playing ? now.move.y : 0;
     pad.ax = playing ? now.aim.x : 0;

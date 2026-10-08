@@ -45,6 +45,56 @@ export function panBy(view, dx, dy) {
   return clampView({ zoom: view.zoom, x: view.x - dx / view.zoom, y: view.y - dy / view.zoom });
 }
 
+// ---- ゲームパッド：真ん中に照準を置いて、ツリーのほうを動かす（docs/詳細仕様.md「32. ゲームパッド」） ----
+export const TREE_PAD = {
+  speed: 260, // スティックをいっぱいに倒したときの、動く速さ（画面の上で、1秒に何 px）
+  pick: 15, // 照準からこの距離（画面の px）までにあるマスを、選ぶ
+  snap: 26, // スティックを離したとき、この距離までにあるマスへ、自動で合わせる
+  pull: 14, // 合わせる速さ（大きいほど速い）
+  margin: 14, // いちばん外のマスより、これだけ外まで動かせる（円の中の長さ）
+};
+
+// スティックの傾き (lx, ly) のぶん、見ている場所を動かす。bounds: { x, y } は、動かせる範囲（円の中心からの長さ）。
+//   いちばん引いた状態でも動かせる（照準にマスを合わせるため）
+export function panStick(view, lx, ly, dt, bounds) {
+  const k = (TREE_PAD.speed * dt) / view.zoom;
+  return {
+    zoom: view.zoom,
+    x: Math.max(-bounds.x, Math.min(bounds.x, view.x + lx * k)),
+    y: Math.max(-bounds.y, Math.min(bounds.y, view.y + ly * k)),
+  };
+}
+
+// 照準（見ている場所の真ん中）にいちばん近いマス。points は [{ x, y }]（円の中の位置）。
+//   within（画面の px）より遠ければ -1
+export function nearestNode(view, points, within) {
+  let best = -1;
+  let bestD = within / view.zoom;
+  points.forEach((p, i) => {
+    const d = Math.hypot(p.x - view.x, p.y - view.y);
+    if (d <= bestD) {
+      best = i;
+      bestD = d;
+    }
+  });
+  return best;
+}
+
+// 見ている場所を、target（円の中の位置）へ少し寄せる。ほぼ重なったら、ぴったり合わせる
+export function easeTo(view, target, dt) {
+  const dx = target.x - view.x;
+  const dy = target.y - view.y;
+  if (Math.hypot(dx, dy) * view.zoom < 0.6) return { zoom: view.zoom, x: target.x, y: target.y };
+  const k = 1 - Math.exp(-TREE_PAD.pull * dt);
+  return { zoom: view.zoom, x: view.x + dx * k, y: view.y + dy * k };
+}
+
+// 見ている場所は変えずに、拡大（direction が 1）・縮小（-1）する
+export function zoomKeep(view, direction) {
+  const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom * (direction > 0 ? TREE_VIEW.step : 1 / TREE_VIEW.step)));
+  return { zoom, x: view.x, y: view.y };
+}
+
 // その位置（円の中の位置）が画面の真ん中に来るように動かす
 export function centerOn(view, local) {
   return clampView({ zoom: view.zoom, x: local.x, y: local.y });
