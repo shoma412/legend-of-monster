@@ -84,6 +84,7 @@ export function createComparePanel(scene) {
 
 const CARD_W = 260;
 const CARD_H = 220;
+const CARD_MAX_H = 340; // 文が長いときは、ここまで縦に伸びる
 const CARD_GAP = 20;
 
 export function createChoicePanel(scene, onChoose) {
@@ -150,6 +151,15 @@ export function createChoicePanel(scene, onChoose) {
         }
         card.note.setText(notes.join('\n')).setColor(bonusNow ? COLORS.amber : owned > 0 ? COLORS.green : COLORS.dim);
       });
+      // 説明と、下の注記（強化・今の効果など）が長いと重なるので、いちばん長いカードに合わせて、3枚とも縦に伸ばす
+      const need = (card) => (card.desc.visible ? card.desc.y - 160 + card.desc.height + 12 + card.note.height + 14 : 0);
+      const height = Math.min(CARD_MAX_H, Math.max(CARD_H, ...cards.map(need)));
+      cards.forEach((card) => {
+        card.bg.setSize(CARD_W, height);
+        if (card.bg.input) card.bg.input.hitArea.height = height;
+        card.note.setY(160 + height - 14);
+      });
+      cursor.setSize(CARD_W + 10, height + 10);
       c.setVisible(true);
     },
   };
