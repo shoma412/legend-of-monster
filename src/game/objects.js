@@ -5,6 +5,7 @@ import { DATA } from '../data/index.js';
 import { addImplant, equipFocusLoot, equipItem, stashFocusLoot } from './build.js';
 import { healPlayer } from './combat.js';
 import { addItem } from './consumables.js';
+import { canAddImplant } from '../logic/level.js';
 import { floatText, ring, sfx } from './fx.js';
 
 // 一番近い「調べられるもの」を探す。落ちている装備は world.focusLoot、それ以外は world.focusObject
@@ -77,6 +78,12 @@ const HANDLERS = {
     const g = o.goods;
     if (p.build.credits < g.price) {
       say(world, 'クレジット不足', COLORS.red);
+      sfx(world, 'deny');
+      return;
+    }
+    // インプラント：枠がいっぱいで、持っていないものは買えない
+    if (g.type === 'implant' && !canAddImplant(p.build, g.def.id)) {
+      say(world, 'インプラントの枠がいっぱい', COLORS.red);
       sfx(world, 'deny');
       return;
     }

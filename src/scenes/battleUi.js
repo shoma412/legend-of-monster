@@ -2,6 +2,7 @@
 import { LEVEL, LOOT, ROOM, SCREEN } from '../data/balance.js';
 import { species } from '../data/implants.js';
 import { pad } from '../game/padInput.js';
+import { implantCap } from '../logic/level.js';
 import { COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { describeItem } from '../logic/loot.js';
 import { bonusAt, implantDesc, speciesCounts } from '../logic/stats.js';
@@ -87,7 +88,7 @@ const CARD_H = 220;
 const CARD_MAX_H = 340; // 文が長いときは、ここまで縦に伸びる
 const CARD_GAP = 20;
 
-export function createChoicePanel(scene, onChoose) {
+export function createChoicePanel(scene, onChoose, onSkip = null) {
   const c = scene.add.container(0, 0).setDepth(20).setVisible(false);
   const dim = scene.add.rectangle(W / 2, H / 2, W, H, 0x07060d, 0.78);
   const title = scene.add.text(W / 2, 96, '', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '30px', color: COLORS.magenta }).setOrigin(0.5).setShadow(0, 0, COLORS.magenta, 14, false, true);
@@ -110,6 +111,12 @@ export function createChoicePanel(scene, onChoose) {
     return { bg, key, family, name, desc, note, parts: [bg, key, family, name, desc, note] };
   });
 
+  // スキップ（何も取らない）と、枠の数。カードの下に出す（カードが縦に伸びたら、いっしょに下がる）
+  const slotText = scene.add.text(W / 2 - 150, 0, '', body(13, COLORS.dim)).setOrigin(1, 0.5);
+  const skipBg = scene.add.rectangle(W / 2 - 130, 0, 260, 30, PANEL_BG, 1).setOrigin(0, 0.5).setStrokeStyle(2, hex(COLORS.line)).setInteractive({ useHandCursor: true });
+  skipBg.on('pointerdown', () => onSkip?.());
+  const skipText = scene.add.text(W / 2, 0, '', body(13, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5);
+  c.add([slotText, skipBg, skipText]);
   // ゲームパッド：左スティック・十字キーの左右で選び、A で決める
   const cursor = scene.add.rectangle(0, 160 - 5, CARD_W + 10, CARD_H + 10).setOrigin(0).setStrokeStyle(3, hex(COLORS.amber)).setVisible(false);
   c.add(cursor);
@@ -160,6 +167,14 @@ export function createChoicePanel(scene, onChoose) {
         card.note.setY(160 + height - 14);
       });
       cursor.setSize(CARD_W + 10, height + 10);
+      // 枠の数と、スキップ
+      const kinds = Object.keys(build.implants).length;
+      const cap = implantCap(build);
+      const by = 160 + height + 28;
+      slotText.setY(by).setText(`インプラント ${kinds} / ${cap} 種類${kinds >= cap ? '（いっぱい：強化だけが出る）' : ''}`).setColor(kinds >= cap ? COLORS.amber : COLORS.dim);
+      const skips = build.skips ?? 0;
+      skipBg.setY(by).setStrokeStyle(2, hex(skips > 0 ? COLORS.ink : COLORS.line));
+      skipText.setY(by).setText(skips > 0 ? `スキップする（4 キー）　残り ${skips} 回` : 'スキップは、もう使えない').setColor(skips > 0 ? COLORS.ink : COLORS.dim);
       c.setVisible(true);
     },
   };

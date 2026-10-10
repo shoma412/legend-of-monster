@@ -15,6 +15,8 @@
 //   carrySlots  : 持ち込みの種族の枠を増やす数
 //   itemSlots   : 消耗品の枠を増やす数
 //   keepImplants: マップをクリアしたあと、次の出撃に持ち越せるインプラントの数を増やす
+//   implantSlots: 1回の出撃で持てるインプラントの種類の数を増やす
+//   skips       : 1回の出撃で、3択をスキップできる回数を増やす
 //   weaponMod   : その武器の特殊アクションを強くする。{ weapon: 武器の id, special: 書き換える値, scale: 掛ける倍率, stageTime: 溜めの段階の時間に掛ける倍率 }
 // since    : 何回目に足した強化か（書いていなければ 1 ＝ 最初の34マス）。2 以上のものは、最初の配置を作ったあとで、枝の先や空いている所に付け足す。
 //            今あるセーブデータの配置を変えないための決まり（docs/詳細仕様.md「23. スキルツリー」の「あとからマスを足すとき」）
@@ -192,6 +194,17 @@ export const upgrades = [
     id: 'wm-chakram', category: 'skill', name: '二枚刃', desc: 'チャクラム：設置を、続けて2つ置ける', max: 1, since: 5,
     costs: [{ mothCore: 1, breakerCore: 1 }],
     perLevel: { weaponMod: { weapon: 'chakram', special: { maxPlaced: 2 } } },
+  },
+  // インプラントの枠と、3択のスキップ（2026-10-10 追加。docs/詳細仕様.md「34. インプラントの枠と、レベルアップでの成長」）
+  {
+    id: 'implantslot', category: 'body', name: 'インプラント拡張', desc: '持てるインプラントの種類 +1（最初は5種類）', max: 3, since: 6,
+    costs: [{ overCore: 1, hydraCore: 1 }, { hydraCore: 1, titanCore: 1 }, { titanCore: 1, breakerCore: 1 }],
+    perLevel: { implantSlots: 1 },
+  },
+  {
+    id: 'skipchip', category: 'skill', name: '選別回路', desc: 'レベルアップの3択をスキップできる回数 +1（最初は2回）', max: 2, since: 6,
+    costs: [{ cryoCore: 1, serpentCore: 1 }, { crabCore: 1, houndCore: 1 }],
+    perLevel: { skips: 1 },
   },
 ];
 

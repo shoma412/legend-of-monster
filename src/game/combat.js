@@ -226,6 +226,7 @@ export function killEnemy(world, enemy) {
   if (p.stats.killHeal > 0) healPlayer(world, p.stats.killHeal);
   const levelUps = addXp(p.build, enemy.def.xp ?? 0);
   world.pendingLevelUps += levelUps;
+  world.levelGain = (world.levelGain ?? 0) + levelUps;
   if (levelUps > 0) world.events.push({ type: 'levelup', level: p.build.level });
   p.build.credits += Math.round((enemy.def.credits ?? 0) * p.stats.creditMul);
   p.sinceKill = 0;

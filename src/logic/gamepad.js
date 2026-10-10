@@ -117,6 +117,7 @@ export function padActions(mode, pressed, state) {
       if (name === 'dir:left') out.choice = (out.choice + n - 1) % n;
       else if (name === 'dir:right') out.choice = (out.choice + 1) % n;
       else if (name === 'A') key(`digit${Math.min(out.choice, n - 1) + 1}`);
+      else if (name === 'Y') key('digit4'); // スキップ
     } else if (mode === 'result') {
       if (name === 'A') out.confirm = true;
     } else if (mode === 'menu') {

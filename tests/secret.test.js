@@ -114,10 +114,10 @@ describe('壁を壊す', () => {
     expect(wall).toBeDefined();
     expect(wall.x).toBe(world.room.secret.x);
     // 壊れるまでは扉が出ない
-    hitEnemy(world, wall, wall.hp - 1, 1, 0, 0);
+    hitEnemy(world, wall, wall.hp / 4, 1, 0, 0); // レベルアップで攻撃力が上がっていても、1回では壊れない量
     updateWorld(world, DT, idle);
     expect(door(world)).toBeUndefined();
-    hitEnemy(world, wall, 10, 1, 0, 0);
+    hitEnemy(world, wall, wall.hp, 1, 0, 0);
     updateWorld(world, DT, idle);
     expect(door(world)).toBeDefined();
     expect(door(world).target).toBe(SECRET_IN);

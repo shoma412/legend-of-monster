@@ -3,7 +3,7 @@ import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
-import { chooseImplant } from '../game/build.js';
+import { chooseImplant, skipImplantChoice } from '../game/build.js';
 import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
@@ -22,7 +22,7 @@ import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, resolveNames } from '../logic/dialogue.js';
 import { choiceBlocked, chooseEncounter } from '../game/encounters.js';
 import { nodeState } from '../logic/areaGen.js';
-import { xpToNext } from '../logic/level.js';
+import { implantCap, xpToNext } from '../logic/level.js';
 import {
   ITEM_SLOT_POS, drawArena, drawEnemyTelegraphs, drawLowHp, drawBeams, drawBolts, drawBossBar, drawFrame, drawGearIcons, drawBossTelegraph, drawEnemies, drawFloor, drawFx, drawHazards, drawHud, drawLoot, drawPlayer, drawPlayerShots, drawShots,
   drawDevices, drawZones,
@@ -113,6 +113,7 @@ export class BattleScene extends Phaser.Scene {
       if (!playing()) return;
       if (this.world.choice) {
         if (i < 3) this.choose(i);
+        else this.skipChoice(); // 4：スキップ
       }
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
@@ -216,7 +217,7 @@ export class BattleScene extends Phaser.Scene {
     // 画面上の帯の右端：装備のアイコン（3つ）と、インプラントの数。くわしい中身はポーズ画面で見る
     this.implantText = this.add.text(W - 112, 9, '', { ...label, fontFamily: FONTS.body, color: COLORS.magenta, fontStyle: '700' }).setOrigin(1, 0);
     this.comparePanel = createComparePanel(this);
-    this.choicePanel = createChoicePanel(this, (i) => this.choose(i));
+    this.choicePanel = createChoicePanel(this, (i) => this.choose(i), () => this.skipChoice());
     this.commLog = createCommLog(this);
     this.toasts = createToasts(this);
     // 出撃した時点で解除された実績など、ラン開始時の通知
@@ -349,6 +350,13 @@ export class BattleScene extends Phaser.Scene {
     if (this.menu.isOpen) return;
     if (!this.world.choice || this.time.now - this.choiceShownAt < CHOICE_LOCK) return;
     chooseImplant(this.world, index);
+  }
+
+  // 3択をスキップする（回数に限りがある）
+  skipChoice() {
+    if (this.menu.isOpen) return;
+    if (!this.world.choice || this.time.now - this.choiceShownAt < CHOICE_LOCK) return;
+    if (!skipImplantChoice(this.world)) playSe('deny');
   }
 
   readInput() {
@@ -514,7 +522,7 @@ export class BattleScene extends Phaser.Scene {
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
 
     const implantCount = Object.keys(p.build.implants).length;
-    this.implantText.setText(implantCount > 0 ? `インプラント ${implantCount}` : '');
+    this.implantText.setText(implantCount > 0 ? `インプラント ${implantCount}/${implantCap(p.build)}` : '');
     this.comparePanel.update(world.choice ? null : focusGear(world), p.build.gear);
     this.choicePanel.update(world.choice, p.build);
     const prompt = world.choice ? null : focusPrompt(world);

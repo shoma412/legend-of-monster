@@ -1,5 +1,5 @@
 // ラン中のビルド（装備・バッグ・インプラント・レベル）の操作
-import { BAG, LOOT } from '../data/balance.js';
+import { BAG, LEVEL, LOOT } from '../data/balance.js';
 import { COLORS, RARITY_COLORS } from '../data/theme.js';
 import { rollImplantChoices } from '../logic/level.js';
 import { computeStats, nextImplantLevel } from '../logic/stats.js';
@@ -124,10 +124,37 @@ export function discardFromBag(world, index) {
 
 // レベルアップの選択肢を出す。選ぶまで戦闘は止まる
 export function openImplantChoice(world) {
-  const options = rollImplantChoices(world.player.build, world.rng);
-  if (options.length === 0) return;
+  const p = world.player;
+  const options = rollImplantChoices(p.build, world.rng);
+  if (options.length === 0) {
+    // 出せるものがない（持っているものが全部 Lv5 で、枠もいっぱい）：代わりに、HP を少し回復する
+    const before = p.hp;
+    p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * LEVEL.maxedHeal);
+    const healed = Math.round(p.hp - before);
+    floatText(world, p.x, p.y - 30, `LEVEL UP　修復 +${healed}`, COLORS.green, 14);
+    sfx(world, 'levelup');
+    return;
+  }
   world.choice = { type: 'implant', options };
   sfx(world, 'levelup');
+}
+
+// 3択をスキップする（何も取らない）。回数に限りがある。枠を、欲しいインプラントのために空けておける
+export function skipImplantChoice(world) {
+  const build = world.player.build;
+  if (!world.choice || (build.skips ?? 0) <= 0) return false;
+  build.skips--;
+  world.choice = null;
+  sfx(world, 'select');
+  return true;
+}
+
+// レベルが上がったぶんを、ステータスに反映する（最大HP・攻撃力が上がる。増えた最大HP のぶん、今のHP も増える）
+export function applyLevelUps(world, count) {
+  const p = world.player;
+  recalcStats(p);
+  p.hp = Math.min(p.stats.maxHp, p.hp + LEVEL.hpPerLevel * count);
+  floatText(world, p.x, p.y - 46, `Lv ${p.build.level}　最大HP +${LEVEL.hpPerLevel * count}　攻撃力 +${Math.round(LEVEL.attackPerLevel * count * 100)}%`, COLORS.magenta, 13);
 }
 
 export function chooseImplant(world, index) {

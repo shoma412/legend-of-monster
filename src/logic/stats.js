@@ -24,6 +24,8 @@ export function createBuild(bonus = null) {
     reviveUsed: false, // この出撃で、もう起き上がったか（種族「多頭」の予備の首）
     weaponId: null, // 持っている武器（武器ごとのステータス補正に使う。null なら補正なし）
     weaponMods: bonus?.weaponMods ?? {}, // 武器ごとの恒久強化（特殊アクションを強くする）
+    implantSlots: LEVEL.implantKinds + (bonus?.implantSlots ?? 0), // 持てるインプラントの種類の数
+    skips: LEVEL.skips + (bonus?.skips ?? 0), // 3択をスキップできる残りの回数
   };
 }
 
@@ -153,10 +155,12 @@ export function collectEffects(build) {
 
 export function computeStats(build) {
   // 足し算で積む値の初期値
+  // レベルが上がるごとに、最大HP と攻撃力が少し上がる
+  const levels = Math.max(0, (build.level ?? 1) - 1);
   const sum = {
-    maxHp: PLAYER.maxHp,
+    maxHp: PLAYER.maxHp + levels * LEVEL.hpPerLevel,
     moveSpeedMul: 1,
-    attackMul: 1,
+    attackMul: 1 + levels * LEVEL.attackPerLevel,
     critChance: PLAYER.critChance,
     critMul: PLAYER.critMultiplier,
     attackSpeed: 0,

@@ -4,7 +4,7 @@ import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
 import { roomBounds } from '../logic/geometry.js';
 import { createBoss } from './boss.js';
-import { openImplantChoice } from './build.js';
+import { applyLevelUps, openImplantChoice } from './build.js';
 import { makeElite } from './elite.js';
 import { updateFocus } from './objects.js';
 import { SECRET_IN, doorObjects } from './rooms.js';
@@ -96,6 +96,11 @@ export function updateWorld(world, dt, input) {
   if (world.fx.hitstop > 0) {
     world.fx.hitstop -= dt;
     return;
+  }
+  // レベルが上がったぶんの、最大HP と攻撃力
+  if (world.levelGain > 0) {
+    applyLevelUps(world, world.levelGain);
+    world.levelGain = 0;
   }
   if (world.choice || world.mode === 'dead') return;
   if (world.pendingLevelUps > 0) {
