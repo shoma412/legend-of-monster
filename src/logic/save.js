@@ -1,9 +1,9 @@
 // セーブデータ。隠れ家の進行状況だけを保存する（ラン途中は保存しない）。
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 import { upgrades } from '../data/upgrades.js';
-import { buildTree, cleanOwned, newTreeSeed, upgradeCounts } from './skillTree.js';
+import { buildTree, cleanOwned, newTreeSeed, treeNodeDefs, upgradeCounts } from './skillTree.js';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 export const SLOT_COUNT = 3;
 const LEGACY_KEY = 'legend-of-monster/save'; // セーブ枠ができる前の、1つだけのセーブデータ
 
@@ -84,7 +84,31 @@ function migrate(data) {
     data.notices = Object.keys(refund).length > 0 ? ['treeRefund'] : [];
     data.version = 7;
   }
+  // 版7 → 版8：スキルツリーの根元を、マップ1のボス3体の素材に1つずつ割り当てた。配置が変わるので、
+  //   取ってあったマスをすべて外し、使った素材を全部返す（種はそのまま。お知らせを1回出す）
+  if (data.version === 7) {
+    const owned = Array.isArray(data.tree?.owned) ? data.tree.owned : [];
+    const refund = refundNodes(owned);
+    data.materials = { ...(data.materials ?? {}) };
+    for (const [id, n] of Object.entries(refund)) data.materials[id] = (data.materials[id] ?? 0) + n;
+    data.upgrades = {};
+    data.tree = { seed: data.tree?.seed ?? newTreeSeed(), owned: [] };
+    // スキルツリーになったときのお知らせがまだ残っていれば、そちらを出す（中身は同じ「外して、返した」）
+    const notices = Array.isArray(data.notices) ? data.notices : [];
+    data.notices = owned.length > 0 && !notices.includes('treeRefund') ? [...notices, 'treeRebuilt'] : notices;
+    data.version = 8;
+  }
   return data;
+}
+
+// 取ってあったスキルツリーのマスに使った素材を数える（{ 素材のid: 個数 }）。同じマスは1回だけ数える
+export function refundNodes(owned) {
+  const costs = Object.fromEntries(treeNodeDefs().map((d) => [d.id, d.cost]));
+  const refund = {};
+  for (const node of new Set(owned)) {
+    for (const [id, n] of Object.entries(costs[node] ?? {})) refund[id] = (refund[id] ?? 0) + n;
+  }
+  return refund;
 }
 
 // スキルツリーにする前の値段で、買ってあった強化に使った素材を数える（{ 素材のid: 個数 }）

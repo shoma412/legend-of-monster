@@ -7,6 +7,8 @@
 //   2. 値段の「素材の種類の数」で、置ける深さが決まる：1種類 → 1〜3段目、2種類 → 4〜5段目、3種類 → 6段目以降
 //   3. 手前のマスは、そのマスより先のボスの素材を要求しない（素材の順番は src/data/story.js の materials の並び）。
 //      だから、あるボスまで倒した人は、そこまでの素材で買えるマスに、必ずたどり着ける
+//   4. 枝の根元の3マスは、マップ1のボス3体の素材（素材の並びの、最初の3つ）のマスを、1つずつ（2026-10-10 変更。
+//      前は3つとも最初のボスの素材で、最初の3マスのために、マップ1を3回まわる必要があった）
 import { upgrades } from '../data/upgrades.js';
 import { materials } from '../data/story.js';
 
@@ -79,11 +81,14 @@ function tryBuild(rng) {
   // そのマスの親にできるマス：深さが合い、枝に空きがあり、親のほうが先のボスの素材を要求しない
   const parentsFor = (def) => placed.filter((n) => inRange(def, n.depth + 1) && room(n) && n.rank <= def.rank);
 
-  // 1種類の素材で買えるマス（1〜3段目）。最初のボスの素材のマスから、枝の根元を選ぶ
+  // 1種類の素材で買えるマス（1〜3段目）。枝の根元は、最初の3体のボスの素材のマスを、1つずつ
   const single = shuffle(defs.filter((d) => d.types === 1), rng);
-  const lowest = Math.min(...single.map((d) => d.rank));
-  const roots = single.filter((d) => d.rank === lowest).slice(0, TREE.roots);
-  if (roots.length < TREE.roots) return null;
+  const roots = [];
+  for (let rank = 0; rank < TREE.roots; rank++) {
+    const root = single.find((d) => d.rank === rank);
+    if (!root) return null;
+    roots.push(root);
+  }
   for (const def of roots) place(def, null);
   // 残りは、先のボスの素材ほど後から置く（手前のマスが、先の素材を要求しないように）
   const rest = single.filter((d) => !roots.includes(d)).sort((a, b) => a.rank - b.rank);

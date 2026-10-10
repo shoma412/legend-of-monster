@@ -101,7 +101,7 @@ describe('配置の決まり（どの種でも守られる）', () => {
       for (const n of tree.nodes) {
         if (n.parent === null) {
           expect(n.depth).toBe(1);
-          expect(Object.keys(n.cost)).toEqual(['boarCore']); // 枝の根元は、最初のボスの素材
+          expect(Object.keys(n.cost)).toHaveLength(1);
           continue;
         }
         const parent = tree.byId[n.parent];
