@@ -39,6 +39,8 @@ const LOCKED = '#4a4470';
 const TREE_RECT = { left: 40, top: 166, right: 580, bottom: 462 };
 const TREE_CENTER = { x: 310, y: 316 };
 const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114]; // 段ごとの、中心からの距離（縦の長さ。拡大していないとき）
+const TREE_PUSH = 0.5; // 3つに分かれた枝の左右を、外へずらす長さ（次の輪までの間の、何割か。輪と輪の間に置くと、となりの枝のマスと重ならない）
+const TREE_PUSH_OUTER = 7; // いちばん外の輪のマスを、外へずらす長さ（px）
 const TREE_STRETCH = 2.15; // 横は、縦の何倍に広げるか（枠が横長なので、横に広げてマスの間をあける）
 // 絞り込み：選んだもの以外のマスを薄くする
 const TREE_FILTERS = [
@@ -207,8 +209,24 @@ export class MenuOverlay {
   treeLocal(layout, id) {
     const p = layout.pos[id];
     const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
-    const radius = TREE_RINGS[Math.min(TREE_RINGS.length - 1, p.col)];
+    const radius = this.treeRadius(p) * this.treeFit(layout);
     return { x: Math.cos(angle) * radius * TREE_STRETCH, y: Math.sin(angle) * radius };
+  }
+
+  // マスの、中心からの距離（縮める前）。外へずらすマスは、次の輪との間に置く
+  treeRadius(p) {
+    const col = Math.min(TREE_RINGS.length - 1, p.col);
+    const gap = col < TREE_RINGS.length - 1 ? (TREE_RINGS[col + 1] - TREE_RINGS[col]) * TREE_PUSH : TREE_PUSH_OUTER;
+    return TREE_RINGS[col] + (p.push > 0 ? gap : 0);
+  }
+
+  // 外へずらしたマスが枠からはみ出さないように、ぜんたいを縮める割合（いちばん外の輪より外に出たマスがあるときだけ）
+  treeFit(layout) {
+    if (layout.fit === undefined) {
+      const outer = TREE_RINGS.at(-1);
+      layout.fit = outer / Math.max(outer, ...Object.values(layout.pos).map((p) => this.treeRadius(p)));
+    }
+    return layout.fit;
   }
 
   get tabId() {
@@ -861,8 +879,9 @@ export class MenuOverlay {
       for (let k = 0; k < parts; k++) {
         const a1 = (k / parts) * Math.PI * 2;
         const a2 = ((k + 1) / parts) * Math.PI * 2;
-        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * TREE_RINGS[d] * TREE_STRETCH, y: Math.sin(a1) * TREE_RINGS[d] });
-        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * TREE_RINGS[d] * TREE_STRETCH, y: Math.sin(a2) * TREE_RINGS[d] });
+        const ring = TREE_RINGS[d] * this.treeFit(layout);
+        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * ring * TREE_STRETCH, y: Math.sin(a1) * ring });
+        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * ring * TREE_STRETCH, y: Math.sin(a2) * ring });
         line(p1.x, p1.y, p2.x, p2.y);
       }
     }

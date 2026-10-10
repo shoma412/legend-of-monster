@@ -19,6 +19,7 @@ export const TREE = {
   maxChildren: 3, // 1〜2段目のマスから伸ばせる数
   maxChildrenDeep: 2, // 3段目より先のマスから伸ばせる数
   attempts: 400, // 決まりを満たす配置が見つかるまで、作り直す回数の上限
+  wideFrom: 2, // 画面の並び：この段のマスから3つに分かれるとき、左右の2つを外へずらす
 };
 
 const RANK = Object.fromEntries(materials.map((m, i) => [m.id, i]));
@@ -204,7 +205,9 @@ export function upgradeCounts(tree, owned) {
 }
 
 // 画面に並べる位置。返り値は { id: { col, row } }（col は中心からの段、row は 0〜1 の割合で、円のまわりの位置になる）と、根元の row、先のないマスの数（leaves）
-//   葉（先のないマス）を上から順に等間隔に置き、枝分かれのマスは、その先のマスの真ん中に置く
+//   葉（先のないマス）を上から順に等間隔に置き、枝分かれのマスは、その先のマスの真ん中に置く。
+//   push は、外へずらす段数：2段目のマスから3つに分かれるとき、左右の2つは、線を長くして外へ出す（3つが詰まって見えないように）。
+//   ずらしたマスの先のマスも、同じだけ外へ出る（線の長さは変わらない）
 export function layoutTree(tree) {
   const kids = new Map();
   for (const n of tree.nodes) {
@@ -214,18 +217,21 @@ export function layoutTree(tree) {
   }
   const pos = {};
   let next = 0;
-  const walk = (node) => {
+  let maxPush = 0;
+  const walk = (node, push) => {
     const list = kids.get(node.id) ?? [];
+    maxPush = Math.max(maxPush, push);
     if (list.length === 0) {
-      pos[node.id] = { col: node.depth, row: next++ };
+      pos[node.id] = { col: node.depth, row: next++, push };
       return pos[node.id].row;
     }
-    const rows = list.map(walk);
-    pos[node.id] = { col: node.depth, row: (rows[0] + rows.at(-1)) / 2 };
+    const wide = node.depth === TREE.wideFrom && list.length >= 3;
+    const rows = list.map((child, i) => walk(child, push + (wide && (i === 0 || i === list.length - 1) ? 1 : 0)));
+    pos[node.id] = { col: node.depth, row: (rows[0] + rows.at(-1)) / 2, push };
     return pos[node.id].row;
   };
-  const rootRows = (kids.get('@root') ?? []).map(walk);
+  const rootRows = (kids.get('@root') ?? []).map((node) => walk(node, 0));
   const leaves = Math.max(1, next - 1);
   for (const p of Object.values(pos)) p.row /= leaves;
-  return { pos, leaves: next, rootRow: (rootRows[0] + rootRows.at(-1)) / 2 / leaves, maxDepth: Math.max(...tree.nodes.map((n) => n.depth)) };
+  return { pos, maxPush, leaves: next, rootRow: (rootRows[0] + rootRows.at(-1)) / 2 / leaves, maxDepth: Math.max(...tree.nodes.map((n) => n.depth)) };
 }
