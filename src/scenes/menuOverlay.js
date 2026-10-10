@@ -26,7 +26,7 @@ import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
-import { renderControls } from './controlsPanel.js';
+import { mouseLines, renderControls } from './controlsPanel.js';
 import { touch } from '../game/touchInput.js';
 
 const W = SCREEN.width;
@@ -142,8 +142,13 @@ export class MenuOverlay {
     scene.input.on('pointerup', () => {
       this.treeDrag = null;
       this.zoomDrag = null;
+      this.barDrag = null;
     });
     scene.input.on('pointermove', (pointer) => {
+      if (this.barDrag && pointer.isDown && this.isOpen) {
+        this.dragBar(pointer);
+        return;
+      }
       const zd = this.zoomDrag;
       if (zd && pointer.isDown && this.isOpen && this.zoom.on) {
         const dx = pointer.worldX - zd.x;
@@ -425,10 +430,28 @@ export class MenuOverlay {
       const track = this.scene.add.rectangle(bar.x, bar.y, 4, bar.h, hex(COLORS.line), 1).setOrigin(0);
       const size = Math.max(24, (bar.h * visible) / total);
       const thumb = this.scene.add.rectangle(bar.x, bar.y + ((bar.h - size) * this.scroll) / this.scrollMax, 4, size, hex(COLORS.cyan), 1).setOrigin(0);
-      this.root.add([track, thumb]);
+      // マウスで引っぱって動かせる（細いので、つかめる幅を広げる）。棒の上を押すと、そこへ飛ぶ
+      const grip = this.scene.add.rectangle(bar.x - 8, bar.y, 20, bar.h, 0x000000, 0).setOrigin(0).setInteractive({ useHandCursor: true });
+      grip.on('pointerdown', (pointer) => {
+        this.barDrag = { y: bar.y, h: bar.h, size };
+        this.dragBar(pointer);
+      });
+      this.root.add([track, thumb, grip]);
       this.text(bar.x + 4, bar.y - 14, 'ホイール / W・S：スクロール', 11, COLORS.dim).setOrigin(1, 0);
     }
     return this.scroll;
+  }
+
+  // スクロールバーを引っぱっている間：マウスの高さに合わせて、一覧を動かす
+  dragBar(pointer) {
+    const d = this.barDrag;
+    if (!d || this.scrollMax <= 0) return;
+    const at = this.local(pointer);
+    const k = Math.max(0, Math.min(1, (at.y - d.y - d.size / 2) / Math.max(1, d.h - d.size)));
+    const next = Math.round(k * this.scrollMax);
+    if (next === this.scroll) return;
+    this.scroll = next;
+    this.render();
   }
 
   // スキルツリー：次の「取れるマス」を選ぶ（F キー、「今取れる」の表示をクリック）。なければ、素材が足りないだけのマス
@@ -1052,6 +1075,39 @@ export class MenuOverlay {
     head('ボス素材（持っているもの）');
     if (owned.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED));
     else grid(owned, 4, (def, x, y) => this.materialCell(g, def, save.materials[def.id], x, y));
+
+    // 武器：解放したものは、攻撃と特殊の説明を出す
+    lines.push(() => {});
+    head(`武器　${save.weapons.length} / ${DATA.weapons.all().length}`);
+    for (const w of mouseLines(null)) {
+      const def = DATA.weapons.all().find((x) => x.name === w.name);
+      const has = save.weapons.includes(def.id);
+      lines.push((y) => {
+        this.text(X, y + 4, w.name, 13, has ? COLORS.amber : LOCKED, { fontStyle: '700' });
+        this.text(X + 110, y + 5, has ? `攻撃：${w.left}` : 'まだ解放していない', 12, has ? COLORS.ink : LOCKED);
+        if (has) this.text(X + 470, y + 5, `特殊：${w.right}`, 12, COLORS.ink);
+      });
+    }
+
+    // インプラント：手に入れたことのあるものだけ、説明つきで並べる（種族ごと）。説明は Lv1 のときのもの
+    const all = DATA.implants.all();
+    const seen = all.filter((def) => (save.seenImplants ?? []).includes(def.id));
+    lines.push(() => {});
+    head(`インプラント（手に入れたことのあるもの）　${seen.length} / ${all.length}　　説明は Lv1 のときの効果`);
+    if (seen.length === 0) lines.push((y) => this.text(X, y + 4, 'まだない（レベルアップで手に入れると、ここに説明が残る）', 12, LOCKED));
+    for (const def of seen) {
+      const fam = species[def.species];
+      const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
+      // 説明が長いものがあるので、1つにつき2行ぶん使う
+      lines.push((y) => {
+        this.text(X, y + 4, def.name, 13, color, { fontStyle: '700' });
+        this.text(X, y + 4 + LINE - 3, fam.name, 11, COLORS.dim);
+        // 下の行が見えない位置（いちばん下の行）では、説明は1行だけ
+        const last = y >= TOP + (VISIBLE - 1) * LINE;
+        this.text(X + 170, y + 5, implantDesc(def, 1), 12, COLORS.ink, { wordWrap: { width: 650, useAdvancedWrap: true }, maxLines: last ? 1 : 2, lineSpacing: 5 });
+      });
+      lines.push(() => {});
+    }
 
     const start = this.window(lines.length, VISIBLE, { x: 908, y: TOP, h: VISIBLE * LINE });
     lines.slice(start, start + VISIBLE).forEach((draw, i) => draw(TOP + i * LINE));

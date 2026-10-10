@@ -38,6 +38,8 @@ export function createSave() {
     notices: [], // 次に隠れ家へ入ったときに、1回だけ出すお知らせ（版7で追加）
     // マップをクリアしたあとの持ち越し（2026-10-08 追加。なければ null）。{ credits, implants: 候補の id, picked: 選んだ id }。次に出撃したら消える
     carryOver: null,
+    // 手に入れたことのあるインプラントの id（2026-10-10 追加。記録の画面で、説明を見られる）
+    seenImplants: [],
   };
 }
 
@@ -165,6 +167,8 @@ export function normalizeSave(data) {
     tree: { seed, owned },
     notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
     carryOver: normalizeCarryOver(d.carryOver),
+    // 足す前のデータ：持ち越しの候補に残っているインプラントは、手に入れたことがあるものとして入れる
+    seenImplants: [...new Set([...(Array.isArray(d.seenImplants) ? d.seenImplants : []), ...(normalizeCarryOver(d.carryOver)?.implants ?? [])].filter((x) => typeof x === 'string'))],
   };
 }
 

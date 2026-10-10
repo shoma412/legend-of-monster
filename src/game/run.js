@@ -199,6 +199,9 @@ function note(run, text) {
 export function handleEvents(run, world) {
   const area = currentArea(run);
   const notes = [];
+  // 手に入れたインプラントを、記録に残す（記録の画面で、あとから説明を見られる）
+  const seen = (run.save.seenImplants ??= []);
+  for (const id of Object.keys(world.player.build.implants)) if (!seen.includes(id)) seen.push(id);
   for (const event of world.events.splice(0)) {
     // 隠しボス：通行証が手に入る。エリアのボスではないので、素材・データ片・マップの完了にはならない
     if (event.type === 'bossKill' && DATA.bosses.get(event.boss).hidden) {
