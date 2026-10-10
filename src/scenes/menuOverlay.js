@@ -734,8 +734,8 @@ export class MenuOverlay {
     }
     for (const bonus of bonuses) {
       if (hidden()) continue;
-      this.text(638, iy + 2, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
-      iy += 18;
+      const row = this.text(638, iy + 2, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
+      iy += Math.max(18, row.height + 6); // 折り返して2行になっても、次の行と重ならないようにする
     }
   }
 
