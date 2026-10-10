@@ -2,6 +2,7 @@
 // セーブ枠は SLOT_COUNT 個。保存先（storage）は外から渡すので、テストでは偽物を使える。ブラウザでは localStorage を渡す。
 import { upgrades } from '../data/upgrades.js';
 import { buildTree, cleanOwned, newTreeSeed, treeNodeDefs, upgradeCounts } from './skillTree.js';
+import { createGearLog, normalizeGearLog } from './gearLog.js';
 
 export const SAVE_VERSION = 8;
 export const SLOT_COUNT = 3;
@@ -22,7 +23,7 @@ export function createSave() {
     bossKills: {}, // { ボスのid: 倒した回数 }
     fragments: [], // 手に入れたデータ片の id
     achievements: [], // 解除した実績の id
-    records: { runs: 0, clears: 0, kills: 0, bestMap: 0, bestArea: 0, bestStep: 0 }, // bestMap は版5で追加
+    records: { runs: 0, clears: 0, kills: 0, bestMap: 0, bestArea: 0, bestStep: 0, playTime: 0 }, // bestMap は版5で追加。playTime はプレイ時間（秒。2026-10-11 追加）
     tutorialSeen: false, // 最初の操作説明を見たか
     seenDialogues: [], // 自動で出る会話のうち、もう見たものの id（版2で追加）
     // ここから版3で追加（マップと周回）
@@ -40,6 +41,8 @@ export function createSave() {
     carryOver: null,
     // 手に入れたことのあるインプラントの id（2026-10-10 追加。記録の画面で、説明を見られる）
     seenImplants: [],
+    // 手に入れた装備の記録（2026-10-11 追加。src/logic/gearLog.js）
+    gearLog: createGearLog(),
   };
 }
 
@@ -167,6 +170,7 @@ export function normalizeSave(data) {
     tree: { seed, owned },
     notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
     carryOver: normalizeCarryOver(d.carryOver),
+    gearLog: normalizeGearLog(d.gearLog),
     // 足す前のデータ：持ち越しの候補に残っているインプラントは、手に入れたことがあるものとして入れる
     seenImplants: [...new Set([...(Array.isArray(d.seenImplants) ? d.seenImplants : []), ...(normalizeCarryOver(d.carryOver)?.implants ?? [])].filter((x) => typeof x === 'string'))],
   };

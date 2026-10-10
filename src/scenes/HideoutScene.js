@@ -323,6 +323,14 @@ export class HideoutScene extends Phaser.Scene {
   update(time) {
     const world = this.world;
     const seconds = this.clock.tick(time);
+    // プレイ時間（メニューを開いている間も数える）。ときどき保存する
+    const counted = Math.min(seconds, 0.1);
+    this.save.records.playTime = (this.save.records.playTime ?? 0) + counted;
+    this.playSaveT = (this.playSaveT ?? 0) + counted;
+    if (this.playSaveT >= 60) {
+      this.playSaveT = 0;
+      persist();
+    }
     // モバイル版：メニューやマップ選択が開いている間は、戦闘用のボタンを隠す
     setTouchMode(this.menu.isOpen ? 'menu' : this.mapSelect.isOpen ? 'select' : this.dialogue.isOpen ? 'talk' : 'play');
     pad.items = 0;

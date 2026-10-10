@@ -7,6 +7,7 @@ import { placeScreens } from './wind.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
+import { createGearLog, logBuildGear } from '../logic/gearLog.js';
 import { applyCarryOver, permanentBonuses, pickFragment, processEvent, recordCarryOver, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
 import { createBuild, runSpecies } from '../logic/stats.js';
@@ -202,6 +203,8 @@ export function handleEvents(run, world) {
   // 手に入れたインプラントを、記録に残す（記録の画面で、あとから説明を見られる）
   const seen = (run.save.seenImplants ??= []);
   for (const id of Object.keys(world.player.build.implants)) if (!seen.includes(id)) seen.push(id);
+  // 手に入れた装備（身につけたもの・バッグに入れたもの）も、記録に残す
+  logBuildGear((run.save.gearLog ??= createGearLog()), world.player.build);
   for (const event of world.events.splice(0)) {
     // 隠しボス：通行証が手に入る。エリアのボスではないので、素材・データ片・マップの完了にはならない
     if (event.type === 'bossKill' && DATA.bosses.get(event.boss).hidden) {

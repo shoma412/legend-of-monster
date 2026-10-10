@@ -5,6 +5,7 @@ import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { isBackKey } from '../logic/keys.js';
+import { formatPlayTime } from '../logic/gearLog.js';
 import { bestReachText } from '../logic/maps.js';
 import { eraseSlot, getSlots, importToSlot, selectSlot, suspendText, takeSuspendedRun } from '../game/saveStore.js';
 import { exportSaveText, importSaveText } from '../logic/saveTransfer.js';
@@ -205,20 +206,22 @@ export class SaveSelectScene extends Phaser.Scene {
       const r = save.records;
       const best = bestReachText(save, (id) => DATA.areas.get(id));
       const rows = [
+        ['プレイ時間', formatPlayTime(r.playTime)],
         ['出撃', `${r.runs} 回`],
         ['クリア', `${r.clears} 回`],
         ['最高到達', best],
         ['実績', `${save.achievements.length} / ${DATA.achievements.all().length}`],
         ['データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`],
       ];
+      const ROW = 22; // 行の間（プレイ時間の行を足したので、少し詰める）
       rows.forEach(([label, value], k) => {
-        this.text(x + 18, y + 52 + k * 24, label, 13, COLORS.dim);
-        this.text(x + CARD_W - 18, y + 52 + k * 24, value, 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+        this.text(x + 18, y + 50 + k * ROW, label, 13, COLORS.dim);
+        this.text(x + CARD_W - 18, y + 50 + k * ROW, value, 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
       });
       // 持っているボス素材（種類が増えていくので、数だけ出す）
       const counts = Object.values(save.materials).filter((n) => n > 0);
-      this.text(x + 18, y + 52 + rows.length * 24, 'ボス素材', 13, COLORS.dim);
-      this.text(x + CARD_W - 18, y + 52 + rows.length * 24, counts.length > 0 ? `${counts.length} 種類・${counts.reduce((a, b) => a + b, 0)} 個` : 'なし', 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(x + 18, y + 50 + rows.length * ROW, 'ボス素材', 13, COLORS.dim);
+      this.text(x + CARD_W - 18, y + 50 + rows.length * ROW, counts.length > 0 ? `${counts.length} 種類・${counts.reduce((a, b) => a + b, 0)} 個` : 'なし', 13, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
       // 中断中のランがあれば、その場所を出す
       const suspended = suspendText(slot);
       if (suspended) {

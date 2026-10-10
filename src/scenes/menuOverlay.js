@@ -9,6 +9,8 @@ import { CREDITS } from '../data/credits.js';
 import { isBackKey } from '../logic/keys.js';
 import { firstTarget, moveFocus, nearestTarget } from '../logic/focusNav.js';
 import { pad } from '../game/padInput.js';
+import { placeLabel, spreadNodes } from '../logic/treeSpread.js';
+import { formatPlayTime } from '../logic/gearLog.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
@@ -16,7 +18,7 @@ import { bestReachText } from '../logic/maps.js';
 import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
-import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
+import { ELEMENT_NAMES, describeItem, describeLine } from '../logic/loot.js';
 import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
@@ -26,7 +28,7 @@ import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
-import { mouseLines, renderControls } from './controlsPanel.js';
+import { renderControls } from './controlsPanel.js';
 import { touch } from '../game/touchInput.js';
 
 const W = SCREEN.width;
@@ -37,10 +39,12 @@ const LOCKED = '#4a4470';
 // スキルツリーの円を出す枠と、その真ん中
 // マスが57個に増えて混んできたので（2026-10-09）、枠を横に広げ、円を横長にして、マス同士の間をあけている
 const TREE_RECT = { left: 40, top: 166, right: 580, bottom: 462 };
+const RECORD_TABS = ['ログ', '装備', 'インプラント']; // 記録の中のタブ
 const TREE_CENTER = { x: 310, y: 316 };
 const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114]; // 段ごとの、中心からの距離（縦の長さ。拡大していないとき）
 const TREE_PUSH = 0.5; // 3つに分かれた枝の左右を、外へずらす長さ（次の輪までの間の、何割か。輪と輪の間に置くと、となりの枝のマスと重ならない）
 const TREE_PUSH_OUTER = 7; // いちばん外の輪のマスを、外へずらす長さ（px）
+const TREE_SPREAD_BOUNDS = { x: 256, y: 107 }; // マスを動かしてよい範囲（中心からの長さ。枠と、上下の帯に隠れない所まで）
 const TREE_STRETCH = 2.15; // 横は、縦の何倍に広げるか（枠が横長なので、横に広げてマスの間をあける）
 // 絞り込み：選んだもの以外のマスを薄くする
 const TREE_FILTERS = [
@@ -207,6 +211,19 @@ export class MenuOverlay {
 
   // スキルツリーのマスの、円の中での位置（中心が 0,0。拡大していないときの長さ）
   treeLocal(layout, id) {
+    // 輪の上に並べたあと、マス同士・マスと線が重ならないように、少しずつ動かしたもの（配置ごとに1回だけ計算する）
+    if (!layout.local) {
+      const ids = Object.keys(layout.pos);
+      const index = Object.fromEntries(ids.map((key, i) => [key, i]));
+      const nodes = ids.map((key) => ({ ...this.treeBase(layout, key), parent: layout.pos[key].parent ? index[layout.pos[key].parent] : -1 }));
+      const pts = spreadNodes(nodes, TREE_SPREAD_BOUNDS);
+      layout.local = Object.fromEntries(ids.map((key, i) => [key, pts[i]]));
+    }
+    return layout.local[id];
+  }
+
+  // 輪の上の、もとの位置
+  treeBase(layout, id) {
     const p = layout.pos[id];
     const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
     const radius = this.treeRadius(p) * this.treeFit(layout);
@@ -291,6 +308,8 @@ export class MenuOverlay {
     else if (code.startsWith('Pad')) this.onPad(code);
     else if (code === 'KeyW' || code === 'ArrowUp') this.moveCursor(-1);
     else if (code === 'KeyS' || code === 'ArrowDown') this.moveCursor(1);
+    else if (code === 'KeyQ' && this.tabId === 'record') this.setRecordTab((this.recordTab ?? 0) - 1);
+    else if (code === 'KeyE' && this.tabId === 'record' && !this.focused()) this.setRecordTab((this.recordTab ?? 0) + 1);
     else if ((code === 'Enter' || code === 'KeyE') && this.focused()) this.focused().run();
     else if (code === 'Enter' || code === 'KeyE') this.confirmRow();
     else if (code === 'KeyF' && this.tabId === 'upgrade') this.jumpToOpen();
@@ -347,6 +366,11 @@ export class MenuOverlay {
   // ゲームパッド専用のキー（src/logic/gamepad.js の PAD_KEYS）
   onPad(code) {
     if (code === 'PadZoomIn' || code === 'PadZoomOut') {
+      // 記録：LT・RT で、中のタブを切り替える
+      if (this.tabId === 'record') {
+        this.setRecordTab((this.recordTab ?? 0) + (code === 'PadZoomIn' ? 1 : -1));
+        return;
+      }
       if (this.tabId !== 'upgrade') return;
       // スキルツリー：RT で拡大、LT で縮小（照準の場所は、そのまま）
       this.treeView = zoomKeep(this.treeView, code === 'PadZoomIn' ? 1 : -1);
@@ -379,7 +403,7 @@ export class MenuOverlay {
       return;
     }
     // 行を選ぶタブ（スキルツリー・データ片）と、ボタンのないタブ（記録・実績など）：上下で行を選ぶ（一覧を動かす）。左右で、下のボタンを選ぶ
-    if (this.rowCount() > 0 || content.length === 0) {
+    if (this.rowCount() > 0 || content.length === 0 || this.tabId === 'record') {
       if (vertical) {
         this.focusAt = null;
         this.moveCursor(dir === 'up' ? -1 : 1);
@@ -906,6 +930,7 @@ export class MenuOverlay {
       }
     }
     const onPath = new Set(path.length > 1 ? path.map((n) => n.id) : []);
+    const labels = []; // マスの下などに出す名前（十分に寄ったとき）。マスを全部描いたあとで、重ならない側に置く
     // 中心
     if (inRect(root.x, root.y, TREE_RECT, 10)) {
       g.fillStyle(hex(COLORS.cyan), 1).fillCircle(root.x, root.y, 5);
@@ -934,7 +959,7 @@ export class MenuOverlay {
       else if (onPath.has(n.id)) g.lineStyle(1.5, hex(COLORS.cyan), 0.8).strokeCircle(p.x, p.y, R + 3);
       this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
       // 十分に寄ったら、マスの下に強化の名前も出す
-      if (zoom >= 1.9 && inRect(p.x, p.y + R + 12, TREE_RECT, 8)) this.text(p.x, p.y + R + 3, def.name, 10, st === 'locked' ? LOCKED : COLORS.ink).setOrigin(0.5, 0);
+      if (zoom >= 1.9) labels.push({ id: n.id, p, name: def.name, color: st === 'locked' ? LOCKED : COLORS.ink });
       }
       // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る（引っぱって動かした直後は、何もしない）
       const hit = this.scene.add.circle(p.x, p.y, R + 3, 0x000000, 0.001).setInteractive({ useHandCursor: true });
@@ -949,6 +974,23 @@ export class MenuOverlay {
       });
       this.root.add(hit);
     });
+    // マスの名前：ほかのマス・線・名前と重ならない側（下・上・右・左）に置く。線の上でも読めるように、うすい下地を敷く
+    if (labels.length > 0) {
+      const circles = order.map((n) => ({ id: n.id, ...at(n.id), r: R + 2 }));
+      const segments = tree.nodes.map((n) => ({ a: n.parent ? at(n.parent) : root, b: at(n.id) }));
+      const area = { left: TREE_RECT.left + 4, top: TREE_RECT.top + 32, right: TREE_RECT.right - 4, bottom: TREE_RECT.bottom - 27 };
+      const placed = [];
+      for (const label of labels) {
+        const size = { w: label.name.length * 10 + 6, h: 13 };
+        const spot = placeLabel({ ...label.p, r: R }, size, 3, { circles: circles.filter((c) => c.id !== label.id), segments, rects: placed }, area);
+        if (spot.hits >= 100) continue; // どの側も枠からはみ出す
+        placed.push(spot.rect);
+        const cx = (spot.rect.left + spot.rect.right) / 2;
+        const cy = (spot.rect.top + spot.rect.bottom) / 2;
+        this.root.add(this.scene.add.rectangle(cx, cy, size.w, size.h, PANEL, 0.8));
+        this.text(cx, cy, label.name, 10, label.color).setOrigin(0.5);
+      }
+    }
     // ゲームパッド：真ん中の照準（ここに重なったマスを選ぶ）
     if (padTree) {
       const cg = this.graphics();
@@ -1048,11 +1090,20 @@ export class MenuOverlay {
     const r = save.records;
     const best = bestReachText(save, (id) => DATA.areas.get(id));
     const X = 60;
-    const TOP = 138;
+    const TOP = 164;
     const LINE = 24;
-    const VISIBLE = 13;
+    const VISIBLE = 12;
     const g = this.graphics();
     this.panel(40, 122, 880, 336);
+
+    // 記録の中のタブ：ログ／装備／インプラント（Q・E、クリック。ゲームパッドは LT・RT）
+    this.recordTab = Math.max(0, Math.min(RECORD_TABS.length - 1, this.recordTab ?? 0));
+    RECORD_TABS.forEach((label, i) => {
+      const on = i === this.recordTab;
+      this.button(X + i * 128, 130, 120, 24, label, on ? COLORS.cyan : COLORS.dim, () => this.setRecordTab(i), 13);
+      if (on) this.root.add(this.scene.add.rectangle(X + i * 128, 155, 120, 2, hex(COLORS.cyan), 1).setOrigin(0));
+    });
+    this.text(X + RECORD_TABS.length * 128 + 8, 136, 'Q・E：切り替え', 11, COLORS.dim);
 
     const lines = []; // 1行ぶんを描く関数（y を受け取る）の並び
     const row = (label, value) => lines.push((y) => {
@@ -1063,6 +1114,7 @@ export class MenuOverlay {
       g.lineStyle(1, hex(COLORS.line), 1).lineBetween(X, y + LINE - 3, X + 830, y + LINE - 3);
       this.text(X, y + 4, label, 12, COLORS.cyan, { fontStyle: '700' });
     });
+    const blank = () => lines.push(() => {});
     // items を columns 列のマス目にして、1段ずつ行に足す
     const grid = (items, columns, cell) => {
       const cw = 830 / columns;
@@ -1072,64 +1124,108 @@ export class MenuOverlay {
       }
     };
 
-    row('出撃した回数', `${r.runs}`);
-    row('クリアした回数', `${r.clears}`);
-    row('最高到達', best);
-    row('倒した敵の数（累計）', `${r.kills}`);
-    row('データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`);
-    row('実績', `${save.achievements.length} / ${DATA.achievements.all().length}`);
+    if (this.recordTab === 0) {
+      // ---- ログ：数の記録、ボス素材、ボス撃破 ----
+      row('プレイ時間', formatPlayTime(r.playTime));
+      row('出撃した回数', `${r.runs}`);
+      row('クリアした回数', `${r.clears}`);
+      row('最高到達', best);
+      row('倒した敵の数（累計）', `${r.kills}`);
+      row('データ片', `${save.fragments.length} / ${DATA.fragments.all().length}`);
+      row('実績', `${save.achievements.length} / ${DATA.achievements.all().length}`);
 
-    // ボス撃破。隠しボスは、倒すまで名前を出さない
-    const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0);
-    lines.push(() => {});
-    head('ボス撃破');
-    grid(bosses, 3, (b, x, y) => {
-      const n = save.bossKills[b.id] ?? 0;
-      this.text(x, y, `${b.name}　×${n}`, 13, n > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
-    });
+      // 持っているボス素材
+      const owned = DATA.materials.all().filter((def) => (save.materials[def.id] ?? 0) > 0);
+      blank();
+      head('ボス素材（持っているもの）');
+      if (owned.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED));
+      else grid(owned, 4, (def, x, y) => this.materialCell(g, def, save.materials[def.id], x, y));
 
-    // 持っているボス素材
-    const owned = DATA.materials.all().filter((def) => (save.materials[def.id] ?? 0) > 0);
-    lines.push(() => {});
-    head('ボス素材（持っているもの）');
-    if (owned.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED));
-    else grid(owned, 4, (def, x, y) => this.materialCell(g, def, save.materials[def.id], x, y));
-
-    // 武器：解放したものは、攻撃と特殊の説明を出す
-    lines.push(() => {});
-    head(`武器　${save.weapons.length} / ${DATA.weapons.all().length}`);
-    for (const w of mouseLines(null)) {
-      const def = DATA.weapons.all().find((x) => x.name === w.name);
-      const has = save.weapons.includes(def.id);
-      lines.push((y) => {
-        this.text(X, y + 4, w.name, 13, has ? COLORS.amber : LOCKED, { fontStyle: '700' });
-        this.text(X + 110, y + 5, has ? `攻撃：${w.left}` : 'まだ解放していない', 12, has ? COLORS.ink : LOCKED);
-        if (has) this.text(X + 470, y + 5, `特殊：${w.right}`, 12, COLORS.ink);
+      // ボス撃破。隠しボスは、倒すまで名前を出さない
+      const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0);
+      blank();
+      head('ボス撃破');
+      grid(bosses, 3, (b, x, y) => {
+        const n = save.bossKills[b.id] ?? 0;
+        this.text(x, y, `${b.name}　×${n}`, 13, n > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
       });
-    }
+    } else if (this.recordTab === 1) {
+      // ---- 装備：手に入れたことのある装備（出撃中に、身につけたもの・バッグに入れたもの） ----
+      const log = save.gearLog ?? { counts: {}, uniques: [], best: {}, elements: [] };
+      const uniques = DATA.legendEffects.all();
+      head(`レジェンド装備の固有効果　${uniques.filter((u) => log.uniques.includes(u.id)).length} / ${uniques.length}`);
+      for (const u of uniques) {
+        const has = log.uniques.includes(u.id);
+        lines.push((y) => {
+          this.text(X, y + 4, has ? `★ ${u.name}` : '★ ？？？', 13, has ? RARITY_COLORS.legend : LOCKED, { fontStyle: '700' });
+          this.text(X + 200, y + 5, has ? u.desc : 'まだ手に入れていない', 12, has ? COLORS.ink : LOCKED);
+        });
+      }
 
-    // インプラント：手に入れたことのあるものだけ、説明つきで並べる（種族ごと）。説明は Lv1 のときのもの
-    const all = DATA.implants.all();
-    const seen = all.filter((def) => (save.seenImplants ?? []).includes(def.id));
-    lines.push(() => {});
-    head(`インプラント（手に入れたことのあるもの）　${seen.length} / ${all.length}　　説明は Lv1 のときの効果`);
-    if (seen.length === 0) lines.push((y) => this.text(X, y + 4, 'まだない（レベルアップで手に入れると、ここに説明が残る）', 12, LOCKED));
-    for (const def of seen) {
-      const fam = species[def.species];
-      const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
-      // 説明が長いものがあるので、1つにつき2行ぶん使う
-      lines.push((y) => {
-        this.text(X, y + 4, def.name, 13, color, { fontStyle: '700' });
-        this.text(X, y + 4 + LINE - 3, fam.name, 11, COLORS.dim);
-        // 下の行が見えない位置（いちばん下の行）では、説明は1行だけ
-        const last = y >= TOP + (VISIBLE - 1) * LINE;
-        this.text(X + 170, y + 5, implantDesc(def, 1), 12, COLORS.ink, { wordWrap: { width: 650, useAdvancedWrap: true }, maxLines: last ? 1 : 2, lineSpacing: 5 });
+      blank();
+      head('手に入れた装備の数（レア度と、部位ごと）');
+      LOOT.rarities.forEach((rar, ri) => {
+        const total = LOOT.slots.reduce((sum, slot) => sum + (log.counts[`${ri}:${slot.id}`] ?? 0), 0);
+        lines.push((y) => {
+          this.text(X, y + 4, rar.name, 13, total > 0 ? RARITY_COLORS[rar.id] : LOCKED, { fontStyle: '700' });
+          LOOT.slots.forEach((slot, k) => {
+            const n = log.counts[`${ri}:${slot.id}`] ?? 0;
+            drawSlotIcon(g, slot.id, X + 150 + k * 200, y + 13, 7, n > 0 ? hex(RARITY_COLORS[rar.id]) : 0x4a4470);
+            this.text(X + 166 + k * 200, y + 5, `${slot.name}　×${n}`, 12, n > 0 ? COLORS.ink : LOCKED);
+          });
+          this.text(X + 830, y + 5, `計 ${total}`, 12, COLORS.dim).setOrigin(1, 0);
+        });
       });
-      lines.push(() => {});
+
+      blank();
+      head('装備に付く効果（見た中で、いちばん高かった値）');
+      for (const def of DATA.gearEffects.all()) {
+        lines.push((y) => {
+          if (def.kind === 'element') {
+            const names = log.elements.map((id) => ELEMENT_NAMES[id]).filter(Boolean);
+            this.text(X, y + 4, def.label, 13, names.length > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
+            this.text(X + 200, y + 5, names.length > 0 ? `見た属性：${names.join('・')}` : 'まだ見ていない', 12, names.length > 0 ? COLORS.ink : LOCKED);
+            return;
+          }
+          const value = log.best[def.id];
+          this.text(X, y + 4, def.label, 13, value ? COLORS.ink : LOCKED, { fontStyle: '700' });
+          this.text(X + 200, y + 5, value ? describeLine({ id: def.id, value }) : 'まだ見ていない', 12, value ? COLORS.amber : LOCKED);
+          this.text(X + 420, y + 5, `出る範囲：${describeLine({ id: def.id, value: def.min })} 〜 ${describeLine({ id: def.id, value: def.max }).replace(def.label, '').trim()}`, 11, COLORS.dim);
+        });
+      }
+    } else {
+      // ---- インプラント：手に入れたことのあるものだけ、説明つきで並べる。説明は Lv1 のときのもの ----
+      const all = DATA.implants.all();
+      const seen = all.filter((def) => (save.seenImplants ?? []).includes(def.id));
+      head(`インプラント（手に入れたことのあるもの）　${seen.length} / ${all.length}　　説明は Lv1 のときの効果`);
+      if (seen.length === 0) lines.push((y) => this.text(X, y + 4, 'まだない（レベルアップで手に入れると、ここに説明が残る）', 12, LOCKED));
+      for (const def of seen) {
+        const fam = species[def.species];
+        const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
+        // 説明が長いものがあるので、1つにつき2行ぶん使う
+        lines.push((y) => {
+          this.text(X, y + 4, def.name, 13, color, { fontStyle: '700' });
+          this.text(X, y + 4 + LINE - 3, fam.name, 11, COLORS.dim);
+          // 下の行が見えない位置（いちばん下の行）では、説明は1行だけ
+          const last = y >= TOP + (VISIBLE - 1) * LINE;
+          this.text(X + 170, y + 5, implantDesc(def, 1), 12, COLORS.ink, { wordWrap: { width: 650, useAdvancedWrap: true }, maxLines: last ? 1 : 2, lineSpacing: 5 });
+        });
+        blank();
+      }
     }
 
     const start = this.window(lines.length, VISIBLE, { x: 908, y: TOP, h: VISIBLE * LINE });
     lines.slice(start, start + VISIBLE).forEach((draw, i) => draw(TOP + i * LINE));
+  }
+
+  // 記録の中のタブを切り替える
+  setRecordTab(index) {
+    const n = RECORD_TABS.length;
+    this.recordTab = ((index % n) + n) % n;
+    this.scroll = 0;
+    this.focusAt = null;
+    playSe('select');
+    this.render();
   }
 
   // ---- データ片 ----
@@ -1297,5 +1393,11 @@ export class MenuOverlay {
       this.text(380, 399, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
     }
     this.text(64, 432, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
+    // プレイ時間（セーブデータを開いているときだけ。タイトルの設定では出さない）
+    const save = this.options.context().save;
+    if (save?.records) {
+      this.text(896, 398, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(896, 416, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+    }
   }
 }

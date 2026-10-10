@@ -208,7 +208,13 @@ export function upgradeCounts(tree, owned) {
 //   葉（先のないマス）を上から順に等間隔に置き、枝分かれのマスは、その先のマスの真ん中に置く。
 //   push は、外へずらす段数：2段目のマスから3つに分かれるとき、左右の2つは、線を長くして外へ出す（3つが詰まって見えないように）。
 //   ずらしたマスの先のマスも、同じだけ外へ出る（線の長さは変わらない）
+const layouts = new WeakMap(); // 配置ごとに1回だけ計算する（画面を描くたびに呼ばれるため）
 export function layoutTree(tree) {
+  if (!layouts.has(tree)) layouts.set(tree, computeLayout(tree));
+  return layouts.get(tree);
+}
+
+function computeLayout(tree) {
   const kids = new Map();
   for (const n of tree.nodes) {
     const key = n.parent ?? '@root';
@@ -222,12 +228,12 @@ export function layoutTree(tree) {
     const list = kids.get(node.id) ?? [];
     maxPush = Math.max(maxPush, push);
     if (list.length === 0) {
-      pos[node.id] = { col: node.depth, row: next++, push };
+      pos[node.id] = { col: node.depth, row: next++, push, parent: node.parent };
       return pos[node.id].row;
     }
     const wide = node.depth === TREE.wideFrom && list.length >= 3;
     const rows = list.map((child, i) => walk(child, push + (wide && (i === 0 || i === list.length - 1) ? 1 : 0)));
-    pos[node.id] = { col: node.depth, row: (rows[0] + rows.at(-1)) / 2, push };
+    pos[node.id] = { col: node.depth, row: (rows[0] + rows.at(-1)) / 2, push, parent: node.parent };
     return pos[node.id].row;
   };
   const rootRows = (kids.get('@root') ?? []).map((node) => walk(node, 0));

@@ -40,6 +40,7 @@ const CHOICE_LOCK = 450; // 3択が出てから選べるようになるまで（
 const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // 戦闘画面。1部屋ごとに作り直し、ラン（src/game/run.js）が部屋をまたいで進行を持つ。
+const PLAY_SAVE_EVERY = 60; // プレイ時間を保存する間（秒）
 const MAX_FRAME = 0.1; // 画面が大きく止まったあとでも、1コマでこれ以上は進めない（秒）
 
 export class BattleScene extends Phaser.Scene {
@@ -397,6 +398,13 @@ export class BattleScene extends Phaser.Scene {
     const world = this.world;
     const seconds = Math.min(this.clock.tick(time), MAX_FRAME);
     const delta = seconds * 1000;
+    // プレイ時間（ポーズ画面を開いている間も数える）。ときどき保存する
+    this.run.save.records.playTime = (this.run.save.records.playTime ?? 0) + seconds;
+    this.playSaveT = (this.playSaveT ?? 0) + seconds;
+    if (this.playSaveT >= PLAY_SAVE_EVERY) {
+      this.playSaveT = 0;
+      persist();
+    }
     // モバイル版：ポーズ画面やリザルトが開いている間は、戦闘用のボタンを隠す
     setTouchMode(this.menu.isOpen ? 'menu' : this.result.visible ? 'result' : world.choice ? 'choice' : this.dialogue.isOpen ? 'talk' : 'play');
     // ゲームパッド：消耗品の枠の数、足元の装備、「帰還する」のボタン
