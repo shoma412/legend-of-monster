@@ -187,6 +187,7 @@ export function computeStats(build) {
     sentryDamage: 0,
     deviceMul: 1,
     deviceCount: 1,
+    droneCount: 0, // ドローンユニットの子機を、最初の数に足す数（恒久強化「増設ラック」・インプラント「拡張ブレード」）
     revive: 0, // 倒れたとき、出撃ごとに1回だけ起き上がる。そのときの HP の割合（0 なら起き上がらない）
     kitBonus: 0, // 修復キットの回復量が増える割合
     lowHealBonus: 0, // HPが半分以下のとき、回復が増える割合（1 = 2倍）

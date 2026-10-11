@@ -512,6 +512,24 @@ export function drawShots(g, world) {
   }
 }
 
+// 子機（ドローンユニット）：小さなひし形。足元に、残りの数の点を並べる
+function drawDrones(g, world) {
+  const p = world.player;
+  if (p.weapon.type !== 'drone' || world.mode === 'dead') return;
+  const cyan = hex(COLORS.cyan);
+  const n = p.drones.length;
+  p.drones.forEach((d, i) => {
+    g.fillStyle(hex(d.alive ? COLORS.cyan : COLORS.line), 1).fillCircle(p.x + (i - (n - 1) / 2) * 8, p.y + p.r + 11, 2.5);
+    if (!d.alive) return;
+    const amber = d.charge ? hex(COLORS.amber) : cyan;
+    const pts = [{ x: d.x, y: d.y - 7 }, { x: d.x + 5, y: d.y }, { x: d.x, y: d.y + 7 }, { x: d.x - 5, y: d.y }];
+    g.fillStyle(0x0b0914, 1).fillPoints(pts, true);
+    g.lineStyle(2, amber, 1).strokePoints(pts, true);
+    g.fillStyle(WHITE, 0.9).fillCircle(d.x, d.y, 1.5);
+    if (d.charge) g.lineStyle(3, amber, 0.5).lineBetween(d.x, d.y, d.x - d.charge.vx * 0.05, d.y - d.charge.vy * 0.05);
+  });
+}
+
 export function drawPlayer(g, world) {
   const p = world.player;
   const special = p.weapon.special;
@@ -525,6 +543,8 @@ export function drawPlayer(g, world) {
       g.fillStyle(c, 0.9).fillCircle(p.x + Math.cos(a) * (p.r + 7), p.y + Math.sin(a) * (p.r + 7), 2.5);
     }
   }
+
+  drawDrones(g, world);
 
   // 斬撃の軌跡
   const a = p.attack;
@@ -550,6 +570,17 @@ export function drawPlayer(g, world) {
     g.lineStyle(4, k < 0.5 ? WHITE : cyan, 1 - 0.5 * k);
     arcPath(g, p.x, p.y, p.r + 12, facing - 1.2, facing + 1.2);
     g.lineStyle(1.5, cyan, 0.5).strokeCircle(p.x, p.y, p.r + 12);
+  }
+
+  // 帰還シールド：体の前に、広い盾の弧
+  if (p.shield) {
+    const facing = Math.atan2(p.fy, p.fx);
+    const pulse = 1.5 * Math.sin(world.time * 40);
+    g.lineStyle(14, cyan, 0.2);
+    arcPath(g, p.x, p.y, p.r + 16, facing - 1.5, facing + 1.5);
+    g.lineStyle(4, WHITE, 0.95);
+    arcPath(g, p.x, p.y, p.r + 16 + pulse, facing - 1.5, facing + 1.5);
+    g.lineStyle(1.5, cyan, 0.6).strokeCircle(p.x, p.y, p.r + 16);
   }
 
   // 溜めの輪。段階が上がるほど大きく、最大で金色

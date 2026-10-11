@@ -10,6 +10,8 @@
 //   burst  : 敵に当てるたびにゲージが溜まり、満タンで右クリックの強烈な一撃（ナックル）
 //   dashthrust : 右クリックで、向いている方向へ踏み込み、通り道の敵すべてにダメージ。踏み込んでいる間は無敵（槍）
 //   plant  : 右クリックで、少し前に、回り続ける輪を置く。中の敵を削り続ける（チャクラム）
+//   recall : 右クリックで、子機を集めて少しの間だけ攻撃を無効化し、終わると子機が突撃する（ドローンユニット）
+// drones（type: drone の武器）: 子機の数・威力・撃つ間隔・弾など。子機が身代わりに壊れる仕組みは src/game/combat.js の hurtPlayer
 // shot（遠距離の武器の弾）: damage / interval 撃つ間隔(秒) / speed / radius / life / knockback
 //   boomerang: { range, back } 投げて戻ってくる輪（チャクラム）。range px 飛ぶか壁に当たると、back の速さで手元へ戻る。敵をすべて貫き、行きと帰りで2回当たる。戻るまで、次は投げられない
 //   explode: { radius, damage } 当たった場所で爆発して、まわりの敵にもダメージ / recoil: 撃ったときに後ろへ下がる距離(px) / firing: 撃ったあと足が遅くなる時間(秒)
@@ -213,6 +215,34 @@ export const weapons = [
       damage: 8, // tick 秒ごと
       tick: 0.25,
       maxPlaced: 1, // 続けて置ける数（恒久強化「二枚刃」で 2 になる）
+    },
+  },
+  {
+    // ドローンユニット（2026-10-12 追加）：自分のまわりを回る子機が、近くの敵を自動で撃つ。docs/詳細仕様.md「35」
+    id: 'drone',
+    name: 'ドローンユニット',
+    type: 'drone',
+    mods: [{ stat: 'maxHp', add: -10 }, { stat: 'damageTaken', add: -0.05 }], // 子機が守ってくれるが、本体は少し薄い
+    drones: {
+      count: 2, // 最初から持っている子機の数（恒久強化・インプラントで、最大 max まで増える）
+      max: 4,
+      damage: 8, // 1発
+      interval: 0.4, // 1機が撃つ間隔（秒）
+      range: 240, // 子機から、この距離の中の敵を撃つ（px）
+      speed: 560, radius: 4, life: 0.7, knockback: 40, // 弾
+      orbit: 34, // 自分のまわりを回る半径（px）
+      follow: 9, // 目標の位置へ寄っていく速さ（大きいほどきびきび動く）
+      reach: 360, // 左クリックで、カーソルへ飛ばせる距離の上限（px）
+      respawn: 4, // 壊れた子機が戻るまで（秒）
+    },
+    special: {
+      type: 'recall',
+      name: '帰還シールド',
+      hint: '右クリック 帰還シールド（終わると子機が突撃）',
+      cooldown: 5, // 秒
+      shield: 0.5, // 子機が集まって、攻撃を無効化する時間（秒）
+      moveSlow: 0.6, // 集めている間の移動速度の倍率
+      charge: { distance: 320, duration: 0.3, damage: 35, knockback: 420, width: 12, spacing: 22 }, // 突撃：子機1機ごとに、通り道の敵へ
     },
   },
 ];

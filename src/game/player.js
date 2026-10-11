@@ -55,6 +55,8 @@ export function createPlayer(weaponId, x, y, carry = null) {
     pull: null, // 引き寄せられている最中（密漁者の銛）{ vx, vy, t }
     dashState: null, // ダッシュ1回ぶんの記録（通り抜けた敵など）
     forceCrit: false, // 次の攻撃が必ず会心
+    drones: [], // 子機（ドローンユニット）{ x, y, alive, respawn, cd, charge }
+    shield: null, // 帰還シールドの最中（ドローンユニット）{ t }
   };
   player.weapon = weaponFor(player.build, weaponId); // 恒久強化（武器ごとの強化）を当てた定義
   recalcStats(player);
@@ -165,7 +167,7 @@ export function updatePlayer(world, dt, input) {
     fire(world, 'dashMove', { dash: p.dashState });
   } else {
     let slow = 1;
-    if (p.guard || p.siege || p.thrust) slow = weapon.special.moveSlow;
+    if (p.guard || p.siege || p.thrust || p.shield) slow = weapon.special.moveSlow;
     else if (p.attack || p.firingT > 0) slow = weapon.moveSlow;
     else if (p.charge) slow = weapon.special.moveSlow;
     if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
@@ -176,6 +178,7 @@ export function updatePlayer(world, dt, input) {
     updateAttack(world, dt, input);
   }
   clampToBounds(p, world.bounds);
+  if (weapon.type === 'drone') updateDrones(world, dt, input);
 }
 
 // ダッシュが1回ぶん溜まるまでの時間。インプラントや恒久強化で短くなる（短くなるのは6割まで）
@@ -206,6 +209,7 @@ function startDash(p, dx, dy) {
   p.guard = null;
   p.siege = null; // 徹甲砲撃の溜めも、ダッシュでやめられる（クールダウンは始まらない）
   p.thrust = null; // 突進突き（槍）も、ダッシュでやめられる
+  p.shield = null; // 帰還シールド（ドローンユニット）も、ダッシュでやめられる（突撃は出ない）
 }
 
 // 近接攻撃の進行（振りかぶり → 斬る → 硬直）
@@ -391,6 +395,34 @@ const SPECIALS = {
     return false; // 置いたあと、すぐに通常の輪も投げられる
   },
 
+  // 帰還シールド（ドローンユニット）：右クリックで、子機が手元に集まって、少しの間だけ攻撃を無効化する。終わると、子機が前へ突撃する
+  recall(world, dt, input) {
+    const p = world.player;
+    const special = p.weapon.special;
+    if (p.shield) {
+      p.shield.t += dt;
+      p.inv = Math.max(p.inv, 0.05);
+      if (p.shield.t >= special.shield) {
+        p.shield = null;
+        startCharge(world);
+      }
+      return true;
+    }
+    if (!input.specialPressed || p.specialCd > 0) return false;
+    if (!p.drones.some((d) => d.alive)) {
+      sfx(world, 'deny'); // 子機が1機もいないときは、使えない
+      p.specialCd = 0.3;
+      return false;
+    }
+    p.shield = { t: 0 };
+    p.specialCd = special.cooldown;
+    p.inv = Math.max(p.inv, special.shield);
+    sfx(world, 'guard');
+    floatText(world, p.x, p.y - 30, special.name, COLORS.amber, 16);
+    ring(world, p.x, p.y, p.r + 18, COLORS.cyan);
+    return true;
+  },
+
   // 拡散射撃：右クリックで、扇状に何発も同時に撃つ
   spread(world, dt, input) {
     const p = world.player;
@@ -426,6 +458,7 @@ function updateAttack(world, dt, input) {
     return;
   }
   if (SPECIALS[weapon.special.type](world, dt, input)) return;
+  if (weapon.type === 'drone') return; // 子機が自動で撃つ（updateDrones）
 
   if (weapon.type === 'ranged') {
     // 銃：押している間、撃ち続ける
@@ -682,4 +715,135 @@ export function updatePlayerShots(world, dt) {
     }
   }
   world.playerShots = world.playerShots.filter((s) => s.life > 0);
+}
+
+// ---- 子機（ドローンユニット） ----
+
+// 今の子機の数：最初の数に、恒久強化・インプラントで増えたぶんを足す（上限あり）
+export function droneTotal(p) {
+  const cfg = p.weapon.drones;
+  return Math.min(cfg.max, cfg.count + Math.max(0, Math.round(p.stats.droneCount ?? 0)));
+}
+
+// 帰還シールドが終わったら、残っている子機が、向いている方向へ突撃する
+function startCharge(world) {
+  const p = world.player;
+  const c = p.weapon.special.charge;
+  const alive = p.drones.filter((d) => d.alive);
+  const speed = c.distance / c.duration;
+  alive.forEach((d, i) => {
+    const off = (i - (alive.length - 1) / 2) * c.spacing;
+    d.x = p.x - p.fy * off;
+    d.y = p.y + p.fx * off;
+    d.charge = { t: 0, vx: p.fx * speed, vy: p.fy * speed, hit: new Set() };
+  });
+  if (alive.length > 0) sfx(world, 'swingHeavy');
+}
+
+// 子機の弾。いちばん近い敵のほうへ飛ぶ。「広角ブレード」があると、少し開いて2発
+function fireDroneShot(world, d, angle) {
+  const cfg = world.player.weapon.drones;
+  const p = world.player;
+  const shots = p.stats.meleeArc > 1 ? [-0.1, 0.1] : [0];
+  for (const spread of shots) {
+    world.playerShots.push({
+      x: d.x,
+      y: d.y,
+      vx: Math.cos(angle + spread) * cfg.speed,
+      vy: Math.sin(angle + spread) * cfg.speed,
+      r: cfg.radius,
+      damage: cfg.damage,
+      knockback: cfg.knockback,
+      pierce: p.stats.pierce,
+      boomerang: null,
+      heavy: false,
+      explode: null,
+      hit: new Set(),
+      life: cfg.life,
+    });
+  }
+  sfx(world, 'shoot');
+}
+
+function updateDrones(world, dt, input) {
+  const p = world.player;
+  const cfg = p.weapon.drones;
+  const special = p.weapon.special;
+  const total = droneTotal(p);
+  while (p.drones.length < total) p.drones.push({ x: p.x, y: p.y, r: 4, alive: true, respawn: 0, cd: 0.1 * p.drones.length, charge: null });
+  if (p.drones.length > total) p.drones.length = total;
+
+  // 左クリックを押している間は、子機がカーソルのほうへ飛ぶ（自分から reach まで）。オート操作のときは、向いている方向の先
+  let ax = p.x;
+  let ay = p.y;
+  if (input.attack && !p.shield) {
+    let tx = p.x + p.fx * 170;
+    let ty = p.y + p.fy * 170;
+    if (!input.auto && input.aimX != null) {
+      tx = input.aimX;
+      ty = input.aimY;
+    }
+    const dist = Math.hypot(tx - p.x, ty - p.y);
+    const k = dist > cfg.reach ? cfg.reach / dist : 1;
+    ax = p.x + (tx - p.x) * k;
+    ay = p.y + (ty - p.y) * k;
+  }
+  const held = ax !== p.x || ay !== p.y;
+  const speed = 1 + statWith(world, 'attackSpeed');
+
+  p.drones.forEach((d, i) => {
+    if (!d.alive) {
+      d.respawn -= dt;
+      if (d.respawn <= 0) {
+        d.alive = true;
+        d.x = p.x;
+        d.y = p.y;
+        d.cd = 0.3;
+        ring(world, p.x, p.y, p.r + 14, COLORS.cyan);
+      }
+      return;
+    }
+    // 突撃中：決まった向きへ進み、通り道の敵に、1機ごとに1回ずつ当たる
+    if (d.charge) {
+      const c = d.charge;
+      c.t += dt;
+      d.x += c.vx * dt;
+      d.y += c.vy * dt;
+      clampToBounds(d, world.bounds);
+      ghost(world, d.x, d.y, 5, COLORS.amber);
+      for (const e of world.enemies) {
+        if (e.dead || e.spawnT > 0 || e.hidden || c.hit.has(e)) continue;
+        if (Math.hypot(e.x - d.x, e.y - d.y) > e.r + special.charge.width) continue;
+        c.hit.add(e);
+        hitEnemy(world, e, special.charge.damage, c.vx, c.vy, special.charge.knockback, { heavy: true });
+      }
+      if (c.t >= special.charge.duration) d.charge = null;
+      return;
+    }
+    // 自分のまわりを回る（シールド中は、手元に集まる）
+    const a = world.time * 2.4 + (i * Math.PI * 2) / Math.max(1, total);
+    const r = p.shield ? 10 : held ? 26 : cfg.orbit;
+    const gx = (p.shield ? p.x : ax) + Math.cos(a) * r;
+    const gy = (p.shield ? p.y : ay) + Math.sin(a) * r;
+    const follow = 1 - Math.exp(-cfg.follow * dt);
+    d.x += (gx - d.x) * follow;
+    d.y += (gy - d.y) * follow;
+    if (p.shield) return; // 集めている間は、撃たない
+    // 近くの敵を撃つ
+    d.cd = Math.max(0, d.cd - dt);
+    if (d.cd > 0) return;
+    let best = null;
+    let bestDist = cfg.range;
+    for (const e of world.enemies) {
+      if (e.dead || e.spawnT > 0 || e.hidden) continue;
+      const dist = Math.hypot(e.x - d.x, e.y - d.y) - e.r;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = e;
+      }
+    }
+    if (!best) return;
+    d.cd = cfg.interval / speed;
+    fireDroneShot(world, d, Math.atan2(best.y - d.y, best.x - d.x));
+  });
 }

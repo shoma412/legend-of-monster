@@ -368,6 +368,19 @@ export function hurtPlayer(world, damage) {
     triggerCounter(world);
     return true;
   }
+  // ドローンユニット：子機が1機、身代わりになって壊れる（自分はダメージを受けない）
+  const drone = p.weapon.type === 'drone' ? p.drones.find((d) => d.alive) : null;
+  if (drone) {
+    drone.alive = false;
+    drone.charge = null;
+    drone.respawn = p.weapon.drones.respawn;
+    p.inv = PLAYER.hitInvincible;
+    addShake(world, FEEL.shake.hit);
+    sfx(world, 'hurt');
+    floatText(world, drone.x, drone.y - 14, 'ドローン損壊', COLORS.cyan, 13);
+    burst(world, drone.x, drone.y, COLORS.cyan, 14, 240);
+    return true;
+  }
   // 周が進むと、受けるダメージが増える
   // 被ダメージの軽減は、条件つきのもの（立ち止まっている間、など）も合わせて、下限まで
   const taken = Math.max(PLAYER.minDamageTaken, statWith(world, 'damageTaken'));

@@ -113,6 +113,12 @@ const WEAPON_GLYPHS = {
       glowLine(g, c, 2, () => g.lineBetween(x + Math.cos(a) * 13, y + Math.sin(a) * 13, x + Math.cos(a) * 18, y + Math.sin(a) * 18));
     }
   },
+  // ドローンユニット：ひし形の子機が2つ
+  drone(g, x, y, c) {
+    for (const [dx, dy] of [[-7, 4], [8, -6]]) {
+      glowLine(g, c, 2.5, () => g.strokeTriangle(x + dx, y + dy - 8, x + dx + 6, y + dy, x + dx, y + dy + 8).strokeTriangle(x + dx, y + dy - 8, x + dx - 6, y + dy, x + dx, y + dy + 8));
+    }
+  },
   // ナックル：握った拳（四角い拳と、指の線）
   knuckle(g, x, y, c) {
     glowLine(g, c, 2.5, () => g.strokeRect(x - 11, y - 9, 22, 16));

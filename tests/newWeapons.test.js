@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from '../src/data/index.js';
-import { weaponUnlocks } from '../src/data/upgrades.js';
+import { upgrades, weaponUnlocks } from '../src/data/upgrades.js';
 import { recalcStats } from '../src/game/build.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { unlockWeapon } from '../src/logic/meta.js';
 import { createSave } from '../src/logic/save.js';
-import { weaponTraitText } from '../src/logic/stats.js';
+import { upgradedWeapon, weaponTraitText } from '../src/logic/stats.js';
+import { hurtPlayer } from '../src/game/combat.js';
 
 // 新武器：槍とチャクラム（docs/詳細仕様.md「29. 新武器：槍とチャクラム」）
 
@@ -234,5 +235,108 @@ describe('チャクラム', () => {
       return Math.hypot(s.vx, s.vy);
     };
     expect(speedOf(0.5) / speedOf(0)).toBeCloseTo(1.5);
+  });
+});
+
+describe('ドローンユニット', () => {
+  const def = DATA.weapons.get('drone');
+  const alive = (world) => world.player.drones.filter((d) => d.alive).length;
+
+  it('スパイダーコア×2で解放できる。最初から子機を2機持っていて、上限は4機', () => {
+    const save = createSave();
+    expect(weaponUnlocks.find((w) => w.weapon === 'drone').cost).toEqual({ spiderCore: 2 });
+    save.materials.spiderCore = 2;
+    expect(unlockWeapon(save, 'drone')).toBe(true);
+    const world = makeWorld('drone');
+    run(world, 0.2);
+    expect(world.player.drones).toHaveLength(2);
+    expect(weaponTraitText(def)).toContain('被ダメージ −5%');
+    world.player.stats = { ...world.player.stats, droneCount: 1 };
+    run(world, 0.1);
+    expect(world.player.drones).toHaveLength(3);
+    world.player.stats = { ...world.player.stats, droneCount: 9 };
+    run(world, 0.1);
+    expect(world.player.drones).toHaveLength(4);
+  });
+
+  it('子機が、近くの敵を自動で撃つ。遠い敵は撃たない', () => {
+    const world = makeWorld('drone');
+    const near = addEnemy(world, 150);
+    const far = addEnemy(world, 700, 200);
+    run(world, 2);
+    expect(lost(near)).toBeGreaterThanOrEqual(def.drones.damage * 4);
+    expect(lost(far)).toBe(0);
+  });
+
+  it('「拡張ブレード」で子機が増え、「広角ブレード」で2発撃つ', () => {
+    const world = makeWorld('drone');
+    const p = world.player;
+    p.build.implants = { blade: 1 };
+    recalcStats(p);
+    expect(p.stats.droneCount).toBe(1);
+    const wide = makeWorld('drone');
+    wide.player.build.implants = { wideblade: 1 };
+    recalcStats(wide.player);
+    const shots = (w) => {
+      addEnemy(w, 150);
+      run(w, 0.05);
+      return w.playerShots.length;
+    };
+    expect(shots(wide)).toBe(2 * shots(makeWorld('drone')));
+  });
+
+  it('敵の攻撃を受けると、自分の代わりに子機が1機壊れ、4秒で戻る。全部壊れると、自分が受ける', () => {
+    const world = makeWorld('drone');
+    const p = world.player;
+    run(world, 0.1);
+    p.inv = 0;
+    const hp = p.hp;
+    expect(hurtPlayer(world, 20)).toBe(true);
+    expect(p.hp).toBe(hp);
+    expect(alive(world)).toBe(1);
+    p.inv = 0;
+    hurtPlayer(world, 20);
+    expect(alive(world)).toBe(0);
+    expect(p.hp).toBe(hp);
+    p.inv = 0;
+    hurtPlayer(world, 20);
+    expect(p.hp).toBeLessThan(hp);
+    run(world, def.drones.respawn + 0.2);
+    expect(alive(world)).toBe(2);
+  });
+
+  it('帰還シールド：0.5秒は攻撃を受けず、終わると子機が突撃して、通り道の敵に1機ずつ当たる', () => {
+    const world = makeWorld('drone');
+    const p = world.player;
+    run(world, 0.2);
+    const e = addEnemy(world, 220);
+    const before = lost(e);
+    updateWorld(world, DT, { ...idle, ...aim(world), specialPressed: true });
+    expect(p.shield).toBeTruthy();
+    expect(p.specialCd).toBeGreaterThan(def.special.cooldown - 1);
+    p.inv = 0; // シールドの無敵だけを調べる
+    updateWorld(world, DT, { ...idle, ...aim(world) });
+    expect(p.inv).toBeGreaterThan(0);
+    run(world, def.special.shield + def.special.charge.duration + 0.2);
+    expect(p.shield).toBeNull();
+    expect(lost(e) - before).toBeGreaterThanOrEqual(def.special.charge.damage * 2);
+  });
+
+  it('子機が1機もいないときは、帰還シールドは出ない', () => {
+    const world = makeWorld('drone');
+    run(world, 0.1);
+    for (const d of world.player.drones) d.alive = false;
+    updateWorld(world, DT, { ...idle, ...aim(world), specialPressed: true });
+    expect(world.player.shield).toBeNull();
+  });
+
+  it('恒久強化「増設ラック」で子機が増え、「強襲プログラム」で突撃が強くなる', () => {
+    const rack = upgrades.find((u) => u.id === 'droneRack');
+    expect(rack.max).toBe(2);
+    expect(rack.perLevel.mods).toEqual([{ stat: 'droneCount', add: 1 }]);
+    const mod = upgrades.find((u) => u.id === 'wm-drone').perLevel.weaponMod;
+    const upgraded = upgradedWeapon(def, mod);
+    expect(upgraded.special.cooldown).toBe(4);
+    expect(upgraded.special.charge.damage).toBe(55);
   });
 });

@@ -206,6 +206,17 @@ export const upgrades = [
     costs: [{ cryoCore: 1, serpentCore: 1 }, { crabCore: 1, houndCore: 1 }],
     perLevel: { skips: 1 },
   },
+  // ドローンユニットの子機を増やす（2026-10-12 追加。docs/詳細仕様.md「35. 新武器：ドローンユニット」）
+  {
+    id: 'droneRack', category: 'skill', name: '増設ラック', desc: 'ドローンユニット：子機 +1機（最初は2機。最大4機）', max: 2, since: 7,
+    costs: [{ spiderCore: 1, hydraCore: 1 }, { spiderCore: 1, titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'droneCount', add: 1 }] },
+  },
+  {
+    id: 'wm-drone', category: 'skill', name: '強襲プログラム', desc: 'ドローン：帰還シールドの突撃のダメージ 35 → 55、クールダウン 5秒 → 4秒', max: 1, since: 7,
+    costs: [{ spiderCore: 1, crabCore: 1 }],
+    perLevel: { weaponMod: { weapon: 'drone', special: { cooldown: 4, charge: { distance: 320, duration: 0.3, damage: 55, knockback: 420, width: 12, spacing: 22 } } } },
+  },
 ];
 
 // 武器の解放
@@ -217,4 +228,5 @@ export const weaponUnlocks = [
   { weapon: 'cannon', name: '大砲', note: '爆発する砲弾と徹甲砲撃', cost: { crabCore: 2 } },
   { weapon: 'spear', name: '槍', note: '貫く突きと突進突き', cost: { titanCore: 2 } },
   { weapon: 'chakram', name: 'チャクラム', note: '戻ってくる輪と設置', cost: { mothCore: 2 } },
+  { weapon: 'drone', name: 'ドローンユニット', note: '子機が自動で撃つ。帰還シールド', cost: { spiderCore: 2 } },
 ];

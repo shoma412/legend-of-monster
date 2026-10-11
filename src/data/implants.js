@@ -466,12 +466,12 @@ export const implants = [
   },
   {
     id: 'blade', species: 'general', name: '拡張ブレード',
-    desc: (k) => `近接範囲 +${pct(0.25 * k)}／弾が1体貫通`,
-    effect: (k) => ({ mods: [{ stat: 'meleeRange', add: 0.25 * k }, { stat: 'pierce', add: 1 }] }),
+    desc: (k) => `近接範囲 +${pct(0.25 * k)}／弾が1体貫通／ドローンの子機 +1機`,
+    effect: (k) => ({ mods: [{ stat: 'meleeRange', add: 0.25 * k }, { stat: 'pierce', add: 1 }, { stat: 'droneCount', add: 1 }] }),
   },
   {
     id: 'wideblade', species: 'general', name: '広角ブレード',
-    desc: (k) => `近接攻撃の角度 +${pct(0.5 * k)}`,
+    desc: (k) => `近接攻撃の角度 +${pct(0.5 * k)}／ドローンの子機が2発ずつ撃つ`,
     effect: (k) => ({ mods: [{ stat: 'meleeArc', add: 0.5 * k }] }),
   },
   {

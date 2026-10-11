@@ -12,7 +12,7 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 62;
+const ALL_NODES = 65;
 const WEAPON_NODES = 7; // 武器ごとの強化（since: 5）
 const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
@@ -396,7 +396,9 @@ describe('武器ごとの強化（since: 5）', () => {
   it('武器7種類に、1マスずつ。どれも素材2種類。画面でも重ならない', () => {
     const defs = allUpgrades.filter((d) => d.since === 5);
     expect(defs).toHaveLength(WEAPON_NODES);
-    expect(defs.map((d) => d.perLevel.weaponMod.weapon).sort()).toEqual(DATA.weapons.ids().sort());
+    // ドローンユニットの強化は、あとから足した（since: 7）
+    expect(defs.map((d) => d.perLevel.weaponMod.weapon).sort()).toEqual(DATA.weapons.ids().filter((id) => id !== 'drone').sort());
+    expect(allUpgrades.find((d) => d.id === 'wm-drone').since).toBe(7);
     for (const d of defs) expect(Object.keys(d.costs[0]), d.id).toHaveLength(2);
     for (const seed of SEEDS.slice(0, 60)) {
       const tree = buildTree(seed);
