@@ -35,7 +35,7 @@ export const environments = [
     id: 'acidrain',
     name: '酸の雨',
     rain: true,
-    cycle: { clear: 13, warn: 3, rain: 5 }, // 予告の間は、画面のふちがゆっくり明滅する（秒数は画面に出さない）
+    cycle: { clear: 13, warn: 3, rain: 5 }, // 予告の間は、画面全体がゆっくり明滅する（秒数は画面に出さない）
     roofs: { count: { min: 2, max: 3 }, w: 176, h: 124 },
     damage: { tick: 0.6, amount: 6 },
   },

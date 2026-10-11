@@ -100,7 +100,7 @@ export function drawRoofs(g, world) {
   }
 }
 
-// 雨：予告の間は、画面のふちが黄緑に明滅する。降っている間は、斜めの雨すじと、薄い黄緑のもや
+// 雨：予告の間は、画面全体が黄緑にゆっくり明滅する。降っている間は、斜めの雨すじと、薄い黄緑のもや
 export function drawRain(g, world) {
   const env = rainEnv(world);
   const r = world.rain;
@@ -109,8 +109,10 @@ export function drawRain(g, world) {
   const W = SCREEN.width;
   const H = SCREEN.height;
   if (r.phase === 'warn') {
-    const k = 0.25 + 0.2 * Math.abs(Math.sin(world.time * 4)); // ゆっくり明滅する
-    g.lineStyle(10, acid, k).strokeRect(5, 5, W - 10, H - 10);
+    // 画面全体が、ゆっくり明滅する（約1.3秒で1往復。予告の3秒で2回ほど）
+    const k = 0.5 - 0.5 * Math.cos(world.time * 4.8);
+    g.fillStyle(acid, 0.05 + 0.2 * k).fillRect(0, 0, W, H);
+    g.lineStyle(10, acid, 0.2 + 0.35 * k).strokeRect(5, 5, W - 10, H - 10);
     return;
   }
   const fade = Math.min(1, r.t / 0.5, (r.max - r.t) / 0.3);

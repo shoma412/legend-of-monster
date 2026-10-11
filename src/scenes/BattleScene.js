@@ -511,10 +511,10 @@ export class BattleScene extends Phaser.Scene {
     const lamps = world.lamps ?? [];
     const litCount = lamps.filter((l) => l.lit).length;
     this.lampText.setVisible(lamps.length > 0 && !this.run.inSecret && this.run.plan.current !== 'boss').setText(`灯り ${litCount}/${lamps.length}`).setColor(litCount >= lamps.length ? COLORS.green : COLORS.amber);
-    // 酸の雨：秒数は出さない（画面のふちが明滅してから降る）。降っている間と予告の間だけ、文字を出す
+    // 酸の雨：秒数は出さない（画面全体が明滅してから降る）。降っている間だけ、文字を出す
     const rain = world.rain;
     if (rain) {
-      const timer = rain.phase === 'rain' ? '酸の雨' : rain.phase === 'warn' ? '酸の雨　来る' : '';
+      const timer = rain.phase === 'rain' ? '酸の雨' : '';
       // 隠しボスの条件（そのエリアで、雨に1回も当たっていない）が、まだ生きているか
       const sec = this.run.secret;
       const dry = sec?.rule === 'rain' && !sec.done && !this.run.inSecret ? (sec.dryOk && !(world.rainHits > 0) ? '　／　濡れていない' : '　／　濡れた') : '';
