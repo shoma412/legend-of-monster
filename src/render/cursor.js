@@ -2,8 +2,8 @@
 // 絵は、ここでコードで描く（SVG）。暗い縁取りを付けて、明るい背景の上でも見えるようにする。
 import { COLORS } from '../data/theme.js';
 
-const SIZE = 16; // 絵の大きさ（px）。真ん中が、指している場所
-const DOT = 4; // 点の半径（px）
+const SIZE = 22; // 絵の大きさ（px）。真ん中が、指している場所（2026-10-12：16 → 22）
+const DOT = 6; // 点の半径（px）（2026-10-12：4 → 6）
 
 // 点1つ。color は点の色
 function dot(color) {

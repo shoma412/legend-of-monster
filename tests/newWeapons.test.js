@@ -244,8 +244,8 @@ describe('ドローンユニット', () => {
 
   it('スパイダーコア×2で解放できる。最初から子機を2機持っていて、上限は4機', () => {
     const save = createSave();
-    expect(weaponUnlocks.find((w) => w.weapon === 'drone').cost).toEqual({ spiderCore: 2 });
-    save.materials.spiderCore = 2;
+    expect(weaponUnlocks.find((w) => w.weapon === 'drone').cost).toEqual({ rainCore: 2 });
+    save.materials.rainCore = 2;
     expect(unlockWeapon(save, 'drone')).toBe(true);
     const world = makeWorld('drone');
     run(world, 0.2);
