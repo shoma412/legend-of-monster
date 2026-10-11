@@ -468,12 +468,12 @@ describe('インプラントの効果', () => {
     expect(statWith(world, 'attackMul')).toBeCloseTo(1.35);
   });
 
-  it('砕氷：減速中の敵にだけ会心率+25%', () => {
+  it('砕氷：減速中の敵にだけ会心率+15%', () => {
     const world = makeWorld(['icebreaker']);
     const e = addEnemy(world, 'grunt', 60);
     expect(statWith(world, 'critChance', e)).toBeCloseTo(PLAYER.critChance);
     e.slowT = 1;
-    expect(statWith(world, 'critChance', e)).toBeCloseTo(PLAYER.critChance + 0.25);
+    expect(statWith(world, 'critChance', e)).toBeCloseTo(PLAYER.critChance + 0.15);
   });
 
   it('アドレナリン回路：ダッシュ後2秒間だけ攻撃力+50%', () => {

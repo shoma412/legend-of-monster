@@ -91,8 +91,8 @@ export const implants = [
   },
   {
     id: 'icebreaker', species: 'wyvern', name: '砕氷',
-    desc: (k) => `減速中の敵への会心率 +${pct(0.25 * k)}`,
-    effect: (k) => ({ mods: [{ stat: 'critChance', add: 0.25 * k, when: 'targetSlowed' }] }),
+    desc: (k) => `減速中の敵への会心率 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'critChance', add: 0.15 * k, when: 'targetSlowed' }] }),
   },
   {
     id: 'frostwing', species: 'wyvern', name: '霜の翼',
