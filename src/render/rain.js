@@ -109,7 +109,7 @@ export function drawRain(g, world) {
   const W = SCREEN.width;
   const H = SCREEN.height;
   if (r.phase === 'warn') {
-    const k = 0.25 + 0.2 * Math.abs(Math.sin(world.time * 9));
+    const k = 0.25 + 0.2 * Math.abs(Math.sin(world.time * 4)); // ゆっくり明滅する
     g.lineStyle(10, acid, k).strokeRect(5, 5, W - 10, H - 10);
     return;
   }

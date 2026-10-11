@@ -511,14 +511,14 @@ export class BattleScene extends Phaser.Scene {
     const lamps = world.lamps ?? [];
     const litCount = lamps.filter((l) => l.lit).length;
     this.lampText.setVisible(lamps.length > 0 && !this.run.inSecret && this.run.plan.current !== 'boss').setText(`灯り ${litCount}/${lamps.length}`).setColor(litCount >= lamps.length ? COLORS.green : COLORS.amber);
-    // 酸の雨：雨までの秒数（降っている間は、残りの秒数）
+    // 酸の雨：秒数は出さない（画面のふちが明滅してから降る）。降っている間と予告の間だけ、文字を出す
     const rain = world.rain;
     if (rain) {
-      const timer = rain.phase === 'rain' ? `酸の雨　残り ${Math.ceil(rain.t)}` : `酸の雨まで ${Math.ceil(rain.t + (rain.phase === 'clear' ? world.room.environment.cycle.warn : 0))}`;
+      const timer = rain.phase === 'rain' ? '酸の雨' : rain.phase === 'warn' ? '酸の雨　来る' : '';
       // 隠しボスの条件（そのエリアで、雨に1回も当たっていない）が、まだ生きているか
       const sec = this.run.secret;
       const dry = sec?.rule === 'rain' && !sec.done && !this.run.inSecret ? (sec.dryOk && !(world.rainHits > 0) ? '　／　濡れていない' : '　／　濡れた') : '';
-      this.lampText.setVisible(true).setText(timer + dry).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
+      this.lampText.setVisible(timer + dry !== '').setText(timer + dry).setColor(rain.phase === 'clear' ? COLORS.dim : '#b6ff3a');
     }
     // 強風：風までの秒数（吹いている間は、残りの秒数）と、風向き
     const wind = world.wind;

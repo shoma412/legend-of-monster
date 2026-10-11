@@ -209,12 +209,12 @@ export const upgrades = [
   // ドローンユニットの子機を増やす（2026-10-12 追加。docs/詳細仕様.md「35. 新武器：ドローンユニット」）
   {
     id: 'droneRack', category: 'skill', name: '増設ラック', desc: 'ドローンユニット：子機 +1機（最初は2機。最大4機）', max: 2, since: 7,
-    costs: [{ spiderCore: 1, hydraCore: 1 }, { spiderCore: 1, titanCore: 1 }],
+    costs: [{ intakeCore: 1, hydraCore: 1 }, { intakeCore: 1, titanCore: 1 }], // マップ6のボスの素材（2026-10-12）
     perLevel: { mods: [{ stat: 'droneCount', add: 1 }] },
   },
   {
     id: 'wm-drone', category: 'skill', name: '強襲プログラム', desc: 'ドローン：帰還シールドの突撃のダメージ 35 → 55、クールダウン 5秒 → 4秒', max: 1, since: 7,
-    costs: [{ spiderCore: 1, crabCore: 1 }],
+    costs: [{ intakeCore: 1, crabCore: 1 }],
     perLevel: { weaponMod: { weapon: 'drone', special: { cooldown: 4, charge: { distance: 320, duration: 0.3, damage: 55, knockback: 420, width: 12, spacing: 22 } } } },
   },
 ];
