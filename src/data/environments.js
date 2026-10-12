@@ -45,7 +45,7 @@ export const environments = [
     id: 'gale',
     name: '強風',
     wind: true,
-    cycle: { clear: 12, warn: 2, blow: 4, retry: 3 }, // retry: ボスの吸い込みで風がやんだあと、次の予告までの秒数
+    cycle: { clear: 6, warn: 2, blow: 4, retry: 3 }, /* 2026-10-13：clear を 12 から 6 に短くした */ // retry: ボスの吸い込みで風がやんだあと、次の予告までの秒数
     push: { player: 130, enemy: 100, shot: 150 },
     screens: { count: { min: 2, max: 3 }, size: 64, lee: 120, width: 64 },
     hotWalls: { count: { min: 3, max: 5 }, length: { min: 120, max: 200 }, damage: 28, depth: 10 },
