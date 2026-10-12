@@ -19,6 +19,8 @@
 //   cycle   : 風の周期（秒）。clear 秒の凪 → warn 秒の予告 → blow 秒の風、をくり返す（戦闘の間だけ）。風向きは、予告のたびに上下左右から選ぶ
 //   push    : 風の間に流される速さ（px/秒）。player プレイヤー / enemy 敵 / shot 弾
 //   screens : 遮風板。count か所（戦闘のある部屋だけ）、size は板の長さ、lee は陰の長さ、width は陰の幅（px）
+//   hotWalls: 換気扇の壁（2026-10-13 追加）。count か所（戦闘のある部屋だけ。上・下・左の壁のどこか）、1か所の長さは length（px）。
+//             プレイヤーが depth px 以内で触れると damage のダメージ（弾き返しはなし。被弾後の無敵のあいだは当たらない。ダッシュ中は当たらない）。敵には当たらない
 export const environments = [
   {
     id: 'dark',
@@ -46,5 +48,6 @@ export const environments = [
     cycle: { clear: 12, warn: 2, blow: 4, retry: 3 }, // retry: ボスの吸い込みで風がやんだあと、次の予告までの秒数
     push: { player: 130, enemy: 100, shot: 150 },
     screens: { count: { min: 2, max: 3 }, size: 64, lee: 120, width: 64 },
+    hotWalls: { count: { min: 3, max: 5 }, length: { min: 120, max: 200 }, damage: 28, depth: 10 },
   },
 ];

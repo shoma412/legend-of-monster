@@ -48,6 +48,7 @@ export function createWorld({ weaponId = 'greatsword', waves = [], rng = Math.ra
     rain: null, // 雨の周期 { phase: clear / warn / rain, t, max }（環境「酸の雨」。戦闘の間だけ）
     rainHits: 0, // この部屋で、雨に当たった回数
     screens: (room.screens ?? []).map((s) => ({ ...s, broken: 0, loose: 0 })), // 遮風板（環境「強風」）。陰にいれば、風に流されない。broken は飛ばされていて無い残り秒数、loose は揺れている残り秒数
+    hotWalls: room.hotWalls ?? [], // 換気扇の壁（環境「強風」）{ side, from, to }。触れるとダメージ
     wind: null, // 風の周期 { phase: clear / warn / blow, t, max, dirX, dirY }（環境「強風」。戦闘の間だけ）
     suction: null, // ボスが吸っている場所 { x, y, arc, angle, until }（インテーク）
     loot: [], // 落ちている装備 { x, y, item }

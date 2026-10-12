@@ -12,7 +12,7 @@ import { permanentBonuses, recordCarryOver } from '../logic/meta.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
 import { drawDarkness, drawEyes, drawLamps } from '../render/darkness.js';
 import { drawRain, drawRoofs } from '../render/rain.js';
-import { drawAnchors, drawScreens, drawWind } from '../render/wind.js';
+import { drawAnchors, drawHotWalls, drawScreens, drawWind } from '../render/wind.js';
 import { setTouchMode, takeTouchPresses, touch } from '../game/touchInput.js';
 import { pad, padAiming, takePadPresses } from '../game/padInput.js';
 import { PAD } from '../logic/gamepad.js';
@@ -468,6 +468,7 @@ export class BattleScene extends Phaser.Scene {
     drawRain(g, world);
     drawRoofs(g, world);
     // 強風：遮風板と、風
+    drawHotWalls(g, world);
     drawScreens(g, world);
     drawAnchors(g, world);
     drawWind(g, world);

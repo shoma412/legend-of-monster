@@ -1,9 +1,10 @@
 // 環境「強風」の動き（docs/詳細仕様.md「30. マップ6「送風区」と、環境「強風」」）。
 // 風の周期、遮風板、風に流されるもの（プレイヤー・敵・弾）を扱う。風の吹かないマップでは、どれも何もしない。
 // ボスの「吸引」も、同じ「空気の流れ」として扱う（遮風板の陰にいれば、吸われない）。
-import { ELEMENT_COLORS } from '../data/theme.js';
+import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { clampToBounds } from '../logic/geometry.js';
-import { floatText, sfx } from './fx.js';
+import { hurtPlayer } from './combat.js';
+import { burst, floatText, sfx } from './fx.js';
 
 export const WIND_COLOR = ELEMENT_COLORS.cold;
 const DIRECTIONS = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
@@ -89,6 +90,7 @@ function drift(world, o, speed, dt) {
 export function updateWind(world, dt) {
   const env = windEnv(world);
   if (!env) return;
+  updateHotWalls(world);
   for (const s of world.screens ?? []) {
     if (s.broken > 0) s.broken -= dt;
     if (s.loose > 0) s.loose -= dt;
@@ -171,6 +173,51 @@ export function loosenScreen(world, screen, warn, seconds) {
   screen.loose = warn;
   screen.flyAt = world.time + warn;
   screen.restore = seconds;
+}
+
+// 換気扇の壁を置く場所を決める（部屋を作るときに呼ぶ）。上・下・左の壁に、count か所。右の壁には、扉が並ぶので置かない。
+//   返す値は { side: 'top' | 'bottom' | 'left', from, to }（from〜to は、その壁に沿った位置。上下は x、左は y）。同じ壁の上では、40px 以上あける
+export function placeHotWalls(env, bounds, rng) {
+  const cfg = env.hotWalls;
+  const sides = { top: [bounds.left, bounds.right], bottom: [bounds.left, bounds.right], left: [bounds.top, bounds.bottom] };
+  const names = Object.keys(sides);
+  const count = cfg.count.min + Math.min(cfg.count.max - cfg.count.min, Math.floor(rng() * (cfg.count.max - cfg.count.min + 1)));
+  const walls = [];
+  for (let attempt = 0; attempt < 60 && walls.length < count; attempt++) {
+    const side = names[Math.floor(rng() * names.length) % names.length];
+    const [lo, hi] = sides[side];
+    const length = cfg.length.min + rng() * (cfg.length.max - cfg.length.min);
+    const margin = 50; // 角から離す
+    const from = lo + margin + rng() * Math.max(0, hi - lo - length - margin * 2);
+    const to = from + length;
+    if (walls.some((w) => w.side === side && from < w.to + 40 && to > w.from - 40)) continue;
+    walls.push({ side, from: Math.round(from), to: Math.round(to) });
+  }
+  return walls;
+}
+
+// プレイヤーが、換気扇の壁に触れているか（壁の内側 depth px の帯と、プレイヤーの円が重なっているか）
+export function touchingHotWall(world, wall) {
+  const env = windEnv(world);
+  if (!env?.hotWalls) return false;
+  const b = world.bounds;
+  const p = world.player;
+  const d = env.hotWalls.depth;
+  const rect = wall.side === 'top' ? [wall.from, b.top, wall.to, b.top + d] : wall.side === 'bottom' ? [wall.from, b.bottom - d, wall.to, b.bottom] : [b.left, wall.from, b.left + d, wall.to];
+  const nx = Math.max(rect[0], Math.min(rect[2], p.x));
+  const ny = Math.max(rect[1], Math.min(rect[3], p.y));
+  return Math.hypot(p.x - nx, p.y - ny) <= p.r;
+}
+
+// 換気扇の壁：戦闘の間（カウントダウンが終わってから、部屋をクリアするまで）、触れると damage のダメージ。敵には当たらない
+export function updateHotWalls(world) {
+  const env = windEnv(world);
+  if (!env?.hotWalls || world.mode !== 'play' || world.countdown > 0) return;
+  for (const wall of world.hotWalls ?? []) {
+    if (touchingHotWall(world, wall) && hurtPlayer(world, env.hotWalls.damage)) {
+      burst(world, world.player.x, world.player.y, COLORS.amber, 10, 200);
+    }
+  }
 }
 
 // 遮風板を置く場所を決める（部屋を作るときに呼ぶ）。部屋の中の決まった候補から選ぶ。all: true なら、いちばん多い数を置く（ボス部屋）

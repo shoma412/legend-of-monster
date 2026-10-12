@@ -5,6 +5,42 @@ import { WIND_COLOR, flowAt, shadowOf, sheltered, windEnv } from '../game/wind.j
 
 const PLATE = { base: 0x141c26, face: 0x2a3a4c, light: 0x9db4d0 };
 
+// 換気扇の壁：壁ぎわの、橙色の警告の縞と、回る羽根。常に見える（触れるとダメージ）
+export function drawHotWalls(g, world) {
+  const env = windEnv(world);
+  if (!env?.hotWalls) return;
+  const b = world.bounds;
+  const depth = env.hotWalls.depth;
+  const amber = hex(COLORS.amber);
+  const t = world.time;
+  for (const wall of world.hotWalls ?? []) {
+    const horizontal = wall.side !== 'left';
+    // 土台と、警告の縞（斜めの線）
+    const x0 = horizontal ? wall.from : b.left;
+    const y0 = wall.side === 'top' ? b.top : wall.side === 'bottom' ? b.bottom - depth : wall.from;
+    const w = horizontal ? wall.to - wall.from : depth;
+    const h = horizontal ? depth : wall.to - wall.from;
+    g.fillStyle(0x1a1008, 0.9).fillRect(x0, y0, w, h);
+    g.fillStyle(amber, 0.28 + 0.1 * Math.sin(t * 6 + wall.from)).fillRect(x0, y0, w, h);
+    g.lineStyle(2, amber, 0.95).strokeRect(x0, y0, w, h);
+    const len = horizontal ? w : h;
+    for (let q = 0; q < len; q += 14) {
+      if (horizontal) g.lineStyle(2, 0x000000, 0.7).lineBetween(x0 + q, y0 + h, x0 + q + 8, y0);
+      else g.lineStyle(2, 0x000000, 0.7).lineBetween(x0, y0 + q + 8, x0 + w, y0 + q);
+    }
+    // 回る羽根（40px ごとに1つ。壁のすぐ内側）
+    for (let q = 20; q < len - 8; q += 40) {
+      const cx = horizontal ? x0 + q : b.left + depth + 12;
+      const cy = horizontal ? (wall.side === 'top' ? b.top + depth + 12 : b.bottom - depth - 12) : y0 + q;
+      for (let i = 0; i < 3; i++) {
+        const a = t * 9 + (i * Math.PI * 2) / 3 + wall.from;
+        g.lineStyle(2.5, amber, 0.9).lineBetween(cx, cy, cx + Math.cos(a) * 10, cy + Math.sin(a) * 10);
+      }
+      g.lineStyle(1.5, amber, 0.6).strokeCircle(cx, cy, 11);
+    }
+  }
+}
+
 // 遮風板を描く。十字に組んだ板（どの向きの風も、陰ができる）。風の予告と、吹いている間は、陰になる場所を薄く示す
 export function drawScreens(g, world) {
   const env = windEnv(world);
