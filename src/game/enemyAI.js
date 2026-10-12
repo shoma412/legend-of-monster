@@ -671,7 +671,14 @@ const BEHAVIORS = {
       e.t -= dt;
       e.angle = Math.atan2(d.dy, d.dx);
       if (e.t <= 0) {
-        world.hazards.push({ type: 'mark', x: p.x, y: p.y, r: lob.radius, t: lob.delay, max: lob.delay, damage: e.def.damage, color: e.color, from: { x: e.x, y: e.y } });
+        // lob.count が 2 以上なら、プレイヤーのいる場所を真ん中にして、こちらから見て縦に spacing ずつずらして並べる（熱吹き）。column なら、投げずに床から噴く
+        const n = lob.count ?? 1;
+        for (let i = 0; i < n; i++) {
+          const off = (i - (n - 1) / 2) * (lob.spacing ?? 0);
+          const spot = { x: p.x + (d.dx / d.dist) * off, y: p.y + (d.dy / d.dist) * off, r: 0 };
+          clampToBounds(spot, world.bounds);
+          world.hazards.push({ type: 'mark', x: spot.x, y: spot.y, r: lob.radius, t: lob.delay, max: lob.delay, damage: e.def.damage, color: e.color, from: lob.column ? undefined : { x: e.x, y: e.y } });
+        }
         sfx(world, 'enemyShot');
         e.state = 'chase';
         e.cd = lob.interval;

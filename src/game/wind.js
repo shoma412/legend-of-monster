@@ -69,9 +69,9 @@ export function windScale(world) {
   return 1 - Math.min(0.9, world.player.stats.windResist ?? 0);
 }
 
-// 風に流されない敵：ボス、置かれたもの、体から生えた首、杭を打った錨打ち、潜っているもの
+// 風に流されない敵：ボス、置かれたもの、体から生えた首、杭を打った錨打ち、潜っているもの、windproof の敵（ダクトネズミ）
 function rooted(e) {
-  return e.dead || e.spawnT > 0 || e.boss || e.def.prop || e.def.solid || e.anchor || e.staked || e.hidden || e.state === 'latched';
+  return e.dead || e.spawnT > 0 || e.boss || e.def.prop || e.def.solid || e.def.windproof || e.anchor || e.staked || e.hidden || e.state === 'latched';
 }
 
 // (x, y) にあるものを、流れに沿って speed px/秒 で動かす。遮風板の陰なら動かさない。動かしたら true

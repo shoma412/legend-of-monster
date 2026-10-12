@@ -1,6 +1,7 @@
 // 部屋の背景。エリアごとの特色を、4px の四角を並べたドット絵風の模様でコードから描く（画像素材は使わない）。
 // 戦闘の邪魔にならないよう、どれも暗めで薄く描く。部屋ごとに seed を変えると、置き場所が変わる。
 import { ROOM, SCREEN } from '../data/balance.js';
+import { ventSpots } from '../logic/ventSpots.js';
 
 const PX = 4; // ドット1つの大きさ
 
@@ -609,6 +610,31 @@ const THEMES = {
     }
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
+  },
+  // 送風路：長い通気ダクト。床の通気口（ボスの熱排気と同じ8か所）、ダクトの継ぎ目のボルト、壁ぎわの太い管、ほこり
+  duct(g, rng, a) {
+    speckles(g, rng, a, 240, [0x0e0c09, 0x14110d, 0x0a0907, 0x1c1812], 0.7);
+    // 横に走る太いダクト（上と下の壁ぎわ。継ぎ目と、ボルト）
+    for (const y of [a.top + 12, a.bottom - 12 - PX * 3]) {
+      block(g, a.left + 10, y, a.w - 20, PX * 3, 0x241e15, 0.95);
+      block(g, a.left + 10, y, a.w - 20, PX / 2, 0x5a4a30, 0.7);
+      for (let x = a.left + 60; x < a.right - 40; x += 110) {
+        block(g, x, y - 2, PX, PX * 4, 0x3a3020, 0.95);
+        block(g, x + 6, y + 4, PX / 2, PX / 2, 0xffb347, 0.45);
+        block(g, x - 6, y + 4, PX / 2, PX / 2, 0xffb347, 0.45);
+      }
+    }
+    // 床の通気口（8か所。格子の溝）
+    for (const v of ventSpots({ left: a.left, right: a.right, top: a.top, bottom: a.bottom })) {
+      blob(g, v.x, v.y, 30, 22, 0x050403, 0.9);
+      blob(g, v.x, v.y, 25, 18, 0x120f0a, 0.9);
+      for (let k = -2; k <= 2; k++) block(g, v.x - 20, v.y + k * 7 - 1, 40, PX / 2, 0x4a3c26, 0.8);
+      block(g, v.x - 3, v.y - 20, PX / 2, 40, 0x3a2e1c, 0.35);
+    }
+    // 床の格子の線（薄く）
+    for (let x = a.left + 80; x < a.right - 20; x += 160) block(g, x, a.top + 40, PX / 2, a.h - 80, 0x1a1610, 0.6);
+    // ほこり
+    for (let i = 0; i < 16; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x6a5a40, 0.3);
   },
   // 降雨制御塔：濡れた鉄板の床、散水のノズル、アンテナ、警告灯
   raintower(g, rng, a) {

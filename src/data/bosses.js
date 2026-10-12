@@ -29,6 +29,9 @@
 //   douse     : 固有（ランプイーター）。非常灯を消して1本を壊し（breakAll なら全部）、暗闇の中で位置を変えてから、突進を lunges 回
 //   scales    : 固有（ランプイーター）。鱗粉の雲を count 個まく。中にいると「目くらみ」（見える範囲が狭くなる）
 //   burrow    : 潜って姿を消し（その間は攻撃が当たらない）、予告の円から飛び出して周りを攻撃する。repeat で連続回数。pool を書くと、飛び出した場所に床が残る
+//   sweep     : 固有（ダクトクローラー）。壁の通気口から長い体で部屋を横切る。通る帯（width）が telegraph 秒のあいだ赤く光り、体（length）が speed で走る。帯の途中の「継ぎ目」（seams か所、seamLen）にいれば当たらない
+//   ventburst : 固有（ダクトクローラー）。床の通気口が count 回、interval 秒ごとに光り、delay 秒後に熱の柱が噴く。選ばれる口は、プレイヤーの動いている向きの先
+//   blowthrough : 大技（ダクトクローラー）。sweeps 本の横断を stagger 秒ずつ遅らせて通し、そのあいだ vents の熱排気を重ねる
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
 // turnRate: 攻撃の合間に向きを変える速さ（ラジアン/秒）。書かなければ、すぐにプレイヤーのほうを向く
@@ -959,6 +962,55 @@ export const bosses = [
         moves: ['inhaleHard', 'exhale', 'shards', 'quake', 'stomp'],
         combos: [{ moves: ['quake', 'shards'] }, { moves: ['stomp', 'inhaleHard'] }],
         announce: '全部、吸う',
+      },
+    ],
+  },
+  // ---- マップ6 エリア2（docs/詳細仕様.md「30. マップ6「送風区」」の「②エリア2」）。マップ6から、ボスは強めに作る（HP は前のボスより +4000） ----
+  {
+    id: 'ductcrawler',
+    name: 'ダクトクローラー',
+    alias: '管這い', // 登場時に出す異名
+    shape: 'ductcrawler',
+    color: 'amber',
+    weakness: 'heat',
+    material: 'ductCore',
+    radius: 48,
+    hp: 25000,
+    speed: 64,
+    contactDamage: 58,
+    xp: 880,
+    credits: 450,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「横断」：長い体で部屋を横切る。帯に入っていると当たる。継ぎ目（水色の枠）の中なら当たらない
+      sweep: { pattern: 'sweep', telegraph: 1.15, speed: 720, width: 130, length: 300, seams: 2, seamLen: 110, damage: 60, recover: 0.9, reach: 'far' },
+      sweepHard: { pattern: 'sweep', telegraph: 1.0, speed: 800, width: 130, length: 320, seams: 1, seamLen: 110, damage: 62, recover: 0.8, reach: 'far' },
+      // 固有「熱排気」：通気口が、プレイヤーの動いている向きの先へ、順番に熱の柱を噴く
+      ventburst: { pattern: 'ventburst', telegraph: 0.7, count: 5, interval: 0.34, delay: 0.85, radius: 54, damage: 54, recover: 0.8 },
+      ventburstHard: { pattern: 'ventburst', telegraph: 0.6, count: 8, interval: 0.28, delay: 0.8, radius: 58, damage: 56, recover: 0.8 },
+      // 鱗の弾：プレイヤーへ扇形に
+      scales: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 60, waves: 3, interval: 0.34, track: true, shotSpeed: 330, shotRadius: 7, damage: 42, recover: 0.6 },
+      // 地ならし：足元からの衝撃波の輪
+      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 46, ringSpeed: 340, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
+      // 突進。壁に当たると隙ができる
+      lunge: { pattern: 'charge', telegraph: 0.65, lockTime: 0.2, speed: 700, duration: 0.6, damage: 60, recover: 0.7, wallStun: 1.1, reach: 'far' },
+      // 大技「吹き抜け」：横断が3本、時間差で通る。そのあいだ、熱排気も重なる
+      blowthrough: {
+        pattern: 'blowthrough', telegraph: 1.8, sweeps: 3, stagger: 1.15, warn: 1.0, speed: 780, width: 120, length: 320, seams: 1, seamLen: 120, damage: 62,
+        vents: { count: 6, interval: 0.55, delay: 0.9, radius: 54, damage: 54 },
+        recover: 1.5,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'sweep' }],
+    ultimate: { move: 'blowthrough', announce: '吹き抜け' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['sweep', 'ventburst', 'scales', 'quake', 'lunge'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['sweepHard', 'ventburstHard', 'scales', 'quake', 'lunge'],
+        combos: [{ moves: ['ventburstHard', 'sweepHard'] }, { moves: ['quake', 'scales'] }],
+        announce: '通気口、全開',
       },
     ],
   },

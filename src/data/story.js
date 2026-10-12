@@ -19,6 +19,7 @@ export const materials = [
   { id: 'bufferCore', name: 'バッファーコア', color: 'ice' },
   { id: 'rainCore', name: 'レインコア', color: 'green' },
   { id: 'intakeCore', name: 'インテークコア', color: 'ice' },
+  { id: 'ductCore', name: 'ダクトコア', color: 'amber' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -269,6 +270,22 @@ export const fragments = [
   {
     id: 'in-core', area: 'airintake', source: 'boss', title: 'インテークのコアログ',
     text: '吸気：継続。濾過：不可。送風先：応答なし。吸気：継続。——誰も吸わない空気を、送り続けている。',
+  },
+  {
+    id: 'dc-01', area: 'airduct', source: 'vault', title: '送風路 点検口の札',
+    text: '点検口を開ける前に、必ず声をかけること。管の中には、掃除用の機械が入っている。体が長い。曲がり角では、先頭と尻尾の位置が、ずれる。',
+  },
+  {
+    id: 'dc-02', area: 'airduct', source: 'vault', title: '管掃除機 DC 取扱説明',
+    text: 'DC シリーズは、ダクトの内側を這って、ほこりを集める。体の節は、継ぎ目で曲がる。継ぎ目の部分は、薄く作ってある。通気口の前では、止まらずに通過すること。',
+  },
+  {
+    id: 'dc-memo', area: 'airduct', source: 'vault', title: '点検員の走り書き',
+    text: '熱い風が出る口と、冷たい風が出る口がある。見分け方は、床の格子の溝だ。……あの機械は、熱い口を覚えている。こっちが歩く先に、先回りして吹かせてくる。',
+  },
+  {
+    id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
+    text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
   },
   // ---- マップ3「建設区」 ----
   {

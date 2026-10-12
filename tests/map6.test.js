@@ -84,7 +84,7 @@ describe('マップ6「送風区」の定義', () => {
     expect(map.name).toBe('送風区');
     expect(map.ready).not.toBe(false);
     expect(map.environment).toBe('gale');
-    expect(map.enemyScale).toBe(5);
+    expect(map.enemyScale).toBe(6); // 2026-10-13：雑魚を強めにするため、5 から 6 に上げた
     expect(map.requiresPass).toBe('map5');
     const save = createSave();
     for (const id of ['map1', 'map2', 'map3', 'map4', 'map5']) recordMapClear(save, id, 1);

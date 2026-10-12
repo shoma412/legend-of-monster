@@ -243,6 +243,27 @@ const ACTIONS = {
     for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e, 1 + (world.player.stats.statusTime ?? 0));
   },
 
+  // 継ぎ目（種族「管」）：攻撃が当たった敵を、減速させる（武器の攻撃だけ）
+  slowTarget(world, t, ctx) {
+    if (!ctx.primary || !ctx.target || ctx.target.dead) return;
+    applySlow(ctx.target, world.player.stats.slowMul);
+  },
+
+  // 排気弁（種族「管」）：被弾したとき、まわりの敵に熱風。ダメージと、外へ吹き飛ばす
+  ventBlast(world, t) {
+    const p = world.player;
+    ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.heat);
+    for (const e of enemiesNear(world, p.x, p.y, t.radius)) {
+      effectDamage(world, e, t.damage, 'heat');
+      if (!movable(e)) continue;
+      const dx = e.x - p.x;
+      const dy = e.y - p.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      e.x += (dx / dist) * t.push;
+      e.y += (dy / dist) * t.push;
+    }
+  },
+
   // ダッシュで通り抜けた敵を減速させる
   dashSlow(world, t) {
     const p = world.player;

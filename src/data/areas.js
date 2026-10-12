@@ -535,4 +535,37 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'airduct',
+    code: 'VENT 02',
+    name: '送風路',
+    theme: 'duct',
+    bgm: 'airduct',
+    bossBgm: 'bossAirduct',
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'ductrat', weight: 3 },
+      { id: 'heater', weight: 3 },
+      { id: 'windrider', weight: 2 },
+      { id: 'anchorer', weight: 2 },
+      { id: 'grunt', weight: 1 },
+      { id: 'shield', weight: 1 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['heater', 'anchorer', 'shield'],
+    boss: 'ductcrawler',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ 管の奥から、長いものが来る。体の全部が、攻撃だ。',
+        '@noise＞ 通る帯が、先に光る。帯から出ろ。水色の継ぎ目に入れば、体は通り抜ける。足元の通気口にも気をつけろ。走る先を、狙ってくる。熱が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……管が、静かになった。',
+        '@noise＞ コアを回収しろ。……この先は、まだ準備ができていない。',
+      ],
+    },
+  },
 ];

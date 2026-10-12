@@ -31,6 +31,8 @@
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
 // corrodeHaste: 腐食が付いている間の、動きの速さの倍率（錆び犬）
 // tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
+// windproof: true は、風に流されない（ダクトネズミ）
+// lob.count / lob.spacing / lob.column: 一度に count か所へ、spacing ずつずらして並べる。column が true なら、投げずに床から噴く（熱吹き）
 //   anchorer  : 距離を取って撃つ（gunner と同じ）。風の予告が出ると杭を打ち、風の間は、流されずに、その場から速く撃つ（stake.haste 倍）
 // decoy: true は、ボスの偽物（暗闇でも目の光が出る）
 // solid: true は、歩いて通れず、敵の弾も止める（ダッシュ中はすり抜けられる）
@@ -766,5 +768,42 @@ export const enemies = [
     dropChance: 0.24,
     knockbackResist: 1,
     snipe: { interval: 1.5, aim: 0.9, lock: 0.3, range: 1100, width: 8 },
+  },
+  // ---- ここからマップ6 エリア2「送風路」（2026-10-13。マップ6から、雑魚は強めに作る） ----
+  {
+    // ダクトネズミ：小さくて速い。ジグザグに走る。風に流されない
+    id: 'ductrat',
+    name: 'ダクトネズミ',
+    behavior: 'swarm',
+    shape: 'triangle',
+    color: 'amber',
+    radius: 10,
+    hp: 40,
+    speed: 142,
+    damage: 17,
+    xp: 12,
+    credits: 4,
+    cost: 2,
+    dropChance: 0.16,
+    wobble: 0.9,
+    windproof: true,
+  },
+  {
+    // 熱吹き：距離を取って、熱の柱を一列に3本、プレイヤーのいる場所を真ん中に噴かせる（予告の円のあと）
+    id: 'heater',
+    name: '熱吹き',
+    behavior: 'lobber',
+    shape: 'square',
+    color: 'heat',
+    radius: 14,
+    hp: 82,
+    speed: 56,
+    damage: 22,
+    xp: 17,
+    credits: 6,
+    cost: 3,
+    dropChance: 0.26,
+    keepDistance: { min: 220, max: 340 },
+    lob: { interval: 3.2, windup: 0.7, radius: 42, delay: 1.0, count: 3, spacing: 76, column: true },
   },
 ];

@@ -156,6 +156,13 @@ export const MATERIAL_ICONS = {
       g.lineBetween(x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5, x + Math.cos(a + 0.7) * s * 0.3, y + Math.sin(a + 0.7) * s * 0.3);
     }
   },
+  // ダクトコア：節のある管（横から見た、3つの輪）
+  ductCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    for (const dx of [-0.38, 0, 0.38]) g.lineStyle(1.5, c, 1).strokeCircle(x + dx * s, y, s * 0.2);
+    g.lineBetween(x - s * 0.6, y - s * 0.3, x + s * 0.6, y - s * 0.3);
+    g.lineBetween(x - s * 0.6, y + s * 0.3, x + s * 0.6, y + s * 0.3);
+  },
   // カタリストコア：回る3つの玉
   catalystCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

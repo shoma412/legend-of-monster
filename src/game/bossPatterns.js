@@ -13,6 +13,7 @@ import { breakRoof, rainHit, startRain, underRoof } from './acidRain.js';
 import { recalcStats } from './build.js';
 import { createEnemy, dropDebris } from './enemyAI.js';
 import { loosenScreen, suck } from './wind.js';
+import { ventSpots } from '../logic/ventSpots.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -668,6 +669,177 @@ PATTERNS.burrow = {
       } else {
         return true;
       }
+    }
+    return false;
+  },
+};
+
+// ---- 固有（ダクトクローラー）：横断と熱排気 ----
+
+// 横断の帯を1本置く（hazard 'sweep'）。axis: 'x' なら x の向きに進む横長の帯 / 'y' なら縦長。dir: +1 か -1
+//   帯の幅は width、体の長さは length。帯の途中に、体が通っても当たらない「継ぎ目」が seams か所（長さ seamLen）ある
+//   warn 秒のあいだ、帯が赤く光る（最後の lock 秒だけ、プレイヤーを追うのをやめる）。drive が true なら、ボスが先頭になって進む
+function createSweep(world, b, def, { axis, dir, warn, drive }) {
+  const bd = world.bounds;
+  const lo = axis === 'x' ? bd.left : bd.top;
+  const hi = axis === 'x' ? bd.right : bd.bottom;
+  const seams = [];
+  for (let i = 0; i < def.seams; i++) {
+    const f = def.seams === 1 ? 0.5 : 0.3 + (0.4 * i) / (def.seams - 1);
+    seams.push({ pos: lo + (hi - lo) * Math.min(0.8, Math.max(0.2, f + (world.rng() - 0.5) * 0.12)), len: def.seamLen });
+  }
+  const h = {
+    type: 'sweep', axis, dir, cross: axis === 'x' ? world.player.y : world.player.x, width: def.width, head: dir > 0 ? lo : hi, start: dir > 0 ? lo : hi, end: dir > 0 ? hi : lo,
+    speed: def.speed, length: def.length, seams, damage: def.damage, warn, warnMax: warn, lock: def.lock ?? 0.35, phase: 'warn', owner: b, drive, color: b.color, done: false,
+  };
+  world.hazards.push(h);
+  return h;
+}
+
+// プレイヤーの動いている向きと速さ（なめらかにならした値）を、act.vx / act.vy に覚えておく
+function trackVelocity(act, p, dt) {
+  if (act.lx == null) {
+    act.lx = p.x;
+    act.ly = p.y;
+    act.vx = 0;
+    act.vy = 0;
+    return;
+  }
+  if (dt <= 0) return;
+  const k = Math.min(1, dt * 8);
+  act.vx += ((p.x - act.lx) / dt - act.vx) * k;
+  act.vy += ((p.y - act.ly) / dt - act.vy) * k;
+  act.lx = p.x;
+  act.ly = p.y;
+}
+
+// 熱排気：プレイヤーが delay 秒後にいそうな場所にいちばん近い通気口に、予告の円を出す（直前に選んだ口は避ける）
+function ventMark(world, b, def, act) {
+  const p = world.player;
+  const px = p.x + act.vx * def.delay;
+  const py = p.y + act.vy * def.delay;
+  let best = null;
+  let bestDist = Infinity;
+  for (const s of ventSpots(world.bounds)) {
+    if (act.lastVent && act.lastVent.x === s.x && act.lastVent.y === s.y) continue;
+    const dist = Math.hypot(s.x - px, s.y - py);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = s;
+    }
+  }
+  act.lastVent = best;
+  world.hazards.push({ type: 'mark', x: best.x, y: best.y, r: def.radius, t: def.delay, max: def.delay, damage: def.damage, enemyDamage: 0, color: ELEMENT_COLORS_BY_ID.heat });
+  sfx(world, 'enemyShot');
+}
+
+// 横断：壁の通気口から、長い体ごと部屋を横切る。通る帯が先に赤く光る（プレイヤーを追って、最後に止まる）。帯から出るか、継ぎ目に入ればよい
+PATTERNS.sweep = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    const axis = world.rng() < 0.5 ? 'x' : 'y';
+    const dir = world.rng() < 0.5 ? 1 : -1;
+    act.h = createSweep(world, b, act.def, { axis, dir, warn: act.def.telegraph, drive: true });
+    act.dirX = axis === 'x' ? dir : 0;
+    act.dirY = axis === 'y' ? dir : 0;
+    sfx(world, 'bossCharge');
+  },
+  update(world, b, dt, act) {
+    const h = act.h;
+    if (act.phase === 'telegraph') {
+      if (h.phase === 'run') act.phase = 'active';
+    } else if (act.phase === 'active') {
+      if (h.done || h.dead) {
+        act.phase = 'recover';
+        act.t = act.def.recover;
+      }
+    } else {
+      act.t -= dt;
+      if (act.t <= 0) return true;
+    }
+    return false;
+  },
+};
+
+// 熱排気：床の通気口が順番に光り、少しあとに熱の柱が噴く。順番は、プレイヤーの動いている向きの先へ進む
+PATTERNS.ventburst = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.fired = 0;
+    act.lx = null;
+    act.lastVent = null;
+    sfx(world, 'bossCharge');
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    trackVelocity(act, world.player, dt);
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) {
+        act.phase = 'fire';
+        act.t = 0;
+      }
+    } else if (act.phase === 'fire') {
+      if (act.t <= 0 && act.fired < def.count) {
+        ventMark(world, b, def, act);
+        act.fired++;
+        act.t = def.interval;
+      }
+      if (act.fired >= def.count && act.t <= 0) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 大技「吹き抜け」：横断が sweeps 本、stagger 秒ずつ遅れて通る（向きは交互）。そのあいだ、熱排気も重なる
+PATTERNS.blowthrough = {
+  start(world, b, act) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.hs = [];
+    act.spawned = 0;
+    act.fired = 0;
+    act.clock = 0;
+    act.lx = null;
+    act.lastVent = null;
+    act.firstAxis = world.rng() < 0.5 ? 'x' : 'y';
+    sfx(world, 'warning');
+  },
+  update(world, b, dt, act) {
+    const def = act.def;
+    trackVelocity(act, world.player, dt);
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t <= 0) act.phase = 'active';
+    } else if (act.phase === 'active') {
+      act.clock += dt;
+      while (act.spawned < def.sweeps && act.clock >= act.spawned * def.stagger) {
+        const axis = act.spawned % 2 === 0 ? act.firstAxis : act.firstAxis === 'x' ? 'y' : 'x';
+        const h = createSweep(world, b, def, { axis, dir: world.rng() < 0.5 ? 1 : -1, warn: def.warn, drive: act.spawned === 0 });
+        if (h.drive) {
+          act.dirX = axis === 'x' ? h.dir : 0;
+          act.dirY = axis === 'y' ? h.dir : 0;
+        }
+        act.hs.push(h);
+        act.spawned++;
+      }
+      while (act.fired < def.vents.count && act.clock >= act.fired * def.vents.interval) {
+        ventMark(world, b, def.vents, act);
+        act.fired++;
+      }
+      if (act.spawned >= def.sweeps && act.fired >= def.vents.count && act.hs.every((h) => h.dead)) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
     }
     return false;
   },
@@ -2143,6 +2315,42 @@ export function updateHazards(world, dt) {
       h.y = h.y1 + (h.y2 - h.y1) * k;
       if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
       if (h.t >= h.total) h.dead = true;
+    } else if (h.type === 'sweep') {
+      // 横断の帯（ダクトクローラー）。予告の間は、プレイヤーを追って帯が動く（最後の lock 秒だけ止まる）。そのあと体が走る。
+      //   体（先頭から length 後ろまで）の上にいると当たる。継ぎ目の中なら当たらない
+      const b = h.owner;
+      if (!b || b.dead) {
+        h.dead = true;
+        continue;
+      }
+      const bd = world.bounds;
+      const lo = h.axis === 'x' ? bd.left : bd.top;
+      const hi = h.axis === 'x' ? bd.right : bd.bottom;
+      const crossLo = (h.axis === 'x' ? bd.top : bd.left) + 20;
+      const crossHi = (h.axis === 'x' ? bd.bottom : bd.right) - 20;
+      if (h.phase === 'warn') {
+        h.warn -= dt;
+        if (h.warn > h.lock) h.cross = Math.max(crossLo, Math.min(crossHi, h.axis === 'x' ? p.y : p.x));
+        if (h.warn <= 0) h.phase = 'run';
+      } else {
+        h.head += h.dir * h.speed * dt;
+        const along = h.axis === 'x' ? p.x : p.y;
+        const across = h.axis === 'x' ? p.y : p.x;
+        const behind = (h.head - along) * h.dir; // 先頭より後ろにいるほど大きい
+        if (Math.abs(across - h.cross) <= h.width / 2 + p.r && behind >= -b.r && behind <= h.length && !h.seams.some((s) => Math.abs(along - s.pos) <= s.len / 2)) {
+          hurtPlayer(world, h.damage);
+        }
+        if ((h.head - h.end) * h.dir >= h.length) {
+          h.done = true;
+          h.dead = true;
+        }
+      }
+      // 先頭に立つボスは、帯の上を進む
+      if (h.drive) {
+        const head = Math.max(lo, Math.min(hi, h.head));
+        b.x = h.axis === 'x' ? head : h.cross;
+        b.y = h.axis === 'x' ? h.cross : head;
+      }
     } else if (h.type === 'bar') {
       // 部屋を横切る線。予告の時間が来たら一瞬だけ光り、そのとき線の上にいると当たる
       if (h.flash > 0) {

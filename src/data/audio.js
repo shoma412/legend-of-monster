@@ -109,6 +109,9 @@ export const BGM = {
   // マップ6「送風区」。曲はまだ選んでいない（新しい曲を入れるまで、マップ1の曲を借りている）
   airintake: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossAirintake: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  // エリア2「送風路」も、曲はまだ選んでいない（エリア1と同じ、マップ1の曲を借りている）
+  airduct: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossAirduct: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

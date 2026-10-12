@@ -1756,6 +1756,47 @@ SHAPES.intake = (g, b, color, world) => {
   }
 };
 
+// ダクトクローラー：ひらたい頭と、続く体の節。あごが開き、体の横に通気口の細い溝がある（横断と熱排気の間は、溝が光る）
+SHAPES.ductcrawler = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const hot = !stunned && (pattern === 'ventburst' || pattern === 'blowthrough' || (pattern === 'sweep' && b.act.phase === 'active'));
+  // 後ろに続く体の節（だんだん小さく）
+  for (let i = 3; i >= 1; i--) {
+    const seg = local(b, -r * (0.95 + i * 0.85), 0);
+    const sr = r * (0.82 - i * 0.12);
+    g.fillStyle(BODY_FILL, 0.95).fillCircle(seg.x, seg.y, sr);
+    neonStroke(g, color, 2.5, () => g.strokeCircle(seg.x, seg.y, sr));
+    g.lineStyle(2, color, hot ? 0.95 : 0.4).lineBetween(seg.x - Math.sin(b.angle) * sr * 0.7, seg.y + Math.cos(b.angle) * sr * 0.7, seg.x + Math.sin(b.angle) * sr * 0.7, seg.y - Math.cos(b.angle) * sr * 0.7);
+  }
+  // 頭：ひらたい六角形
+  const head = polygon(b.x, b.y, r, 6, b.angle);
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(head, true);
+  neonStroke(g, color, 3.5, () => g.strokePoints(head, true, true));
+  // 通気口の溝（頭の横に3本ずつ）
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const a = local(b, -r * 0.1 + i * r * 0.28, side * r * 0.62);
+      const c = local(b, -r * 0.1 + i * r * 0.28, side * r * 0.9);
+      g.lineStyle(2, color, hot ? 1 : 0.5).lineBetween(a.x, a.y, c.x, c.y);
+    }
+  }
+  // あご（前に開く）
+  const open = stunned ? 0.05 : 0.14 + (hot ? 0.18 : 0.04 * Math.sin(world.time * 5));
+  for (const side of [-1, 1]) {
+    const jaw = [local(b, r * 0.7, side * r * 0.1), local(b, r * 1.35, side * r * (0.1 + open)), local(b, r * 0.9, side * r * (0.4 + open))];
+    g.fillStyle(BODY_FILL, 1).fillPoints(jaw, true);
+    neonStroke(g, color, 2.5, () => g.strokePoints(jaw, true, true));
+  }
+  if (!stunned) {
+    for (const side of [-1, 1]) {
+      const eye = local(b, r * 0.4, side * r * 0.3);
+      g.fillStyle(hex(hot ? COLORS.amber : COLORS.ink), 1).fillCircle(eye.x, eye.y, 4);
+    }
+  }
+};
+
 // がれき：角ばった、いびつな塊
 SHAPES.debris = (g, e, color) => {
   const pts = [];
@@ -2011,6 +2052,71 @@ export function drawHazards(g, world) {
       // かぎ
       g.lineStyle(4, color, 1);
       arcPath(g, h.x, h.y + h.r * 0.1, h.r * 0.5, 0.2, Math.PI + 0.6);
+    } else if (h.type === 'sweep') {
+      // 横断の帯（ダクトクローラー）：予告の間は、赤い帯と、水色の枠の継ぎ目。走り出したら、体が帯の上を進む
+      const horiz = h.axis === 'x';
+      const lo = Math.min(h.start, h.end);
+      const hi = Math.max(h.start, h.end);
+      const half = h.width / 2;
+      const strip = (a, b2) => (horiz ? [a, h.cross - half, b2 - a, h.width] : [h.cross - half, a, h.width, b2 - a]);
+      const cyan = hex(COLORS.cyan);
+      const red = hex(COLORS.red);
+      if (h.phase === 'warn') {
+        const k = 1 - h.warn / h.warnMax;
+        g.fillStyle(red, 0.05 + 0.15 * k).fillRect(...strip(lo, hi));
+        g.lineStyle(1.5, red, 0.5 + 0.4 * k).strokeRect(...strip(lo, hi));
+        // 進む向きの矢印（入口のほうから）
+        for (let i = 0; i < 4; i++) {
+          const along = h.start + h.dir * (50 + i * 38 + ((world.time * 140) % 38));
+          const pts = horiz
+            ? [{ x: along, y: h.cross - 18 }, { x: along + h.dir * 14, y: h.cross }, { x: along, y: h.cross + 18 }]
+            : [{ x: h.cross - 18, y: along }, { x: h.cross, y: along + h.dir * 14 }, { x: h.cross + 18, y: along }];
+          g.lineStyle(2, red, 0.4 + 0.4 * k).strokePoints(pts, false, false);
+        }
+      }
+      for (const s of h.seams) {
+        g.fillStyle(cyan, 0.12).fillRect(...strip(s.pos - s.len / 2, s.pos + s.len / 2));
+        g.lineStyle(2, cyan, 0.9).strokeRect(...strip(s.pos - s.len / 2, s.pos + s.len / 2));
+      }
+      if (h.phase === 'run') {
+        // 体：先頭から length 後ろまで。継ぎ目の所は、穴があく
+        const tail = h.head - h.dir * h.length;
+        const from = Math.max(lo, Math.min(h.head, tail));
+        const to = Math.min(hi, Math.max(h.head, tail));
+        let cuts = [[from, to]];
+        for (const s of h.seams) {
+          const next = [];
+          for (const [a, b2] of cuts) {
+            const sa = s.pos - s.len / 2;
+            const sb = s.pos + s.len / 2;
+            if (sb <= a || sa >= b2) next.push([a, b2]);
+            else {
+              if (sa > a) next.push([a, sa]);
+              if (sb < b2) next.push([sb, b2]);
+            }
+          }
+          cuts = next;
+        }
+        const color = hex(h.color);
+        for (const [a, b2] of cuts) {
+          if (b2 - a < 1) continue;
+          g.fillStyle(BODY_FILL, 0.95).fillRect(...strip(a, b2));
+          g.fillStyle(color, 0.25).fillRect(...strip(a, b2));
+          g.lineStyle(3, color, 1).strokeRect(...strip(a, b2));
+          // 体の節（一定の間隔の線）
+          for (let q = Math.ceil(a / 40) * 40; q < b2; q += 40) {
+            if (horiz) g.lineStyle(1.5, color, 0.6).lineBetween(q, h.cross - half, q, h.cross + half);
+            else g.lineStyle(1.5, color, 0.6).lineBetween(h.cross - half, q, h.cross + half, q);
+          }
+        }
+        // 先頭（ボス以外の帯でも、先頭が分かるように）
+        const hx = horiz ? h.head : h.cross;
+        const hy = horiz ? h.cross : h.head;
+        if (!h.drive) {
+          g.fillStyle(BODY_FILL, 1).fillCircle(hx, hy, half * 0.8);
+          g.lineStyle(3, color, 1).strokeCircle(hx, hy, half * 0.8);
+        }
+      }
     } else if (h.type === 'bar') {
       const dx = Math.cos(h.angle) * ROOM.barLength;
       const dy = Math.sin(h.angle) * ROOM.barLength;

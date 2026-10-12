@@ -390,6 +390,32 @@ export const implants = [
     desc: (k) => `風の間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'windBlowing' }] }),
   },
+  // ---- 管（ダクトクローラー由来・減速と熱） ----
+  {
+    id: 'ductseam', species: 'duct', name: '継ぎ目',
+    desc: () => '攻撃が当たった敵を、減速させる',
+    effect: () => ({ triggers: [{ on: 'hit', do: 'slowTarget' }] }),
+  },
+  {
+    id: 'airflow', species: 'duct', name: '通気',
+    desc: (k) => `ダッシュのあと1秒間、移動速度 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'moveSpeedMul', add: 0.15 * k, when: 'recentDash', window: 1 }] }),
+  },
+  {
+    id: 'heatpool', species: 'duct', name: '熱だまり',
+    desc: (k) => `燃えている敵へのダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'targetBurning' }] }),
+  },
+  {
+    id: 'ventvalve', species: 'duct', name: '排気弁',
+    desc: (k) => `被弾したとき、まわりの敵に熱風（${Math.round(18 * k)}ダメージ）を出し、吹き飛ばす`,
+    effect: (k) => ({ triggers: [{ on: 'hurt', do: 'ventBlast', radius: 130, damage: 18 * k, push: 70 }] }),
+  },
+  {
+    id: 'condense', species: 'duct', name: '結露',
+    desc: (k) => `敵を倒すと、近くの敵を減速させる（範囲 ${num(120 * k)}）`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'slowNearby', radius: 120 * k }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -595,6 +621,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: '風の間、ダッシュの回復が 20% 速くなる', effect: { mods: [{ stat: 'windDash', add: 0.2 }] } },
       { need: 3, desc: '引き寄せた敵・風に流されている敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetPulled' }] } },
+    ],
+  },
+  duct: {
+    name: '管', color: 'amber', boss: 'ductcrawler',
+    bonuses: [
+      { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
+      { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
     ],
   },
   spider: {

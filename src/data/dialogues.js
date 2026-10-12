@@ -225,6 +225,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-ductcrawler',
+    trigger: { at: 'bossIntro', boss: 'ductcrawler' },
+    lines: [
+      { who: 'jin', text: '……管の中で、何かが動いてる。長いな。' },
+      { who: 'noise', text: '管掃除機だ。掃除する場所は、もう全部、掃除し終わっている。それでも、這うのをやめない。' },
+      { who: 'jin', text: '終わった仕事を、ずっと続けてるのか。……付き合ってやる。' },
+    ],
+  },
+  {
+    id: 'return-ductcrawler',
+    trigger: { at: 'hideout', bossKilled: 'ductcrawler' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……髪に、ほこりがついてる。' },
+      { who: 'jin', text: '管の中を、走り回った。' },
+      { who: 'hal', text: 'うちのダクトも、見てもらおうかな。……這ってくるのは、いやだけど。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -360,6 +378,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'ductcrawler', lines: [{ who: 'hal', text: '管掃除機の体の節、全部に、ほこりが詰まってた。掃除してた機械が、いちばん汚れてたなんて、皮肉だね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
     {
@@ -399,7 +418,8 @@ export const talks = {
     { after: 'rusteater', lines: [{ who: 'noise', text: '廃液路が静かになった。次は中和プラントだ。色の変わる槽がいる。色を、よく見ろ。' }] },
     { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。この雨を降らせている者がいる。屋根を、当てにするな。' }] },
     { after: 'rainmaker', lines: [{ who: 'noise', text: '溶解区の雨が、上がった。次は送風区だ。強い風が吹く。……あそこへ入るには、溶解区の通行証が要る。' }] },
-    { after: 'intake', lines: [{ who: 'noise', text: '吸気口が静かになった。次は送風路だ。……そこへの道は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'intake', lines: [{ who: 'noise', text: '吸気口が静かになった。次は送風路だ。管の中を、長いものが這っている。体の全部が攻撃だ。帯が光ったら、動け。' }] },
+    { after: 'ductcrawler', lines: [{ who: 'noise', text: '送風路が静かになった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },
