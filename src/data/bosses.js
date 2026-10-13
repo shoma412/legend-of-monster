@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   compass / gust / windseed / windturn / windrush / stormfury : 固有（ウェザーベーン）。それぞれの数値の意味は、下の定義の注釈
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
 // turnRate: 攻撃の合間に向きを変える速さ（ラジアン/秒）。書かなければ、すぐにプレイヤーのほうを向く
@@ -1005,6 +1006,58 @@ export const bosses = [
         moves: ['sweepHard', 'ventburstHard', 'spinevolleyHard', 'ductquakeHard', 'ductbite'],
         combos: [{ moves: ['ventburstHard', 'sweepHard'] }, { moves: ['ductquakeHard', 'spinevolleyHard'] }],
         announce: '通気口、全開',
+      },
+    ],
+  },
+  // ---- マップ6 エリア3（docs/詳細仕様.md「30. マップ6「送風区」」の「③エリア3」）。HP は前のボスより +4000 ----
+  {
+    id: 'weathervane',
+    name: 'ウェザーベーン',
+    alias: '風見', // 登場時に出す異名
+    shape: 'weathervane',
+    color: 'cyan',
+    weakness: 'shock',
+    material: 'vaneCore',
+    radius: 50,
+    hp: 29000,
+    speed: 62,
+    contactDamage: 62,
+    xp: 960,
+    credits: 480,
+    drops: { count: 3, rarityBonus: 2 },
+    // 風上を向く盾（arc 度）。風の予告が出ると、vaneTurn ラジアン/秒で風上へ回る。プレイヤーのほうは向かない。硬直中は開く
+    shield: { arc: 120 },
+    windShield: true,
+    vaneTurn: 2.0,
+    attacks: {
+      // 固有「方位撃ち」：東西南北に大きな弾を撃ち、次は斜め4方向。volleys 回、羅針盤のように回る（twist 度ずつずらす）
+      compass: { pattern: 'compass', telegraph: 0.8, volleys: 6, gap: 0.55, twist: 12, shotSpeed: 300, shotRadius: 11, damage: 46, recover: 0.7, reach: 'far' },
+      compassHard: { pattern: 'compass', telegraph: 0.7, volleys: 8, gap: 0.45, twist: 14, shotSpeed: 330, shotRadius: 11, damage: 48, recover: 0.7, reach: 'far' },
+      // 固有「突風」：盾の正面（arc 度、range px）に、強い風を duration 秒吹かせる。押す強さは push px/秒。ダメージはない（壁へ押し込まれると危ない）
+      gust: { pattern: 'gust', telegraph: 0.9, duration: 2.2, range: 560, arc: 70, push: 380, recover: 0.7, reach: 'near' },
+      gustHard: { pattern: 'gust', telegraph: 0.8, duration: 2.8, range: 620, arc: 90, push: 440, recover: 0.7, reach: 'near' },
+      // 固有「風種」：風で流される種を count 個まく。風がやむと地雷になる（life 秒で消える）。壊せる。hold 秒で次の行動へ
+      windseed: { pattern: 'windseed', telegraph: 0.8, enemy: 'windseed', count: 4, spread: 90, life: 14, hold: 1.5, recover: 0.8, reach: 'far' },
+      windseedHard: { pattern: 'windseed', telegraph: 0.7, enemy: 'windseed', count: 6, spread: 110, life: 14, hold: 1.5, recover: 0.8, reach: 'far' },
+      // 固有「風向き返し」：風向きを反対にする（warn 秒の予告のあと、blow 秒吹く）。風下へ、すき間（gapSize px）のある風の刃が blades 本、stagger 秒ずつ遅れて走る
+      windturn: { pattern: 'windturn', telegraph: 0.9, warn: 0.9, blow: 4, blades: 3, stagger: 0.9, speed: 380, width: 26, gapSize: 130, damage: 52, recover: 1.0, reach: 'far' },
+      windturnHard: { pattern: 'windturn', telegraph: 0.8, warn: 0.9, blow: 4, blades: 4, stagger: 0.75, speed: 420, width: 26, gapSize: 115, damage: 54, recover: 1.0, reach: 'far' },
+      // 固有「向かい風突進」：盾の向き（風上）へ、反対側の壁ぎわから、プレイヤーの横位置に合わせて一気に走る。最後の lockTime 秒だけ、位置を固定する。壁に当たると隙
+      windrush: { pattern: 'windrush', telegraph: 1.0, lockTime: 0.3, speed: 880, damage: 62, wallStun: 1.2, recover: 0.6, reach: 'far' },
+      // 大技「乱風」：duration 秒のあいだ、風向きが every 秒ごとに変わり、盾も速く（vaneTurn）追って回る。方位撃ちも重なる
+      stormfury: { pattern: 'stormfury', telegraph: 1.8, duration: 9, every: 1.5, volleyGap: 1.8, vaneTurn: 5, shotSpeed: 250, shotRadius: 11, damage: 46, recover: 1.5 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'windrush' }],
+    ultimate: { move: 'stormfury', announce: '乱風' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.5 }, moves: ['compass', 'gust', 'windseed', 'windturn', 'windrush'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        vaneTurn: 3.4,
+        moves: ['compassHard', 'gustHard', 'windseedHard', 'windturnHard', 'windrush'],
+        combos: [{ moves: ['windseedHard', 'compassHard'] }, { moves: ['windturnHard', 'gustHard'] }],
+        announce: '風向き、乱れる',
       },
     ],
   },

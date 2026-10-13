@@ -243,6 +243,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-weathervane',
+    trigger: { at: 'bossIntro', boss: 'weathervane' },
+    lines: [
+      { who: 'jin', text: '……庭の真ん中で、風見が回ってる。でかいな。' },
+      { who: 'noise', text: '風だけを見ている機械だ。風が変わるたびに、盾を向け直す。こちらは、見ていない。' },
+      { who: 'jin', text: '見られてないなら、後ろから行けるってことか。……風が、押し返してくるんだろうがな。' },
+    ],
+  },
+  {
+    id: 'return-weathervane',
+    trigger: { at: 'hideout', bossKilled: 'weathervane' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……髪が、ぐしゃぐしゃ。' },
+      { who: 'jin', text: '風が、休みなしだった。' },
+      { who: 'hal', text: 'うちの窓の風見も、たまには回してあげないとね。……盾は、ついてないけど。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -378,6 +396,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'weathervane', lines: [{ who: 'hal', text: '風見の盾、裏側だけ、ぴかぴかだった。風上にだけ向けて、風下の側は、誰にも見せなかったんだね。' }] },
     { after: 'ductcrawler', lines: [{ who: 'hal', text: '管掃除機の体の節、全部に、ほこりが詰まってた。掃除してた機械が、いちばん汚れてたなんて、皮肉だね。' }] },
     { after: 'scraphound', lines: [{ who: 'hal', text: '犬の背中の鉄くず、ばらしたら全部、現場の資材だった。集めたものを、どこにも届けられなかったんだね。' }] },
     { after: 'girderspider', lines: [{ who: 'hal', text: '蜘蛛の糸で棚を吊ったよ。びくともしない。……橋をかけるには、十分すぎる強さなのにね。' }] },
@@ -419,7 +438,8 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'noise', text: '中和プラントが止まった。残りは、降雨制御塔だ。この雨を降らせている者がいる。屋根を、当てにするな。' }] },
     { after: 'rainmaker', lines: [{ who: 'noise', text: '溶解区の雨が、上がった。次は送風区だ。強い風が吹く。……あそこへ入るには、溶解区の通行証が要る。' }] },
     { after: 'intake', lines: [{ who: 'noise', text: '吸気口が静かになった。次は送風路だ。管の中を、長いものが這っている。体の全部が攻撃だ。帯が光ったら、動け。' }] },
-    { after: 'ductcrawler', lines: [{ who: 'noise', text: '送風路が静かになった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'ductcrawler', lines: [{ who: 'noise', text: '送風路が静かになった。次は風見の庭だ。盾を風上に向けた機械がいる。風の予告を、見逃すな。' }] },
+    { after: 'weathervane', lines: [{ who: 'noise', text: '風見の庭が静かになった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

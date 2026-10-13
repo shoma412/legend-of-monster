@@ -88,7 +88,7 @@ describe('エリア2「送風路」の定義', () => {
   const area = DATA.areas.get('airduct');
 
   it('マップ6の2つ目のエリア。背景・曲・ボス・素材・データ片4つがそろっている', () => {
-    expect(map.areas).toEqual(['airintake', 'airduct']);
+    expect(map.areas).toEqual(['airintake', 'airduct', 'airgarden']);
     expect(area.name).toBe('送風路');
     expect(AREA_THEMES[area.theme]).toBeDefined();
     expect(hasBackdrop(area.theme)).toBe(true);

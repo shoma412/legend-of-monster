@@ -20,6 +20,7 @@ export const materials = [
   { id: 'rainCore', name: 'レインコア', color: 'green' },
   { id: 'intakeCore', name: 'インテークコア', color: 'ice' },
   { id: 'ductCore', name: 'ダクトコア', color: 'amber' },
+  { id: 'vaneCore', name: 'ベーンコア', color: 'cyan' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -286,6 +287,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'wv-01', area: 'airgarden', source: 'vault', title: '庭園管理 風見の札',
+    text: '風見は、庭の真ん中に立てること。盾の板は、風上へ向けて固定する。風が変わったら、板が自分で回る。人は、触らないこと。',
+  },
+  {
+    id: 'wv-02', area: 'airgarden', source: 'vault', title: 'かざぐるま 取扱説明',
+    text: '風車は、風の強さで回る速さが変わる。強い風の日は、羽根の先から、種を飛ばす。種は、風のやんだ場所に落ちて、そのまま、そこに根を張る。',
+  },
+  {
+    id: 'wv-memo', area: 'airgarden', source: 'vault', title: '庭師の走り書き',
+    text: '風見が向いているのは、風上だ。こっちじゃない。……そう思って後ろに回ったら、風に押されて、近づけなかった。風が止まるのを待つしかない。',
+  },
+  {
+    id: 'wv-core', area: 'airgarden', source: 'boss', title: 'ウェザーベーンのコアログ',
+    text: '風向：変化。盾：追従。観測対象：なし。——風だけを見ている。風の向こうに、誰がいても、見えない。',
   },
   // ---- マップ3「建設区」 ----
   {

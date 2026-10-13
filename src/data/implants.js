@@ -416,6 +416,32 @@ export const implants = [
     desc: (k) => `敵を倒すと、近くの敵を減速させる（範囲 ${num(120 * k)}）`,
     effect: (k) => ({ triggers: [{ on: 'kill', do: 'slowNearby', radius: 120 * k }] }),
   },
+  // ---- 風見（ウェザーベーン由来・風と背中） ----
+  {
+    id: 'vaneflow', species: 'vane', name: '順風',
+    desc: (k) => `風の間、攻撃速度 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.15 * k, when: 'windBlowing' }] }),
+  },
+  {
+    id: 'windread', species: 'vane', name: '風読み',
+    desc: (k) => `風の予告が出ている間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'windWarning' }] }),
+  },
+  {
+    id: 'flank', species: 'vane', name: '回り込み',
+    desc: (k) => `敵の背中側から当てたとき、与えるダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'targetBack' }] }),
+  },
+  {
+    id: 'lightrod', species: 'vane', name: '避雷',
+    desc: (k) => `被ダメージ −${pct(0.04 * k)}。電撃属性を持っているとき、移動速度 +${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.04 * k }, { stat: 'moveSpeedMul', add: 0.1 * k, when: 'hasShock' }] }),
+  },
+  {
+    id: 'pinwheelring', species: 'vane', name: '風車',
+    desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -628,6 +654,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  vane: {
+    name: '風見', color: 'cyan', boss: 'weathervane',
+    bonuses: [
+      { need: 2, desc: '風の間、ダッシュの回復が 15% 速くなる', effect: { mods: [{ stat: 'windDash', add: 0.15 }] } },
+      { need: 3, desc: '敵の背中側から当てたとき、与えるダメージ +10%', effect: { mods: [{ stat: 'attackMul', add: 0.1, when: 'targetBack' }] } },
     ],
   },
   spider: {

@@ -270,7 +270,17 @@ export function updateBoss(world, b, dt) {
 
   // 甲羅：向いている方向が正面。硬直中（recover・stun）と、甲羅が割れた段階では、開いていて防げない
   if (b.def.shield) {
-    b.facing = b.angle;
+    if (b.def.windShield) {
+      // 風上を向く盾（ウェザーベーン）：風の予告が出ると、風上へ回り始める。風がない部屋では、プレイヤーのほうを向く
+      const w = world.wind;
+      const want = w && (w.phase === 'warn' || w.phase === 'blow') ? Math.atan2(-w.dirY, -w.dirX) : Math.atan2(dy, dx);
+      b.facing ??= want;
+      const diff = angleDiff(want, b.facing);
+      const step = (b.vaneRush ?? phase.vaneTurn ?? b.def.vaneTurn ?? 2) * dt;
+      b.facing += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+    } else {
+      b.facing = b.angle;
+    }
     const resting = b.act?.phase === 'recover' || b.act?.phase === 'stun';
     b.shieldOpen = resting || b.restT > 0 || !!phase.noShield;
   }

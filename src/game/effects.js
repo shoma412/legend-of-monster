@@ -3,6 +3,7 @@
 //   イベントで発動する効果   … ACTIONS
 // 新しい効果を足すときは、ここに部品を1つ足して、データ（src/data/）から名前で呼ぶ。
 import { STATUS } from '../data/balance.js';
+import { angleDiff } from '../logic/geometry.js';
 import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { applyBurn, applyCorrode, applySlow, applyStop, effectDamage, healPlayer } from './combat.js';
 import { addLight, isVisible } from './darkness.js';
@@ -33,6 +34,10 @@ const CONDITIONS = {
   targetAfflicted: (world, mod, target) => !!target && (target.burnT > 0 || target.slowT > 0 || target.stopT > 0 || target.corrodeT > 0),
   // 強風が吹いている間（環境「強風」）
   windBlowing: (world) => isBlowing(world),
+  // 風の予告が出ている間（環境「強風」）
+  windWarning: (world) => world.wind?.phase === 'warn',
+  // 敵の背中側から当てたとき（その敵の向きと、プレイヤーのいる方向が、120度以上離れている）
+  targetBack: (world, mod, target) => !!target && Math.abs(angleDiff(Math.atan2(world.player.y - target.y, world.player.x - target.x), (target.def?.shield ? target.facing : target.angle) ?? 0)) > 2.1,
   // 引き寄せた敵、風に流されている敵
   targetPulled: (world, mod, target) => !!target && target.pulledT > 0,
   // 腐食中の敵

@@ -628,6 +628,39 @@ const BEHAVIORS = {
     }
   },
 
+  // かざぐるま：動かない。回りながら、弾を放射状に撃つ。風の間は、回転が速く、弾の腕が2倍になる
+  pinwheel(world, e, dt) {
+    const pw = e.def.pinwheel;
+    const wind = isBlowing(world);
+    e.spin = (e.spin ?? e.seed ?? 0) + dt * pw.turn * (wind ? pw.windMul : 1);
+    if (e.cd <= 0) {
+      const arms = pw.arms * (wind ? 2 : 1);
+      for (let k = 0; k < arms; k++) {
+        const a = e.spin + (k * Math.PI * 2) / arms;
+        world.shots.push({ x: e.x + Math.cos(a) * e.r, y: e.y + Math.sin(a) * e.r, vx: Math.cos(a) * pw.shotSpeed, vy: Math.sin(a) * pw.shotSpeed, r: pw.radius, damage: e.def.damage, life: 4, color: e.color });
+      }
+      sfx(world, 'enemyShot');
+      e.cd = pw.interval;
+    }
+  },
+
+  // 風種（ウェザーベーン）：風で流される（wind.js）。風がやむと、少しあとに地雷になり、近づかれると爆ぜる
+  seed(world, e, dt, d) {
+    const s = e.def.seed;
+    if (isBlowing(world) || windComing(world)) {
+      e.armed = 0;
+      return;
+    }
+    e.armed = (e.armed ?? 0) + dt;
+    if (e.armed < s.arm || d.dist > s.trigger + world.player.r) return;
+    if (d.dist <= s.radius + world.player.r) hurtPlayer(world, e.def.damage);
+    ring(world, e.x, e.y, s.radius, e.color);
+    burst(world, e.x, e.y, e.color, 16, 240);
+    sfx(world, 'explode');
+    e.popped = true;
+    e.dead = true;
+  },
+
   // 足場組み：距離を取り、プレイヤーの手前に柵を立てる
   builder(world, e, dt, d) {
     const keep = e.def.keepDistance;

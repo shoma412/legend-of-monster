@@ -611,6 +611,29 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 風見の庭：屋上の庭園。風見の柱（影だけ）、手すり、石畳の格子、枯れ葉
+  garden(g, rng, a) {
+    speckles(g, rng, a, 220, [0x0a1214, 0x0e181a, 0x070d0f, 0x14211f], 0.7);
+    // 石畳の目地
+    for (let x = a.left + 70; x < a.right - 20; x += 140) block(g, x, a.top + 40, PX / 2, a.h - 80, 0x142628, 0.6);
+    for (let y = a.top + 80; y < a.bottom - 20; y += 120) block(g, a.left + 20, y, a.w - 40, PX / 2, 0x142628, 0.6);
+    // 手すり（上と下の壁ぎわ）
+    for (const y of [a.top + 12, a.bottom - 12 - PX * 2]) {
+      block(g, a.left + 10, y, a.w - 20, PX / 2, 0x4a7a7a, 0.6);
+      for (let x = a.left + 30; x < a.right - 20; x += 40) block(g, x, y, PX / 2, PX * 2, 0x2a4a4a, 0.8);
+    }
+    // 風見の柱（床に落ちた影。十字の羽根と矢）
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + a.w * (0.2 + 0.3 * i) + (rng() - 0.5) * 50;
+      const y = a.top + a.h * (0.3 + 0.4 * rng());
+      blob(g, x, y, 10, 7, 0x050909, 0.9);
+      block(g, x - 14, y - 1, 28, PX / 2, 0x2e5252, 0.8);
+      block(g, x - 1, y - 14, PX / 2, 28, 0x2e5252, 0.8);
+      block(g, x + 14, y - 3, PX, PX, 0x4a7a7a, 0.8);
+    }
+    // 枯れ葉
+    for (let i = 0; i < 18; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6a48, 0.35);
+  },
   // 送風路：長い通気ダクト。床の通気口（ボスの熱排気と同じ8か所）、ダクトの継ぎ目のボルト、壁ぎわの太い管、ほこり
   duct(g, rng, a) {
     speckles(g, rng, a, 240, [0x0e0c09, 0x14110d, 0x0a0907, 0x1c1812], 0.7);

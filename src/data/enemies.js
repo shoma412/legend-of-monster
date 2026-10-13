@@ -31,7 +31,9 @@
 // prop: true は、敵ではなく「置かれたもの」（柵など）。倒しても経験値や撃破数にならず、残っていても部屋はクリアになる
 // corrodeHaste: 腐食が付いている間の、動きの速さの倍率（錆び犬）
 // tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
-// windproof: true は、風に流されない（ダクトネズミ）
+// windproof: true は、風に流されない（ダクトネズミ、かざぐるま）
+// pinwheel: { interval, arms, turn, windMul, shotSpeed, radius }。動かない。回りながら弾を放射状に撃つ。風の間は回転が windMul 倍で、弾の腕が2倍（かざぐるま）
+// seed: { arm, trigger, radius }。風がやんで arm 秒たつと地雷になり、trigger px まで近づかれると爆ぜる（ウェザーベーンの「風種」）
 // lob.count / lob.spacing / lob.column: 一度に count か所へ、spacing ずつずらして並べる。column が true なら、投げずに床から噴く（熱吹き）
 //   anchorer  : 距離を取って撃つ（gunner と同じ）。風の予告が出ると杭を打ち、風の間は、流されずに、その場から速く撃つ（stake.haste 倍）
 // decoy: true は、ボスの偽物（暗闇でも目の光が出る）
@@ -986,5 +988,61 @@ export const enemies = [
     dropChance: 0.26,
     keepDistance: { min: 220, max: 340 },
     lob: { interval: 3.2, windup: 0.7, radius: 42, delay: 1.0, count: 3, spacing: 76, column: true },
+  },
+  // ---- ここからマップ6 エリア3「風見の庭」（2026-10-14。マップ6から、雑魚は強めに作る） ----
+  {
+    // かざぐるま：動かない。回りながら、弾を放射状に撃つ。風の間は、回転が速く、弾の腕が2倍になる
+    id: 'pinwheel',
+    name: 'かざぐるま',
+    behavior: 'pinwheel',
+    shape: 'pinwheel',
+    color: 'cold',
+    radius: 15,
+    hp: 135,
+    speed: 0,
+    damage: 25,
+    xp: 21,
+    credits: 7,
+    cost: 4,
+    dropChance: 0.28,
+    knockbackResist: 1,
+    windproof: true,
+    pinwheel: { interval: 1.7, arms: 3, turn: 0.9, windMul: 2, shotSpeed: 210, radius: 6 },
+  },
+  {
+    // 綿毛：壊せる。ゆっくり寄ってきて、触れると破裂する。風に流され、追い風の間は速く寄ってくる
+    id: 'fluff',
+    name: '綿毛',
+    behavior: 'bubble',
+    shape: 'diamond',
+    color: 'ink',
+    radius: 11,
+    hp: 36,
+    speed: 54,
+    damage: 28,
+    xp: 11,
+    credits: 3,
+    cost: 2,
+    dropChance: 0.14,
+    knockbackResist: 0.2,
+    tailwindHaste: 2.4,
+  },
+  {
+    // 風種（ウェザーベーンの「風種」）：風で流される。風がやむと地雷になる。壊せる
+    id: 'windseed',
+    name: '風種',
+    behavior: 'seed',
+    shape: 'diamond',
+    color: 'cold',
+    radius: 12,
+    hp: 40,
+    speed: 0,
+    damage: 42,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 0.2,
+    seed: { arm: 0.8, trigger: 54, radius: 86 },
   },
 ];

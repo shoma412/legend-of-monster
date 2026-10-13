@@ -72,6 +72,20 @@ export function drawFloor(g, theme = 'slum', seed = 1) {
 }
 
 const SHAPES = {
+  // かざぐるま：4枚の羽根が回る（風の間は、速く回る）
+  pinwheel(g, e, color, world) {
+    g.fillStyle(BODY_FILL, 0.9).fillCircle(e.x, e.y, e.r * 0.75);
+    neonStroke(g, color, 2.5, () => g.strokeCircle(e.x, e.y, e.r * 0.75));
+    const spin = e.spin ?? 0;
+    for (let i = 0; i < 4; i++) {
+      const a = spin + (i * Math.PI) / 2;
+      const tip = { x: e.x + Math.cos(a) * e.r * 1.35, y: e.y + Math.sin(a) * e.r * 1.35 };
+      const bend = { x: e.x + Math.cos(a + 0.6) * e.r * 1.1, y: e.y + Math.sin(a + 0.6) * e.r * 1.1 };
+      g.fillStyle(color, 0.35).fillTriangle(e.x, e.y, tip.x, tip.y, bend.x, bend.y);
+      g.lineStyle(2, color, 0.9).lineBetween(e.x, e.y, tip.x, tip.y);
+    }
+    g.fillStyle(hex(COLORS.ink), 1).fillCircle(e.x, e.y, 2.5);
+  },
   triangle(g, e, color, world) {
     const pts = polygon(e.x, e.y, e.r * 1.3, 3, world.time * 4 + e.seed);
     g.fillStyle(BODY_FILL, 0.85).fillPoints(pts, true);
@@ -1733,6 +1747,46 @@ SHAPES.tank = (g, b, color, world) => {
     g.lineStyle(4, next, 0.9);
     arcPath(g, b.x, b.y, r + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
     g.lineStyle(1, next, 0.5).strokeCircle(b.x, b.y, r + 12);
+  }
+};
+
+// ウェザーベーン：円い胴と、風上を向く大きな盾（扇形の板）。上に、風見の矢。盾が向いている方向が風上
+SHAPES.weathervane = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const face = b.facing ?? b.angle;
+  const open = b.shieldOpen;
+  // 胴
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(b.x, b.y, r);
+  neonStroke(g, color, 3.5, () => g.strokeCircle(b.x, b.y, r));
+  // 十字の目盛り（東西南北）
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2;
+    g.lineStyle(2, color, 0.5).lineBetween(b.x + Math.cos(a) * r * 0.55, b.y + Math.sin(a) * r * 0.55, b.x + Math.cos(a) * r * 0.92, b.y + Math.sin(a) * r * 0.92);
+  }
+  // 風見の矢（盾の向き）
+  const tail = { x: b.x - Math.cos(face) * r * 0.7, y: b.y - Math.sin(face) * r * 0.7 };
+  const head = { x: b.x + Math.cos(face) * r * 0.75, y: b.y + Math.sin(face) * r * 0.75 };
+  g.lineStyle(3, color, 0.9).lineBetween(tail.x, tail.y, head.x, head.y);
+  for (const side of [-1, 1]) {
+    const wing = { x: tail.x - Math.sin(face) * side * r * 0.3 - Math.cos(face) * r * 0.2, y: tail.y + Math.cos(face) * side * r * 0.3 - Math.sin(face) * r * 0.2 };
+    g.lineStyle(2.5, color, 0.8).lineBetween(tail.x, tail.y, wing.x, wing.y);
+  }
+  // 盾：正面の扇形の板（硬直中は開く）
+  const half = (b.def.shield.arc * DEG) / 2;
+  g.lineStyle(open ? 3 : 9, color, open ? 0.35 : 0.9);
+  arcPath(g, b.x, b.y, r + 10, face - half, face + half);
+  if (!open) {
+    g.lineStyle(2, WHITE, 0.7);
+    arcPath(g, b.x, b.y, r + 10, face - half, face + half);
+  }
+  // 目（盾と反対側、背中側の中心に1つ）
+  if (!stunned) g.fillStyle(hex(COLORS.ink), 1).fillCircle(b.x - Math.cos(face) * r * 0.1, b.y - Math.sin(face) * r * 0.1, 4);
+  // 風の予告：次に向く方向（風上）を、細い線で示す
+  const w = world.wind;
+  if (w && w.phase === 'warn') {
+    const a = Math.atan2(-w.dirY, -w.dirX);
+    g.lineStyle(2, hex(COLORS.cyan), 0.7).lineBetween(b.x + Math.cos(a) * (r + 18), b.y + Math.sin(a) * (r + 18), b.x + Math.cos(a) * (r + 60), b.y + Math.sin(a) * (r + 60));
   }
 };
 
