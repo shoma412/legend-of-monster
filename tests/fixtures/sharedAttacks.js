@@ -26,6 +26,18 @@ export const SHARED_ATTACKS = {
   shards: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 50, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shotRadius: 7, damage: 22, slow: true, recover: 0.7, reach: 'far' },
   frost: { pattern: 'pools', telegraph: 0.6, count: 4, radius: 56, spread: 130, arm: 0.9, life: 6, tick: 0.6, damage: 14, slow: true, recover: 0.6 },
   zero: { pattern: 'safezone', telegraph: 1.9, waveTelegraph: 1.4, zones: 2, radius: 78, within: 190, waves: 3, active: 0.35, damage: 44, recover: 1.5 },
+  // マップ2のボス（旧）
+  pinch: { pattern: 'cone', telegraph: 0.75, lockTime: 0.3, range: 170, arc: 110, duration: 0.25, damage: 42, recover: 1.1, reach: 'near' },
+  rebirth: {
+    pattern: 'endure', telegraph: 0.8, duration: 6, break: 0.04, stun: 4.5, recover: 1.2, heal: 0.1, regrow: true,
+    pulse: { move: 'drop', interval: 3.2 },
+    blast: { count: 2, interval: 0.5, damage: 40, ringSpeed: 360, ringMax: 980, ringWidth: 18 },
+  },
+  drop: { pattern: 'rain', telegraph: 0.4, count: 8, interval: 0.3, delay: 0.9, radius: 40, spread: 80, damage: 32, recover: 0.8 },
+  rupture: {
+    pattern: 'chase', telegraph: 1.0, count: 5, interval: 0.95, spawn: 140, speed: 330, follow: 1.1, lock: 0.55, radius: 62, damage: 40, recover: 1.2,
+    pool: { radius: 56, arm: 0.2, life: 5, tick: 0.5, damage: 16, slow: true },
+  },
   // オーバーロード（旧）
   laser: { pattern: 'laser', telegraph: 0.9, lead: 55, turn: 190, speed: 95, width: 22, range: 1100, damage: 34, recover: 0.7 },
   summon: { pattern: 'summon', telegraph: 0.7, enemy: 'drone', count: 3, max: 6, recover: 0.6 },

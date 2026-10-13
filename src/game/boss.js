@@ -86,7 +86,7 @@ function currentPhaseIndex(b) {
 }
 
 // 首を1本生やす。index は、何番目の位置か（体の前側に、等間隔に並ぶ）
-function growHead(world, b, index) {
+export function growHead(world, b, index) {
   const heads = b.def.heads;
   const e = createEnemy(DATA.enemies.get(heads.enemy), b.x, b.y, 0.5, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
   e.anchor = b;

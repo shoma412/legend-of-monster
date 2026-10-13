@@ -6,7 +6,7 @@ import { DEG, arcHitsCircle, circlesOverlap, clampToBounds } from '../logic/geom
 import { autoFacing } from './autoAim.js';
 import { createBuild, weaponFor } from '../logic/stats.js';
 import { recalcStats } from './build.js';
-import { healPlayer, hitEnemy } from './combat.js';
+import { healPlayer, hitEnemy, hurtPlayer } from './combat.js';
 import { updateItemEffects } from './consumables.js';
 import { fire, statWith } from './effects.js';
 import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
@@ -78,6 +78,49 @@ export function updatePlayer(world, dt, input) {
   if (p.floatT > 0) {
     p.floatT -= dt;
     input = { ...input, mx: 0, my: 0, attack: false, attackPressed: false, specialPressed: false, dashPressed: false };
+  }
+  // 巻きつかれている間（パイプサーペントの「巻きつき」）：ボスに引きずられ、動けない。ダッシュで振りほどける。巻きつかれている間、決まった間隔でダメージ
+  if (p.held) {
+    const h = p.held;
+    if (!h.boss || h.boss.dead || h.boss.hidden || world.mode !== 'play') {
+      p.held = null;
+    } else if (input.dashPressed) {
+      p.held = null;
+      p.inv = Math.max(p.inv, 0.5);
+      floatText(world, p.x, p.y - 30, 'Break Free', COLORS.cyan, 16);
+    } else {
+      h.t -= dt;
+      h.tick -= dt;
+      p.x = h.boss.x + h.dx;
+      p.y = h.boss.y + h.dy;
+      if (h.tick <= 0) {
+        h.tick = h.tickMax;
+        hurtPlayer(world, h.damage);
+      }
+      if (h.t <= 0) p.held = null;
+      input = { ...input, mx: 0, my: 0, attack: false, attackPressed: false, specialPressed: false, dashPressed: false };
+    }
+  }
+  // 絡みつかれている間（スラッジハイドラの「首の絡み」）：減速して、ダッシュできない。絡んだ首を倒せば解ける。解けないと、引き寄せられて叩かれる
+  if (p.tether) {
+    const th = p.tether;
+    if (!th.head || th.head.dead || world.mode !== 'play') {
+      if (th.head?.dead) floatText(world, p.x, p.y - 30, 'Free', COLORS.cyan, 16);
+      p.tether = null;
+    } else {
+      th.t -= dt;
+      p.slowT = Math.max(p.slowT, 0.2);
+      p.dashBuffer = 0;
+      input = { ...input, dashPressed: false };
+      if (th.t <= 0) {
+        p.tether = null;
+        const dx = th.head.x - p.x;
+        const dy = th.head.y - p.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        p.pull = { vx: (dx / dist) * 700, vy: (dy / dist) * 700, t: 0.25 };
+        hurtPlayer(world, th.damage);
+      }
+    }
   }
   // ダッシュは使った回数ぶん、1回ずつ溜め直す
   const maxDash = p.stats.dashCharges;

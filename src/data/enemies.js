@@ -825,6 +825,41 @@ export const enemies = [
     knockbackResist: 1,
     prop: true,
   },
+  {
+    // 泡（タンククラブの「泡の群れ」）。壊せる。ゆっくり寄ってきて、触れると破裂する
+    id: 'bubble',
+    name: '泡',
+    behavior: 'bubble',
+    shape: 'circle',
+    color: 'ice',
+    radius: 14,
+    hp: 40,
+    speed: 62,
+    damage: 26,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 0.3,
+  },
+  {
+    // 首の根元（スラッジハイドラの大技「大再生」）。壊すと、その首の再生が止まる
+    id: 'root',
+    name: '首の根元',
+    behavior: 'prop',
+    shape: 'circle',
+    color: 'magenta',
+    radius: 20,
+    hp: 90,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    prop: true,
+  },
   // ---- ここからマップ6 エリア2「送風路」（2026-10-13。マップ6から、雑魚は強めに作る） ----
   {
     // ダクトネズミ：小さくて速い。ジグザグに走る。風に流されない

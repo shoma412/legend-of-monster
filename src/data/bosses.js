@@ -35,6 +35,9 @@
 //   ボルトボア        : wirepull 電線ひっぱり / insulators 碍子落とし / stakefence 杭の放電 / statics 帯電 / tuskrip 牙の突き上げ / overvolt 大技（動きは src/game/map1Bosses.js）
 //   クライオ・ワイバーン: featherbolt 氷の羽根 / iciclewave 氷柱の波 / frostbreath 凍る息 / frostwings 霜の翼 / skyshadow 寒空の影 / absolutezero 大技
 //   オーバーロード    : opblocks 命令ブロック / tracepath 配線トレース / satellites 子機の円陣 / reboot 再起動 / shortcircuit 基板ショート / systemhalt 大技
+//   パイプサーペント  : burrow（固有）/ coilcrush とぐろ締め / pipeburst 配管破裂 / sludgeglob 汚水の塊 / grapple 巻きつき / mudflow 大技（動きは src/game/map2Bosses.js）
+//   タンククラブ      : pincerclose はさみ打ち / bubbleswarm 泡の群れ / sidestep 横走り / jetcross 水圧噴射 / rollshell 甲羅転がし / hightide 大技
+//   スラッジハイドラ  : sludgesplit 分裂 / sludgefount 汚泥の噴水 / headsweep 首の掃射 / bogs 泥沼 / entangle 首の絡み / regrowth 大技
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -216,37 +219,39 @@ export const bosses = [
     credits: 110,
     drops: { count: 3, rarityBonus: 1 },
     attacks: {
-      // 部屋を横切る突進。壁に当たると少し隙ができる
-      lunge: { pattern: 'charge', telegraph: 0.75, lockTime: 0.25, speed: 640, duration: 0.85, damage: 40, recover: 0.6, wallStun: 1.2, reach: 'far' },
-      // 汚水の噴射（当たると減速）
-      spit: { pattern: 'cone', telegraph: 0.8, lockTime: 0.3, range: 360, arc: 50, duration: 1.0, damage: 28, slow: true, recover: 0.7 },
-      // 毒液の弾：プレイヤーへ扇形に撃つ
-      venom: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 7, spread: 70, waves: 2, interval: 0.45, track: true, shotSpeed: 270, shotRadius: 7, damage: 26, recover: 0.7, reach: 'far' },
-      venomHard: { pattern: 'barrage', telegraph: 0.5, lockTime: 0.15, count: 9, spread: 90, waves: 3, interval: 0.4, track: true, shotSpeed: 290, shotRadius: 7, damage: 26, recover: 0.7, reach: 'far' },
-      // 潜行：配管に潜って姿を消し、プレイヤーの足元から飛び出す
+      // 潜行（固有・前からある）：配管に潜って姿を消し、プレイヤーの足元から飛び出す
       burrow: { pattern: 'burrow', dive: 0.5, under: 1.3, lockTime: 0.45, radius: 92, damage: 38, repeat: 1, recover: 1.0 },
       burrowHard: {
         pattern: 'burrow', dive: 0.4, under: 1.1, lockTime: 0.4, radius: 92, damage: 38, repeat: 2, recover: 1.0,
         pool: { radius: 70, arm: 0.2, life: 6, tick: 0.5, damage: 16, slow: true },
       },
-      // 汚水の床をばらまく
-      sludge: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 54, spread: 150, arm: 0.9, life: 6, tick: 0.5, damage: 16, slow: true, recover: 0.6 },
-      // 大技「配管破裂」：足元を追って配管が破裂し、その場所に汚水の床が残る
-      rupture: {
-        pattern: 'chase', telegraph: 1.0, count: 5, interval: 0.95, spawn: 140, speed: 330, follow: 1.1, lock: 0.55, radius: 62, damage: 40, recover: 1.2,
-        pool: { radius: 56, arm: 0.2, life: 5, tick: 0.5, damage: 16, slow: true },
+      // 固有「とぐろ締め」：プレイヤーを囲む体の輪が、外から縮む。輪の隙間（gap 度）から外へ出る
+      coilcrush: { pattern: 'coilcrush', telegraph: 1.0, lockTime: 0.35, r0: 300, rEnd: 60, shrink: 2.5, gap: 50, damage: 38, recover: 0.9 },
+      coilcrushHard: { pattern: 'coilcrush', telegraph: 0.9, lockTime: 0.35, r0: 320, rEnd: 60, shrink: 2.0, gap: 42, damage: 38, recover: 0.9 },
+      // 固有「配管破裂」：壁の配管が順に漏れ、予告の線のあと、反対の壁まで水柱が噴く
+      pipeburst: { pattern: 'pipeburst', telegraph: 0.7, count: 4, gap: 0.55, leak: 0.8, aim: 0.5, width: 44, damage: 36, recover: 0.9 },
+      pipeburstHard: { pattern: 'pipeburst', telegraph: 0.6, count: 6, gap: 0.45, leak: 0.7, aim: 0.5, width: 44, damage: 36, recover: 0.9 },
+      // 固有「汚水の塊」：汚水の塊を山なりに吐く。落ちた場所に減速の床が残り、小さな塊が3つ、周りへ飛び散って落ちる
+      sludgeglob: {
+        pattern: 'sludgeglob', telegraph: 0.7, radius: 56, delay: 0.95, damage: 32, recover: 0.8, reach: 'far',
+        pool: { radius: 54, arm: 0.2, life: 6, tick: 0.5, damage: 16, slow: true },
+        split: { count: 3, dist: 120, radius: 38, delay: 0.65, damage: 24, pool: { radius: 40, arm: 0.2, life: 4, tick: 0.5, damage: 12, slow: true } },
       },
+      // 固有「巻きつき」：予告線のあと、体で素早く突っ込む。当たると巻きつかれて、hold 秒のあいだ、tick 秒ごとにダメージ。ダッシュで振りほどける
+      grapple: { pattern: 'grapple', telegraph: 0.8, lockTime: 0.25, speed: 700, duration: 0.6, hold: 1.6, tick: 0.8, damage: 30, recover: 1.0, reach: 'far' },
+      // 大技「濁流」：水の壁が、部屋を横切る（3回）。配管の柱の真後ろだけが安全
+      mudflow: { pattern: 'mudflow', telegraph: 1.8, waves: 3, warn: 1.3, speed: 340, thick: 90, pillars: 3, pillarRadius: 34, damage: 44, recover: 1.5 },
     },
     reactions: [{ when: 'far', seconds: 4, move: 'burrow' }],
-    ultimate: { move: 'rupture', announce: '配管破裂' },
+    ultimate: { move: 'mudflow', announce: '濁流' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.1, max: 1.8 }, moves: ['lunge', 'spit', 'burrow', 'venom'] },
+      { hpAbove: 0.5, idle: { min: 1.1, max: 1.8 }, moves: ['burrow', 'coilcrush', 'pipeburst', 'sludgeglob', 'grapple'] },
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.3 },
-        moves: ['burrowHard', 'spit', 'lunge', 'venomHard', 'sludge'],
-        combos: [{ moves: ['lunge', 'spit'] }, { moves: ['venomHard', 'lunge'] }],
-        side: { moves: ['sludge'], every: { min: 9, max: 13 } },
+        moves: ['burrowHard', 'coilcrushHard', 'pipeburstHard', 'sludgeglob', 'grapple'],
+        combos: [{ moves: ['grapple', 'sludgeglob'] }, { moves: ['pipeburstHard', 'coilcrushHard'] }],
+        side: { moves: ['sludgeglob'], every: { min: 9, max: 13 } },
         announce: '詰まり検知',
       },
     ],
@@ -269,39 +274,39 @@ export const bosses = [
     shield: { arc: 170 }, // 甲羅：正面からの武器の攻撃を防ぐ
     turnRate: 1.5, // 向きを変えるのは遅いので、背後に回り込める
     attacks: {
-      // はさみのなぎ払い：正面の広い扇
-      pinch: { pattern: 'cone', telegraph: 0.75, lockTime: 0.3, range: 170, arc: 110, duration: 0.25, damage: 42, recover: 1.1, reach: 'near' },
-      // 水圧：横と縦の線が、プレイヤーの場所から交互に走る
-      jets: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 4, spacing: 130, width: 30, delay: 0.85, stagger: 0.25, damage: 34, recover: 1.0 },
-      jetsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 6, spacing: 115, width: 30, delay: 0.8, stagger: 0.2, damage: 34, recover: 0.9 },
-      // 跳びかかり：着地で周りを攻撃し、衝撃波の輪が広がる
-      leap: { pattern: 'leap', telegraph: 0.95, lockTime: 0.3, air: 0.55, radius: 120, damage: 42, ring: { speed: 300, max: 300, width: 14, damage: 24 }, recover: 1.2, reach: 'far' },
-      // 泡：全方向に、遅い弾をばらまく
-      bubbles: { pattern: 'barrage', telegraph: 0.7, count: 12, spread: 360, waves: 2, interval: 0.6, rotate: 15, shotSpeed: 150, shotRadius: 9, shotLife: 6, damage: 26, recover: 1.0 },
-      bubblesHard: { pattern: 'barrage', telegraph: 0.6, count: 14, spread: 360, waves: 3, interval: 0.5, rotate: 13, shotSpeed: 170, shotRadius: 9, shotLife: 6, damage: 26, recover: 0.9 },
-      // 横走り：甲羅が割れたあとの突進
-      scuttle: { pattern: 'charge', repeat: 2, repeatTelegraph: 0.45, telegraph: 0.65, lockTime: 0.2, speed: 560, duration: 0.7, damage: 40, recover: 0.8, wallStun: 1.3, reach: 'far' },
-      // 回転：背後に居続けると、体ごと回って周りを叩く。硬直は長め
-      spin: { pattern: 'slam', telegraph: 0.6, radius: 150, damage: 40, recover: 1.3 },
-      // 大技「満水」：部屋が水で満ちる。光る円（足場）の中だけが助かる
-      flood: { pattern: 'safezone', telegraph: 1.9, waveTelegraph: 1.4, zones: 2, radius: 80, within: 190, waves: 3, active: 0.35, damage: 46, recover: 1.6 },
+      // 固有「はさみ打ち」：プレイヤーの左右に爪が出て、プレイヤーの場所へ向かって閉じる。爪の線の外（前後）へ出る
+      pincerclose: { pattern: 'pincerclose', telegraph: 0.9, lockTime: 0.3, sets: 1, setGap: 0.9, dist0: 190, len: 150, thick: 40, close: 0.8, damage: 40, recover: 1.0, reach: 'near' },
+      pincercloseHard: { pattern: 'pincerclose', telegraph: 0.8, lockTime: 0.3, sets: 2, setGap: 0.9, dist0: 190, len: 150, thick: 40, close: 0.75, damage: 40, recover: 1.0, reach: 'near' },
+      // 固有「泡の群れ」：壊せる泡が、ゆっくり寄ってくる。触れると破裂する。life 秒で消える
+      bubbleswarm: { pattern: 'bubbleswarm', telegraph: 0.7, enemy: 'bubble', count: 6, speed: 60, life: 9, recover: 1.0, reach: 'far' },
+      bubbleswarmHard: { pattern: 'bubbleswarm', telegraph: 0.6, enemy: 'bubble', count: 9, speed: 75, life: 9, recover: 0.9, reach: 'far' },
+      // 固有「横走り」：横へ素早くずれて、止まるたびに、前方（swing px 先）へ爪を振る
+      sidestep: { pattern: 'sidestep', telegraph: 0.65, count: 3, dist: 150, moveT: 0.22, swing: 100, radius: 72, delay: 0.45, hold: 0.55, damage: 38, recover: 1.0 },
+      sidestepHard: { pattern: 'sidestep', telegraph: 0.55, count: 4, dist: 160, moveT: 0.2, swing: 100, radius: 72, delay: 0.4, hold: 0.5, damage: 38, recover: 0.9 },
+      // 固有「水圧噴射」：甲羅の弁から、十字の水の線が出る。止まっては、turn 度ずつ回る
+      jetcross: { pattern: 'jetcross', telegraph: 0.8, steps: 3, stepGap: 0.9, turn: 22.5, width: 30, delay: 0.8, damage: 34, recover: 1.0 },
+      jetcrossHard: { pattern: 'jetcross', telegraph: 0.7, steps: 4, stepGap: 0.8, turn: 22.5, width: 30, delay: 0.75, damage: 34, recover: 0.9 },
+      // 固有「甲羅転がし」：甲羅にこもって転がり、壁に当たるたびに跳ね返る（bounces 回）。止まったあとは、隙が長い
+      rollshell: { pattern: 'rollshell', telegraph: 0.8, lockTime: 0.25, speed: 540, bounces: 3, maxTime: 6, damage: 40, recover: 1.4 },
+      // 大技「満潮」：水位が、部屋の一辺から3回上がる。水の中は、減速とダメージ。高台（安全の円）の上だけが助かる
+      hightide: { pattern: 'hightide', telegraph: 1.9, pulses: 3, depth: 0.6, warn: 1.3, rise: 0.8, hold: 2.2, drain: 0.6, islands: 3, islandRadius: 70, tick: 0.5, damage: 34, recover: 1.6 },
     },
     reactions: [
-      { when: 'behind', seconds: 2.4, move: 'spin' },
-      { when: 'far', seconds: 4, move: 'leap' },
+      { when: 'behind', seconds: 2.4, move: 'rollshell' },
+      { when: 'far', seconds: 4, move: 'bubbleswarm' },
     ],
-    ultimate: { move: 'flood', announce: '満水' },
+    ultimate: { move: 'hightide', announce: '満潮' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['pinch', 'jets', 'leap', 'bubbles'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['pincerclose', 'bubbleswarm', 'sidestep', 'jetcross', 'rollshell'] },
       // 甲羅が割れる：防げなくなる代わりに、攻撃が速くなる
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.3 },
         speed: 1.3,
         noShield: true,
-        moves: ['leap', 'scuttle', 'jetsHard', 'pinch', 'bubblesHard'],
-        combos: [{ moves: ['leap', 'pinch'] }, { moves: ['scuttle', 'bubblesHard'] }],
-        side: { moves: ['jets'], every: { min: 10, max: 14 } },
+        moves: ['pincercloseHard', 'bubbleswarmHard', 'sidestepHard', 'jetcrossHard', 'rollshell'],
+        combos: [{ moves: ['sidestepHard', 'pincercloseHard'] }, { moves: ['rollshell', 'jetcrossHard'] }],
+        side: { moves: ['jetcross'], every: { min: 10, max: 14 } },
         announce: '甲羅破損',
       },
     ],
@@ -324,36 +329,38 @@ export const bosses = [
     // 首：3本。体の前側に付いて、弾を吐く。残っている間は、本体へのダメージが 75% 減る
     heads: { enemy: 'hydrahead', count: 3, orbit: 78, reduce: 0.75 },
     attacks: {
-      // 汚泥の落下
-      drop: { pattern: 'rain', telegraph: 0.4, count: 8, interval: 0.3, delay: 0.9, radius: 40, spread: 80, damage: 32, recover: 0.8 },
-      dropHard: { pattern: 'rain', telegraph: 0.3, count: 13, interval: 0.2, delay: 0.85, radius: 40, spread: 110, damage: 32, recover: 0.7 },
-      // うずまきの弾
-      spiral: { pattern: 'barrage', telegraph: 0.7, count: 8, spread: 360, waves: 5, interval: 0.32, rotate: 14, shotSpeed: 200, shotRadius: 7, damage: 28, recover: 0.9 },
-      spiralHard: { pattern: 'barrage', telegraph: 0.6, count: 10, spread: 360, waves: 7, interval: 0.26, rotate: 11, shotSpeed: 220, shotRadius: 7, damage: 28, recover: 0.8 },
-      // ぬかるみ：踏むと減速してダメージを受ける床
-      mire: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 58, spread: 150, arm: 0.9, life: 7, tick: 0.5, damage: 16, slow: true, recover: 0.7 },
-      // 体のまわりを叩く
-      slam: { pattern: 'slam', telegraph: 0.8, radius: 165, damage: 42, recover: 1.0, reach: 'near' },
-      // 汚泥のしずくを生む
-      spawn: { pattern: 'summon', telegraph: 0.7, enemy: 'sludgelet', count: 3, max: 8, recover: 0.7 },
-      // 大技「大再生」：溜めている間、汚泥が落ちる。溜めきると、HP が少し回復し、首がすべて生え直す
-      rebirth: {
-        pattern: 'endure', telegraph: 0.8, duration: 6, break: 0.04, stun: 4.5, recover: 1.2, heal: 0.1, regrow: true,
-        pulse: { move: 'drop', interval: 3.2 },
-        blast: { count: 2, interval: 0.5, damage: 40, ringSpeed: 360, ringMax: 980, ringWidth: 18 },
+      // 固有「分裂」：汚泥のしずくを生む（部屋の雑魚が max 体を超えない範囲で）
+      spawn: { pattern: 'sludgesplit', telegraph: 0.7, enemy: 'sludgelet', count: 3, max: 8, recover: 0.7 },
+      // 固有「汚泥の噴水」：汚泥を山なりに吐く。落ちた場所に、広がり続ける汚泥の床（半径 radius から rMax まで）が残る
+      sludgefount: {
+        pattern: 'sludgefount', telegraph: 0.7, count: 4, spread: 150, radius: 46, delay: 0.9, stagger: 0.25, damage: 30, recover: 0.9,
+        pool: { radius: 36, rMax: 110, grow: 22, arm: 0.2, life: 7, tick: 0.5, damage: 16, slow: true },
       },
+      sludgefountHard: {
+        pattern: 'sludgefount', telegraph: 0.6, count: 6, spread: 170, radius: 46, delay: 0.85, stagger: 0.2, damage: 30, recover: 0.8,
+        pool: { radius: 36, rMax: 110, grow: 22, arm: 0.2, life: 7, tick: 0.5, damage: 16, slow: true },
+      },
+      // 固有「首の掃射」：生きている首が、それぞれ、汚泥の線を扇形（arc 度）に掃く。首が倒れているほど、線が減る
+      headsweep: { pattern: 'headsweep', telegraph: 0.7, warn: 0.7, sweepT: 1.8, arc: 90, width: 16, damage: 30, recover: 1.0 },
+      headsweepHard: { pattern: 'headsweep', telegraph: 0.6, warn: 0.6, sweepT: 1.5, arc: 120, width: 16, damage: 30, recover: 0.9 },
+      // 固有「泥沼」：中心へ、少しずつ引き込まれる床（pull px/秒）。中心（core px）に近いとダメージ
+      bogs: { pattern: 'bogs', telegraph: 0.7, count: 3, radius: 90, core: 24, arm: 0.8, life: 8, pull: 70, tick: 0.5, damage: 20, recover: 0.9 },
+      // 固有「首の絡み」：首が1本、プレイヤーへ絡みつく（減速、ダッシュできない）。その首を倒せば解ける。hold 秒で解けないと、引き寄せられて叩かれる
+      entangle: { pattern: 'entangle', telegraph: 0.8, range: 420, hold: 2.0, damage: 36, recover: 1.0 },
+      // 大技「大再生」：倒された首の根元が光り、順に（gap 秒ごとに）首が生え直す。根元を壊せば、その首は止まる。生え直るたびに、HP が heal の割合だけ回復する
+      regrowth: { pattern: 'regrowth', telegraph: 1.2, root: 'root', first: 1.0, gap: 0.8, heal: 0.04, volleys: 3, volleyGap: 0.8, ring: 8, shotSpeed: 200, shotDamage: 28, recover: 1.5 },
     },
-    ultimate: { move: 'rebirth', announce: '大再生' },
+    ultimate: { move: 'regrowth', announce: '大再生' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['drop', 'spiral', 'mire', 'slam', 'spawn'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['sludgefount', 'headsweep', 'bogs', 'entangle', 'spawn'] },
       // 再生：倒された首が、時間で生え直す
       {
         hpAbove: 0,
         idle: { min: 0.9, max: 1.4 },
         regrow: 9,
-        moves: ['dropHard', 'spiral', 'slam', 'mire', 'spawn', 'spiralHard'],
-        combos: [{ moves: ['mire', 'dropHard'] }, { moves: ['slam', 'spiral'] }],
-        side: { moves: ['drop'], every: { min: 10, max: 14 } },
+        moves: ['sludgefountHard', 'headsweepHard', 'bogs', 'entangle', 'spawn'],
+        combos: [{ moves: ['bogs', 'sludgefountHard'] }, { moves: ['entangle', 'headsweepHard'] }],
+        side: { moves: ['sludgefount'], every: { min: 10, max: 14 } },
         announce: '再生開始',
       },
     ],

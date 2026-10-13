@@ -10,10 +10,10 @@ import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
 import { arcHitsCircle, circlesOverlap, distToSegment } from '../logic/geometry.js';
 import { hurtPlayer, slowPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
+import { aim, clamp, inside, pushMark, randomSpot, timed } from './bossKit.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const DEG = Math.PI / 180;
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const SHOCK = ELEMENT_COLORS.shock;
 const COLD = ELEMENT_COLORS.cold;
 
@@ -26,65 +26,6 @@ export function boardPoints(bounds) {
   const points = [];
   BOARD_ROWS.forEach((fy, row) => BOARD_COLUMNS.forEach((fx, col) => points.push({ x: bounds.left + w * fx, y: bounds.top + h * fy, row, col })));
   return points;
-}
-
-function aim(act, d) {
-  act.dirX = d.dx / d.dist;
-  act.dirY = d.dy / d.dist;
-}
-
-// 「予告 → 発動 → （残る攻撃が終わるまで待つ）→ 硬直」の流れの部品。
-//   fire(world, b, act, d): 発動のときに呼ばれる。act.hs に、待つ対象（hazard や敵）を入れる
-//   finished(world, b, act, dt): 待つ間、毎フレーム呼ばれる。true で硬直へ。省略すると、act.hs が全部消えたら
-//   early: true なら、始まったときに fire を呼ぶ（予告の間に動く hazard を置く）
-function timed({ fire, finished, early = false }) {
-  return {
-    start(world, b, act, d) {
-      act.phase = 'telegraph';
-      act.t = act.def.telegraph;
-      act.hs = [];
-      aim(act, d);
-      if (early) fire(world, b, act, d);
-    },
-    update(world, b, dt, act, d) {
-      const def = act.def;
-      act.t -= dt;
-      if (act.phase === 'telegraph') {
-        if (act.t > (def.lockTime ?? 0)) aim(act, d);
-        if (act.t <= 0) {
-          act.phase = 'active';
-          if (!early) fire(world, b, act, d);
-        }
-      } else if (act.phase === 'active') {
-        const done = finished ? finished(world, b, act, dt) : act.hs.every((h) => h.dead);
-        if (done) {
-          act.phase = 'recover';
-          act.t = act.recoverT ?? def.recover;
-        }
-      } else if (act.t <= 0) {
-        return true;
-      }
-      return false;
-    },
-  };
-}
-
-function pushMark(world, act, b, spec) {
-  const t = spec.t;
-  const mark = { type: 'mark', x: spec.x, y: spec.y, r: spec.r, t, max: t, damage: spec.damage, enemyDamage: 0, color: spec.color ?? b.color, ...(spec.extra ?? {}) };
-  world.hazards.push(mark);
-  act.hs.push(mark);
-  return mark;
-}
-
-function inside(world, x, y, margin = 0) {
-  const b = world.bounds;
-  return x >= b.left + margin && x <= b.right - margin && y >= b.top + margin && y <= b.bottom - margin;
-}
-
-function randomSpot(world, margin = 40) {
-  const b = world.bounds;
-  return { x: b.left + margin + world.rng() * (b.right - b.left - margin * 2), y: b.top + margin + world.rng() * (b.bottom - b.top - margin * 2) };
 }
 
 // ---- ハザード（残る攻撃）の動き ----

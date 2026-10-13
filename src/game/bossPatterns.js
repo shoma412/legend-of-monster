@@ -15,6 +15,7 @@ import { createEnemy, dropDebris } from './enemyAI.js';
 import { loosenScreen, suck } from './wind.js';
 import { ventSpots } from '../logic/ventSpots.js';
 import { installMap1 } from './map1Bosses.js';
+import { installMap2 } from './map2Bosses.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -2156,6 +2157,7 @@ PATTERNS.flare = {
 // ボスごとの固有の「残る攻撃」の動き（src/game/map1Bosses.js など）。種類の名前 → { update(world, h, dt) }
 export const HAZARD_TYPES = {};
 installMap1(PATTERNS, HAZARD_TYPES);
+installMap2(PATTERNS, HAZARD_TYPES);
 
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -2289,7 +2291,21 @@ export function updateHazards(world, dt) {
           }
         }
         if (h.pool) {
-          world.hazards.push({ type: 'pool', x: h.x, y: h.y, r: h.pool.radius, arm: h.pool.arm, armMax: h.pool.arm, life: h.pool.life, tick: h.pool.tick, acc: h.pool.tick, damage: h.pool.damage, slow: false, color: h.color });
+          // grow / rMax を書くと、床が広がり続ける（汚泥の噴水）。slow なら、踏むと減速する
+          world.hazards.push({
+            type: 'pool', x: h.x, y: h.y, r: h.pool.radius, arm: h.pool.arm, armMax: h.pool.arm, life: h.pool.life, tick: h.pool.tick, acc: h.pool.tick, damage: h.pool.damage,
+            slow: !!h.pool.slow, grow: h.pool.grow, rMax: h.pool.rMax, color: h.color,
+          });
+        }
+        // split を書くと、落ちた場所から、小さな塊が周りへ飛び散って落ちる（汚水の塊）
+        if (h.split) {
+          const base = world.rng() * Math.PI * 2;
+          for (let k = 0; k < h.split.count; k++) {
+            const a = base + (k * Math.PI * 2) / h.split.count;
+            const x = h.x + Math.cos(a) * h.split.dist;
+            const y = h.y + Math.sin(a) * h.split.dist;
+            world.hazards.push({ type: 'mark', x, y, r: h.split.radius, t: h.split.delay, max: h.split.delay, damage: h.split.damage, enemyDamage: 0, color: h.color, from: { x: h.x, y: h.y }, pool: h.split.pool });
+          }
         }
         // 部屋の仕掛けの落下物は、敵にも当たる
         if (h.enemyDamage > 0) {

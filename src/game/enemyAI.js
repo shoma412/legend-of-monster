@@ -613,6 +613,20 @@ const BEHAVIORS = {
   // 置かれたもの（柵・橋げたの杭）：何もしない
   prop() {},
 
+  // 泡（タンククラブの「泡の群れ」）：ゆっくりプレイヤーへ寄ってきて、触れると破裂する。先に壊せば当たらない
+  bubble(world, e, dt, d) {
+    e.x += (d.dx / d.dist) * e.def.speed * dt;
+    e.y += (d.dy / d.dist) * e.def.speed * dt;
+    const p = world.player;
+    if (circlesOverlap(e.x, e.y, e.r + 4, p.x, p.y, p.r)) {
+      hurtPlayer(world, e.def.damage);
+      burst(world, e.x, e.y, e.color, 14, 220);
+      ring(world, e.x, e.y, 46, e.color);
+      sfx(world, 'explode');
+      e.dead = true;
+    }
+  },
+
   // 足場組み：距離を取り、プレイヤーの手前に柵を立てる
   builder(world, e, dt, d) {
     const keep = e.def.keepDistance;

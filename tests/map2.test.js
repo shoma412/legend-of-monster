@@ -13,6 +13,7 @@ import { dashCooldown } from '../src/game/player.js';
 import { chooseImplant, recalcStats } from '../src/game/build.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
+import { SHARED_ATTACKS } from './fixtures/sharedAttacks.js';
 import { bestReachText, mapState, recordMapClear } from '../src/logic/maps.js';
 import { useKit } from '../src/game/objects.js';
 import { SAVE_VERSION, loadSlot, slotKey } from '../src/logic/save.js';
@@ -467,7 +468,7 @@ describe('タンククラブ：甲羅', () => {
     const world = crabWorld();
     const b = world.boss;
     world.player.inv = Infinity;
-    b.act = { name: 'pinch', def: b.def.attacks.pinch, phase: '', t: 0 };
+    b.act = { name: 'pinch', def: SHARED_ATTACKS.pinch, phase: '', t: 0 };
     PATTERNS.cone.start(world, b, b.act, { dx: -1, dy: 0, dist: 1 });
     expect(runUntil(world, () => b.act?.phase === 'recover')).toBe(true);
     updateWorld(world, DT, idle);

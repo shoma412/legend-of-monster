@@ -6,6 +6,7 @@ import { pad } from '../game/padInput.js';
 import { xpToNext } from '../logic/level.js';
 import { drawBackdrop } from './backdrop.js';
 import { BOSS_TELEGRAPHS_MAP1, HAZARD_DRAWS, drawBoard } from './map1Draw.js';
+import { BOSS_TELEGRAPHS_MAP2, HAZARD_DRAWS_MAP2 } from './map2Draw.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
@@ -1937,7 +1938,8 @@ export function drawBossTelegraph(g, world) {
   if (b.side) BOSS_TELEGRAPHS[b.side.def.pattern]?.(g, b, b.side, world);
 }
 
-Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1);
+Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1, BOSS_TELEGRAPHS_MAP2);
+Object.assign(HAZARD_DRAWS, HAZARD_DRAWS_MAP2);
 
 // オーバーロードの、基板の線を走らせる攻撃のあいだだけ、基板の線を薄く出す
 const BOARD_PATTERNS = ['tracepath', 'shortcircuit', 'systemhalt'];

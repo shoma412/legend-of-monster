@@ -275,12 +275,12 @@ export const HAZARD_DRAWS = {
 };
 
 // ボスが構えている間の絵（draw.js の BOSS_TELEGRAPHS に足される）
-const ringTelegraph = (g, b, act, world) => {
+export const ringTelegraph = (g, b, act, world) => {
   if (act.phase !== 'telegraph') return;
   const k = 1 - act.t / act.def.telegraph;
   g.lineStyle(2, RED(), 0.4 + 0.4 * Math.abs(Math.sin(world.time * 18))).strokeCircle(b.x, b.y, b.r + 14 + k * 20);
 };
-const lineTelegraph = (length) => (g, b, act, world) => {
+export const lineTelegraph = (length) => (g, b, act, world) => {
   if (act.phase !== 'telegraph') return;
   const locked = act.t <= (act.def.lockTime ?? 0);
   g.lineStyle(3, RED(), locked ? 0.7 : 0.25 + 0.2 * Math.abs(Math.sin(world.time * 16))).lineBetween(b.x, b.y, b.x + act.dirX * length, b.y + act.dirY * length);
