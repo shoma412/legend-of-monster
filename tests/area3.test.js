@@ -6,7 +6,6 @@ import { applyStop, effectDamage, hitEnemy } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { AREA_ORDER, NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 import { distToSegment } from '../src/logic/geometry.js';
 import { createSave } from '../src/logic/save.js';
 
@@ -51,7 +50,6 @@ function addEnemy(world, id, dx, dy = 0) {
 function overloadWorld() {
   const world = createWorld({ waves: [{ boss: 'overload' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
-  withShared(world.boss); // 共通の部品の攻撃（レーザー・召喚・衝撃波）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -169,100 +167,6 @@ describe('オーバーロード', () => {
     });
   });
 
-  it('レーザー：予告の線が出てから回り始め、当たるとダメージ。予告の間は当たらない', () => {
-    const world = overloadWorld();
-    const b = world.boss;
-    const p = world.player;
-    b.next = 'laser';
-    expect(runUntil(world, () => b.act?.name === 'laser')).toBe(true);
-    const act = b.act;
-    const start = act.angle;
-    run(world, SHARED_ATTACKS.laser.telegraph - 0.1);
-    expect(act.phase).toBe('telegraph');
-    expect(act.angle).toBe(start);
-    expect(p.hp).toBe(PLAYER.maxHp);
-    // 立ち止まっていると、回ってきたレーザーに当たる
-    expect(runUntil(world, () => p.hp < PLAYER.maxHp || b.act !== act, 6)).toBe(true);
-    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.laser.damage);
-  });
-
-  it('ドローン召喚：雑魚が出てくる。出しすぎない（上限あり）', () => {
-    const world = overloadWorld();
-    const b = world.boss;
-    world.player.inv = Infinity;
-    b.next = 'summon';
-    b.idleT = 0;
-    expect(runUntil(world, () => world.enemies.length > 1)).toBe(true);
-    expect(world.enemies.filter((e) => !e.boss)).toHaveLength(SHARED_ATTACKS.summon.count);
-    for (let i = 0; i < 6; i++) {
-      b.act = null;
-      b.next = 'summon';
-      b.idleT = 0;
-      runUntil(world, () => b.act?.name === 'summon' && b.act.phase === 'recover', 5);
-    }
-    expect(world.enemies.filter((e) => !e.boss).length).toBeLessThanOrEqual(SHARED_ATTACKS.summon.max);
-  });
-
-  it('全体衝撃波：輪は部屋の端まで届く', () => {
-    const world = overloadWorld();
-    const b = world.boss;
-    const p = world.player;
-    b.next = 'nova';
-    b.idleT = 0;
-    expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
-    b.idleT = 99;
-    p.x = world.bounds.left + p.r; // ボスから一番遠い壁際
-    p.y = b.y;
-    expect(runUntil(world, () => p.hp < PLAYER.maxHp || world.hazards.length === 0, 5)).toBe(true);
-    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.nova.damage);
-  });
-
-  it('HPが半分を切るとオーバーヒート：攻撃が速くなり、冷却の隙ができる。隙の間は触れても安全', () => {
-    const world = overloadWorld();
-    const b = world.boss;
-    const p = world.player;
-    p.inv = Infinity;
-    b.hp = b.maxHp * 0.4;
-    expect(runUntil(world, () => b.phaseIndex === 1)).toBe(true);
-    expect(def.phases[1].speed).toBeGreaterThan(1);
-    // 予告が短くなる（速さの倍率ぶん）
-    b.next = 'laser';
-    expect(runUntil(world, () => b.act?.name === 'laser')).toBe(true);
-    let frames = 0;
-    while (b.act?.phase === 'telegraph') {
-      updateWorld(world, DT, idle);
-      frames++;
-    }
-    expect(frames * DT).toBeLessThan(SHARED_ATTACKS.laser.telegraph * 0.85);
-
-    expect(runUntil(world, () => b.act?.name === 'vent', 60)).toBe(true);
-    // 冷却は速くならない（決めた秒数だけ止まる）
-    const x = b.x;
-    let vent = 0;
-    while (b.act?.name === 'vent') {
-      updateWorld(world, DT, idle);
-      vent += DT;
-    }
-    expect(vent).toBeCloseTo(def.attacks.vent.duration, 0);
-    expect(b.x).toBe(x);
-  });
-
-  it('倒すと、呼び出されていた雑魚も消えてクリアになる', () => {
-    const world = overloadWorld();
-    const b = world.boss;
-    world.player.inv = Infinity;
-    b.next = 'summon';
-    b.idleT = 0;
-    runUntil(world, () => world.enemies.length > 1);
-    run(world, 1);
-    hitEnemy(world, b, 9999999, 1, 0, 0);
-    for (let i = 0; i < 12; i++) {
-      run(world, 0.7);
-      if (world.choice) world.choice = null;
-    }
-    expect(world.enemies).toHaveLength(0);
-    expect(world.mode).toBe('clear');
-  });
 });
 
 describe('クリア', () => {

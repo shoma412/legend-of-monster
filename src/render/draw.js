@@ -8,6 +8,9 @@ import { drawBackdrop } from './backdrop.js';
 import { BOSS_TELEGRAPHS_MAP1, HAZARD_DRAWS, drawBoard } from './map1Draw.js';
 import { BOSS_TELEGRAPHS_MAP2, HAZARD_DRAWS_MAP2 } from './map2Draw.js';
 import { BOSS_TELEGRAPHS_MAP3, HAZARD_DRAWS_MAP3 } from './map3Draw.js';
+import { BOSS_TELEGRAPHS_MAP4, HAZARD_DRAWS_MAP4 } from './map4Draw.js';
+import { BOSS_TELEGRAPHS_MAP5, HAZARD_DRAWS_MAP5 } from './map5Draw.js';
+import { BOSS_TELEGRAPHS_MAP6, HAZARD_DRAWS_MAP6 } from './map6Draw.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
@@ -1939,8 +1942,8 @@ export function drawBossTelegraph(g, world) {
   if (b.side) BOSS_TELEGRAPHS[b.side.def.pattern]?.(g, b, b.side, world);
 }
 
-Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1, BOSS_TELEGRAPHS_MAP2, BOSS_TELEGRAPHS_MAP3);
-Object.assign(HAZARD_DRAWS, HAZARD_DRAWS_MAP2, HAZARD_DRAWS_MAP3);
+Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1, BOSS_TELEGRAPHS_MAP2, BOSS_TELEGRAPHS_MAP3, BOSS_TELEGRAPHS_MAP4, BOSS_TELEGRAPHS_MAP5, BOSS_TELEGRAPHS_MAP6);
+Object.assign(HAZARD_DRAWS, HAZARD_DRAWS_MAP2, HAZARD_DRAWS_MAP3, HAZARD_DRAWS_MAP4, HAZARD_DRAWS_MAP5, HAZARD_DRAWS_MAP6);
 // 大技「竣工」（アーキテクト）：今やっている技（方眼・設計図）の予告を、そのまま描く
 BOSS_TELEGRAPHS.finishwork = (g, b, act, world) => {
   if (act.child) BOSS_TELEGRAPHS[act.child.def.pattern]?.(g, b, act.child, world);

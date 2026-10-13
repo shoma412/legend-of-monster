@@ -11,6 +11,7 @@ import { COLORS } from '../data/theme.js';
 import { circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { aim, clamp, inside, randomSpot, timed } from './bossKit.js';
 import { hurtPlayer } from './combat.js';
+import { applyRust } from './bossKit.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 import { boardPoints } from './map1Bosses.js';
@@ -73,7 +74,8 @@ export const HAZARDS_MAP3 = {
         burst(world, h.x, h.y, h.color, 4, 120);
         if (h.count > h.bounces) h.dead = true;
       }
-      if (!h.dead && circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+      // rust を書くと、当たったプレイヤーに「錆」が付く（鉄片散らし）
+      if (!h.dead && circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r) && hurtPlayer(world, h.damage) && h.rust) applyRust(world, h.rust);
     },
   },
 

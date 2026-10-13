@@ -623,6 +623,7 @@ const BEHAVIORS = {
       burst(world, e.x, e.y, e.color, 14, 220);
       ring(world, e.x, e.y, 46, e.color);
       sfx(world, 'explode');
+      e.popped = true; // 破裂した（プレイヤーが壊したのではない）
       e.dead = true;
     }
   },

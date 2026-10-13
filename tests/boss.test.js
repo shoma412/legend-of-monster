@@ -5,7 +5,6 @@ import { PATTERNS } from '../src/game/bossPatterns.js';
 import { chooseImplant } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -15,7 +14,6 @@ const def = DATA.bosses.get('boltboar');
 function bossWorld() {
   const world = createWorld({ waves: [{ boss: 'boltboar' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
-  withShared(world.boss); // 共通の部品の攻撃（突進・衝撃波）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -63,88 +61,6 @@ describe('ボルトボア', () => {
       expect(moves).toContain(name);
       if (i > 0) expect(name).not.toBe(seen[i - 1]);
     });
-  });
-
-  it('突進は予告の間は動かず、予告のあとに当たるとダメージ', () => {
-    const world = bossWorld();
-    const b = world.boss;
-    b.next = 'charge';
-    expect(runUntil(world, () => b.act?.name === 'charge')).toBe(true);
-    world.player.x = b.x - 250;
-    const x0 = b.x;
-    run(world, SHARED_ATTACKS.charge.telegraph - 0.1);
-    expect(b.act.phase).toBe('telegraph');
-    expect(b.x).toBe(x0);
-    expect(world.player.hp).toBe(PLAYER.maxHp);
-    expect(runUntil(world, () => world.player.hp < PLAYER.maxHp, 2)).toBe(true);
-    expect(world.player.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.charge.damage);
-  });
-
-  it('突進を避けて壁に当てるとスタンし、その間は触れてもダメージを受けない', () => {
-    const world = bossWorld();
-    const b = world.boss;
-    const p = world.player;
-    // 壁際に立ち、突進が始まったら無敵で通り抜けさせる
-    b.next = 'charge';
-    p.x = world.bounds.left + p.r;
-    expect(runUntil(world, () => b.act?.phase === 'active')).toBe(true);
-    b.x = 400;
-    p.inv = 1;
-    expect(runUntil(world, () => b.act?.phase === 'stun', 2)).toBe(true);
-    p.inv = 0;
-    p.x = b.x;
-    p.y = b.y;
-    const hp = p.hp;
-    run(world, 0.5);
-    expect(p.hp).toBe(hp);
-  });
-
-  it('踏みつけの輪は広がって当たる。ダッシュの無敵ですり抜けられる', () => {
-    const world = bossWorld();
-    const b = world.boss;
-    const p = world.player;
-    b.next = 'stomp'; // 次が踏みつけ
-    p.x = b.x - 200;
-    p.y = b.y;
-    expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
-    const ring = world.hazards[0];
-    b.idleT = 99; // 次の攻撃を待たせる
-    p.inv = 0;
-    const hp = p.hp;
-    expect(runUntil(world, () => ring.done || ring.dead, 3)).toBe(true);
-    expect(p.hp).toBe(hp - SHARED_ATTACKS.stomp.damage);
-
-    // もう一度。今度は輪が届く間ずっと無敵
-    b.next = 'stomp';
-    b.idleT = 0;
-    expect(runUntil(world, () => world.hazards.length > 0)).toBe(true);
-    b.idleT = 99;
-    p.inv = 5;
-    const hp2 = p.hp;
-    runUntil(world, () => world.hazards.length === 0, 3);
-    expect(p.hp).toBe(hp2);
-  });
-
-  it('HPが半分以下になると突進が2連続になる', () => {
-    const world = bossWorld();
-    const b = world.boss;
-    world.player.inv = Infinity;
-    b.hp = b.maxHp * 0.5;
-    b.next = 'doubleCharge';
-    expect(runUntil(world, () => b.act?.name === 'doubleCharge')).toBe(true);
-    let charges = 0;
-    let wasActive = false;
-    const act = b.act;
-    for (let t = 0; t < 6 && b.act === act; t += DT) {
-      // 壁に当たって途中で止まらないよう、部屋の中央に戻し続ける
-      b.x = 480;
-      b.y = 270;
-      updateWorld(world, DT, idle);
-      const active = b.act === act && act.phase === 'active';
-      if (active && !wasActive) charges++;
-      wasActive = active;
-    }
-    expect(charges).toBe(2);
   });
 
   it('弱点は冷却。冷却属性で攻撃するとダメージ1.5倍', () => {

@@ -248,10 +248,10 @@ describe('ボス「バッファータンク」：放出と飽和', () => {
     return { world, b };
   };
 
-  it('放出：今の色に合わせた攻撃になる（電撃：線、熱：炎の床、冷却：減速つきの弾、腐食：酸の床）', () => {
+  it('放出：今の色に合わせた攻撃になる（電撃：色の噴出、熱：炎の床、冷却：減速つきの弾、腐食：酸の床）', () => {
     const shock = emit('shock');
-    expect(shock.b.act.def.pattern).toBe('lines');
-    expect(runUntil(shock.world, () => shock.world.hazards.some((h) => h.type === 'bar'), 3)).toBe(true);
+    expect(shock.b.act.def.pattern).toBe('colorjets');
+    expect(runUntil(shock.world, () => shock.world.hazards.some((h) => h.type === 'jet'), 3)).toBe(true);
 
     const heat = emit('heat');
     expect(runUntil(heat.world, () => heat.world.hazards.some((h) => h.type === 'pool'), 3)).toBe(true);

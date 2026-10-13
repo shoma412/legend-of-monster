@@ -5,7 +5,7 @@
 import { FEEL, ROOM } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { DATA } from '../data/index.js';
-import { DEG, angleDiff, arcHitsCircle, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
+import { DEG, angleDiff, circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { cellHot, orbitBlades } from '../logic/bossShapes.js';
 import { beamAngles, blindPlayer, breakLamp, flashAt, nearLitLamp, powerOn, startBlackout } from './darkness.js';
 import { afflictPlayer, damageEnemy, hurtPlayer, slowPlayer } from './combat.js';
@@ -17,6 +17,9 @@ import { ventSpots } from '../logic/ventSpots.js';
 import { installMap1 } from './map1Bosses.js';
 import { installMap2 } from './map2Bosses.js';
 import { installMap3 } from './map3Bosses.js';
+import { installMap4 } from './map4Bosses.js';
+import { installMap5 } from './map5Bosses.js';
+import { installMap6 } from './map6Bosses.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -30,258 +33,7 @@ function aimAt(act, d) {
   act.dirY = d.dy / d.dist;
 }
 
-export const PATTERNS = {
-  charge: {
-    start(world, b, act, d) {
-      act.phase = 'telegraph';
-      act.t = act.def.telegraph;
-      act.remaining = act.def.repeat ?? 1;
-      aimAt(act, d);
-    },
-    update(world, b, dt, act, d) {
-      const def = act.def;
-      act.t -= dt;
-      if (act.phase === 'telegraph') {
-        // 予告中はプレイヤーを追って向きを変える。最後の少しの間だけ向きを固定して、避ける余地を作る
-        if (act.t > def.lockTime) aimAt(act, d);
-        if (act.t <= 0) {
-          act.phase = 'active';
-          act.t = def.duration;
-          sfx(world, 'bossCharge');
-        }
-      } else if (act.phase === 'active') {
-        b.x += act.dirX * def.speed * dt;
-        b.y += act.dirY * def.speed * dt;
-        if (world.rng() < 0.6) burst(world, b.x - act.dirX * b.r, b.y - act.dirY * b.r, b.color, 1, 80);
-        const p = world.player;
-        if (circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
-        if (clampToBounds(b, world.bounds)) {
-          // 壁に激突。連続突進の途中でもここで止まる
-          act.phase = 'stun';
-          act.t = def.wallStun;
-          sfx(world, 'explode');
-          addShake(world, FEEL.shake.charged);
-          burst(world, b.x + act.dirX * b.r, b.y + act.dirY * b.r, b.color, 24, 260);
-          floatText(world, b.x, b.y - b.r - 12, 'Stun!', COLORS.amber, 20);
-        } else if (act.t <= 0) {
-          act.remaining--;
-          if (act.remaining > 0) {
-            act.phase = 'telegraph';
-            act.t = def.repeatTelegraph ?? def.telegraph;
-            aimAt(act, d);
-          } else {
-            act.phase = 'recover';
-            act.t = def.recover;
-          }
-        }
-      } else if (act.t <= 0) {
-        return true;
-      }
-      return false;
-    },
-  },
-
-  shockwave: {
-    start(world, b, act) {
-      act.phase = 'telegraph';
-      act.t = act.def.telegraph;
-    },
-    update(world, b, dt, act) {
-      const def = act.def;
-      act.t -= dt;
-      if (act.phase === 'telegraph') {
-        if (act.t <= 0) {
-          sfx(world, 'explode');
-          world.hazards.push({
-            type: 'ring', x: b.x, y: b.y, r: b.r, speed: def.ringSpeed, max: def.ringMax, width: def.ringWidth,
-            damage: def.damage, color: b.color, done: false,
-          });
-          addShake(world, FEEL.shake.charged);
-          burst(world, b.x, b.y, b.color, 30, 260);
-          act.phase = 'recover';
-          act.t = def.recover;
-        }
-      } else if (act.t <= 0) {
-        return true;
-      }
-      return false;
-    },
-  },
-};
-
-// 扇形に噴射し続ける（冷気ブレスなど）
-PATTERNS.cone = {
-  start(world, b, act, d) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-    aimAt(act, d);
-  },
-  update(world, b, dt, act, d) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t > def.lockTime) aimAt(act, d);
-      if (act.t <= 0) {
-        act.phase = 'active';
-        act.t = def.duration;
-      }
-    } else if (act.phase === 'active') {
-      const angle = Math.atan2(act.dirY, act.dirX);
-      if (arcHitsCircle(b.x, b.y, angle, def.arc * DEG, def.range, p.x, p.y, p.r)) {
-        if (def.slow) slowPlayer(world);
-        hurtPlayer(world, def.damage);
-      }
-      // 噴射のしぶき
-      for (let i = 0; i < 2; i++) {
-        const a = angle + (world.rng() - 0.5) * def.arc * DEG;
-        const v = def.range / 0.45;
-        world.fx.particles.push({ x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.45, max: 0.45, color: b.color, size: 4 });
-      }
-      if (act.t <= 0) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 自分の周りを一度に攻撃する（尻尾なぎ払いなど）
-PATTERNS.slam = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        if (circlesOverlap(b.x, b.y, def.radius, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
-        ring(world, b.x, b.y, def.radius, b.color);
-        burst(world, b.x, b.y, b.color, 24, 300);
-        addShake(world, FEEL.shake.heavy);
-        sfx(world, 'explode');
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 落下地点の予告を次々に出し、少し遅れてそこに落とす（氷柱の雨など）
-PATTERNS.rain = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-    act.left = act.def.count;
-    act.next = 0;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) act.phase = 'active';
-    } else if (act.phase === 'active') {
-      act.next -= dt;
-      if (act.next <= 0 && act.left > 0) {
-        act.next = def.interval;
-        act.left--;
-        // プレイヤーのいる場所の近くを狙う
-        const a = world.rng() * Math.PI * 2;
-        const r = world.rng() * def.spread;
-        world.hazards.push({ type: 'mark', x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: def.radius, t: def.delay, max: def.delay, damage: def.damage, color: b.color });
-      }
-      if (act.left <= 0) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 回転するレーザー。予告の線の位置から、プレイヤーのいる側へ向かって回る
-PATTERNS.laser = {
-  start(world, b, act, d) {
-    const def = act.def;
-    act.phase = 'telegraph';
-    act.t = def.telegraph;
-    act.turnDir = world.rng() < 0.5 ? 1 : -1;
-    // プレイヤーの少し手前の角度から始めて、プレイヤーを通り過ぎるように回す
-    act.angle = Math.atan2(d.dy, d.dx) - act.turnDir * def.lead * DEG;
-    act.swept = 0;
-    act.dirX = Math.cos(act.angle);
-    act.dirY = Math.sin(act.angle);
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        act.phase = 'active';
-        sfx(world, 'laser');
-      }
-    } else if (act.phase === 'active') {
-      const step = def.speed * DEG * dt;
-      act.angle += act.turnDir * step;
-      act.swept += step;
-      act.dirX = Math.cos(act.angle);
-      act.dirY = Math.sin(act.angle);
-      const x2 = b.x + act.dirX * def.range;
-      const y2 = b.y + act.dirY * def.range;
-      if (distToSegment(p.x, p.y, b.x, b.y, x2, y2) <= p.r + def.width / 2) hurtPlayer(world, def.damage);
-      if (act.swept >= def.turn * DEG) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 雑魚を呼ぶ
-PATTERNS.summon = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        const live = world.enemies.filter((e) => !e.boss && !e.dead && !e.def.prop).length;
-        const count = Math.max(0, Math.min(def.count, def.max - live));
-        for (let i = 0; i < count; i++) {
-          const a = (i / Math.max(1, count)) * Math.PI * 2 + world.rng() * 0.6;
-          const e = createEnemy(DATA.enemies.get(def.enemy), b.x + Math.cos(a) * (b.r + 50), b.y + Math.sin(a) * (b.r + 50), 0.6, world.rng, world.room.enemyScale ?? 1, world.room.hpScale ?? 1);
-          clampToBounds(e, world.bounds);
-          world.enemies.push(e);
-        }
-        ring(world, b.x, b.y, b.r + 60, b.color);
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
+export const PATTERNS = {};
 
 // 冷却：しばらく動けない（大きな隙）。phase を 'stun' にするので、体に触れても安全
 PATTERNS.vent = {
@@ -295,178 +47,6 @@ PATTERNS.vent = {
     act.t -= dt;
     if (world.rng() < 0.5) burst(world, b.x, b.y, COLORS.ink, 1, 160);
     return act.t <= 0;
-  },
-};
-
-// 弾をばらまく。spread が 360 なら全方向、それより小さければプレイヤーの方向へ扇形に撃つ
-//   waves 回に分けて撃ち、1回ごとに rotate 度ずつ向きがずれる（うずまきになる）。track: true なら毎回プレイヤーを狙い直す
-PATTERNS.barrage = {
-  start(world, b, act, d) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-    act.left = act.def.waves ?? 1;
-    act.next = 0;
-    aimAt(act, d);
-    act.base = Math.atan2(act.dirY, act.dirX);
-  },
-  update(world, b, dt, act, d) {
-    const def = act.def;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t > (def.lockTime ?? 0)) {
-        aimAt(act, d);
-        act.base = Math.atan2(act.dirY, act.dirX);
-      }
-      if (act.t <= 0) act.phase = 'active';
-    } else if (act.phase === 'active') {
-      act.next -= dt;
-      if (act.next <= 0 && act.left > 0) {
-        act.next = def.interval ?? 0.3;
-        act.left--;
-        if (def.track) act.base = Math.atan2(d.dy, d.dx);
-        const full = def.spread >= 360;
-        for (let i = 0; i < def.count; i++) {
-          const offset = full ? (i * 360) / def.count : def.count > 1 ? (i / (def.count - 1) - 0.5) * def.spread : 0;
-          const a = act.base + offset * DEG;
-          world.shots.push({
-            x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r,
-            vx: Math.cos(a) * def.shotSpeed, vy: Math.sin(a) * def.shotSpeed,
-            r: def.shotRadius, damage: def.damage, life: def.shotLife ?? 4, slow: !!def.slow, color: act.color ?? b.color, // 「放出」のときは、その属性の色
-          });
-        }
-        act.base += (def.rotate ?? 0) * DEG;
-        sfx(world, 'enemyShot');
-        burst(world, b.x, b.y, b.color, 8, 200);
-      }
-      if (act.left <= 0) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 跳びかかり。プレイヤーのいる場所に着地点の予告を出し、跳んで、着地で周りを攻撃する
-//   ring を書くと、着地と同時に衝撃波の輪も広がる
-PATTERNS.leap = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-    act.tx = world.player.x;
-    act.ty = world.player.y;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      // 予告中は着地点がプレイヤーを追う。最後の少しの間だけ固定する
-      if (act.t > def.lockTime) {
-        act.tx = p.x;
-        act.ty = p.y;
-      }
-      if (act.t <= 0) {
-        act.phase = 'air';
-        act.t = def.air;
-        act.sx = b.x;
-        act.sy = b.y;
-        sfx(world, 'bossCharge');
-      }
-    } else if (act.phase === 'air') {
-      const k = 1 - Math.max(0, act.t) / def.air;
-      b.x = act.sx + (act.tx - act.sx) * k;
-      b.y = act.sy + (act.ty - act.sy) * k;
-      act.height = Math.sin(k * Math.PI); // 描画用：跳んでいる高さ（0〜1）
-      if (act.t <= 0) {
-        act.height = 0;
-        if (circlesOverlap(b.x, b.y, def.radius, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
-        if (def.ring) {
-          world.hazards.push({ type: 'ring', x: b.x, y: b.y, r: def.radius, speed: def.ring.speed, max: def.ring.max, width: def.ring.width, damage: def.ring.damage, color: b.color, done: false });
-        }
-        ring(world, b.x, b.y, def.radius, b.color);
-        burst(world, b.x, b.y, b.color, 30, 320);
-        addShake(world, FEEL.shake.charged);
-        sfx(world, 'explode');
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 部屋を横切る線の攻撃を、何本か続けて出す（落雷の列、格子レーザー）。線は予告のあと、一瞬だけ光って当たる
-//   orient: aim（ボスからプレイヤーへの向きに平行）/ horizontal / vertical / cross（横と縦を交互に）
-//   1本目はプレイヤーのいる場所を通り、残りは spacing ずつずれる。stagger 秒ずつ遅れて順に光る
-PATTERNS.lines = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-  },
-  update(world, b, dt, act, d) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        const aim = Math.atan2(d.dy, d.dx);
-        for (let i = 0; i < def.count; i++) {
-          const angle = def.orient === 'aim' ? aim : def.orient === 'vertical' ? Math.PI / 2 : def.orient === 'cross' && i % 2 === 1 ? Math.PI / 2 : 0;
-          // 0, +1, -1, +2, -2 … の順に、プレイヤーのいる場所から離れていく
-          const step = def.orient === 'cross' ? Math.floor(i / 2) : i;
-          const offset = (step % 2 === 1 ? 1 : -1) * Math.ceil(step / 2) * def.spacing;
-          const delay = def.delay + i * (def.stagger ?? 0);
-          world.hazards.push({
-            type: 'bar', x: p.x - Math.sin(angle) * offset, y: p.y + Math.cos(angle) * offset, angle,
-            width: def.width, t: delay, max: delay, damage: def.damage, color: b.color, flash: 0,
-          });
-        }
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// その場に残る危険な床を置く（霜だまり、過熱した床）。置かれてから arm 秒後に効き始め、life 秒残る
-//   1つ目はプレイヤーの足元、残りはその周り（spread の範囲）。slow: true なら踏むと減速する
-PATTERNS.pools = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        for (let i = 0; i < def.count; i++) {
-          const a = world.rng() * Math.PI * 2;
-          const r = i === 0 ? 0 : def.radius + world.rng() * def.spread;
-          const spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: 0 };
-          clampToBounds(spot, world.bounds);
-          world.hazards.push({
-            type: 'pool', x: spot.x, y: spot.y, r: def.radius, arm: def.arm, armMax: def.arm, life: def.life,
-            tick: def.tick, acc: def.tick, damage: def.damage, slow: !!def.slow, dot: def.dot, color: act.color ?? b.color,
-          });
-        }
-        sfx(world, 'enemyShot');
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
   },
 };
 
@@ -848,185 +428,6 @@ PATTERNS.blowthrough = {
   },
 };
 
-// 耐える（大技）：力を溜める。溜めている間に break（最大HPに対する割合）のダメージを与えると中断でき、長いスタンになる。
-//   中断できないと、部屋の端まで届く輪が blast.count 回広がる。
-//   pulse: { move, interval } を書くと、溜めている間、その技が重ねて出る
-//   heal: 中断できなかったときに回復する割合。regrow: true なら首がすべて生え直す
-PATTERNS.endure = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        act.phase = 'charge';
-        act.t = def.duration;
-        act.startHp = b.hp;
-        act.need = Math.max(1, Math.round(b.maxHp * def.break));
-        act.dealt = 0;
-        act.pulseT = def.pulse?.first ?? 0.5;
-        sfx(world, 'bossCharge');
-        floatText(world, b.x, b.y - b.r - 44, '攻撃して止めろ', COLORS.amber, 18);
-      }
-    } else if (act.phase === 'charge') {
-      act.dealt = Math.max(0, act.startHp - b.hp);
-      if (act.dealt >= act.need) {
-        act.phase = 'stun';
-        act.t = def.stun;
-        sfx(world, 'explode');
-        addShake(world, FEEL.shake.charged);
-        burst(world, b.x, b.y, COLORS.amber, 40, 340);
-        floatText(world, b.x, b.y - b.r - 12, 'Break!', COLORS.amber, 24);
-        return false;
-      }
-      if (def.pulse) {
-        act.pulseT -= dt;
-        if (act.pulseT <= 0) {
-          act.pulseT = def.pulse.interval;
-          b.sideRequest = def.pulse.move;
-        }
-      }
-      if (act.t <= 0) {
-        act.phase = 'blast';
-        act.left = def.blast.count;
-        act.next = 0;
-        if (def.heal) {
-          b.hp = Math.min(b.maxHp, b.hp + Math.round(b.maxHp * def.heal));
-          floatText(world, b.x, b.y - b.r - 12, 'Regen', COLORS.green, 22);
-        }
-        if (def.regrow) b.regrowAll = true;
-      }
-    } else if (act.phase === 'blast') {
-      act.next -= dt;
-      if (act.next <= 0 && act.left > 0) {
-        act.left--;
-        act.next = def.blast.interval;
-        world.hazards.push({
-          type: 'ring', x: b.x, y: b.y, r: b.r, speed: def.blast.ringSpeed, max: def.blast.ringMax, width: def.blast.ringWidth,
-          damage: def.blast.damage, color: b.color, done: false,
-        });
-        sfx(world, 'explode');
-        addShake(world, FEEL.shake.charged);
-        burst(world, b.x, b.y, b.color, 30, 300);
-      }
-      if (act.left <= 0) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 安全地帯（大技）：部屋全体が危険になり、zones 個の円の中だけが助かる。場所を変えて waves 回くり返す。
-//   1つ目の円は、プレイヤーから within px 以内に必ず出る
-function pickZones(world, b, def) {
-  const bounds = world.bounds;
-  const p = world.player;
-  const zones = [];
-  for (let i = 0; i < def.zones; i++) {
-    let spot;
-    for (let tries = 0; tries < 24; tries++) {
-      if (i === 0) {
-        const a = world.rng() * Math.PI * 2;
-        const r = def.within * (0.5 + 0.5 * world.rng());
-        spot = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, r: def.radius };
-      } else {
-        spot = { x: bounds.left + world.rng() * (bounds.right - bounds.left), y: bounds.top + world.rng() * (bounds.bottom - bounds.top), r: def.radius };
-      }
-      clampToBounds(spot, bounds);
-      const clearOfBoss = Math.hypot(spot.x - b.x, spot.y - b.y) > b.r + def.radius + 12;
-      if (clearOfBoss && zones.every((z) => Math.hypot(spot.x - z.x, spot.y - z.y) > def.radius * 2)) break;
-    }
-    zones.push(spot);
-  }
-  return zones;
-}
-
-PATTERNS.safezone = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.total = act.def.telegraph;
-    act.wave = 0;
-    act.zones = pickZones(world, b, act.def);
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) {
-        act.phase = 'active';
-        act.t = def.active;
-        sfx(world, 'explode');
-        addShake(world, FEEL.shake.charged);
-      }
-    } else if (act.phase === 'active') {
-      if (!act.zones.some((z) => Math.hypot(p.x - z.x, p.y - z.y) <= z.r)) hurtPlayer(world, def.damage);
-      if (act.t <= 0) {
-        act.wave++;
-        if (act.wave < def.waves) {
-          act.phase = 'telegraph';
-          act.t = act.total = def.waveTelegraph ?? def.telegraph;
-          act.zones = pickZones(world, b, def);
-        } else {
-          act.phase = 'recover';
-          act.t = def.recover;
-        }
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
-// 追尾（大技）：照準の円が count 個、interval 秒おきに現れる。follow 秒のあいだプレイヤーを追い、lock 秒止まってから、その場所を攻撃する。
-//   pool を書くと、攻撃した場所に床が残る
-PATTERNS.chase = {
-  start(world, b, act) {
-    act.phase = 'telegraph';
-    act.t = act.def.telegraph;
-    act.left = act.def.count;
-    act.next = 0;
-  },
-  update(world, b, dt, act) {
-    const def = act.def;
-    const p = world.player;
-    act.t -= dt;
-    if (act.phase === 'telegraph') {
-      if (act.t <= 0) act.phase = 'active';
-    } else if (act.phase === 'active') {
-      act.next -= dt;
-      if (act.next <= 0 && act.left > 0) {
-        act.next = def.interval;
-        act.left--;
-        // プレイヤーから少し離れた場所に現れて、追いかけてくる
-        const a = world.rng() * Math.PI * 2;
-        const spot = { x: p.x + Math.cos(a) * def.spawn, y: p.y + Math.sin(a) * def.spawn, r: 0 };
-        clampToBounds(spot, world.bounds);
-        world.hazards.push({
-          type: 'seeker', x: spot.x, y: spot.y, r: def.radius, speed: def.speed, follow: def.follow, lock: def.lock, lockMax: def.lock,
-          damage: def.damage, pool: def.pool, color: b.color, owner: b,
-        });
-        sfx(world, 'enemyShot');
-      }
-      if (act.left <= 0 && !world.hazards.some((h) => h.type === 'seeker' && h.owner === b)) {
-        act.phase = 'recover';
-        act.t = def.recover;
-      }
-    } else if (act.t <= 0) {
-      return true;
-    }
-    return false;
-  },
-};
-
 // ---- ここから、ボスごとの固有の攻撃（2026-10-07 追加） ----
 
 // 刃の渦（スクラップハウンド）：体のまわりを count 枚の刃が回る。その間も、ボスは chase の速さでプレイヤーを追う。
@@ -1352,14 +753,14 @@ PATTERNS.scales = {
 // ---- 隠しボス「カタリスト」：こちらの属性を写し取って、同じ属性で攻めてくる ----
 
 // プレイヤーが持っている属性を写し取る（奪われている間は、奪われる前のもの）。all なら、4つすべて
-function transcribe(world, b, all = false) {
+export function transcribe(world, b, all = false) {
   const stats = world.player.stats;
   b.copied = all ? Object.keys(ELEMENT_COLORS_BY_ID) : [...(stats.sealed ?? stats.elements)];
   return b.copied;
 }
 
 // 写し取った属性の、効き目。属性を1つも写し取れなかったときは、かわりにダメージが増える
-function copiedEffects(b, def) {
+export function copiedEffects(b, def) {
   const els = b.copied ?? [];
   return {
     slow: els.includes('cold'),
@@ -2160,6 +1561,9 @@ export const HAZARD_TYPES = {};
 installMap1(PATTERNS, HAZARD_TYPES);
 installMap2(PATTERNS, HAZARD_TYPES);
 installMap3(PATTERNS, HAZARD_TYPES);
+installMap4(PATTERNS, HAZARD_TYPES);
+installMap5(PATTERNS, HAZARD_TYPES);
+installMap6(PATTERNS, HAZARD_TYPES);
 
 export function updateHazards(world, dt) {
   const p = world.player;
@@ -2283,7 +1687,15 @@ export function updateHazards(world, dt) {
       h.t -= dt;
       if (h.t <= 0) {
         // float を書くと、当たったプレイヤーは、その秒数だけ操作できない（牙の突き上げ）
-        if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r) && hurtPlayer(world, h.damage) && h.float) p.floatT = Math.max(p.floatT ?? 0, h.float);
+        const hitPlayer = circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r) && hurtPlayer(world, h.damage);
+        if (hitPlayer && h.float) p.floatT = Math.max(p.floatT ?? 0, h.float);
+        // knock を書くと、当たったプレイヤーは、落ちた場所から外へ吹き飛ばされる（排気の打ち下ろし）
+        if (hitPlayer && h.knock) {
+          const dx = p.x - h.x;
+          const dy = p.y - h.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          p.pull = { vx: (dx / dist) * h.knock, vy: (dy / dist) * h.knock, t: 0.2 };
+        }
         // shards を書くと、落ちた場所から全方向に弾が飛ぶ。pool を書くと、その場に危険な床が残る（碍子落とし）
         if (h.shards) {
           const base = world.rng() * Math.PI * 2;

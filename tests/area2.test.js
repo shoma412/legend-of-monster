@@ -7,7 +7,6 @@ import { hitEnemy } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { AREA_ORDER, NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
-import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 import { createSave } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -50,7 +49,6 @@ function addEnemy(world, id, dx, dy = 0, scale = 1) {
 function wyvernWorld() {
   const world = createWorld({ waves: [{ boss: 'cryowyvern' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
-  withShared(world.boss); // 共通の部品の攻撃（円錐・周囲の一撃・雨）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -222,65 +220,6 @@ describe('クライオ・ワイバーン', () => {
       expect(moves).toContain(name);
       if (i > 0) expect(name).not.toBe(seen[i - 1]);
     });
-  });
-
-  it('冷気ブレス：予告のあと、扇の中にいるとダメージと減速。扇の外なら当たらない', () => {
-    const world = wyvernWorld();
-    const b = world.boss;
-    const p = world.player;
-    b.next = 'breath';
-    expect(runUntil(world, () => b.act?.name === 'breath')).toBe(true);
-    p.x = b.x - 200;
-    p.y = b.y;
-    expect(runUntil(world, () => b.act?.phase === 'active', 3)).toBe(true);
-    expect(p.hp).toBe(PLAYER.maxHp); // 予告の間は当たらない
-    run(world, 0.1);
-    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.breath.damage);
-    expect(p.slowT).toBeGreaterThan(0);
-
-    const world2 = wyvernWorld();
-    const b2 = world2.boss;
-    b2.next = 'breath';
-    runUntil(world2, () => b2.act?.name === 'breath' && b2.act.phase === 'active');
-    world2.player.x = b2.x - b2.act.dirX * 200; // 真後ろ
-    world2.player.y = b2.y - b2.act.dirY * 200;
-    run(world2, 0.3);
-    expect(world2.player.hp).toBe(PLAYER.maxHp);
-  });
-
-  it('尻尾なぎ払い：予告の円の中にいると当たる。離れれば当たらない', () => {
-    for (const [dist, hit] of [[80, true], [260, false]]) {
-      const world = wyvernWorld();
-      const b = world.boss;
-      const p = world.player;
-      b.next = 'sweep';
-      b.idleT = 0;
-      b.next = 'sweep';
-      expect(runUntil(world, () => b.act?.name === 'sweep')).toBe(true);
-      b.x = 480;
-      b.y = 270;
-      p.x = b.x - dist;
-      p.y = b.y;
-      runUntil(world, () => b.act?.phase === 'recover', 3);
-      expect(p.hp < PLAYER.maxHp).toBe(hit);
-    }
-  });
-
-  it('氷柱の雨：落下地点が先に表示され、少し遅れて落ちる。その場から動けば当たらない', () => {
-    const world = wyvernWorld();
-    const b = world.boss;
-    const p = world.player;
-    b.next = 'icicles';
-    b.idleT = 0;
-    expect(runUntil(world, () => world.hazards.some((h) => h.type === 'mark'))).toBe(true);
-    const mark = world.hazards.find((h) => h.type === 'mark');
-    expect(mark.t).toBeGreaterThan(0.5);
-    expect(p.hp).toBe(PLAYER.maxHp);
-    // 立ち止まっていると当たる
-    b.x = 900;
-    b.y = 60; // ボス本体には触れない位置へ
-    runUntil(world, () => p.hp < PLAYER.maxHp, 3);
-    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.icicles.damage);
   });
 
   it('HPが半分を切ると、部屋の端から凍りついて動ける範囲が狭まる。倒すと元に戻る', () => {

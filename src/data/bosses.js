@@ -42,6 +42,10 @@
 //   ガーダースパイダー: wires・girder（固有）/ needles 毒針 / eightlegs 八本脚 / eggs 卵 / webweave 大技
 //   クレーンタイタン  : weld・pendulum（固有）/ beamdrop 鉄骨落とし / cranespin クレーン旋回 / rivetgun 鋲打ち / collapse 大技
 //   アーキテクト      : cells・ink（固有）/ plans 設計図 / surveyrun 測量 / prototype 試作機 / finishwork 大技
+//   ランプイーター    : douse・scales（固有）/ lamptarget 灯り目がけ / windflap 羽ばたきの風 / glowscales 光の鱗（動きは src/game/map4Bosses.js）
+//   センチネル        : searchlight・flare（固有）/ sweeplights 探照の掃き / flashring 閃光の輪
+//   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
+//   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -530,7 +534,7 @@ export const bosses = [
     credits: 300,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 固有「消灯」：非常灯をすべて消して1本を食べ、暗闇にまぎれて位置を変えてから、突進する
+      // 消灯（固有・前からある）：非常灯を消して、暗闇の中で突進する
       douse: {
         pattern: 'douse', telegraph: 1.0, breakTime: 14, reposition: { distance: 250, time: 0.45 },
         lunges: 1, lungeTelegraph: 0.6, lockTime: 0.2, speed: 640, duration: 0.55, damage: 50, wallStun: 1.2, recover: 0.8,
@@ -539,30 +543,33 @@ export const bosses = [
         pattern: 'douse', telegraph: 0.9, breakTime: 14, reposition: { distance: 250, time: 0.4 },
         lunges: 2, lungeTelegraph: 0.5, lockTime: 0.18, speed: 680, duration: 0.55, damage: 50, wallStun: 1.2, recover: 0.8,
       },
-      // 固有「鱗粉」：プレイヤーのまわりに雲をまく。中にいると、見える範囲が狭くなる
+      // 鱗粉（固有・前からある）：鱗粉の雲をまく。中にいると「目くらみ」
       scales: { pattern: 'scales', telegraph: 0.6, count: 3, radius: 62, spread: 120, arm: 0.6, life: 6, recover: 0.6 },
       scalesHard: { pattern: 'scales', telegraph: 0.5, count: 5, radius: 62, spread: 160, arm: 0.5, life: 7, recover: 0.6 },
-      // 急降下：予告線つきの突進。壁に当たると隙ができる
-      dive: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 660, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.2, reach: 'far' },
-      // 羽ばたき：足元からの衝撃波の輪
-      gust: { pattern: 'shockwave', telegraph: 0.8, damage: 34, ringSpeed: 320, ringMax: 340, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 鱗片：プレイヤーへ扇形に弾を撃つ（後半）
-      flakes: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 64, waves: 3, interval: 0.35, track: true, shotSpeed: 310, shotRadius: 7, damage: 32, recover: 0.6, reach: 'far' },
-      // 大技「全消灯」：非常灯をすべて壊し、目くらみにしたうえで、暗闇からの突進を4回
+      // 固有「灯り目がけ」：点いている灯りを順に狙って突っ込み、壊す（count か所まで）。点いている灯りがなければ、プレイヤーを狙う
+      lamptarget: { pattern: 'lamptarget', telegraph: 0.7, lockTime: 0.2, repeatTelegraph: 0.4, count: 1, speed: 680, duration: 0.9, damage: 50, breakTime: 14, recover: 0.7, reach: 'far' },
+      lamptargetHard: { pattern: 'lamptarget', telegraph: 0.6, lockTime: 0.2, repeatTelegraph: 0.35, count: 3, speed: 700, duration: 0.9, damage: 50, breakTime: 14, recover: 0.7, reach: 'far' },
+      // 固有「羽ばたきの風」：両羽根から、斜めの風の線が4本、波になって走る（waves 回。波ごとに向きがずれる）
+      windflap: { pattern: 'windflap', telegraph: 0.8, waves: 2, stagger: 0.6, width: 34, delay: 0.8, damage: 36, recover: 0.8, reach: 'near' },
+      windflapHard: { pattern: 'windflap', telegraph: 0.7, waves: 3, stagger: 0.5, width: 34, delay: 0.75, damage: 36, recover: 0.7, reach: 'near' },
+      // 固有「光の鱗」：壊せる光る鱗が、ゆっくり寄ってくる。壊すと、その場所が明るくなる。触れると破裂する
+      glowscales: { pattern: 'glowscales', telegraph: 0.55, enemy: 'glowscale', count: 4, speed: 70, life: 8, recover: 0.6, reach: 'far' },
+      glowscalesHard: { pattern: 'glowscales', telegraph: 0.5, enemy: 'glowscale', count: 6, speed: 85, life: 8, recover: 0.6, reach: 'far' },
+      // 大技「全消灯」（固有・前からある）
       blackout: {
         pattern: 'douse', telegraph: 1.3, breakAll: true, breakTime: 22, blind: true, reposition: { distance: 240, time: 0.4 },
         lunges: 4, lungeTelegraph: 0.55, lockTime: 0.18, speed: 680, duration: 0.5, damage: 52, wallStun: 1.6, recover: 1.5,
       },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'dive' }],
+    reactions: [{ when: 'far', seconds: 4, move: 'lamptarget' }],
     ultimate: { move: 'blackout', announce: '全消灯' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['douse', 'scales', 'dive', 'gust'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['douse', 'scales', 'lamptarget', 'windflap', 'glowscales'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['douseHard', 'scalesHard', 'dive', 'gust', 'flakes'],
-        combos: [{ moves: ['scalesHard', 'dive'] }, { moves: ['gust', 'flakes'] }],
+        moves: ['douseHard', 'scalesHard', 'lamptargetHard', 'windflapHard', 'glowscalesHard'],
+        combos: [{ moves: ['scalesHard', 'lamptargetHard'] }, { moves: ['windflapHard', 'glowscalesHard'] }],
         announce: '灯りを寄こせ',
       },
     ],
@@ -583,9 +590,7 @@ export const bosses = [
     credits: 320,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 固有「照射」：光の扇が回る。扇の中（と、点いている非常灯のそば）に合計 need 秒いると捕捉され、予告つきの狙撃が来る
-      //   arc: 扇の広さ（度）, spin: 回る速さ（ラジアン/秒）, life: 続く秒数, decay: 扇の外にいる間、たまった時間が減る速さ
-      //   snipe: { aim: 照準線が出ている秒数, lock: 最後に向きが固定される秒数, interval: 次に捕捉が進み始めるまでの秒数 }
+      // 照射（固有・前からある）
       beam: {
         pattern: 'searchlight', telegraph: 0.9, count: 1, arc: 46, range: 1100, spin: 0.55, life: 14, need: 0.8, decay: 0.4,
         snipe: { aim: 0.75, lock: 0.25, width: 14, range: 1100, damage: 46, interval: 1.2 }, recover: 0.5,
@@ -594,27 +599,27 @@ export const bosses = [
         pattern: 'searchlight', telegraph: 0.8, count: 2, arc: 46, range: 1100, spin: 0.6, life: 15, need: 0.8, decay: 0.4,
         snipe: { aim: 0.65, lock: 0.22, width: 14, range: 1100, damage: 46, interval: 1.0 }, recover: 0.5,
       },
-      // 固有「閃光」：溜めのあと、部屋全体が光る。その瞬間にボスのほうを向いている（正面から左右 facing 度）と、blind 秒の目くらみ
+      // 閃光（固有・前からある）
       flare: { pattern: 'flare', telegraph: 1.2, count: 1, gap: 0, facing: 70, blind: 6, light: 1400, lightLife: 2.5, recover: 0.7 },
       flareHard: { pattern: 'flare', telegraph: 1.2, count: 2, gap: 0.75, facing: 70, blind: 6, light: 1400, lightLife: 2.5, recover: 0.7 },
-      // 斉射：プレイヤーへ扇形に弾を撃つ
-      volley: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 50, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shotRadius: 7, damage: 32, recover: 0.6, reach: 'far' },
-      // 全周弾：向きをずらしながら全方向に（後半）
-      ringshot: { pattern: 'barrage', telegraph: 0.65, count: 12, spread: 360, waves: 3, interval: 0.4, rotate: 15, shotSpeed: 220, shotRadius: 7, damage: 30, recover: 0.7 },
-      // 放電：足元からの衝撃波の輪
-      pulse: { pattern: 'shockwave', telegraph: 0.8, damage: 36, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 大技「全照射」：扇が4本になって速く回る。この間だけ、扇に触れるとダメージ
+      // 固有「探照の掃き」：2つの光が、プレイヤーのまわりを回りながら、重なる点を作る。重なった点に、interval 秒ごとに、狙撃が落ちる
+      sweeplights: { pattern: 'sweeplights', telegraph: 0.8, warm: 1.2, duration: 6, orbit: 150, spin: 1.3, interval: 0.9, strike: { radius: 54, delay: 0.6, damage: 44 }, recover: 0.8, reach: 'far' },
+      sweeplightsHard: { pattern: 'sweeplights', telegraph: 0.7, warm: 1.0, duration: 7, orbit: 170, spin: 1.5, interval: 0.7, strike: { radius: 54, delay: 0.55, damage: 44 }, recover: 0.8, reach: 'far' },
+      // 固有「閃光の輪」：目くらましの輪が、ボスから広がる。帯に触れると、ダメージと目くらみ
+      flashring: { pattern: 'flashring', telegraph: 0.8, count: 1, gap: 0.9, speed: 300, max: 420, width: 36, damage: 30, blind: 2.5, recover: 0.8, reach: 'near' },
+      flashringHard: { pattern: 'flashring', telegraph: 0.7, count: 3, gap: 0.8, speed: 330, max: 440, width: 36, damage: 30, blind: 2.5, recover: 0.7, reach: 'near' },
+      // 大技「全照射」（固有・前からある）
       fullbeam: { pattern: 'searchlight', telegraph: 1.7, count: 4, arc: 36, range: 1100, spin: 0.6, life: 9, touch: 40, hold: true, recover: 1.6 },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'volley' }],
+    reactions: [{ when: 'far', seconds: 4, move: 'sweeplights' }],
     ultimate: { move: 'fullbeam', announce: '全照射' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['beam', 'flare', 'volley', 'pulse'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['beam', 'flare', 'sweeplights', 'flashring'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['beamHard', 'flareHard', 'volley', 'ringshot', 'pulse'],
-        combos: [{ moves: ['flareHard', 'volley'] }, { moves: ['pulse', 'ringshot'] }],
+        moves: ['beamHard', 'flareHard', 'sweeplightsHard', 'flashringHard', 'beam'],
+        combos: [{ moves: ['flareHard', 'sweeplightsHard'] }, { moves: ['flashringHard', 'beamHard'] }],
         announce: '侵入者、捕捉',
       },
     ],
@@ -635,8 +640,7 @@ export const bosses = [
     credits: 340,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 固有「遮断」：duration 秒のあいだ、部屋の灯りが落ち、見える円が vision 倍になる。その間、足元に落雷の予告が出る（strikes）
-      //   終わると復電（surge 秒のあいだ部屋全体が明るい）して、overload 秒動けない
+      // 停電（固有・前からある）
       cutoff: {
         pattern: 'blackout', telegraph: 1.0, duration: 4, vision: 0.6,
         strikes: { first: 0.5, interval: 0.7, spread: 70, radius: 50, delay: 0.85, damage: 44 }, surge: 3, overload: 2, recover: 0.3,
@@ -645,7 +649,7 @@ export const bosses = [
         pattern: 'blackout', telegraph: 0.9, duration: 5.5, vision: 0.6,
         strikes: { first: 0.4, interval: 0.55, spread: 80, radius: 50, delay: 0.8, damage: 44 }, surge: 3, overload: 2, recover: 0.3,
       },
-      // 固有「残像」：偽物を count 体出して囲み、本物と一緒に突進する。偽物の体当たり（decoyDamage）は、本物より弱い
+      // 残像（固有・前からある）
       mirage: {
         pattern: 'afterimage', telegraph: 0.8, count: 3, rounds: 1, decoy: 'afterimage', distance: 250,
         aim: 0.9, lockTime: 0.25, speed: 620, duration: 0.55, damage: 50, decoyDamage: 24, recover: 0.9,
@@ -654,30 +658,31 @@ export const bosses = [
         pattern: 'afterimage', telegraph: 0.7, count: 5, rounds: 2, decoy: 'afterimage', distance: 250,
         aim: 0.85, lockTime: 0.22, speed: 640, duration: 0.55, damage: 50, decoyDamage: 24, recover: 0.9,
       },
-      // 横切る線：プレイヤーへの向きに平行な線が、順に光る
-      bars: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 4, spacing: 105, width: 32, delay: 0.8, stagger: 0.22, damage: 44, recover: 0.7, reach: 'far' },
-      barsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 100, width: 30, delay: 0.75, stagger: 0.18, damage: 44, recover: 0.6 },
-      // 周囲への一撃
-      trip: { pattern: 'slam', telegraph: 0.7, radius: 155, damage: 50, recover: 0.8, reach: 'near' },
-      // 突進。壁に当たると隙ができる
-      rush: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 650, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.3, reach: 'far' },
-      // 大技「全系統遮断」：遮断の暗闇の中で、残像6体との一斉突進を3回。終わると復電して、長い隙
+      // 固有「短絡」：配線の交差点が、count か所、順に光り、そのたびに電気が走る
+      shortout: { pattern: 'shortout', telegraph: 0.7, count: 5, radius: 58, delay: 0.9, stagger: 0.4, damage: 44, recover: 0.7 },
+      shortoutHard: { pattern: 'shortout', telegraph: 0.6, count: 7, radius: 58, delay: 0.85, stagger: 0.32, damage: 44, recover: 0.6 },
+      // 固有「遮断の腕」：扇形の遮断器が、プレイヤーのほうで閉じる（刃が両端から寄る）。扇の外へ出る
+      cutterarm: { pattern: 'cutterarm', telegraph: 1.0, lockTime: 0.3, wedges: 1, wedgeGap: 0.9, arc: 120, radius: 230, damage: 50, recover: 0.8, reach: 'near' },
+      cutterarmHard: { pattern: 'cutterarm', telegraph: 0.9, lockTime: 0.3, wedges: 2, wedgeGap: 0.8, arc: 110, radius: 240, damage: 50, recover: 0.7, reach: 'near' },
+      // 固有「過負荷突進」：壁から壁へ、プレイヤーを通る直線を、一気に走る（予告の線のとおり。最後の lockTime 秒だけ、線が止まる）
+      railrush: { pattern: 'railrush', telegraph: 1.0, lockTime: 0.25, speed: 900, damage: 52, recover: 0.8, reach: 'far' },
+      // 大技「全系統遮断」（固有・前からある）
       shutdown: {
         pattern: 'afterimage', telegraph: 1.6, count: 6, rounds: 3, decoy: 'afterimage', distance: 260,
         aim: 0.9, lockTime: 0.22, speed: 640, duration: 0.55, damage: 52, decoyDamage: 26,
         blackout: { duration: 12, vision: 0.6 }, surge: 4, recover: 2.2,
       },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'rush' }],
+    reactions: [{ when: 'far', seconds: 4, move: 'railrush' }],
     ultimate: { move: 'shutdown', announce: '全系統遮断' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['cutoff', 'mirage', 'bars', 'trip', 'rush'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['cutoff', 'mirage', 'shortout', 'cutterarm', 'railrush'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['cutoffHard', 'mirageHard', 'barsHard', 'trip', 'rush'],
-        combos: [{ moves: ['rush', 'trip'] }, { moves: ['barsHard', 'mirageHard'] }],
-        announce: '主幹、遮断',
+        moves: ['cutoffHard', 'mirageHard', 'shortoutHard', 'cutterarmHard', 'railrush'],
+        combos: [{ moves: ['cutterarmHard', 'railrush'] }, { moves: ['shortoutHard', 'mirageHard'] }],
+        announce: '過負荷',
       },
     ],
   },
@@ -703,24 +708,25 @@ export const bosses = [
       meltHard: { pattern: 'melt', telegraph: 0.8, count: 3, max: 10, radius: 52, spread: 130, arm: 0.5, tick: 0.5, damage: 18, recover: 0.6 },
       // 固有「噛みつき」：予告線つきの突進。当たると「錆」（rust：duration 秒のあいだ、与えるダメージが amount の割合だけ下がる）
       gnaw: { pattern: 'gnaw', telegraph: 0.7, lockTime: 0.2, speed: 660, duration: 0.6, damage: 52, rust: { amount: 0.3, duration: 5 }, wallStun: 1.3, recover: 0.7, reach: 'far' },
-      // 鉄片：プレイヤーへ扇形に弾を撃つ
-      shards: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 60, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
-      // 地ならし：足元からの衝撃波の輪
-      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 38, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 踏みつけ：周囲への一撃
-      stomp: { pattern: 'slam', telegraph: 0.7, radius: 160, damage: 52, recover: 0.8, reach: 'near' },
+      // 固有「鉄片散らし」：歯の欠けた歯車の破片が、跳ねながら飛ぶ（bounces 回跳ねる）。当たると「錆」
+      scrapfling: { pattern: 'scrapfling', telegraph: 0.7, lockTime: 0.2, count: 5, spread: 70, speed: 300, radius: 16, bounces: 2, damage: 36, rust: { amount: 0.3, duration: 5 }, recover: 0.7, reach: 'far' },
+      scrapflingHard: { pattern: 'scrapfling', telegraph: 0.6, lockTime: 0.2, count: 7, spread: 90, speed: 330, radius: 16, bounces: 3, damage: 38, rust: { amount: 0.3, duration: 5 }, recover: 0.7, reach: 'far' },
+      // 固有「錆の波」：ボスから広がる錆の帯。通った場所に、drops 個ずつ、錆の床（pool）が残る
+      rustwave: { pattern: 'rustwave', telegraph: 0.9, speed: 300, max: 560, width: 22, damage: 44, drops: 5, pool: { radius: 46, arm: 0.5, life: 6, tick: 0.5, damage: 16 }, recover: 0.8, reach: 'near' },
+      // 固有「噛み砕き」：あごが2つ、プレイヤーの両側から閉じる（真ん中の細いすき間だけが安全）
+      jawsnap: { pattern: 'jawsnap', telegraph: 0.95, lockTime: 0.3, arc: 70, radius: 200, spread: 58, damage: 56, recover: 0.8, reach: 'near' },
       // 大技「大溶解」：部屋の外まわりが、ぐるりと酸の穴になる（rx・ry は、部屋の真ん中からの距離）。同時に、雨が rain 秒降る
       meltdown: { pattern: 'melt', telegraph: 1.7, ring: { count: 12, rx: 330, ry: 150 }, max: 99, radius: 62, arm: 0.6, tick: 0.5, damage: 20, rain: 6, recover: 1.4 },
     },
     reactions: [{ when: 'far', seconds: 4, move: 'gnaw' }],
     ultimate: { move: 'meltdown', announce: '大溶解' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['melt', 'gnaw', 'shards', 'quake', 'stomp'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['melt', 'gnaw', 'scrapfling', 'rustwave', 'jawsnap'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['meltHard', 'gnaw', 'shards', 'quake', 'stomp'],
-        combos: [{ moves: ['meltHard', 'gnaw'] }, { moves: ['quake', 'shards'] }],
+        moves: ['meltHard', 'gnaw', 'scrapflingHard', 'rustwave', 'jawsnap'],
+        combos: [{ moves: ['meltHard', 'gnaw'] }, { moves: ['rustwave', 'scrapflingHard'] }],
         announce: '錆を、寄こせ',
       },
     ],
@@ -748,32 +754,33 @@ export const bosses = [
       emit: {
         pattern: 'emit',
         byElement: {
-          shock: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 110, width: 30, delay: 0.8, stagger: 0.2, damage: 46, recover: 0.6 },
-          heat: { pattern: 'pools', telegraph: 0.7, count: 4, radius: 58, spread: 130, arm: 0.6, life: 5, tick: 0.5, damage: 16, dot: 'burn', recover: 0.6 },
-          cold: { pattern: 'barrage', telegraph: 0.6, count: 12, spread: 360, waves: 3, interval: 0.35, rotate: 15, shotSpeed: 230, shotRadius: 7, damage: 32, slow: true, recover: 0.6 },
-          corrode: { pattern: 'pools', telegraph: 0.7, count: 3, radius: 70, spread: 150, arm: 0.6, life: 7, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
+          shock: { pattern: 'colorjets', telegraph: 0.6, count: 4, gap: 0.45, leak: 0.7, aim: 0.8, width: 34, damage: 46, recover: 0.6 },
+          heat: { pattern: 'emberpools', telegraph: 0.7, count: 4, radius: 58, spread: 130, arm: 0.6, life: 5, tick: 0.5, damage: 16, recover: 0.6 },
+          cold: { pattern: 'frostspiral', telegraph: 0.6, arms: 4, shots: 30, gap: 0.1, turn: 11, speed: 230, damage: 32, recover: 0.6 },
+          corrode: { pattern: 'acidpools', telegraph: 0.7, count: 3, radius: 70, spread: 150, arm: 0.6, life: 7, tick: 0.5, damage: 14, recover: 0.6 },
         },
       },
       // 固有「飽和」：色の印が3つ並び、その順番で「放出」を続けて出す
       saturate: { pattern: 'saturate', telegraph: 1.4, sequence: 3, move: 'emit' },
-      // 押しつぶし：周囲への一撃
-      crush: { pattern: 'slam', telegraph: 0.7, radius: 165, damage: 52, recover: 0.8, reach: 'near' },
-      // 転がり：突進。壁に当たると隙ができる
-      roll: { pattern: 'charge', telegraph: 0.75, lockTime: 0.22, speed: 620, duration: 0.7, damage: 52, recover: 0.7, wallStun: 1.4, reach: 'far' },
-      // しぶき：プレイヤーへ扇形に弾を撃つ（後半）
-      splash: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 64, waves: 3, interval: 0.38, track: true, shotSpeed: 300, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
+      // 固有「中和の渦」：色の違う渦が2つ、プレイヤーをはさんで現れ、近づく。引き込まれる（ダッシュ中は引かれない）。ぶつかると大きく爆ぜる
+      neutralvortex: { pattern: 'neutralvortex', telegraph: 0.9, pairs: 1, radius: 70, core: 26, arm: 0.7, life: 7, drift: 55, pull: 130, damage: 20, burstRadius: 150, burstDamage: 58, recover: 0.8, reach: 'far' },
+      neutralvortexHard: { pattern: 'neutralvortex', telegraph: 0.8, pairs: 2, radius: 70, core: 26, arm: 0.7, life: 7, drift: 60, pull: 140, damage: 20, burstRadius: 150, burstDamage: 58, recover: 0.8, reach: 'far' },
+      // 固有「槽の突進」：壁ぎわを、角を3つ曲がって走る。角に、今の色の床が残る
+      // 固有「排水の輪」：ボスのまわりに、予告の円が輪になって並ぶ（rings の半径ごと）。内側の輪から順に落ちる
+      flushring: { pattern: 'flushring', telegraph: 0.8, rings: [130, 230, 330], perRing: 6, radius: 48, delay: 0.9, stagger: 0.45, damage: 46, recover: 0.8, reach: 'near' },
+      tankrun: { pattern: 'tankrun', telegraph: 0.9, speed: 560, damage: 52, pool: { radius: 54, arm: 0.5, life: 6, tick: 0.5, damage: 14 }, recover: 1.1, reach: 'far' },
       // 大技「全属性飽和」：4つの色すべての「放出」を続けて出す。そのあと frenzy 秒のあいだ、色の切り替わりが速くなる
       overflow: { pattern: 'saturate', telegraph: 1.8, sequence: 4, move: 'emit', frenzy: 12 },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'roll' }],
+    reactions: [{ when: 'far', seconds: 4, move: 'tankrun' }],
     ultimate: { move: 'overflow', announce: '全属性飽和' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['emit', 'saturate', 'crush', 'roll'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['emit', 'saturate', 'neutralvortex', 'tankrun', 'flushring'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['emit', 'saturate', 'crush', 'roll', 'splash'],
-        combos: [{ moves: ['roll', 'crush'] }, { moves: ['emit', 'splash'] }],
+        moves: ['emit', 'saturate', 'neutralvortexHard', 'tankrun', 'flushring'],
+        combos: [{ moves: ['tankrun', 'neutralvortexHard'] }, { moves: ['emit', 'emit'] }],
         announce: '中和、開始',
       },
     ],
@@ -800,28 +807,30 @@ export const bosses = [
       // 固有「雨雲」：プレイヤーを追う雨雲を呼ぶ。真下に雨が降り、strike.every 秒ごとに、雲の真下に落雷（delay は予告の時間）
       cloud: { pattern: 'stormcloud', telegraph: 0.8, count: 1, radius: 84, speed: 82, life: 10, strike: { every: 2.5, delay: 0.85, radius: 56, damage: 46 }, recover: 0.5 },
       cloudHard: { pattern: 'stormcloud', telegraph: 0.7, count: 2, radius: 84, speed: 88, life: 11, strike: { every: 2.3, delay: 0.8, radius: 56, damage: 46 }, recover: 0.5 },
-      // 斉射：プレイヤーへ扇形に弾を撃つ
-      spray: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 62, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6, reach: 'far' },
-      // 放電：足元からの衝撃波の輪
-      surge: { pattern: 'shockwave', telegraph: 0.8, damage: 38, ringSpeed: 330, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 配水管：部屋を横切る線が、順に光る
-      mains: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 4, spacing: 105, width: 32, delay: 0.8, stagger: 0.22, damage: 46, recover: 0.7, reach: 'far' },
-      mainsHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 100, width: 30, delay: 0.75, stagger: 0.18, damage: 46, recover: 0.6 },
+      // 固有「雷の網」：プレイヤーの足元を含む点を、電撃の線で結ぶ。予告（warn 秒）のあと、一瞬だけ当たる（屋根でも防げない）
+      thundernet: { pattern: 'thundernet', telegraph: 0.7, points: 4, closed: false, warn: 1.1, width: 26, damage: 48, recover: 0.8, reach: 'far' },
+      thundernetHard: { pattern: 'thundernet', telegraph: 0.6, points: 5, closed: true, warn: 1.05, width: 26, damage: 50, recover: 0.8, reach: 'far' },
+      // 固有「降雨の波」：雨の帯が、部屋の一辺から反対側へ降り進む。帯の中で、屋根の外にいると当たる
+      rainfront: { pattern: 'rainfront', telegraph: 0.9, waves: 2, warn: 1.0, speed: 260, thick: 150, tick: 0.4, damage: 30, recover: 0.8, reach: 'far' },
+      rainfrontHard: { pattern: 'rainfront', telegraph: 0.8, waves: 3, warn: 0.9, speed: 300, thick: 160, tick: 0.4, damage: 32, recover: 0.8, reach: 'far' },
+      // 固有「雷線」：雷が、直線に並んで、端から順に落ちる
+      lightningline: { pattern: 'lightningline', telegraph: 0.6, lines: 1, count: 8, step: 90, radius: 44, delay: 0.7, stagger: 0.12, lineGap: 0.4, damage: 46, recover: 0.7, reach: 'far' },
+      lightninglineHard: { pattern: 'lightningline', telegraph: 0.5, lines: 2, count: 8, step: 90, radius: 44, delay: 0.7, stagger: 0.12, lineGap: 0.5, damage: 46, recover: 0.7, reach: 'far' },
       // 大技「豪雨」：すべての屋根を崩し、雨を rain 秒降らせ、雨雲を2つ呼ぶ
       downpour: {
         pattern: 'unroof', telegraph: 1.8, all: true, breakTime: 14, damage: 46, rain: 12,
         clouds: { count: 2, radius: 84, speed: 86, life: 12, strike: { every: 2.4, delay: 0.85, radius: 56, damage: 46 } }, recover: 1.4,
       },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'spray' }],
+    reactions: [{ when: 'far', seconds: 4, move: 'thundernet' }],
     ultimate: { move: 'downpour', announce: '豪雨' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['unroof', 'cloud', 'spray', 'surge', 'mains'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['unroof', 'cloud', 'thundernet', 'rainfront', 'lightningline'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['unroofHard', 'cloudHard', 'spray', 'surge', 'mainsHard'],
-        combos: [{ moves: ['cloudHard', 'mainsHard'] }, { moves: ['surge', 'spray'] }],
+        moves: ['unroofHard', 'cloudHard', 'thundernetHard', 'rainfrontHard', 'lightninglineHard'],
+        combos: [{ moves: ['cloudHard', 'lightninglineHard'] }, { moves: ['rainfrontHard', 'thundernetHard'] }],
         announce: '降雨量、最大',
       },
     ],
@@ -866,30 +875,30 @@ export const bosses = [
         pattern: 'streak', telegraph: 0.7, lockTime: 0.2, speed: 680, duration: 0.65, damage: 52, plainBonus: 1.25, wallStun: 1.3, recover: 0.7, reach: 'far',
         trail: { gap: 70, radius: 42, arm: 0.5, life: 5, damage: 14, strike: 40, strikeDelay: 0.8 },
       },
-      // 放電：足元からの衝撃波の輪
-      pulse: { pattern: 'shockwave', telegraph: 0.8, damage: 40, ringSpeed: 340, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 追尾の照準
-      probe: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 330, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
+      // 固有「写し身の波」：写し取った属性の色の輪が、count 回、広がる。当たると、その属性の効き目（属性を写せなかったときは plainBonus 倍）
+      wavecopy: { pattern: 'wavecopy', telegraph: 0.9, count: 2, gap: 0.55, speed: 300, max: 420, width: 18, damage: 40, plainBonus: 1.25, recover: 0.8, reach: 'near' },
+      // 固有「属性追尾」：写し取った属性の光の玉が、プレイヤーをゆっくり追う（電撃は速い）。属性ごとに1つずつ
+      homers: { pattern: 'homers', telegraph: 0.8, count: 3, gap: 0.5, speed: 150, turn: 1.3, life: 5, damage: 40, plainBonus: 1.25, recover: 0.8, reach: 'far' },
       // 大技「連鎖反応」：4つの属性すべてを乗せた弾を、全方向に何度も撃つ
       chainreaction: { pattern: 'reflect', telegraph: 1.7, all: true, count: 14, spread: 360, waves: 7, interval: 0.42, rotate: 13, shotSpeed: 220, shockSpeed: 1.2, shotRadius: 7, damage: 34, recover: 1.5 },
     },
     reactions: [{ when: 'far', seconds: 3.5, move: 'streak' }],
     ultimate: { move: 'chainreaction', announce: '連鎖反応' },
     phases: [
-      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['reflect', 'seize', 'streak', 'pulse'] },
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['reflect', 'seize', 'streak', 'wavecopy'] },
       {
         hpAbove: 0.3,
         idle: { min: 0.8, max: 1.3 },
-        moves: ['reflectHard', 'seize', 'streak', 'pulse', 'probe'],
-        combos: [{ moves: ['streak', 'pulse'] }, { moves: ['seize', 'reflectHard'] }],
+        moves: ['reflectHard', 'seize', 'streak', 'wavecopy', 'homers'],
+        combos: [{ moves: ['streak', 'wavecopy'] }, { moves: ['seize', 'reflectHard'] }],
         announce: '反応、加速',
       },
       {
         hpAbove: 0,
         idle: { min: 0.6, max: 1.0 },
         speed: 1.15,
-        moves: ['reflectHard', 'seize', 'streak', 'pulse', 'probe'],
-        combos: [{ moves: ['streak', 'reflectHard'] }, { moves: ['seize', 'streak'] }, { moves: ['probe', 'pulse'] }],
+        moves: ['reflectHard', 'seize', 'streak', 'wavecopy', 'homers'],
+        combos: [{ moves: ['streak', 'reflectHard'] }, { moves: ['seize', 'streak'] }, { moves: ['homers', 'wavecopy'] }],
         announce: '平衡、破れる',
       },
     ],
@@ -919,12 +928,13 @@ export const bosses = [
       // 固有「吐き出し」：飲み込んだがれきを、扇形に吐く。弾の数は base ＋ 飲み込んだ数 × perDebris（max まで）。
       //   壁に当たった弾は、litter の確率で、がれきになって床に残る（部屋のがれきは maxDebris 個まで）
       exhale: { pattern: 'exhale', telegraph: 0.6, lockTime: 0.2, base: 4, perDebris: 2, max: 18, spread: 80, shotSpeed: 330, shotRadius: 9, damage: 42, litter: 0.5, maxDebris: 8, recover: 0.8 },
-      // 羽根の破片：全方向へ、うずまきに弾を撃つ
-      shards: { pattern: 'barrage', telegraph: 0.55, count: 8, spread: 360, waves: 3, interval: 0.4, rotate: 14, shotSpeed: 250, shotRadius: 7, damage: 36, recover: 0.6 },
-      // 地ならし：足元からの衝撃波の輪
-      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 40, ringSpeed: 330, ringMax: 360, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 踏みつけ：周囲への一撃
-      stomp: { pattern: 'slam', telegraph: 0.7, radius: 165, damage: 54, recover: 0.8, reach: 'near' },
+      // 固有「羽根の乱射」：回る羽根（blades 枚）が弾を出す。reverseAt 発目で、回る向きが逆になる
+      bladevolley: { pattern: 'bladevolley', telegraph: 0.7, blades: 3, shots: 34, gap: 0.09, turn: 10, reverseAt: 17, shotSpeed: 260, shotRadius: 7, damage: 36, recover: 0.7, reach: 'far' },
+      bladevolleyHard: { pattern: 'bladevolley', telegraph: 0.6, blades: 4, shots: 40, gap: 0.08, turn: 10, reverseAt: 20, shotSpeed: 280, shotRadius: 7, damage: 38, recover: 0.7, reach: 'far' },
+      // 固有「吸気の輪」：部屋の外から、ボスへ縮んでくる輪が count 本。輪に触れると当たる
+      suctionring: { pattern: 'suctionring', telegraph: 0.8, count: 2, gap: 0.8, start: 700, min: 60, speed: 300, width: 20, damage: 44, recover: 0.8, reach: 'far' },
+      // 固有「排気の打ち下ろし」：空気の塊が落ちる。当たると knock の強さで外へ吹き飛ばされる
+      downdraft: { pattern: 'downdraft', telegraph: 0.7, count: 5, spread: 180, radius: 62, delay: 0.85, stagger: 0.22, damage: 48, knock: 520, recover: 0.7, reach: 'near' },
       // 大技「全開」：部屋ぜんたいを吸う。遮風板の陰（口の反対側）でしのぐ。strip.every 秒ごとに、プレイヤーにいちばん近い板が、
       //   strip.warn 秒揺れてから飛ぶ（keep 枚は残る。飛んだ板は restore 秒で戻る）。最後に、飲み込んだがれきを全方向に吐く
       fullopen: {
@@ -937,12 +947,12 @@ export const bosses = [
     reactions: [{ when: 'far', seconds: 4, move: 'inhale' }],
     ultimate: { move: 'fullopen', announce: '全開' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['inhale', 'exhale', 'shards', 'quake', 'stomp'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['inhale', 'exhale', 'bladevolley', 'suctionring', 'downdraft'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['inhaleHard', 'exhale', 'shards', 'quake', 'stomp'],
-        combos: [{ moves: ['quake', 'shards'] }, { moves: ['stomp', 'inhaleHard'] }],
+        moves: ['inhaleHard', 'exhale', 'bladevolleyHard', 'suctionring', 'downdraft'],
+        combos: [{ moves: ['downdraft', 'bladevolleyHard'] }, { moves: ['suctionring', 'inhaleHard'] }],
         announce: '全部、吸う',
       },
     ],
@@ -970,12 +980,14 @@ export const bosses = [
       // 固有「熱排気」：通気口が、プレイヤーの動いている向きの先へ、順番に熱の柱を噴く
       ventburst: { pattern: 'ventburst', telegraph: 0.7, count: 5, interval: 0.34, delay: 0.85, radius: 54, damage: 54, recover: 0.8 },
       ventburstHard: { pattern: 'ventburst', telegraph: 0.6, count: 8, interval: 0.28, delay: 0.8, radius: 58, damage: 56, recover: 0.8 },
-      // 鱗の弾：プレイヤーへ扇形に
-      scales: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 6, spread: 60, waves: 3, interval: 0.34, track: true, shotSpeed: 330, shotRadius: 7, damage: 42, recover: 0.6 },
-      // 地ならし：足元からの衝撃波の輪
-      quake: { pattern: 'shockwave', telegraph: 0.8, damage: 46, ringSpeed: 340, ringMax: 380, ringWidth: 14, recover: 0.8, reach: 'near' },
-      // 突進。壁に当たると隙ができる
-      lunge: { pattern: 'charge', telegraph: 0.65, lockTime: 0.2, speed: 700, duration: 0.6, damage: 60, recover: 0.7, wallStun: 1.1, reach: 'far' },
+      // 固有「鱗の棘」：床の通気口が、順に、プレイヤーへ棘を飛ばす（vents 個の口から、spines 本ずつ）
+      spinevolley: { pattern: 'spinevolley', telegraph: 0.7, vents: 5, gap: 0.35, spines: 3, spread: 30, shotSpeed: 340, shotRadius: 7, damage: 42, recover: 0.7, reach: 'far' },
+      spinevolleyHard: { pattern: 'spinevolley', telegraph: 0.6, vents: 7, gap: 0.3, spines: 3, spread: 36, shotSpeed: 360, shotRadius: 7, damage: 44, recover: 0.7, reach: 'far' },
+      // 固有「管の振動」：プレイヤーに近い通気口が光り、少しあとに、小さな輪が広がる
+      ductquake: { pattern: 'ductquake', telegraph: 0.7, count: 4, delay: 0.9, stagger: 0.3, speed: 300, max: 300, width: 18, damage: 46, recover: 0.8, reach: 'near' },
+      ductquakeHard: { pattern: 'ductquake', telegraph: 0.6, count: 6, delay: 0.85, stagger: 0.25, speed: 320, max: 320, width: 18, damage: 48, recover: 0.8, reach: 'near' },
+      // 固有「噛みつき加速」：じわじわ速くなる突進（speedFrom から speedTo へ）。速いほど痛い（bonus）。壁に当たると隙ができる
+      ductbite: { pattern: 'ductbite', telegraph: 0.8, lockTime: 0.25, speedFrom: 280, speedTo: 900, duration: 1.1, damage: 56, bonus: 0.3, wallStun: 1.2, recover: 0.7, reach: 'far' },
       // 大技「吹き抜け」：横断が3本、時間差で通る。そのあいだ、熱排気も重なる
       blowthrough: {
         pattern: 'blowthrough', telegraph: 1.8, sweeps: 3, stagger: 1.15, warn: 1.0, speed: 780, width: 120, length: 320, seams: 1, seamLen: 120, damage: 62,
@@ -983,15 +995,15 @@ export const bosses = [
         recover: 1.5,
       },
     },
-    reactions: [{ when: 'far', seconds: 3.5, move: 'sweep' }],
+    reactions: [{ when: 'far', seconds: 3.5, move: 'ductbite' }],
     ultimate: { move: 'blowthrough', announce: '吹き抜け' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['sweep', 'ventburst', 'scales', 'quake', 'lunge'] },
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['sweep', 'ventburst', 'spinevolley', 'ductquake', 'ductbite'] },
       {
         hpAbove: 0,
         idle: { min: 0.6, max: 1.0 },
-        moves: ['sweepHard', 'ventburstHard', 'scales', 'quake', 'lunge'],
-        combos: [{ moves: ['ventburstHard', 'sweepHard'] }, { moves: ['quake', 'scales'] }],
+        moves: ['sweepHard', 'ventburstHard', 'spinevolleyHard', 'ductquakeHard', 'ductbite'],
+        combos: [{ moves: ['ventburstHard', 'sweepHard'] }, { moves: ['ductquakeHard', 'spinevolleyHard'] }],
         announce: '通気口、全開',
       },
     ],
@@ -1025,20 +1037,22 @@ export const bosses = [
       ],
     },
     attacks: {
-      // 固有「影踏み」：lag 秒前にいた場所が、interval 秒ごとに攻撃される（delay は、予告が出ている時間）
+      // 影踏み（固有・前からある）：lag 秒前にいた場所が、interval 秒ごとに攻撃される
       shadowstep: { pattern: 'shadowstep', telegraph: 0.8, trail: { life: 9, lag: 2, interval: 0.4, delay: 0.7, radius: 44, damage: 46 }, recover: 0.5 },
       shadowstepHard: { pattern: 'shadowstep', telegraph: 0.7, trail: { life: 11, lag: 1.7, interval: 0.3, delay: 0.65, radius: 46, damage: 46 }, recover: 0.5 },
-      // 固有「写し身」：動きを delays 秒遅れて真似る影。触れるとダメージ
+      // 写し身（固有・前からある）：動きを delays 秒遅れて真似る影。触れるとダメージ
       mirror: { pattern: 'mirror', telegraph: 0.8, echoes: { delays: [1.5], life: 10, radius: 20, damage: 44 }, recover: 0.5 },
       mirrorHard: { pattern: 'mirror', telegraph: 0.7, echoes: { delays: [1.2, 2.4], life: 11, radius: 20, damage: 44 }, recover: 0.5 },
-      // 突進。壁に当たると隙ができる
-      lunge: { pattern: 'charge', telegraph: 0.65, lockTime: 0.2, speed: 680, duration: 0.65, damage: 52, recover: 0.7, wallStun: 1.2, reach: 'far' },
-      // 弾：プレイヤーへ扇形に
-      notes: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 5, spread: 56, waves: 3, interval: 0.38, track: true, shotSpeed: 310, shotRadius: 7, damage: 34, recover: 0.6 },
-      notesHard: { pattern: 'barrage', telegraph: 0.5, count: 12, spread: 360, waves: 4, interval: 0.32, rotate: 14, shotSpeed: 235, shotRadius: 7, damage: 34, recover: 0.6 },
-      // 追尾の照準
-      gaze: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 330, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
-      // 大技「夜想」：暗闇の中で、影踏みと、写し身2体が同時に来る。ボスは、そのまま攻撃を続ける
+      // 固有「先読みの刃」：いま動いている向きの先（delay 秒後にいそうな場所）に、影の刃が落ちる。続けて何回も。向きを変えれば避けられる
+      leadblade: { pattern: 'leadblade', telegraph: 0.7, count: 3, gap: 0.55, delay: 0.8, radius: 52, damage: 46, recover: 0.7 },
+      leadbladeHard: { pattern: 'leadblade', telegraph: 0.6, count: 5, gap: 0.42, delay: 0.75, radius: 52, damage: 46, recover: 0.6 },
+      // 固有「影の包囲」：プレイヤーのまわりに、影の輪が出て縮む。出口（gap 度）は1か所
+      shadowring: { pattern: 'shadowring', telegraph: 1.0, lockTime: 0.35, r0: 300, rEnd: 60, shrink: 2.4, gap: 48, damage: 44, recover: 0.8 },
+      shadowringHard: { pattern: 'shadowring', telegraph: 0.9, lockTime: 0.35, r0: 320, rEnd: 60, shrink: 1.9, gap: 40, damage: 44, recover: 0.7 },
+      // 固有「黒い羽ばたき」：プレイヤーが通った場所から、影が飛び出して、いまのプレイヤーへ向かう
+      afterwing: { pattern: 'afterwing', telegraph: 1.4, count: 6, gap: 0.12, speed: 360, radius: 8, damage: 40, recover: 0.8 },
+      afterwingHard: { pattern: 'afterwing', telegraph: 1.4, count: 9, gap: 0.1, speed: 380, radius: 8, damage: 40, recover: 0.7 },
+      // 大技「夜想」（固有・前からある）：暗闇の中で、影踏みと、写し身2体が同時に来る
       nocturne: {
         pattern: 'shadowstep', telegraph: 1.6,
         trail: { life: 14, lag: 1.7, interval: 0.3, delay: 0.65, radius: 46, damage: 48 },
@@ -1046,24 +1060,24 @@ export const bosses = [
         blackout: { duration: 14, vision: 0.7 }, recover: 0.8,
       },
     },
-    reactions: [{ when: 'far', seconds: 3.5, move: 'lunge' }],
+    reactions: [{ when: 'far', seconds: 3.5, move: 'afterwing' }],
     ultimate: { move: 'nocturne', announce: '夜想' },
     phases: [
-      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['shadowstep', 'mirror', 'lunge', 'notes'] },
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['shadowstep', 'mirror', 'leadblade', 'afterwing'] },
       {
         hpAbove: 0.3,
         idle: { min: 0.8, max: 1.3 },
-        moves: ['shadowstepHard', 'mirror', 'gaze', 'lunge', 'notes'],
-        combos: [{ moves: ['mirror', 'lunge'] }, { moves: ['shadowstepHard', 'notes'] }],
+        moves: ['shadowstepHard', 'mirror', 'shadowring', 'leadblade', 'afterwing'],
+        combos: [{ moves: ['mirror', 'afterwing'] }, { moves: ['shadowstepHard', 'leadblade'] }],
         announce: '影が、濃くなる',
       },
       {
         hpAbove: 0,
         idle: { min: 0.6, max: 1.0 },
         speed: 1.15,
-        moves: ['shadowstepHard', 'mirrorHard', 'gaze', 'lunge', 'notesHard'],
-        combos: [{ moves: ['mirrorHard', 'lunge'] }, { moves: ['shadowstepHard', 'gaze'] }, { moves: ['notesHard', 'lunge'] }],
-        announce: '夜は、明けない',
+        moves: ['shadowstepHard', 'mirrorHard', 'shadowringHard', 'leadbladeHard', 'afterwingHard'],
+        combos: [{ moves: ['shadowringHard', 'leadbladeHard'] }, { moves: ['mirrorHard', 'afterwingHard'] }],
+        announce: '夜が、明けない',
       },
     ],
   },

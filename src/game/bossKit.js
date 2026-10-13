@@ -51,6 +51,40 @@ export function pushMark(world, act, b, spec) {
   return mark;
 }
 
+// プレイヤーの動いている向きと速さ（なめらかにならした値）を、act.vx / act.vy に覚えておく（毎フレーム呼ぶ）
+export function trackVelocity(act, p, dt) {
+  if (act.lx == null) {
+    act.lx = p.x;
+    act.ly = p.y;
+    act.vx = 0;
+    act.vy = 0;
+    return;
+  }
+  if (dt <= 0) return;
+  const k = Math.min(1, dt * 8);
+  act.vx += ((p.x - act.lx) / dt - act.vx) * k;
+  act.vy += ((p.y - act.ly) / dt - act.vy) * k;
+  act.lx = p.x;
+  act.ly = p.y;
+}
+
+// 点 (x, y) から向き (dx, dy)（長さ 1）へまっすぐ進んだとき、部屋の端（margin だけ内側）に着くまでの距離
+export function rayToBounds(bounds, x, y, dx, dy, margin = 0) {
+  let t = Infinity;
+  if (dx > 1e-6) t = Math.min(t, (bounds.right - margin - x) / dx);
+  if (dx < -1e-6) t = Math.min(t, (bounds.left + margin - x) / dx);
+  if (dy > 1e-6) t = Math.min(t, (bounds.bottom - margin - y) / dy);
+  if (dy < -1e-6) t = Math.min(t, (bounds.top + margin - y) / dy);
+  return Math.max(0, t);
+}
+
+// 錆：しばらく、与えるダメージが下がる（付け直すと、時間が戻る）。rust: { amount, duration }
+export function applyRust(world, rust) {
+  const p = world.player;
+  p.buffs = p.buffs.filter((x) => x.id !== 'rust');
+  p.buffs.push({ id: 'rust', stat: 'attackMul', add: -rust.amount, t: rust.duration, max: rust.duration, color: '#ff7a3d' });
+}
+
 export function inside(world, x, y, margin = 0) {
   const b = world.bounds;
   return x >= b.left + margin && x <= b.right - margin && y >= b.top + margin && y <= b.bottom - margin;

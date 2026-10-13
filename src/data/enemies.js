@@ -933,6 +933,23 @@ export const enemies = [
     keepDistance: { min: 220, max: 360 },
     shot: { interval: 1.8, aim: 0.5, speed: 280, radius: 6, life: 3 },
   },
+  {
+    // 光る鱗（ランプイーターの「光の鱗」）。壊せる。壊すと、その場所が明るくなる。触れると破裂する
+    id: 'glowscale',
+    name: '光る鱗',
+    behavior: 'bubble',
+    shape: 'diamond',
+    color: 'magenta',
+    radius: 13,
+    hp: 45,
+    speed: 70,
+    damage: 30,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 0.3,
+  },
   // ---- ここからマップ6 エリア2「送風路」（2026-10-13。マップ6から、雑魚は強めに作る） ----
   {
     // ダクトネズミ：小さくて速い。ジグザグに走る。風に流されない
