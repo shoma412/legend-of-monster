@@ -114,7 +114,7 @@ export class BattleScene extends Phaser.Scene {
       if (!playing()) return;
       if (this.world.choice) {
         if (i < 3) this.choose(i);
-        else this.skipChoice(); // 4：スキップ
+        else this.skipChoice(); // 4：引き直し
       }
       else if (i < this.world.player.build.items.length) {
         const pointer = this.input.activePointer;
@@ -353,11 +353,12 @@ export class BattleScene extends Phaser.Scene {
     chooseImplant(this.world, index);
   }
 
-  // 3択をスキップする（回数に限りがある）
+  // 3択を引き直す（回数に限りがある）。新しい3つが出たら、また少しの間は押せない
   skipChoice() {
     if (this.menu.isOpen) return;
     if (!this.world.choice || this.time.now - this.choiceShownAt < CHOICE_LOCK) return;
-    if (!skipImplantChoice(this.world)) playSe('deny');
+    if (skipImplantChoice(this.world)) this.choiceShownAt = this.time.now;
+    else playSe('deny');
   }
 
   readInput() {

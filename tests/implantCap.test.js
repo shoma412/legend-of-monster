@@ -20,7 +20,7 @@ const rngOf = (seed) => {
 const general = DATA.implants.all().filter((d) => d.species === 'general').map((d) => d.id);
 
 describe('インプラントの枠', () => {
-  it('最初は5種類。スキップは2回', () => {
+  it('最初は5種類。引き直しは2回', () => {
     const build = createBuild();
     expect(implantCap(build)).toBe(5);
     expect(build.skips).toBe(2);
@@ -55,18 +55,20 @@ describe('インプラントの枠', () => {
     expect(world.player.hp).toBeCloseTo(10 + world.player.stats.maxHp * LEVEL.maxedHeal);
   });
 
-  it('スキップ：何も取らずに閉じる。回数が減り、0 になると使えない', () => {
+  it('引き直し：別の3つが出る。何も取らないので枠は空いたまま。回数が減り、0 になると使えない', () => {
     const build = createBuild();
     const world = { player: { build, stats: computeStats(build), hp: 100, x: 0, y: 0 }, rng: rngOf(5), fx: { texts: [], sounds: [], rings: [] }, events: [] };
     for (const left of [1, 0]) {
       openImplantChoice(world);
-      expect(world.choice).toBeTruthy();
+      const before = world.choice.options.map((d) => d.id);
       expect(skipImplantChoice(world)).toBe(true);
-      expect(world.choice).toBeNull();
+      expect(world.choice).toBeTruthy();
+      const after = world.choice.options.map((d) => d.id);
+      expect(after).toHaveLength(3);
+      expect(after.some((id) => !before.includes(id))).toBe(true);
       expect(build.skips).toBe(left);
       expect(implantKinds(build)).toBe(0);
     }
-    openImplantChoice(world);
     expect(skipImplantChoice(world)).toBe(false);
     expect(world.choice).toBeTruthy();
   });

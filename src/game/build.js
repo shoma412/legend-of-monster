@@ -139,12 +139,22 @@ export function openImplantChoice(world) {
   sfx(world, 'levelup');
 }
 
-// 3択をスキップする（何も取らない）。回数に限りがある。枠を、欲しいインプラントのために空けておける
+// 3択を引き直す（回数に限りがある）。いまの3つとは別の3つが出る。レベルアップの恩恵は、そのまま残る。
+//   選べるものが、いまの3つしかないとき（引き直しても同じ）は、回数を減らさず、false を返す
 export function skipImplantChoice(world) {
   const build = world.player.build;
   if (!world.choice || (build.skips ?? 0) <= 0) return false;
+  const before = world.choice.options.map((d) => d.id);
+  let best = null;
+  for (let tries = 0; tries < 8; tries++) {
+    const options = rollImplantChoices(build, world.rng);
+    const same = options.filter((d) => before.includes(d.id)).length;
+    if (!best || same < best.same) best = { options, same };
+    if (same === 0) break;
+  }
+  if (!best || best.options.length === 0 || (best.same === best.options.length && best.options.length <= before.length && best.options.every((d) => before.includes(d.id)))) return false;
   build.skips--;
-  world.choice = null;
+  world.choice = { type: 'implant', options: best.options };
   sfx(world, 'select');
   return true;
 }

@@ -111,7 +111,7 @@ export function createChoicePanel(scene, onChoose, onSkip = null) {
     return { bg, key, family, name, desc, note, parts: [bg, key, family, name, desc, note] };
   });
 
-  // スキップ（何も取らない）と、枠の数。カードの下に出す（カードが縦に伸びたら、いっしょに下がる）
+  // 引き直しと、枠の数。カードの下に出す（カードが縦に伸びたら、いっしょに下がる）
   const slotText = scene.add.text(W / 2 - 150, 0, '', body(13, COLORS.dim)).setOrigin(1, 0.5);
   const skipBg = scene.add.rectangle(W / 2 - 130, 0, 260, 30, PANEL_BG, 1).setOrigin(0, 0.5).setStrokeStyle(2, hex(COLORS.line)).setInteractive({ useHandCursor: true });
   skipBg.on('pointerdown', () => onSkip?.());
@@ -174,7 +174,7 @@ export function createChoicePanel(scene, onChoose, onSkip = null) {
       slotText.setY(by).setText(`インプラント ${kinds} / ${cap} 種類${kinds >= cap ? '（いっぱい：強化だけが出る）' : ''}`).setColor(kinds >= cap ? COLORS.amber : COLORS.dim);
       const skips = build.skips ?? 0;
       skipBg.setY(by).setStrokeStyle(2, hex(skips > 0 ? COLORS.ink : COLORS.line));
-      skipText.setY(by).setText(skips > 0 ? `スキップする（4 キー）　残り ${skips} 回` : 'スキップは、もう使えない').setColor(skips > 0 ? COLORS.ink : COLORS.dim);
+      skipText.setY(by).setText(skips > 0 ? `引き直す（4 キー）　残り ${skips} 回` : '引き直しは、もう使えない').setColor(skips > 0 ? COLORS.ink : COLORS.dim);
       c.setVisible(true);
     },
   };
