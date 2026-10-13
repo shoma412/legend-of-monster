@@ -34,6 +34,12 @@ const CONDITIONS = {
   targetAfflicted: (world, mod, target) => !!target && (target.burnT > 0 || target.slowT > 0 || target.stopT > 0 || target.corrodeT > 0),
   // 強風が吹いている間（環境「強風」）
   windBlowing: (world) => isBlowing(world),
+  // 近くに敵が3体以上いる（range px 以内）
+  crowded: (world, mod) => {
+    let n = 0;
+    for (const e of world.enemies) if (!e.dead && e.spawnT <= 0 && Math.hypot(e.x - world.player.x, e.y - world.player.y) <= (mod.range ?? 200)) n++;
+    return n >= 3;
+  },
   // 風の予告が出ている間（環境「強風」）
   windWarning: (world) => world.wind?.phase === 'warn',
   // 敵の背中側から当てたとき（その敵の向きと、プレイヤーのいる方向が、120度以上離れている）
@@ -246,6 +252,35 @@ const ACTIONS = {
     const p = world.player;
     ring(world, p.x, p.y, t.radius, ELEMENT_COLORS.heat);
     for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e, 1 + (world.player.stats.statusTime ?? 0));
+  },
+
+  // 低気圧（種族「渦」）：敵を倒すと、そのまわりの敵に冷却のダメージを与え、渦のように横へ回す
+  whirlBlast(world, t, ctx) {
+    const from = ctx.target;
+    if (!from) return;
+    ring(world, from.x, from.y, t.radius, ELEMENT_COLORS.cold);
+    for (const e of enemiesNear(world, from.x, from.y, t.radius, from)) {
+      effectDamage(world, e, t.damage, 'cold');
+      if (!movable(e)) continue;
+      const dx = e.x - from.x;
+      const dy = e.y - from.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      e.x += (-dy / dist) * t.push;
+      e.y += (dx / dist) * t.push;
+    }
+  },
+
+  // 乱気流（種族「渦」）：攻撃が当たった敵を、攻撃の向きと直角に弾く（武器の攻撃だけ）
+  scatterTarget(world, t, ctx) {
+    const e = ctx.target;
+    if (!ctx.primary || !movable(e)) return;
+    const p = world.player;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const side = world.rng() < 0.5 ? 1 : -1;
+    e.x += (-dy / dist) * t.amount * side;
+    e.y += (dx / dist) * t.amount * side;
   },
 
   // 継ぎ目（種族「管」）：攻撃が当たった敵を、減速させる（武器の攻撃だけ）

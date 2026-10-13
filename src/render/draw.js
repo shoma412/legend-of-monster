@@ -72,6 +72,25 @@ export function drawFloor(g, theme = 'slum', seed = 1) {
 }
 
 const SHAPES = {
+  // つむじ：小さな渦巻き
+  whirl(g, e, color, world) {
+    const spin = e.spin ?? 0;
+    g.fillStyle(BODY_FILL, 0.85).fillCircle(e.x, e.y, e.r * 0.8);
+    for (let arm = 0; arm < 2; arm++) {
+      let px = e.x;
+      let py = e.y;
+      for (let i = 1; i <= 10; i++) {
+        const t = i / 10;
+        const a = spin + arm * Math.PI + t * 2.4;
+        const nx = e.x + Math.cos(a) * t * e.r * 1.2;
+        const ny = e.y + Math.sin(a) * t * e.r * 1.2;
+        g.lineStyle(2.5, color, 0.4 + 0.5 * t).lineBetween(px, py, nx, ny);
+        px = nx;
+        py = ny;
+      }
+    }
+    g.fillStyle(hex(COLORS.ink), 1).fillCircle(e.x, e.y, 2.5);
+  },
   // かざぐるま：4枚の羽根が回る（風の間は、速く回る）
   pinwheel(g, e, color, world) {
     g.fillStyle(BODY_FILL, 0.9).fillCircle(e.x, e.y, e.r * 0.75);
@@ -1748,6 +1767,36 @@ SHAPES.tank = (g, b, color, world) => {
     arcPath(g, b.x, b.y, r + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
     g.lineStyle(1, next, 0.5).strokeCircle(b.x, b.y, r + 12);
   }
+};
+
+// サイクロン：回る渦巻きの腕と、真ん中の目（芯）。竜巻や台風の目のあいだは、速く回る
+SHAPES.cyclone = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const fierce = pattern === 'eyestorm' || pattern === 'twister' || pattern === 'cycloneram';
+  const spin = world.time * (stunned ? 0 : fierce ? 5 : 1.6);
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(b.x, b.y, r);
+  neonStroke(g, color, 3, () => g.strokeCircle(b.x, b.y, r));
+  // 渦巻きの腕（3本）
+  for (let arm = 0; arm < 3; arm++) {
+    let px = b.x;
+    let py = b.y;
+    for (let i = 1; i <= 16; i++) {
+      const t = i / 16;
+      const a = spin + arm * ((Math.PI * 2) / 3) + t * 2.6;
+      const rr = t * r * 1.05;
+      const nx = b.x + Math.cos(a) * rr;
+      const ny = b.y + Math.sin(a) * rr;
+      g.lineStyle(3, color, 0.35 + 0.6 * t).lineBetween(px, py, nx, ny);
+      px = nx;
+      py = ny;
+    }
+  }
+  // 目（芯）
+  g.fillStyle(BODY_FILL, 1).fillCircle(b.x, b.y, r * 0.22);
+  g.lineStyle(2, hex(COLORS.ink), 0.9).strokeCircle(b.x, b.y, r * 0.22);
+  if (!stunned) g.fillStyle(hex(COLORS.ink), 1).fillCircle(b.x + Math.cos(b.angle) * r * 0.06, b.y + Math.sin(b.angle) * r * 0.06, 3);
 };
 
 // ウェザーベーン：円い胴と、風上を向く大きな盾（扇形の板）。上に、風見の矢。盾が向いている方向が風上

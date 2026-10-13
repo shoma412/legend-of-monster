@@ -6,6 +6,56 @@ const WHITE = 0xffffff;
 const RED = () => hex(COLORS.red);
 
 export const HAZARD_DRAWS_MAP6 = {
+  // 竜巻：芯と、回る輪と、引き込む範囲
+  twister(g, h, world) {
+    const body = hex(h.color);
+    if (h.wait > 0) {
+      g.lineStyle(2, RED(), 0.4 + 0.4 * (1 - h.wait / 0.5)).strokeCircle(h.x, h.y, h.core + 8);
+      return;
+    }
+    g.lineStyle(1, body, 0.15).strokeCircle(h.x, h.y, h.pullR);
+    for (let i = 0; i < 4; i++) {
+      const r = h.core * (0.5 + i * 0.35);
+      const a = world.time * (5 - i * 0.7);
+      g.lineStyle(2.5, body, 0.8 - i * 0.12).lineBetween(h.x + Math.cos(a) * r, h.y + Math.sin(a) * r * 0.5, h.x + Math.cos(a + 2.4) * r, h.y + Math.sin(a + 2.4) * r * 0.5);
+    }
+    g.fillStyle(0x0a0814, 1).fillCircle(h.x, h.y, h.core * 0.5);
+    g.lineStyle(3, body, 0.95).strokeCircle(h.x, h.y, h.core);
+    g.lineStyle(1.5, WHITE, 0.6).strokeCircle(h.x, h.y, h.core * 0.5);
+  },
+
+  // 曲がる弾
+  curveshot(g, h, world) {
+    const body = hex(h.color);
+    g.fillStyle(body, 0.3).fillCircle(h.x, h.y, h.r * 1.7);
+    g.fillStyle(body, 0.95).fillCircle(h.x, h.y, h.r);
+    g.fillStyle(WHITE, 0.8).fillCircle(h.x, h.y, h.r * 0.4);
+    // しっぽ（来た向き）
+    g.lineStyle(2, body, 0.5).lineBetween(h.x, h.y, h.x - Math.cos(h.ang) * h.r * 3, h.y - Math.sin(h.ang) * h.r * 3);
+  },
+
+  // 台風の目：外が暴風圏（うすい色）、目の縁が光る
+  stormeye(g, h, world) {
+    const bd = world.bounds;
+    const body = hex(h.color);
+    if (h.wait > 0) {
+      g.lineStyle(3, RED(), 0.6).strokeCircle(h.x, h.y, h.r);
+      return;
+    }
+    // 暴風圏：外側のふち取り（4辺の帯）と、目の外の細かい風の線
+    g.fillStyle(body, 0.07).fillRect(bd.left, bd.top, bd.right - bd.left, bd.bottom - bd.top);
+    for (let i = 0; i < 18; i++) {
+      const a = world.time * 3 + (i / 18) * Math.PI * 2;
+      const r1 = h.r + 30 + ((i * 53) % 260);
+      g.lineStyle(2, body, 0.3).lineBetween(h.x + Math.cos(a) * r1, h.y + Math.sin(a) * r1, h.x + Math.cos(a + 0.35) * r1, h.y + Math.sin(a + 0.35) * r1);
+    }
+    // 目（安全）
+    g.fillStyle(0x0a0814, 0.0).fillCircle(h.x, h.y, h.r);
+    g.lineStyle(10, body, 0.18).strokeCircle(h.x, h.y, h.r);
+    g.lineStyle(3, hex(COLORS.green), 0.9).strokeCircle(h.x, h.y, h.r);
+    g.lineStyle(1.5, WHITE, 0.7).strokeCircle(h.x, h.y, h.r - 6);
+  },
+
   // 風の刃：すき間のある、走る刃
   windblade(g, h, world) {
     const body = hex(h.color);
@@ -55,6 +105,19 @@ export const BOSS_TELEGRAPHS_MAP6 = {
   downdraft: ringTelegraph,
   spinevolley: ringTelegraph,
   ductquake: ringTelegraph,
+  twister: ringTelegraph,
+  sweepup: ringTelegraph,
+  swirlshot: ringTelegraph,
+  spiralbolt: ringTelegraph,
+  // 渦巻き突進：曲がる道の線
+  cycloneram: (g, b, act, world) => {
+    if (act.phase !== 'telegraph' || !act.preview?.length) return;
+    const locked = act.t <= act.def.lockTime;
+    const pts = [{ x: b.x, y: b.y }, ...act.preview];
+    g.lineStyle(b.r * 1.4, RED(), locked ? 0.22 : 0.07).strokePoints(pts, false, false);
+    g.lineStyle(3, RED(), locked ? 0.9 : 0.5).strokePoints(pts, false, false);
+  },
+  eyestorm: ringTelegraph,
   compass: (g, b, act, world) => {
     if (act.phase !== 'telegraph') return;
     for (let i = 0; i < 8; i++) {

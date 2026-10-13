@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 渦（サイクロン由来・回す） ----
+  {
+    id: 'lowpressure', species: 'swirl', name: '低気圧',
+    desc: (k) => `敵を倒すと、近くの敵に渦を起こす（${num(20 * k)}ダメージ。冷却属性。範囲 110）。巻き込まれた敵は回される`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'whirlBlast', radius: 110, damage: 20 * k, push: 40 }] }),
+  },
+  {
+    id: 'airstream', species: 'swirl', name: '気流',
+    desc: (k) => `風の間、ダッシュの距離 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'dashDistance', add: 0.15 * k, when: 'windBlowing' }] }),
+  },
+  {
+    id: 'eyewall', species: 'swirl', name: '台風の目',
+    desc: (k) => `立ち止まっている間、被ダメージ −${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.08 * k, when: 'standing' }] }),
+  },
+  {
+    id: 'turbulence', species: 'swirl', name: '乱気流',
+    desc: (k) => `攻撃が当たった敵を、横へ弾く（${num(24 * k)}）。敵の動きが乱れる`,
+    effect: (k) => ({ triggers: [{ on: 'hit', do: 'scatterTarget', amount: 24 * k }] }),
+  },
+  {
+    id: 'stormzone', species: 'swirl', name: '暴風圏',
+    desc: (k) => `近くに敵が3体以上いるとき、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'crowded', range: 200 }] }),
+  },
   // ---- 蜘蛛（ガーダースパイダー由来・仕掛ける） ----
   {
     id: 'mine', species: 'spider', name: '地雷',
@@ -654,6 +680,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  swirl: {
+    name: '渦', color: 'cold', boss: 'cyclone',
+    bonuses: [
+      { need: 2, desc: '風と吸い込みで流される量 −20%', effect: { mods: [{ stat: 'windResist', add: 0.2 }] } },
+      { need: 3, desc: '引き寄せた敵・風に流されている敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetPulled' }] } },
     ],
   },
   vane: {

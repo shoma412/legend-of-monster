@@ -611,6 +611,27 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 排気塔：塔の内側。丸い床の同心円、壁ぎわの梯子、渦の跡、吹き上がる紙くず
+  stack(g, rng, a) {
+    speckles(g, rng, a, 220, [0x080c12, 0x0c121a, 0x05080d, 0x121b26], 0.7);
+    const cx = (a.left + a.right) / 2;
+    const cy = (a.top + a.bottom) / 2;
+    // 床の同心円（渦の跡）
+    for (let r = 60; r < Math.min(a.w, a.h) * 0.6; r += 48) {
+      for (let k = 0; k < 40; k++) {
+        const ang = (k / 40) * Math.PI * 2 + r * 0.02;
+        block(g, cx + Math.cos(ang) * r * 1.5, cy + Math.sin(ang) * r * 0.9, PX / 2, PX / 2, 0x2a4260, 0.55);
+      }
+    }
+    // 壁ぎわの梯子（左右）
+    for (const x of [a.left + 14, a.right - 14 - PX * 3]) {
+      block(g, x, a.top + 30, PX / 2, a.h - 60, 0x2a3a52, 0.8);
+      block(g, x + PX * 3, a.top + 30, PX / 2, a.h - 60, 0x2a3a52, 0.8);
+      for (let y = a.top + 40; y < a.bottom - 30; y += 22) block(g, x, y, PX * 3, PX / 2, 0x3a4e6a, 0.7);
+    }
+    // 吹き上がる紙くず
+    for (let i = 0; i < 20; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x6a7a94, 0.35);
+  },
   // 風見の庭：屋上の庭園。風見の柱（影だけ）、手すり、石畳の格子、枯れ葉
   garden(g, rng, a) {
     speckles(g, rng, a, 220, [0x0a1214, 0x0e181a, 0x070d0f, 0x14211f], 0.7);

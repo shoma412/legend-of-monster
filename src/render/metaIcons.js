@@ -163,6 +163,21 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.6, y - s * 0.3, x + s * 0.6, y - s * 0.3);
     g.lineBetween(x - s * 0.6, y + s * 0.3, x + s * 0.6, y + s * 0.3);
   },
+  // サイクロンコア：渦巻き
+  cycloneCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    let px = x;
+    let py = y;
+    for (let i = 1; i <= 14; i++) {
+      const a = i * 0.7;
+      const r = (i / 14) * s * 0.55;
+      const nx = x + Math.cos(a) * r;
+      const ny = y + Math.sin(a) * r;
+      g.lineStyle(1.3, c, 1).lineBetween(px, py, nx, ny);
+      px = nx;
+      py = ny;
+    }
+  },
   // ベーンコア：風見の矢と、十字の目盛り
   vaneCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

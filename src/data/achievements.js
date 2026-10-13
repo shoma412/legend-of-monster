@@ -26,6 +26,7 @@ export const achievements = [
   { id: 'rainmaker', icon: 'skull', color: 'shock', name: '雨降らし狩り', desc: 'レインメーカーを倒した', on: 'bossKill', check: 'bossIs', boss: 'rainmaker' },
   { id: 'intake', icon: 'skull', color: 'cold', name: '吸い込み口狩り', desc: 'インテークを倒した', on: 'bossKill', check: 'bossIs', boss: 'intake' },
   { id: 'ductcrawler', icon: 'skull', color: 'amber', name: '管這い狩り', desc: 'ダクトクローラーを倒した', on: 'bossKill', check: 'bossIs', boss: 'ductcrawler' },
+  { id: 'cyclone', icon: 'skull', color: 'cold', name: '大渦狩り', desc: 'サイクロンを倒した', on: 'bossKill', check: 'bossIs', boss: 'cyclone' },
   { id: 'weathervane', icon: 'skull', color: 'cyan', name: '風見狩り', desc: 'ウェザーベーンを倒した', on: 'bossKill', check: 'bossIs', boss: 'weathervane' },
   { id: 'architect', icon: 'skull', color: 'amber', name: '設計変更', desc: '建設区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'architect' },
   { id: 'nocturne', icon: 'skull', color: 'magenta', name: '夜明け', desc: '停電区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'nocturne' },

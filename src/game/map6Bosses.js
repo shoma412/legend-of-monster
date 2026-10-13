@@ -1,16 +1,17 @@
 // マップ6のボス（インテーク・ダクトクローラー）の、そのボスだけの攻撃。共通の部品は使わない。
 //   インテーク    : inhale 吸引・exhale 吐き出し・fullopen 全開（固有・前からある）/ bladevolley 羽根の乱射 / suctionring 吸気の輪 / downdraft 排気の打ち下ろし
 //   ダクトクローラー: sweep 横断・ventburst 熱排気・blowthrough 吹き抜け（固有・前からある）/ spinevolley 鱗の棘 / ductquake 管の振動 / ductbite 噛みつき加速
+//   サイクロン      : twister 竜巻 / sweepup 巻き上げ投げ / swirlshot 渦巻きの弾 / spiralbolt 螺旋落雷 / cycloneram 渦巻き突進 / eyestorm 台風の目（大技）
 //   ウェザーベーン  : compass 方位撃ち / gust 突風 / windseed 風種 / windturn 風向き返し / windrush 向かい風突進 / stormfury 乱風（大技）
 import { FEEL } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS } from '../data/theme.js';
 import { angleDiff, circlesOverlap, clampToBounds } from '../logic/geometry.js';
 import { ventSpots } from '../logic/ventSpots.js';
-import { clamp, pushMark, timed } from './bossKit.js';
+import { clamp, inside, pushMark, timed } from './bossKit.js';
 import { hurtPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
-import { sheltered, windEnv } from './wind.js';
+import { sheltered, windEnv, windScale } from './wind.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const DEG = Math.PI / 180;
@@ -44,7 +45,96 @@ export function windDir(world) {
   return w && (w.phase === 'warn' || w.phase === 'blow') ? { x: w.dirX, y: w.dirY } : null;
 }
 
+// 竜巻を1本つくる（竜巻・台風の目で使う）。def: { core, pullR, pull, speed, life, damage, tick }
+function makeTwister(world, def, x, y, color) {
+  const h = { type: 'twister', x, y, core: def.core, pullR: def.pullR, pull: def.pull, speed: def.speed, life: def.life, age: 0, damage: def.damage, tick: def.tick, acc: def.tick, wait: 0.5, color };
+  world.hazards.push(h);
+  return h;
+}
+
 export const HAZARDS_MAP6 = {
+  // 竜巻：プレイヤーのほうへ、ゆっくり寄ってくる。まわりでは弱く引き込まれる（ダッシュ中は引かれない）。芯に触れるとダメージ
+  twister: {
+    update(world, h, dt) {
+      const p = world.player;
+      if (h.wait > 0) {
+        h.wait -= dt;
+        return;
+      }
+      h.age += dt;
+      const dx = p.x - h.x;
+      const dy = p.y - h.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      h.x += (dx / dist) * h.speed * dt + Math.cos(h.age * 2.3) * 12 * dt;
+      h.y += (dy / dist) * h.speed * dt + Math.sin(h.age * 1.9) * 12 * dt;
+      if (dist <= h.pullR && p.dashT <= 0) {
+        const k = (1 - dist / h.pullR) * h.pull * windScale(world) * dt;
+        p.x -= (dx / dist) * k;
+        p.y -= (dy / dist) * k;
+        clampToBounds(p, world.bounds);
+      }
+      h.acc += dt;
+      if (dist <= h.core + p.r && h.acc >= h.tick) {
+        h.acc = 0;
+        hurtPlayer(world, h.damage);
+      }
+      if (h.age >= h.life) h.dead = true;
+    },
+  },
+
+  // 曲がる弾（渦巻きの弾）：向きが少しずつ変わりながら飛ぶ
+  curveshot: {
+    update(world, h, dt) {
+      const p = world.player;
+      h.age += dt;
+      h.ang += h.turn * dt;
+      h.x += Math.cos(h.ang) * h.speed * dt;
+      h.y += Math.sin(h.ang) * h.speed * dt;
+      if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r) && hurtPlayer(world, h.damage)) {
+        burst(world, h.x, h.y, h.color, 6, 160);
+        h.dead = true;
+      }
+      if (h.age >= h.life || !inside(world, h.x, h.y, -40)) h.dead = true;
+    },
+  },
+
+  // 台風の目：部屋ぜんたいが暴風圏。目（安全な円）の外にいる間は、tick 秒ごとにダメージ。目はゆっくり動き、縮む
+  stormeye: {
+    update(world, h, dt) {
+      const p = world.player;
+      if (h.wait > 0) {
+        h.wait -= dt;
+        return;
+      }
+      h.age += dt;
+      h.r = h.r0 + (h.r1 - h.r0) * Math.min(1, h.age / h.life);
+      // 目は、ときどき行き先を変えながら、ゆっくり動く
+      if (!h.goal || Math.hypot(h.goal.x - h.x, h.goal.y - h.y) < 12) {
+        const bd = world.bounds;
+        h.goal = { x: bd.left + 120 + world.rng() * (bd.right - bd.left - 240), y: bd.top + 100 + world.rng() * (bd.bottom - bd.top - 200) };
+      }
+      const gx = h.goal.x - h.x;
+      const gy = h.goal.y - h.y;
+      const gd = Math.hypot(gx, gy) || 1;
+      h.x += (gx / gd) * h.drift * dt;
+      h.y += (gy / gd) * h.drift * dt;
+      h.acc += dt;
+      if (h.acc >= h.tick) {
+        h.acc = 0;
+        if (Math.hypot(p.x - h.x, p.y - h.y) > h.r - p.r * 0.5) hurtPlayer(world, h.damage);
+      }
+      h.twisterT -= dt;
+      if (h.twisterT <= 0) {
+        h.twisterT = h.twister.every;
+        for (let i = 0; i < h.twister.count; i++) {
+          const spot = { x: world.bounds.left + 60 + world.rng() * (world.bounds.right - world.bounds.left - 120), y: world.bounds.top + 60 + world.rng() * (world.bounds.bottom - world.bounds.top - 120), r: 0 };
+          makeTwister(world, h.twister, spot.x, spot.y, h.color);
+        }
+      }
+      if (h.age >= h.life) h.dead = true;
+    },
+  },
+
   // 風の刃：風下へ走る、部屋の幅いっぱいの刃。一か所だけすき間がある。すき間（gap）に入るか、ダッシュで抜ける
   windblade: {
     update(world, h, dt) {
@@ -469,6 +559,163 @@ PATTERNS_MAP6.stormfury = {
     return false;
   },
 };
+
+// ---- サイクロン ----
+
+// 竜巻：竜巻が count 本、ボスのまわりに出て、プレイヤーへ寄ってくる
+PATTERNS_MAP6.twister = timed({
+  fire(world, b, act) {
+    const def = act.def;
+    for (let i = 0; i < def.count; i++) {
+      const a = (i * Math.PI * 2) / def.count + world.rng();
+      const h = makeTwister(world, def, b.x + Math.cos(a) * (b.r + 80), b.y + Math.sin(a) * (b.r + 80), b.color);
+      clampToBounds(Object.assign(h, { r: 0 }), world.bounds);
+      act.hs.push(h);
+    }
+    sfx(world, 'bossCharge');
+  },
+  finished(world, b, act, dt) {
+    // 竜巻が消えるのは待たない（少ししたら次の行動へ）
+    act.clock = (act.clock ?? 0) + dt;
+    return act.clock >= act.def.hold;
+  },
+});
+
+// 巻き上げ投げ：瓦礫を巻き上げて、ボスのまわりを回らせる。そのあと、1個ずつ、プレイヤーめがけて飛ばす。回っている間に壊せる
+PATTERNS_MAP6.sweepup = timed({
+  fire(world, b, act) {
+    const def = act.def;
+    const [scale, hpScale] = SCALE(world);
+    const kind = DATA.enemies.get(def.enemy);
+    for (let i = 0; i < def.count; i++) {
+      const a = (i * Math.PI * 2) / def.count;
+      const e = createEnemy(kind, b.x + Math.cos(a) * def.orbit, b.y + Math.sin(a) * def.orbit, 0.2, world.rng, scale, hpScale);
+      Object.assign(e, { owner: b, orbitAngle: a, orbitR: def.orbit, orbitSpin: def.spin, flingAt: world.time + def.hold + i * def.gap, flingSpeed: def.flingSpeed, state: 'orbit' });
+      e.expire = world.time + def.hold + def.count * def.gap + 4;
+      world.enemies.push(e);
+      act.hs.push(e);
+    }
+    sfx(world, 'enemyShot');
+  },
+});
+
+// 渦巻きの弾：曲がりながら飛ぶ弾を、arms 本の腕に分けて撃つ。腕ごとに曲がる向きが逆
+PATTERNS_MAP6.swirlshot = timed({
+  fire(world, b, act) {
+    act.clock = 0;
+    act.fired = 0;
+    act.base = Math.atan2(act.dirY, act.dirX);
+  },
+  finished(world, b, act, dt) {
+    const def = act.def;
+    act.clock += dt;
+    while (act.fired < def.shots && act.clock >= act.fired * def.gap) {
+      for (let k = 0; k < def.arms; k++) {
+        const a = act.base + (k * Math.PI * 2) / def.arms + act.fired * def.step * DEG;
+        world.hazards.push({ type: 'curveshot', x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, ang: a, turn: (k % 2 === 0 ? 1 : -1) * def.turn, speed: def.speed, r: def.radius, damage: def.damage, life: def.life, age: 0, color: b.color });
+      }
+      act.fired++;
+      if (act.fired % 3 === 0) sfx(world, 'enemyShot');
+    }
+    return act.fired >= def.shots && act.clock >= def.shots * def.gap + 1.5;
+  },
+});
+
+// 螺旋落雷：ボスから外へ、螺旋の形に、落雷の予告が並ぶ。内側から順に落ちる
+PATTERNS_MAP6.spiralbolt = timed({
+  fire(world, b, act) {
+    const def = act.def;
+    const start = world.rng() * Math.PI * 2;
+    const dir = world.rng() < 0.5 ? 1 : -1;
+    for (let i = 0; i < def.count; i++) {
+      const r = def.inner + i * def.step;
+      const a = start + dir * i * def.turn;
+      const x = b.x + Math.cos(a) * r;
+      const y = b.y + Math.sin(a) * r;
+      if (!inside(world, x, y, 6)) continue;
+      pushMark(world, act, b, { x, y, r: def.radius, t: def.delay + i * def.stagger, damage: def.damage, color: ELEMENT_BOLT });
+    }
+    sfx(world, 'warning');
+  },
+});
+
+const ELEMENT_BOLT = '#fff36b';
+
+// 渦巻き突進：曲がりながら突進する（円弧の道）。予告で道の線が見える。壁に当たると隙
+PATTERNS_MAP6.cycloneram = {
+  start(world, b, act, d) {
+    act.phase = 'telegraph';
+    act.t = act.def.telegraph;
+    act.heading = Math.atan2(d.dy, d.dx);
+    act.sign = world.rng() < 0.5 ? 1 : -1;
+    act.dirX = Math.cos(act.heading);
+    act.dirY = Math.sin(act.heading);
+    act.time = 0;
+    act.preview = [];
+    sfx(world, 'bossCharge');
+  },
+  update(world, b, dt, act, d) {
+    const def = act.def;
+    const p = world.player;
+    act.t -= dt;
+    if (act.phase === 'telegraph') {
+      if (act.t > def.lockTime) act.heading = Math.atan2(d.dy, d.dx);
+      act.dirX = Math.cos(act.heading);
+      act.dirY = Math.sin(act.heading);
+      // 道の予告（曲がりながら進む線）
+      act.preview.length = 0;
+      let x = b.x;
+      let y = b.y;
+      let h = act.heading;
+      for (let i = 0; i < 36; i++) {
+        x += Math.cos(h) * def.speed * 0.035;
+        y += Math.sin(h) * def.speed * 0.035;
+        h += act.sign * def.curve * 0.035;
+        act.preview.push({ x, y });
+      }
+      if (act.t <= 0) act.phase = 'active';
+    } else if (act.phase === 'active') {
+      act.time += dt;
+      act.heading += act.sign * def.curve * dt;
+      act.dirX = Math.cos(act.heading);
+      act.dirY = Math.sin(act.heading);
+      b.x += act.dirX * def.speed * dt;
+      b.y += act.dirY * def.speed * dt;
+      if (world.rng() < 0.7) burst(world, b.x - act.dirX * b.r, b.y - act.dirY * b.r, b.color, 1, 100);
+      if (circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, def.damage);
+      const touched = clampToBounds(b, world.bounds);
+      if (touched) {
+        act.phase = 'stun';
+        act.t = def.wallStun;
+        addShake(world, FEEL.shake.charged);
+        burst(world, b.x, b.y, b.color, 20, 260);
+        sfx(world, 'explode');
+      } else if (act.time >= def.duration) {
+        act.phase = 'recover';
+        act.t = def.recover;
+      }
+    } else if (act.t <= 0) {
+      return true;
+    }
+    return false;
+  },
+};
+
+// 台風の目（大技）：部屋ぜんたいが暴風圏。外にいる間はダメージ。真ん中の安全な円（目）にだけ入れる。竜巻も重なる
+PATTERNS_MAP6.eyestorm = timed({
+  fire(world, b, act) {
+    const def = act.def;
+    const bd = world.bounds;
+    const h = {
+      type: 'stormeye', x: (bd.left + bd.right) / 2, y: (bd.top + bd.bottom) / 2, r: def.eye, r0: def.eye, r1: def.eyeEnd, age: 0, life: def.duration, drift: def.drift, tick: def.tick, acc: 0,
+      damage: def.damage, twister: def.twister, twisterT: 0.5, wait: 0.6, color: b.color,
+    };
+    world.hazards.push(h);
+    act.hs.push(h);
+    addShake(world, FEEL.shake.charged);
+    sfx(world, 'explode');
+  },
+});
 
 export function installMap6(PATTERNS_TABLE, HAZARD_TYPES) {
   Object.assign(PATTERNS_TABLE, PATTERNS_MAP6);

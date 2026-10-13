@@ -217,6 +217,22 @@ export const upgrades = [
     costs: [{ intakeCore: 1, crabCore: 1 }],
     perLevel: { weaponMod: { weapon: 'drone', special: { cooldown: 4, charge: { distance: 320, duration: 0.3, damage: 55, knockback: 420, width: 12, spacing: 22 } } } },
   },
+  // ---- ここから、マップ6で足した強化（since: 8） ----
+  {
+    id: 'windcloak', category: 'gear', name: '防風外套', desc: '風と吸い込みで流される量 −10%', max: 2, since: 8,
+    costs: [{ intakeCore: 1 }, { intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'windResist', add: 0.1 }] },
+  },
+  {
+    id: 'stormheart', category: 'body', name: '強化心臓', desc: '最大HP +30', max: 2, since: 8,
+    costs: [{ ductCore: 1 }, { ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 30 }] },
+  },
+  {
+    id: 'stormeye', category: 'skill', name: '嵐の目', desc: 'ダッシュの回復 +5%', max: 2, since: 8,
+    costs: [{ vaneCore: 1 }, { cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.05 }] },
+  },
 ];
 
 // 武器の解放

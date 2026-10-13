@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   twister / sweepup / swirlshot / spiralbolt / cycloneram / eyestorm : 固有（サイクロン）。数値の意味は、下の定義の注釈
 //   compass / gust / windseed / windturn / windrush / stormfury : 固有（ウェザーベーン）。それぞれの数値の意味は、下の定義の注釈
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -1058,6 +1059,57 @@ export const bosses = [
         moves: ['compassHard', 'gustHard', 'windseedHard', 'windturnHard', 'windrush'],
         combos: [{ moves: ['windseedHard', 'compassHard'] }, { moves: ['windturnHard', 'gustHard'] }],
         announce: '風向き、乱れる',
+      },
+    ],
+  },
+  // ---- マップ6 エリア4（docs/詳細仕様.md「30. マップ6「送風区」」の「④エリア4」）。HP は前のボスより +4000 ----
+  {
+    id: 'cyclone',
+    name: 'サイクロン',
+    alias: '大渦', // 登場時に出す異名
+    shape: 'cyclone',
+    color: 'cold',
+    weakness: 'cold',
+    material: 'cycloneCore',
+    radius: 52,
+    hp: 33000,
+    speed: 66,
+    contactDamage: 66,
+    xp: 1040,
+    credits: 520,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「竜巻」：竜巻が count 本出て、プレイヤーへ寄ってくる（life 秒で消える）。芯（core px）に触れるとダメージ。pullR px 以内では、毎秒 pull px まで引き込まれる
+      twister: { pattern: 'twister', telegraph: 0.8, count: 2, core: 26, pullR: 170, pull: 95, speed: 58, life: 8, damage: 42, tick: 0.5, hold: 1.5, recover: 0.8, reach: 'far' },
+      twisterHard: { pattern: 'twister', telegraph: 0.7, count: 3, core: 26, pullR: 180, pull: 105, speed: 64, life: 8, damage: 44, tick: 0.5, hold: 1.5, recover: 0.8, reach: 'far' },
+      // 固有「巻き上げ投げ」：瓦礫が count 個、ボスのまわり（orbit px）を回る。hold 秒後から、gap 秒ずつ、プレイヤーめがけて飛ぶ。回っている間に壊せる
+      sweepup: { pattern: 'sweepup', telegraph: 0.9, enemy: 'flotsam', count: 6, orbit: 110, spin: 2.6, hold: 1.8, gap: 0.55, flingSpeed: 430, recover: 0.8, reach: 'near' },
+      sweepupHard: { pattern: 'sweepup', telegraph: 0.8, enemy: 'flotsam', count: 8, orbit: 115, spin: 3.0, hold: 1.6, gap: 0.45, flingSpeed: 470, recover: 0.8, reach: 'near' },
+      // 固有「渦巻きの弾」：曲がりながら飛ぶ弾を、arms 本の腕から撃つ（腕ごとに曲がる向きが逆。turn ラジアン/秒）。step 度ずつ、撃つ向きが回る
+      swirlshot: { pattern: 'swirlshot', telegraph: 0.8, arms: 2, shots: 24, gap: 0.12, step: 13, turn: 1.0, speed: 230, radius: 8, damage: 38, life: 5, recover: 0.7, reach: 'far' },
+      swirlshotHard: { pattern: 'swirlshot', telegraph: 0.7, arms: 3, shots: 26, gap: 0.11, step: 11, turn: 1.1, speed: 245, radius: 8, damage: 40, life: 5, recover: 0.7, reach: 'far' },
+      // 固有「螺旋落雷」：ボスから外へ、螺旋の形に、落雷の予告が count 個並ぶ。内側から順に落ちる
+      spiralbolt: { pattern: 'spiralbolt', telegraph: 0.7, count: 14, inner: 100, step: 36, turn: 0.55, radius: 46, delay: 0.9, stagger: 0.12, damage: 50, recover: 0.8, reach: 'near' },
+      spiralboltHard: { pattern: 'spiralbolt', telegraph: 0.6, count: 18, inner: 100, step: 32, turn: 0.55, radius: 46, delay: 0.85, stagger: 0.1, damage: 52, recover: 0.8, reach: 'near' },
+      // 固有「渦巻き突進」：曲がりながら（curve ラジアン/秒）突進する。予告で道の線が見える（最後の lockTime 秒だけ向きを固定）。壁に当たると隙
+      cycloneram: { pattern: 'cycloneram', telegraph: 1.0, lockTime: 0.3, speed: 640, curve: 1.3, duration: 1.4, damage: 66, wallStun: 1.2, recover: 0.7, reach: 'far' },
+      // 大技「台風の目」：部屋ぜんたいが暴風圏。目（安全な円。半径 eye から eyeEnd へ縮む）の外にいる間は、tick 秒ごとに damage。目は drift px/秒で動く。竜巻も every 秒ごとに count 本出る
+      eyestorm: {
+        pattern: 'eyestorm', telegraph: 1.8, duration: 12, eye: 130, eyeEnd: 85, drift: 36, tick: 0.6, damage: 18,
+        twister: { count: 2, every: 4, core: 26, pullR: 170, pull: 90, speed: 56, life: 8, damage: 42, tick: 0.5 },
+        recover: 1.5,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'cycloneram' }],
+    ultimate: { move: 'eyestorm', announce: '台風の目' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['twister', 'sweepup', 'swirlshot', 'spiralbolt', 'cycloneram'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['twisterHard', 'sweepupHard', 'swirlshotHard', 'spiralboltHard', 'cycloneram'],
+        combos: [{ moves: ['twisterHard', 'spiralboltHard'] }, { moves: ['sweepupHard', 'swirlshotHard'] }],
+        announce: '渦が、荒れる',
       },
     ],
   },

@@ -73,7 +73,7 @@ describe('エリア3「風見の庭」の定義', () => {
   const area = DATA.areas.get('airgarden');
 
   it('マップ6の3つ目のエリア。背景・曲・ボス・素材・データ片4つがそろっている', () => {
-    expect(map.areas).toEqual(['airintake', 'airduct', 'airgarden']);
+    expect(map.areas).toEqual(['airintake', 'airduct', 'airgarden', 'airstack']);
     expect(area.name).toBe('風見の庭');
     expect(AREA_THEMES[area.theme]).toBeDefined();
     expect(hasBackdrop(area.theme)).toBe(true);

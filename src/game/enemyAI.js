@@ -628,6 +628,59 @@ const BEHAVIORS = {
     }
   },
 
+  // 瓦礫（サイクロンの「巻き上げ投げ」）：ボスのまわりを回り、時間が来ると、プレイヤーのいた場所めがけて飛ぶ。当たるとダメージ。壊せる
+  flotsam(world, e, dt, d) {
+    const o = e.owner;
+    if (!o || o.dead) {
+      e.dead = true;
+      return;
+    }
+    if (e.state === 'orbit') {
+      e.orbitAngle += e.orbitSpin * dt;
+      e.x = o.x + Math.cos(e.orbitAngle) * e.orbitR;
+      e.y = o.y + Math.sin(e.orbitAngle) * e.orbitR;
+      if (world.time >= e.flingAt) {
+        e.state = 'fling';
+        e.dirX = d.dx / d.dist;
+        e.dirY = d.dy / d.dist;
+        sfx(world, 'enemyShot');
+      }
+      return;
+    }
+    e.x += e.dirX * e.flingSpeed * dt;
+    e.y += e.dirY * e.flingSpeed * dt;
+    const p = world.player;
+    if (circlesOverlap(e.x, e.y, e.r + 3, p.x, p.y, p.r)) {
+      hurtPlayer(world, e.def.damage);
+      burst(world, e.x, e.y, e.color, 10, 200);
+      e.popped = true;
+      e.dead = true;
+    } else if (e.x < world.bounds.left - 40 || e.x > world.bounds.right + 40 || e.y < world.bounds.top - 40 || e.y > world.bounds.bottom + 40) {
+      e.popped = true;
+      e.dead = true;
+    }
+  },
+
+  // つむじ：プレイヤーのほうへ進みながら、近くのプレイヤーを引き寄せる（ダッシュ中は引かれない）。触れるとダメージ
+  whirl(world, e, dt, d) {
+    const w = e.def.whirl;
+    const p = world.player;
+    e.x += (d.dx / d.dist) * e.def.speed * dt;
+    e.y += (d.dy / d.dist) * e.def.speed * dt;
+    e.spin = (e.spin ?? 0) + dt * 6;
+    if (d.dist <= w.pullR && p.dashT <= 0) {
+      const k = (1 - d.dist / w.pullR) * w.pull * dt;
+      p.x -= (d.dx / d.dist) * k;
+      p.y -= (d.dy / d.dist) * k;
+      clampToBounds(p, world.bounds);
+    }
+    e.touchCd = (e.touchCd ?? 0) - dt;
+    if (e.touchCd <= 0 && circlesOverlap(e.x, e.y, e.r, p.x, p.y, p.r)) {
+      hurtPlayer(world, e.def.damage);
+      e.touchCd = w.tick;
+    }
+  },
+
   // かざぐるま：動かない。回りながら、弾を放射状に撃つ。風の間は、回転が速く、弾の腕が2倍になる
   pinwheel(world, e, dt) {
     const pw = e.def.pinwheel;

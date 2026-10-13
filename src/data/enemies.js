@@ -33,6 +33,8 @@
 // tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
 // windproof: true は、風に流されない（ダクトネズミ、かざぐるま）
 // pinwheel: { interval, arms, turn, windMul, shotSpeed, radius }。動かない。回りながら弾を放射状に撃つ。風の間は回転が windMul 倍で、弾の腕が2倍（かざぐるま）
+// whirl: { pullR, pull, tick }。プレイヤーへ進みながら、pullR px 以内のプレイヤーを毎秒 pull px まで引き寄せる。触れると tick 秒ごとにダメージ（つむじ）
+// owner / orbit…: サイクロンの「巻き上げ投げ」の瓦礫（flotsam）は、ボスのまわりを回り、時間が来るとプレイヤーめがけて飛ぶ
 // seed: { arm, trigger, radius }。風がやんで arm 秒たつと地雷になり、trigger px まで近づかれると爆ぜる（ウェザーベーンの「風種」）
 // lob.count / lob.spacing / lob.column: 一度に count か所へ、spacing ずつずらして並べる。column が true なら、投げずに床から噴く（熱吹き）
 //   anchorer  : 距離を取って撃つ（gunner と同じ）。風の予告が出ると杭を打ち、風の間は、流されずに、その場から速く撃つ（stake.haste 倍）
@@ -1044,5 +1046,61 @@ export const enemies = [
     dropChance: 0,
     knockbackResist: 0.2,
     seed: { arm: 0.8, trigger: 54, radius: 86 },
+  },
+  // ---- ここからマップ6 エリア4「排気塔」（2026-10-14。マップ6から、雑魚は強めに作る） ----
+  {
+    // つむじ：小さな渦。プレイヤーを引き寄せながら進み、触れるとダメージ
+    id: 'whirl',
+    name: 'つむじ',
+    behavior: 'whirl',
+    shape: 'whirl',
+    color: 'cold',
+    radius: 14,
+    hp: 120,
+    speed: 62,
+    damage: 24,
+    xp: 24,
+    credits: 8,
+    cost: 3,
+    dropChance: 0.26,
+    knockbackResist: 0.5,
+    windproof: true,
+    whirl: { pullR: 150, pull: 80, tick: 0.6 },
+  },
+  {
+    // 観測気球：距離を取って浮かぶ。プレイヤーの足元に、雷の予告を落とす。壊せる
+    id: 'balloon',
+    name: '観測気球',
+    behavior: 'lobber',
+    shape: 'circle',
+    color: 'shock',
+    radius: 15,
+    hp: 105,
+    speed: 48,
+    damage: 28,
+    xp: 22,
+    credits: 7,
+    cost: 3,
+    dropChance: 0.26,
+    keepDistance: { min: 260, max: 400 },
+    lob: { interval: 3.0, windup: 0.7, radius: 46, delay: 1.0, count: 1, column: true },
+  },
+  {
+    // 巻き上げられた瓦礫（サイクロンの「巻き上げ投げ」）。回っている間に壊せる。飛んできて当たるとダメージ
+    id: 'flotsam',
+    name: '巻き上げ瓦礫',
+    behavior: 'flotsam',
+    shape: 'diamond',
+    color: 'ink',
+    radius: 13,
+    hp: 60,
+    speed: 0,
+    damage: 44,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    windproof: true,
   },
 ];

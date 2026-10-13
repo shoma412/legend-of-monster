@@ -21,6 +21,7 @@ export const materials = [
   { id: 'intakeCore', name: 'インテークコア', color: 'ice' },
   { id: 'ductCore', name: 'ダクトコア', color: 'amber' },
   { id: 'vaneCore', name: 'ベーンコア', color: 'cyan' },
+  { id: 'cycloneCore', name: 'サイクロンコア', color: 'cold' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -287,6 +288,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'cy-01', area: 'airstack', source: 'vault', title: '排気塔 立入禁止の札',
+    text: '塔の内側の気流は、毎秒、人の背丈ほどの渦を作る。梯子の途中で足を取られたら、手を離さないこと。離すと、上へ持っていかれる。',
+  },
+  {
+    id: 'cy-02', area: 'airstack', source: 'vault', title: '観測気球 運用メモ',
+    text: '観測気球は、塔の上の気圧を測る。雷雲の下に入ったら、気球の真下に立たないこと。気球は雷を呼ぶ。測るために、わざと呼ぶ。',
+  },
+  {
+    id: 'cy-memo', area: 'airstack', source: 'vault', title: '作業員の走り書き',
+    text: '渦の目の中は、静かだ。外が荒れるほど、中は静かになる。……あれが動くときは、目も一緒に動く。足を止めるな。',
+  },
+  {
+    id: 'cy-core', area: 'airstack', source: 'boss', title: 'サイクロンのコアログ',
+    text: '排気：継続。回転：加速。目：維持。——街じゅうの空気を巻き込んで、捨てている。捨てる場所は、もう、どこにもない。',
   },
   {
     id: 'wv-01', area: 'airgarden', source: 'vault', title: '庭園管理 風見の札',
