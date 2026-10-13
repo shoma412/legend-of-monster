@@ -87,6 +87,7 @@ export function cycleMods(cycle = 1) {
     damageScale: 1 + n * CYCLE.damagePerCycle, // 受けるダメージの倍率
     stepBonus: n * CYCLE.stepsPerCycle, // 敵の量：この部屋数ぶん奥のものとして数える
     materialBonus: Math.floor(n / CYCLE.materialEvery), // ボス素材の追加
+    materialTwoChance: Math.min(1, CYCLE.materialTwoBase + n * CYCLE.materialTwoPerCycle), // ボス素材が1個でなく2個になる確率
     rarityChance: Math.min(1, n * CYCLE.rarityPerCycle), // 装備のレア度が1段上がる確率
     eliteTraits: cycle >= CYCLE.eliteTwoTraitsFrom ? 2 : 1, // エリートの特性の数
     bossHard: cycle >= CYCLE.bossHardFrom, // ボスが最初から後半の行動で始まる

@@ -155,7 +155,7 @@ describe('消耗品の効果', () => {
     expect(p.slowT).toBe(0);
   });
 
-  it('戦闘ドラッグ：10秒間だけ攻撃力+40%', () => {
+  it('注射器：10秒間だけ攻撃力+40%', () => {
     const world = makeWorld();
     give(world, 'drug');
     expect(statWith(world, 'attackMul')).toBeCloseTo(1);

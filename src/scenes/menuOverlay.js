@@ -85,6 +85,9 @@ export function costText(cost, save = null) {
 const percent = (v) => `${Math.round(v * 100)}%`;
 const rarityColor = (item) => RARITY_COLORS[LOOT.rarities[item.rarity].id];
 
+const LIST_DRAG_STEP = 34; // 指をこれだけ動かすたびに、一覧が1行動く（画面の座標）
+const TAP_SLOP = 12; // 指がこれ以上動いたら、タップではなく、なぞった扱い
+
 export class MenuOverlay {
   // options: {
   //   title, tabs: ['status', ...], actions: [{ label, color, run }],
@@ -144,11 +147,14 @@ export class MenuOverlay {
       // メニューを拡大しているとき：なぞって動かす（スキルツリーの円を動かしているときは、そちらが先）
       const treePan = this.treeDrag && this.treeView.zoom > TREE_VIEW.min;
       this.zoomDrag = this.isOpen && this.zoom.on && !treePan ? { x: pointer.worldX, y: pointer.worldY, moved: false } : null;
+      // モバイル版：長い一覧は、指でなぞって上下に動かせる（スマホのふつうの操作と同じ向き）
+      this.listDrag = touch.enabled && this.isOpen && !this.zoomDrag && !treePan ? { y: at.y, acc: 0 } : null;
     });
     scene.input.on('pointerup', () => {
       this.treeDrag = null;
       this.zoomDrag = null;
       this.barDrag = null;
+      this.listDrag = null;
     });
     scene.input.on('pointermove', (pointer) => {
       if (this.barDrag && pointer.isDown && this.isOpen) {
@@ -167,6 +173,17 @@ export class MenuOverlay {
         this.zoom.y += dy;
         this.applyZoom();
         return;
+      }
+      const ld = this.listDrag;
+      if (ld && pointer.isDown && this.isOpen && !this.dialog && !this.zoomDrag) {
+        const y = this.local(pointer).y;
+        ld.acc += y - ld.y;
+        ld.y = y;
+        while (Math.abs(ld.acc) >= LIST_DRAG_STEP) {
+          const dir = ld.acc > 0 ? -1 : 1; // 指を下へ動かすと、上の行が見える
+          ld.acc -= (ld.acc > 0 ? 1 : -1) * LIST_DRAG_STEP;
+          this.scrollBy(dir);
+        }
       }
       const drag = this.treeDrag;
       if (!drag || !pointer.isDown || !this.isOpen || this.tabId !== 'upgrade' || this.treeView.zoom <= TREE_VIEW.min) return;
@@ -532,16 +549,24 @@ export class MenuOverlay {
     return { fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra };
   }
 
+  // 押したときに効かせる。モバイル版では、指を離したときに効かせる（なぞって一覧を動かすときに、押した行が反応しないように）。少しでも動いたら、効かせない
+  onTap(obj, fn) {
+    if (!touch.enabled) return obj.on('pointerdown', fn);
+    return obj.on('pointerup', (pointer, ...rest) => {
+      if (Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) < TAP_SLOP) fn(pointer, ...rest);
+    });
+  }
+
   text(x, y, str, size, color, extra = {}, onClick = null) {
     const t = this.scene.add.text(x, y, str, this.style(size, color, extra));
-    if (onClick) t.setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
+    if (onClick) this.onTap(t.setInteractive({ useHandCursor: true }), onClick);
     this.root.add(t);
     return t;
   }
 
   panel(x, y, w, h, stroke = COLORS.line, onClick = null) {
     const r = this.scene.add.rectangle(x, y, w, h, PANEL, 0.95).setOrigin(0).setStrokeStyle(1, hex(stroke));
-    if (onClick) r.setInteractive({ useHandCursor: true }).on('pointerdown', onClick);
+    if (onClick) this.onTap(r.setInteractive({ useHandCursor: true }), onClick);
     if (onClick && this.collectAs) this.targets.push({ x, y, w, h, run: onClick, kind: this.collectAs });
     this.root.add(r);
     return r;

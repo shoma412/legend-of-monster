@@ -93,7 +93,7 @@ export function useItem(world, slotIndex, aim = null) {
   if (!USES[def.use](world, def, aim)) return false;
   slot.count--;
   if (slot.count <= 0) p.build.items[slotIndex] = null;
-  floatText(world, p.x, p.y - 30, def.name, itemColor(def), 14);
+  floatText(world, p.x, p.y - 30, def.popup ?? def.name, itemColor(def), 14); // popup：使ったときに出す文字（なければ名前）
   sfx(world, 'item');
   world.events.push({ type: 'item', id: def.id });
   return true;

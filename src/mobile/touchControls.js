@@ -13,7 +13,7 @@ const ACTION_BUTTONS = [
   { id: 'special', label: '特殊', size: 'mid', right: 5, bottom: 30 },
   { id: 'interact', label: '調べる', hint: 'E', size: 'mid', right: 25, bottom: 24, key: ['KeyE', 69] },
   { id: 'kit', label: 'キット', hint: 'Q', size: 'small', right: 5, bottom: 52, key: ['KeyQ', 81] },
-  { id: 'stash', label: 'しまう', hint: 'F', size: 'small', right: 21, bottom: 46, key: ['KeyF', 70] },
+  { id: 'lock', label: '標的', hint: 'R', size: 'small', right: 21, bottom: 46, key: ['KeyR', 82] }, // 押しやすいように、親指の近くに置く
 ];
 // 画面の右端・左端に、縦に並べる小さなボタン（横長のスマホでは、ゲームの画面の外の余白に収まる）
 const RIGHT_BUTTONS = [
@@ -21,7 +21,7 @@ const RIGHT_BUTTONS = [
   { id: 'enter', label: '決定', key: ['Enter', 13] },
 ];
 const LEFT_BUTTONS = [
-  { id: 'lock', label: '標的', key: ['KeyR', 82] },
+  { id: 'stash', label: 'しまう', key: ['KeyF', 70] },
   { id: 'map', label: '地図', key: ['KeyM', 77] },
   { id: 'full', label: '全画面' },
 ];

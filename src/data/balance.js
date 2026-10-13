@@ -51,6 +51,8 @@ export const CYCLE = {
   hpPerCycle: 0.15, // 敵の HP の増え方（1周ごと）
   damagePerCycle: 0.08, // 受けるダメージの増え方（1周ごと）
   stepsPerCycle: 1, // 敵の量：1周ごとに、この部屋数ぶん奥のものとして数える
+  materialTwoBase: 0.5, // ボス素材が2個になる確率（1周目）。ふつうは1個
+  materialTwoPerCycle: 0.1, // 1周ごとに、2個になる確率がこれだけ上がる（最大1）
   materialEvery: 2, // この周数ごとに、ボス素材が +1 個
   rarityPerCycle: 0.1, // 落ちる装備のレア度が1段上がる確率（1周ごと）
   eliteTwoTraitsFrom: 3, // この周から、エリートに特性が2つ付く

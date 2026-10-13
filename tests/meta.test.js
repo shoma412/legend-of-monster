@@ -10,6 +10,7 @@ import { NEXT_AREA, createRun, enterRoom, finishRun, handleEvents, leaveRoom, sk
 import { updateWorld } from '../src/game/world.js';
 import { hasCheck } from '../src/logic/achievements.js';
 import { permanentBonuses, pickFragment, processEvent, unlockWeapon } from '../src/logic/meta.js';
+import { cycleMods } from '../src/logic/maps.js';
 import { SAVE_VERSION, SLOT_COUNT, createSave, deleteSlot, listSlots, loadSlot, slotKey, storeSlot } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -173,8 +174,21 @@ describe('ボス素材', () => {
 
     const r2 = createRun({ rng: seeded(4), save });
     killBoss(r2, bossRoom(r2));
-    expect(save.materials.boarCore).toBe(4);
+    expect([4, 5]).toContain(save.materials.boarCore); // 2回目以降は1〜2個
     expect(save.records.runs).toBe(2);
+  });
+
+  it('2回目以降は1〜2個のランダム。周回が進むほど2個になりやすい', () => {
+    expect(cycleMods(1).materialTwoChance).toBeCloseTo(0.5);
+    expect(cycleMods(3).materialTwoChance).toBeCloseTo(0.7);
+    expect(cycleMods(20).materialTwoChance).toBe(1);
+    const save = createSave();
+    save.bossKills.boltboar = 1;
+    const run = createRun({ rng: seeded(1), save });
+    processEvent(save, run, { type: 'bossKill', boss: 'boltboar', area: 'area1', materialExtra: 0 });
+    expect(save.materials.boarCore).toBe(1);
+    processEvent(save, run, { type: 'bossKill', boss: 'boltboar', area: 'area1', materialExtra: 1 });
+    expect(save.materials.boarCore).toBe(3);
   });
 });
 

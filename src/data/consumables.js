@@ -22,7 +22,7 @@ export const consumables = [
     use: 'aura', radius: 185, damage: 5, element: 'cold',
   },
   {
-    id: 'drug', name: '戦闘ドラッグ', desc: '10秒間、攻撃力 +40%', color: 'magenta', icon: 'syringe',
+    id: 'drug', name: '注射器', popup: 'Boost', desc: '10秒間、攻撃力 +40%', color: 'magenta', icon: 'syringe',
     use: 'buff', stat: 'attackMul', add: 0.4, duration: 10,
   },
   {

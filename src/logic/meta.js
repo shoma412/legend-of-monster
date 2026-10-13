@@ -105,7 +105,7 @@ export function processEvent(save, run, event) {
     const boss = DATA.bosses.get(event.boss);
     const first = !save.bossKills[boss.id];
     // 周が進んでいると、もらえる数が増える
-    const count = (first ? META.firstKillMaterials : 1) + (event.materialBonus ?? 0);
+    const count = (first ? META.firstKillMaterials : 1 + (event.materialExtra ?? 0)) + (event.materialBonus ?? 0);
     save.bossKills[boss.id] = (save.bossKills[boss.id] ?? 0) + 1;
     save.materials[boss.material] = (save.materials[boss.material] ?? 0) + count;
     run.gained.materials[boss.material] = (run.gained.materials[boss.material] ?? 0) + count;
@@ -121,12 +121,13 @@ export function processEvent(save, run, event) {
   // 隠しボスを倒した：そのマップの通行証が手に入る（素材とデータ片はない）
   if (event.type === 'secretKill') {
     save.bossKills[event.boss] = (save.bossKills[event.boss] ?? 0) + 1;
-    // 隠しボスの素材：倒すたびに1個
+    // 隠しボスの素材：倒すたびに1〜2個
     const material = DATA.bosses.get(event.boss).material;
     if (material) {
-      save.materials[material] = (save.materials[material] ?? 0) + 1;
-      run.gained.materials[material] = (run.gained.materials[material] ?? 0) + 1;
-      addNote(run, notes, { kind: 'material', text: `> 素材回収 // ${DATA.materials.get(material).name} ×1` });
+      const got = 1 + (event.materialExtra ?? 0);
+      save.materials[material] = (save.materials[material] ?? 0) + got;
+      run.gained.materials[material] = (run.gained.materials[material] ?? 0) + got;
+      addNote(run, notes, { kind: 'material', text: `> 素材回収 // ${DATA.materials.get(material).name} ×${got}` });
     }
     save.passes ??= [];
     if (!save.passes.includes(event.map)) {

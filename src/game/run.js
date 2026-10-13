@@ -209,13 +209,16 @@ export function handleEvents(run, world) {
   logBuildGear((run.save.gearLog ??= createGearLog()), world.player.build);
   for (const event of world.events.splice(0)) {
     // 隠しボス：通行証が手に入る。エリアのボスではないので、素材・データ片・マップの完了にはならない
+    // ボス素材は、1〜2個のランダム（周回が進むほど、2個になりやすい）
+    const materialExtra = run.rng() < run.mods.materialTwoChance ? 1 : 0;
     if (event.type === 'bossKill' && DATA.bosses.get(event.boss).hidden) {
-      notes.push(...processEvent(run.save, run, { type: 'secretKill', boss: event.boss, map: run.map.id, noDamage: event.noDamage }));
+      notes.push(...processEvent(run.save, run, { type: 'secretKill', boss: event.boss, map: run.map.id, noDamage: event.noDamage, materialExtra }));
       continue;
     }
     if (event.type === 'bossKill') {
       event.area = area.id;
       event.materialBonus = run.mods.materialBonus;
+      event.materialExtra = materialExtra;
     }
     notes.push(...processEvent(run.save, run, event));
     // マップの最後のエリアのボスを倒したら、そのマップは完了
