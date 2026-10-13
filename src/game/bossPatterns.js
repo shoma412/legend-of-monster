@@ -16,6 +16,7 @@ import { loosenScreen, suck } from './wind.js';
 import { ventSpots } from '../logic/ventSpots.js';
 import { installMap1 } from './map1Bosses.js';
 import { installMap2 } from './map2Bosses.js';
+import { installMap3 } from './map3Bosses.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -2158,6 +2159,7 @@ PATTERNS.flare = {
 export const HAZARD_TYPES = {};
 installMap1(PATTERNS, HAZARD_TYPES);
 installMap2(PATTERNS, HAZARD_TYPES);
+installMap3(PATTERNS, HAZARD_TYPES);
 
 export function updateHazards(world, dt) {
   const p = world.player;

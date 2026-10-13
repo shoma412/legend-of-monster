@@ -38,6 +38,10 @@
 //   パイプサーペント  : burrow（固有）/ coilcrush とぐろ締め / pipeburst 配管破裂 / sludgeglob 汚水の塊 / grapple 巻きつき / mudflow 大技（動きは src/game/map2Bosses.js）
 //   タンククラブ      : pincerclose はさみ打ち / bubbleswarm 泡の群れ / sidestep 横走り / jetcross 水圧噴射 / rollshell 甲羅転がし / hightide 大技
 //   スラッジハイドラ  : sludgesplit 分裂 / sludgefount 汚泥の噴水 / headsweep 首の掃射 / bogs 泥沼 / entangle 首の絡み / regrowth 大技
+//   スクラップハウンド: magnet・orbit（固有）/ junkbounce 跳ね鉄くず / triplebite 三連噛み / junkpile 鉄くずの山 / junkstorm 大技（動きは src/game/map3Bosses.js）
+//   ガーダースパイダー: wires・girder（固有）/ needles 毒針 / eightlegs 八本脚 / eggs 卵 / webweave 大技
+//   クレーンタイタン  : weld・pendulum（固有）/ beamdrop 鉄骨落とし / cranespin クレーン旋回 / rivetgun 鋲打ち / collapse 大技
+//   アーキテクト      : cells・ink（固有）/ plans 設計図 / surveyrun 測量 / prototype 試作機 / finishwork 大技
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
@@ -382,34 +386,32 @@ export const bosses = [
     credits: 200,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 飛びかかり：短い予告で跳んでくる
-      pounce: { pattern: 'leap', telegraph: 0.65, lockTime: 0.25, air: 0.38, radius: 92, damage: 44, recover: 0.6, reach: 'far' },
-      // 3連続の突進。壁に当たると隙ができる
-      triple: { pattern: 'charge', repeat: 3, repeatTelegraph: 0.35, telegraph: 0.6, lockTime: 0.18, speed: 660, duration: 0.5, damage: 42, recover: 0.8, wallStun: 1.2, reach: 'far' },
-      // 鉄くずの弾：プレイヤーへ扇形に
-      scrap: { pattern: 'barrage', telegraph: 0.55, lockTime: 0.15, count: 5, spread: 56, waves: 2, interval: 0.35, track: true, shotSpeed: 330, shotRadius: 7, damage: 30, recover: 0.6 },
-      scrapHard: { pattern: 'barrage', telegraph: 0.45, lockTime: 0.15, count: 7, spread: 76, waves: 3, interval: 0.3, track: true, shotSpeed: 350, shotRadius: 7, damage: 30, recover: 0.6 },
-      // 周囲への一撃
-      howl: { pattern: 'slam', telegraph: 0.7, radius: 150, damage: 44, recover: 0.9, reach: 'near' },
-      // 磁力：引き寄せてから、周りを叩く
+      // 磁力（固有・前からある）：引き寄せてから、周りを叩く
       magnet: { pattern: 'magnet', telegraph: 0.6, duration: 2.6, strength: 130, radius: 135, damage: 46, recover: 1.1 },
       magnetHard: { pattern: 'magnet', telegraph: 0.5, duration: 2.4, strength: 175, radius: 150, damage: 46, recover: 1.0 },
-      // 固有「刃の渦」：鉄くずの刃を体のまわりで回しながら、追いかけてくる。当たると裂傷（持続ダメージ）
+      // 刃の渦（固有・前からある）：鉄くずの刃を体のまわりで回しながら、追いかけてくる。当たると裂傷（持続ダメージ）
       shred: { pattern: 'orbit', telegraph: 0.7, duration: 3.2, count: 3, radius: 92, bladeRadius: 16, spin: 200, chase: 0.75, damage: 30, dot: 'bleed', recover: 0.9 },
       shredHard: { pattern: 'orbit', telegraph: 0.6, duration: 3.6, count: 4, radius: 96, bladeRadius: 16, spin: 230, chase: 0.9, damage: 30, dot: 'bleed', recover: 0.9 },
-      // 大技「鉄くず嵐」：照準の円が次々に現れ、同時に何個も追ってくる
-      storm: { pattern: 'chase', telegraph: 0.9, count: 8, interval: 0.6, spawn: 170, speed: 300, follow: 1.0, lock: 0.5, radius: 52, damage: 42, recover: 1.2 },
+      // 固有「跳ね鉄くず」：鉄くずを扇形に投げる。壁に当たるたびに跳ね返る（bounces 回まで）
+      junkbounce: { pattern: 'junkbounce', telegraph: 0.65, lockTime: 0.2, count: 6, spread: 70, speed: 340, radius: 14, bounces: 3, damage: 30, recover: 0.8, reach: 'far' },
+      junkbounceHard: { pattern: 'junkbounce', telegraph: 0.55, lockTime: 0.2, count: 9, spread: 90, speed: 370, radius: 14, bounces: 3, damage: 30, recover: 0.8, reach: 'far' },
+      // 固有「三連噛み」：3回続けて噛みつきの突進。通った道に、鉄くずのトゲが残る（踏むとダメージ）
+      triplebite: { pattern: 'triplebite', telegraph: 0.6, repeatTelegraph: 0.35, lockTime: 0.18, count: 3, speed: 700, duration: 0.5, damage: 42, spikeEvery: 0.07, spike: { radius: 16, arm: 0.25, life: 4, tick: 0.5, damage: 14 }, recover: 0.9, reach: 'far' },
+      // 固有「鉄くずの山」：壊せる山が出て、fuse 秒後に、十字に破片を飛ばして爆発する。先に壊せば、爆発しない
+      junkpile: { pattern: 'junkpile', telegraph: 0.7, count: 4, pile: 'junkpile', fuse: 2.5, radius: 56, damage: 34, shotSpeed: 320, shotDamage: 26, recover: 0.9 },
+      // 大技「鉄くず嵐」：鉄くずの列（隙間 gaps か所）が、部屋を横切る（waves 回）。そのあいだ、ボスのほうへ弱く引かれる
+      junkstorm: { pattern: 'junkstorm', telegraph: 1.8, waves: 3, warn: 1.2, speed: 380, gaps: 2, gapLength: 100, pieceSpacing: 44, pieceRadius: 16, damage: 44, pull: 90, recover: 1.5 },
     },
-    reactions: [{ when: 'far', seconds: 3.5, move: 'pounce' }],
-    ultimate: { move: 'storm', announce: '鉄くず嵐' },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'triplebite' }],
+    ultimate: { move: 'junkstorm', announce: '鉄くず嵐' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 0.9, max: 1.5 }, moves: ['pounce', 'scrap', 'triple', 'magnet', 'shred'] },
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.5 }, moves: ['magnet', 'shred', 'junkbounce', 'triplebite', 'junkpile'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.1 },
         speed: 1.2,
-        moves: ['magnetHard', 'pounce', 'triple', 'scrapHard', 'shredHard', 'howl'],
-        combos: [{ moves: ['pounce', 'howl'] }, { moves: ['scrapHard', 'triple'] }],
+        moves: ['magnetHard', 'shredHard', 'junkbounceHard', 'triplebite', 'junkpile'],
+        combos: [{ moves: ['triplebite', 'junkbounceHard'] }, { moves: ['magnetHard', 'junkpile'] }],
         announce: '不足検知',
       },
     ],
@@ -430,35 +432,32 @@ export const bosses = [
     credits: 220,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 糸の弾：プレイヤーへ扇形に。当たると減速
-      web: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 60, waves: 3, interval: 0.4, track: true, shotSpeed: 280, shotRadius: 8, damage: 28, slow: true, recover: 0.7, reach: 'far' },
-      // 跳びかかり
-      leap: { pattern: 'leap', telegraph: 0.8, lockTime: 0.3, air: 0.45, radius: 105, damage: 46, recover: 0.8, reach: 'far' },
-      // 脚の突き：正面の細い扇
-      stab: { pattern: 'cone', telegraph: 0.6, lockTime: 0.25, range: 210, arc: 40, duration: 0.2, damage: 46, recover: 0.8, reach: 'near' },
-      // 子蜘蛛を生む
-      brood: { pattern: 'summon', telegraph: 0.7, enemy: 'spiderling', count: 3, max: 6, recover: 0.7 },
-      // 橋げた：部屋を横切る壁を張る
-      girder: { pattern: 'girder', telegraph: 1.0, lines: 2, offset: 110, spacing: 34, gap: 96, gaps: 2, max: 46, post: 'girderpost', recover: 0.8 },
-      girderHard: { pattern: 'girder', telegraph: 0.8, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.7 },
-      // 突進（後半）：2連続
-      rush: { pattern: 'charge', repeat: 2, repeatTelegraph: 0.4, telegraph: 0.6, lockTime: 0.2, speed: 620, duration: 0.6, damage: 44, recover: 0.8, wallStun: 1.2, reach: 'far' },
-      // 固有「張り糸」：部屋を横切る糸を張る。しばらく残り、触れている間は減速とダメージ
+      // 張り糸（固有・前からある）：部屋を横切る糸を張る。しばらく残り、触れている間は減速とダメージ
       wires: { pattern: 'wires', telegraph: 0.5, count: 3, spread: 130, arm: 0.9, life: 7, width: 10, damage: 18, tick: 0.5, recover: 0.7 },
       wiresHard: { pattern: 'wires', telegraph: 0.4, count: 5, spread: 170, arm: 0.8, life: 8, width: 10, damage: 18, tick: 0.5, recover: 0.6 },
-      // 大技「全面架設」：部屋じゅうに鉄骨が降る。光る円の中だけが助かる
-      overbuild: { pattern: 'safezone', telegraph: 1.9, waveTelegraph: 1.4, zones: 2, radius: 78, within: 180, waves: 3, active: 0.35, damage: 48, recover: 1.5 },
+      // 橋げた（固有・前からある。アーキテクトの「図面展開」をやめたので、スパイダー専用）：部屋を横切る壁を張る
+      girder: { pattern: 'girder', telegraph: 1.0, lines: 2, offset: 110, spacing: 34, gap: 96, gaps: 2, max: 46, post: 'girderpost', recover: 0.8 },
+      girderHard: { pattern: 'girder', telegraph: 0.8, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.7 },
+      // 固有「毒針」：針を3本、プレイヤーへ撃つ。止まった場所に、毒の床（腐食）が残る
+      needles: { pattern: 'needles', telegraph: 0.6, count: 3, spread: 28, speed: 540, damage: 30, pool: { radius: 40, arm: 0.2, life: 5, tick: 0.5, damage: 12, dot: 'corrode' }, recover: 0.8, reach: 'far' },
+      // 固有「八本脚」：プレイヤーを中心に、脚が8本（後半は12本）、順に突き出る（予告の細い線のあと）。突かれる方向の間に立つ
+      eightlegs: { pattern: 'eightlegs', telegraph: 1.0, lockTime: 0.35, legs: 8, gap: 0.16, flash: 0.22, length: 280, width: 18, damage: 44, recover: 0.9, reach: 'near' },
+      eightlegsHard: { pattern: 'eightlegs', telegraph: 0.9, lockTime: 0.35, legs: 12, gap: 0.12, flash: 0.22, length: 280, width: 18, damage: 44, recover: 0.8, reach: 'near' },
+      // 固有「卵」：壊せる卵が出る。hatch 秒で孵化して、子蜘蛛が perEgg 匹ずつ出る。先に壊せば出ない
+      eggs: { pattern: 'eggs', telegraph: 0.7, count: 3, egg: 'egg', hatch: 5, spawn: 'spiderling', perEgg: 2, recover: 0.8 },
+      // 大技「蜘蛛の巣」：糸の列が、向きを変えながら3回張られる（lines 本ずつ）。糸に触れると減速とダメージ。糸と糸のあいだを抜ける
+      webweave: { pattern: 'webweave', telegraph: 1.8, waves: 3, waveGap: 2.4, lines: 5, spacing: 120, arm: 0.9, life: 6, damage: 22, recover: 1.5 },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'leap' }],
-    ultimate: { move: 'overbuild', announce: '全面架設' },
+    reactions: [{ when: 'far', seconds: 4, move: 'needles' }],
+    ultimate: { move: 'webweave', announce: '蜘蛛の巣' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['web', 'girder', 'leap', 'stab', 'wires'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['wires', 'girder', 'needles', 'eightlegs', 'eggs'] },
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.2 },
-        moves: ['girderHard', 'leap', 'wiresHard', 'rush', 'stab', 'web'],
-        combos: [{ moves: ['leap', 'stab'] }, { moves: ['web', 'rush'] }],
-        side: { moves: ['brood'], every: { min: 13, max: 17 } },
+        moves: ['wiresHard', 'girderHard', 'needles', 'eightlegsHard', 'eggs'],
+        combos: [{ moves: ['needles', 'eightlegsHard'] }, { moves: ['wiresHard', 'girderHard'] }],
+        side: { moves: ['eggs'], every: { min: 13, max: 17 } },
         announce: '架設続行',
       },
     ],
@@ -479,40 +478,40 @@ export const bosses = [
     credits: 260,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // 腕のなぎ払い：長い腕が、プレイヤーのいる側へ回る
-      sweep: { pattern: 'laser', telegraph: 0.9, lead: 50, turn: 170, speed: 105, width: 34, range: 400, damage: 48, recover: 0.8, reach: 'near' },
-      // 鉄骨の落下
-      drop: { pattern: 'rain', telegraph: 0.4, count: 8, interval: 0.28, delay: 0.9, radius: 42, spread: 90, damage: 36, recover: 0.8 },
-      dropHard: { pattern: 'rain', telegraph: 0.3, count: 14, interval: 0.18, delay: 0.85, radius: 42, spread: 130, damage: 36, recover: 0.7 },
-      // 衝撃波：部屋の端まで届く輪
-      quake: { pattern: 'shockwave', telegraph: 0.9, damage: 34, ringSpeed: 330, ringMax: 980, ringWidth: 16, recover: 0.8 },
-      // 鋲の弾：向きをずらしながら全方向に
-      rivets: { pattern: 'barrage', telegraph: 0.7, count: 9, spread: 360, waves: 5, interval: 0.3, rotate: 12, shotSpeed: 220, shotRadius: 7, damage: 30, recover: 0.8 },
-      // 振り子：吊ったフックが、部屋を行ったり来たりする
-      swing: { pattern: 'pendulum', telegraph: 1.0, lines: 1, passes: 3, period: 1.5, radius: 36, damage: 46, recover: 0.6 },
-      swingHard: { pattern: 'pendulum', telegraph: 0.8, lines: 2, passes: 4, period: 1.3, radius: 36, damage: 46, recover: 0.5 },
-      // 固有「溶接ビーム」：ビームがゆっくり追ってくる。当たると炎上（持続ダメージ）。通ったあとに燃える床が残る
+      // 溶接ビーム（固有・前からある）：ビームがゆっくり追ってくる。当たると炎上。通ったあとに燃える床が残る
       weld: { pattern: 'weld', telegraph: 0.9, duration: 3.2, turn: 38, width: 26, range: 900, damage: 40, dot: 'burn', trail: { every: 0.35, radius: 34, arm: 0.15, life: 4, tick: 0.5, damage: 10 }, recover: 1.0 },
       weldHard: { pattern: 'weld', telegraph: 0.75, duration: 4, turn: 46, width: 26, range: 900, damage: 40, dot: 'burn', trail: { every: 0.3, radius: 34, arm: 0.15, life: 5, tick: 0.5, damage: 10 }, recover: 0.9 },
-      // 大技「増築」：溜めている間、鉄骨が落ちる。溜めきると、部屋の端まで届く輪が3回広がる
-      extend: {
-        pattern: 'endure', telegraph: 0.8, duration: 5.5, break: 0.05, stun: 4.5, recover: 1.2,
-        pulse: { move: 'drop', interval: 2.8 },
-        blast: { count: 3, interval: 0.5, damage: 44, ringSpeed: 380, ringMax: 980, ringWidth: 18 },
+      // 振り子（固有・前からある）：吊ったフックが、部屋を行ったり来たりする
+      swing: { pattern: 'pendulum', telegraph: 1.0, lines: 1, passes: 3, period: 1.5, radius: 36, damage: 46, recover: 0.6 },
+      swingHard: { pattern: 'pendulum', telegraph: 0.8, lines: 2, passes: 4, period: 1.3, radius: 36, damage: 46, recover: 0.5 },
+      // 固有「鉄骨落とし」：長い鉄骨が、向きを変えながら、順に落ちる（予告の影のあと）。1本目はプレイヤーの足元
+      beamdrop: { pattern: 'beamdrop', telegraph: 0.7, count: 5, spread: 200, length: 260, width: 44, stagger: 0.35, warn: 0.9, damage: 46, recover: 0.9 },
+      beamdropHard: { pattern: 'beamdrop', telegraph: 0.6, count: 8, spread: 230, length: 260, width: 44, stagger: 0.25, warn: 0.85, damage: 46, recover: 0.8 },
+      // 固有「クレーン旋回」：長い腕（length px）が、ボスを中心に、turns 周ゆっくり回る。腕の根元（inner px 以内）は届かず、安全
+      cranespin: { pattern: 'cranespin', telegraph: 0.8, speed: 1.5, turns: 1.5, inner: 120, length: 420, width: 22, ball: 26, warn: 0.8, damage: 48, recover: 1.0 },
+      cranespinHard: { pattern: 'cranespin', telegraph: 0.7, speed: 1.9, turns: 2, inner: 120, length: 420, width: 22, ball: 26, warn: 0.7, damage: 48, recover: 0.9 },
+      // 固有「鋲打ち」：鋲を一直線に撃ち込む。床に刺さって、fuse 秒後に、十字に火花を飛ばして爆ぜる
+      rivetgun: { pattern: 'rivetgun', telegraph: 0.7, count: 5, spread: 60, speed: 520, fuse: 1.4, radius: 48, damage: 34, sparkSpeed: 300, sparkDamage: 26, sparkLife: 1.3, recover: 0.9 },
+      rivetgunHard: { pattern: 'rivetgun', telegraph: 0.6, count: 7, spread: 80, speed: 540, fuse: 1.3, radius: 48, damage: 34, sparkSpeed: 320, sparkDamage: 26, sparkLife: 1.3, recover: 0.8 },
+      // 大技「全層崩落」：鉄骨が3波続けて落ち、そのあいだ、クレーンの腕が回り続ける
+      collapse: {
+        pattern: 'collapse', telegraph: 1.8, waves: 3, waveGap: 2.2, recover: 1.5,
+        arm: { speed: 1.5, turns: 2.5, inner: 120, length: 420, width: 22, ball: 26, warn: 0.8, damage: 48 },
+        beams: { count: 4, spread: 200, length: 260, width: 44, stagger: 0.4, warn: 0.9, damage: 46 },
       },
     },
-    ultimate: { move: 'extend', announce: '増築' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['sweep', 'drop', 'swing', 'quake', 'weld'] },
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.6 }, moves: ['weld', 'swing', 'beamdrop', 'cranespin', 'rivetgun'] },
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.2 },
-        moves: ['sweep', 'dropHard', 'weldHard', 'rivets', 'swingHard', 'quake'],
-        combos: [{ moves: ['quake', 'rivets'] }, { moves: ['sweep', 'dropHard'] }],
+        moves: ['weldHard', 'swingHard', 'beamdropHard', 'cranespinHard', 'rivetgunHard'],
+        combos: [{ moves: ['beamdropHard', 'cranespinHard'] }, { moves: ['rivetgunHard', 'weldHard'] }],
         side: { moves: ['swing'], every: { min: 10, max: 14 } },
         announce: '増築再開',
       },
     ],
+    ultimate: { move: 'collapse', announce: '全層崩落' },
   },
   // ---- ここからマップ4「停電区」 ----
   {
@@ -1097,51 +1096,42 @@ export const bosses = [
       ],
     },
     attacks: {
-      // 測量線：横と縦の線が、プレイヤーの場所から交互に光る
-      survey: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 112, width: 30, delay: 0.8, stagger: 0.2, damage: 48, recover: 0.7 },
-      surveyHard: { pattern: 'lines', telegraph: 0.5, orient: 'cross', count: 8, spacing: 96, width: 30, delay: 0.75, stagger: 0.17, damage: 48, recover: 0.6 },
-      // 杭打ち：落下地点の予告が次々に出る
-      piles: { pattern: 'rain', telegraph: 0.4, count: 9, interval: 0.24, delay: 0.85, radius: 42, spread: 100, damage: 40, recover: 0.7 },
-      pilesHard: { pattern: 'rain', telegraph: 0.3, count: 15, interval: 0.17, delay: 0.8, radius: 42, spread: 130, damage: 40, recover: 0.6 },
-      // 押印：周囲への一撃
-      stamp: { pattern: 'slam', telegraph: 0.7, radius: 160, damage: 52, recover: 0.9, reach: 'near' },
-      // 鋲の弾：向きをずらしながら全方向に
-      bolts: { pattern: 'barrage', telegraph: 0.65, count: 10, spread: 360, waves: 4, interval: 0.3, rotate: 12, shotSpeed: 230, shotRadius: 7, damage: 34, recover: 0.7 },
-      // 突進。壁に当たると隙ができる
-      dash: { pattern: 'charge', telegraph: 0.7, lockTime: 0.22, speed: 640, duration: 0.7, damage: 50, recover: 0.7, wallStun: 1.3, reach: 'far' },
-      // 図面展開：部屋を横切る壁（橋げた）を張る
-      blueprint: { pattern: 'girder', telegraph: 0.9, lines: 2, offset: 110, spacing: 34, gap: 96, gaps: 2, max: 46, post: 'girderpost', recover: 0.7 },
-      blueprintHard: { pattern: 'girder', telegraph: 0.75, lines: 3, offset: 100, spacing: 34, gap: 90, gaps: 2, max: 60, post: 'girderpost', recover: 0.6 },
-      // 照準：追尾の円が追いかけてきて、止まった場所を攻撃する
-      lock: { pattern: 'chase', telegraph: 0.8, count: 3, interval: 0.8, spawn: 150, speed: 320, follow: 1.1, lock: 0.5, radius: 56, damage: 46, recover: 0.8 },
-      // 固有「方眼」：部屋をマスに分け、市松模様の半分が光る。続けて、残りの半分が光る
+      // 方眼（固有・前からある）：部屋をマスに分け、市松模様の半分が光る。続けて、残りの半分が光る
       cells: { pattern: 'cells', telegraph: 1.1, second: 0.85, cols: 6, rows: 4, waves: 2, active: 0.2, damage: 50, recover: 0.8 },
       cellsHard: { pattern: 'cells', telegraph: 0.95, second: 0.7, cols: 6, rows: 4, waves: 3, active: 0.2, damage: 50, recover: 0.7 },
-      // 固有「インク流し」：足元から広がっていく床。中にいると腐食（持続ダメージ）
+      // インク流し（固有・前からある）：足元から広がっていく床。中にいると腐食（持続ダメージ）
       ink: { pattern: 'ink', telegraph: 0.7, count: 1, start: 44, grow: 55, maxRadius: 185, arm: 0.5, life: 6, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
       inkHard: { pattern: 'ink', telegraph: 0.6, count: 2, start: 44, grow: 70, maxRadius: 170, arm: 0.45, life: 6.5, tick: 0.5, damage: 14, dot: 'corrode', recover: 0.6 },
-      // 大技「竣工」：部屋全体が危険になる。光る円の中だけが助かる
-      completion: { pattern: 'safezone', telegraph: 1.8, waveTelegraph: 1.25, zones: 2, radius: 74, within: 180, waves: 4, active: 0.35, damage: 54, recover: 1.5 },
+      // 固有「設計図」：長方形の枠が出て、warn 秒後に、鉄骨の壁として建つ（life 秒）。建つとき、中にいるとダメージ。壁は歩いて通れず、弾も止める
+      plans: { pattern: 'plans', telegraph: 0.7, count: 3, long: 150, short: 80, warn: 1.0, block: 'steelblock', life: 7, damage: 44, recover: 0.8 },
+      plansHard: { pattern: 'plans', telegraph: 0.6, count: 4, long: 150, short: 80, warn: 0.85, block: 'steelblock', life: 7, damage: 44, recover: 0.7 },
+      // 固有「測量」：測量の点が、基板のような線の上を走り、通った場所に、柱が建つ（life 秒で崩れる）。点に触れるとダメージ
+      survey: { pattern: 'surveyrun', telegraph: 0.7, edges: 6, warn: 1.0, speed: 420, spacing: 80, block: 'steelblock', life: 5, damage: 40, recover: 0.8 },
+      surveyHard: { pattern: 'surveyrun', telegraph: 0.6, edges: 8, warn: 0.9, speed: 480, spacing: 80, block: 'steelblock', life: 5, damage: 40, recover: 0.7 },
+      // 固有「試作機」：壊せる試作機が出て、プレイヤーへ弾を撃つ（duration 秒で消える）。全部壊すと、本体に open 秒の隙ができる
+      prototype: { pattern: 'prototype', telegraph: 0.7, count: 2, enemy: 'prototype', duration: 10, open: 3, recover: 0.8 },
+      // 大技「竣工」：方眼と設計図を、順に続ける
+      completion: { pattern: 'finishwork', steps: ['cellsHard', 'plansHard', 'cellsHard', 'plansHard'], recover: 1.5 },
     },
-    reactions: [{ when: 'far', seconds: 3.5, move: 'dash' }],
+    reactions: [{ when: 'far', seconds: 3.5, move: 'survey' }],
     ultimate: { move: 'completion', announce: '竣工' },
     phases: [
-      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['survey', 'cells', 'stamp', 'ink', 'dash'] },
+      { hpAbove: 0.6, idle: { min: 1.0, max: 1.6 }, moves: ['survey', 'cells', 'plans', 'ink', 'prototype'] },
       {
         hpAbove: 0.3,
         idle: { min: 0.8, max: 1.3 },
-        moves: ['surveyHard', 'cells', 'blueprint', 'lock', 'ink', 'stamp', 'dash'],
-        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['blueprint', 'ink'] }],
-        side: { moves: ['piles'], every: { min: 11, max: 15 } },
+        moves: ['surveyHard', 'cells', 'plans', 'ink', 'prototype'],
+        combos: [{ moves: ['plans', 'ink'] }, { moves: ['surveyHard', 'cells'] }],
+        side: { moves: ['survey'], every: { min: 11, max: 15 } },
         announce: '設計変更',
       },
       {
         hpAbove: 0,
         idle: { min: 0.6, max: 1.0 },
         speed: 1.15,
-        moves: ['cellsHard', 'surveyHard', 'blueprintHard', 'lock', 'inkHard', 'dash', 'stamp'],
-        combos: [{ moves: ['dash', 'stamp'] }, { moves: ['inkHard', 'cellsHard'] }, { moves: ['bolts', 'dash'] }],
-        side: { moves: ['lock'], every: { min: 9, max: 12 } },
+        moves: ['cellsHard', 'surveyHard', 'plansHard', 'inkHard', 'prototype'],
+        combos: [{ moves: ['inkHard', 'cellsHard'] }, { moves: ['surveyHard', 'plansHard'] }],
+        side: { moves: ['prototype'], every: { min: 12, max: 16 } },
         announce: '最終図面',
       },
     ],

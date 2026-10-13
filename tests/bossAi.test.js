@@ -69,7 +69,7 @@ describe('ボスの定義（行動の選び方）', () => {
     }
   });
 
-  it('どのボスも大技を持ち、後半には連携がある。マップ1〜2の6体と、マップ4からは、そのボスだけの大技。マップ3の3体は、まだ共通の大技の部品（順に作り直す）', () => {
+  it('どのボスも大技を持ち、後半には連携がある。どのボスも、そのボスだけの大技（共通の大技の部品は、もう誰も使っていない）（順に作り直す）', () => {
     const count = {};
     for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) {
       expect(boss.ultimate?.announce, boss.id).toBeTruthy();
@@ -77,7 +77,7 @@ describe('ボスの定義（行動の選び方）', () => {
       count[pattern] = (count[pattern] ?? 0) + 1;
       expect(boss.phases.at(-1).combos?.length, boss.id).toBeGreaterThanOrEqual(1);
     }
-    expect(count).toEqual({ endure: 1, safezone: 1, chase: 1, douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1, overvolt: 1, absolutezero: 1, systemhalt: 1, mudflow: 1, hightide: 1, regrowth: 1 });
+    expect(count).toEqual({ douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1, overvolt: 1, absolutezero: 1, systemhalt: 1, mudflow: 1, hightide: 1, regrowth: 1, junkstorm: 1, webweave: 1, collapse: 1 });
   });
 });
 

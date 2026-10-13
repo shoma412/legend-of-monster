@@ -533,16 +533,18 @@ describe('ガーダースパイダー：橋げた', () => {
     expect(posts(world, 'girderpost').length).toBeGreaterThan(max * 0.6);
   });
 
-  it('子蜘蛛の召喚は、杭の数を数えない（杭が多くても呼べる）', () => {
+  it('卵の孵化は、杭の数を数えない（杭が多くても、子蜘蛛が出る）', () => {
     const world = spiderWorld();
     const b = world.boss;
     const act = startGirder(world);
     runUntil(world, () => b.act !== act);
     b.idleT = Infinity;
-    b.act = { name: 'brood', def: b.def.attacks.brood, phase: '', t: 0 };
-    PATTERNS.summon.start(world, b, b.act, { dx: -1, dy: 0, dist: 1 });
-    runUntil(world, () => world.enemies.some((e) => e.def.id === 'spiderling'), 3);
-    expect(world.enemies.filter((e) => e.def.id === 'spiderling')).toHaveLength(b.def.attacks.brood.count);
+    world.player.inv = Infinity;
+    const def = b.def.attacks.eggs;
+    b.act = { name: 'eggs', def, phase: '', t: 0 };
+    PATTERNS.eggs.start(world, b, b.act, { dx: -1, dy: 0, dist: 1 });
+    runUntil(world, () => world.enemies.some((e) => e.def.id === 'spiderling'), def.hatch + 3);
+    expect(world.enemies.filter((e) => e.def.id === 'spiderling')).toHaveLength(def.count * def.perEgg);
   });
 
   it('ボスを倒すと、杭も一緒に消える', () => {

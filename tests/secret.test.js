@@ -255,8 +255,8 @@ describe('隠しボスの部屋', () => {
     const def = DATA.bosses.get('architect');
     expect(def.hidden).toBe(true);
     for (const attack of Object.values(def.attacks)) expect(PATTERNS[attack.pattern]).toBeDefined();
-    expect(def.attacks[def.ultimate.move].pattern).toBe('safezone');
-    expect(DATA.enemies.has(def.attacks.blueprint.post)).toBe(true);
+    expect(def.attacks[def.ultimate.move].pattern).toBe('finishwork');
+    expect(DATA.enemies.has(def.attacks.plans.block)).toBe(true);
   });
 });
 
