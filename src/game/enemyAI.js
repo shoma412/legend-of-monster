@@ -830,6 +830,12 @@ export function updateEnemies(world, dt) {
       e.spawnT -= dt;
       continue;
     }
+    // expire を持つ敵（氷の壁、子機）は、その時刻に消える
+    if (e.expire != null && world.time >= e.expire) {
+      e.dead = true;
+      burst(world, e.x, e.y, e.color, 8, 180);
+      continue;
+    }
     updateStatus(world, e, dt);
     if (e.dead) continue;
     // 減速・凍結中は、その敵の時間の進みを遅くする（動きも構えも遅くなる）

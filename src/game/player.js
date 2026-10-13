@@ -10,6 +10,7 @@ import { healPlayer, hitEnemy } from './combat.js';
 import { updateItemEffects } from './consumables.js';
 import { fire, statWith } from './effects.js';
 import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
+import { onIce } from './ice.js';
 
 // carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
 export function createPlayer(weaponId, x, y, carry = null) {
@@ -73,6 +74,11 @@ export function createPlayer(weaponId, x, y, carry = null) {
 export function updatePlayer(world, dt, input) {
   const p = world.player;
   const weapon = p.weapon;
+  // 宙に浮かされている・凍っている間（ボスの攻撃）は、操作できない
+  if (p.floatT > 0) {
+    p.floatT -= dt;
+    input = { ...input, mx: 0, my: 0, attack: false, attackPressed: false, specialPressed: false, dashPressed: false };
+  }
   // ダッシュは使った回数ぶん、1回ずつ溜め直す
   const maxDash = p.stats.dashCharges;
   if (p.dashCharges < maxDash) {
@@ -173,8 +179,21 @@ export function updatePlayer(world, dt, input) {
     if (p.slowT > 0) slow *= 1 - STATUS.playerSlow.amount;
     // 移動速度は、条件つきの効果（敵を倒した直後だけ速い、など）も合わせて決める
     const moveSpeed = PLAYER.moveSpeed * statWith(world, 'moveSpeedMul');
-    p.x += mx * moveSpeed * slow * dt;
-    p.y += my * moveSpeed * slow * dt;
+    let vx = mx * moveSpeed * slow;
+    let vy = my * moveSpeed * slow;
+    // 凍る床（クライオ・ワイバーン）の上では、慣性がついて、止まりにくい
+    if (onIce(world, p.x, p.y)) {
+      const k = Math.min(1, dt * 1.8);
+      p.iceVx = (p.iceVx ?? vx) + (vx - (p.iceVx ?? vx)) * k;
+      p.iceVy = (p.iceVy ?? vy) + (vy - (p.iceVy ?? vy)) * k;
+      vx = p.iceVx;
+      vy = p.iceVy;
+    } else {
+      p.iceVx = vx;
+      p.iceVy = vy;
+    }
+    p.x += vx * dt;
+    p.y += vy * dt;
     updateAttack(world, dt, input);
   }
   clampToBounds(p, world.bounds);

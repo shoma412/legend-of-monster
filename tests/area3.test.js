@@ -6,6 +6,7 @@ import { applyStop, effectDamage, hitEnemy } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { AREA_ORDER, NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
+import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 import { distToSegment } from '../src/logic/geometry.js';
 import { createSave } from '../src/logic/save.js';
 
@@ -50,6 +51,7 @@ function addEnemy(world, id, dx, dy = 0) {
 function overloadWorld() {
   const world = createWorld({ waves: [{ boss: 'overload' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  withShared(world.boss); // 共通の部品の攻撃（レーザー・召喚・衝撃波）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -175,13 +177,13 @@ describe('オーバーロード', () => {
     expect(runUntil(world, () => b.act?.name === 'laser')).toBe(true);
     const act = b.act;
     const start = act.angle;
-    run(world, def.attacks.laser.telegraph - 0.1);
+    run(world, SHARED_ATTACKS.laser.telegraph - 0.1);
     expect(act.phase).toBe('telegraph');
     expect(act.angle).toBe(start);
     expect(p.hp).toBe(PLAYER.maxHp);
     // 立ち止まっていると、回ってきたレーザーに当たる
     expect(runUntil(world, () => p.hp < PLAYER.maxHp || b.act !== act, 6)).toBe(true);
-    expect(p.hp).toBe(PLAYER.maxHp - def.attacks.laser.damage);
+    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.laser.damage);
   });
 
   it('ドローン召喚：雑魚が出てくる。出しすぎない（上限あり）', () => {
@@ -191,14 +193,14 @@ describe('オーバーロード', () => {
     b.next = 'summon';
     b.idleT = 0;
     expect(runUntil(world, () => world.enemies.length > 1)).toBe(true);
-    expect(world.enemies.filter((e) => !e.boss)).toHaveLength(def.attacks.summon.count);
+    expect(world.enemies.filter((e) => !e.boss)).toHaveLength(SHARED_ATTACKS.summon.count);
     for (let i = 0; i < 6; i++) {
       b.act = null;
       b.next = 'summon';
       b.idleT = 0;
       runUntil(world, () => b.act?.name === 'summon' && b.act.phase === 'recover', 5);
     }
-    expect(world.enemies.filter((e) => !e.boss).length).toBeLessThanOrEqual(def.attacks.summon.max);
+    expect(world.enemies.filter((e) => !e.boss).length).toBeLessThanOrEqual(SHARED_ATTACKS.summon.max);
   });
 
   it('全体衝撃波：輪は部屋の端まで届く', () => {
@@ -212,7 +214,7 @@ describe('オーバーロード', () => {
     p.x = world.bounds.left + p.r; // ボスから一番遠い壁際
     p.y = b.y;
     expect(runUntil(world, () => p.hp < PLAYER.maxHp || world.hazards.length === 0, 5)).toBe(true);
-    expect(p.hp).toBe(PLAYER.maxHp - def.attacks.nova.damage);
+    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.nova.damage);
   });
 
   it('HPが半分を切るとオーバーヒート：攻撃が速くなり、冷却の隙ができる。隙の間は触れても安全', () => {
@@ -231,7 +233,7 @@ describe('オーバーロード', () => {
       updateWorld(world, DT, idle);
       frames++;
     }
-    expect(frames * DT).toBeLessThan(def.attacks.laser.telegraph * 0.85);
+    expect(frames * DT).toBeLessThan(SHARED_ATTACKS.laser.telegraph * 0.85);
 
     expect(runUntil(world, () => b.act?.name === 'vent', 60)).toBe(true);
     // 冷却は速くならない（決めた秒数だけ止まる）

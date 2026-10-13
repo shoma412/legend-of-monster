@@ -7,6 +7,7 @@ import { hitEnemy } from '../src/game/combat.js';
 import { createEnemy } from '../src/game/enemyAI.js';
 import { AREA_ORDER, NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
+import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 import { createSave } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -49,6 +50,7 @@ function addEnemy(world, id, dx, dy = 0, scale = 1) {
 function wyvernWorld() {
   const world = createWorld({ waves: [{ boss: 'cryowyvern' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  withShared(world.boss); // 共通の部品の攻撃（円錐・周囲の一撃・雨）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -233,7 +235,7 @@ describe('クライオ・ワイバーン', () => {
     expect(runUntil(world, () => b.act?.phase === 'active', 3)).toBe(true);
     expect(p.hp).toBe(PLAYER.maxHp); // 予告の間は当たらない
     run(world, 0.1);
-    expect(p.hp).toBe(PLAYER.maxHp - def.attacks.breath.damage);
+    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.breath.damage);
     expect(p.slowT).toBeGreaterThan(0);
 
     const world2 = wyvernWorld();
@@ -278,7 +280,7 @@ describe('クライオ・ワイバーン', () => {
     b.x = 900;
     b.y = 60; // ボス本体には触れない位置へ
     runUntil(world, () => p.hp < PLAYER.maxHp, 3);
-    expect(p.hp).toBe(PLAYER.maxHp - def.attacks.icicles.damage);
+    expect(p.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.icicles.damage);
   });
 
   it('HPが半分を切ると、部屋の端から凍りついて動ける範囲が狭まる。倒すと元に戻る', () => {

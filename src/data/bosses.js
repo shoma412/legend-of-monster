@@ -32,6 +32,10 @@
 //   sweep     : 固有（ダクトクローラー）。壁の通気口から長い体で部屋を横切る。通る帯（width）が telegraph 秒のあいだ赤く光り、体（length）が speed で走る。帯の途中の「継ぎ目」（seams か所、seamLen）にいれば当たらない
 //   ventburst : 固有（ダクトクローラー）。床の通気口が count 回、interval 秒ごとに光り、delay 秒後に熱の柱が噴く。選ばれる口は、プレイヤーの動いている向きの先
 //   blowthrough : 大技（ダクトクローラー）。sweeps 本の横断を stagger 秒ずつ遅らせて通し、そのあいだ vents の熱排気を重ねる
+//   ボルトボア        : wirepull 電線ひっぱり / insulators 碍子落とし / stakefence 杭の放電 / statics 帯電 / tuskrip 牙の突き上げ / overvolt 大技（動きは src/game/map1Bosses.js）
+//   クライオ・ワイバーン: featherbolt 氷の羽根 / iciclewave 氷柱の波 / frostbreath 凍る息 / frostwings 霜の翼 / skyshadow 寒空の影 / absolutezero 大技
+//   オーバーロード    : opblocks 命令ブロック / tracepath 配線トレース / satellites 子機の円陣 / reboot 再起動 / shortcircuit 基板ショート / systemhalt 大技
+// 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
 // heads: { enemy, count, orbit, reduce } を書くと、体から首が生える。首が残っている間、本体へのダメージが reduce の割合だけ減る
 // turnRate: 攻撃の合間に向きを変える速さ（ラジアン/秒）。書かなければ、すぐにプレイヤーのほうを向く
@@ -65,64 +69,32 @@ export const bosses = [
     credits: 60,
     drops: { count: 3, rarityBonus: 1 }, // 倒すと必ず落とす装備の数と、レア度の底上げ
     attacks: {
-      charge: {
-        pattern: 'charge',
-        telegraph: 0.8, // 予告の時間（秒）
-        lockTime: 0.25, // 予告の最後のこの時間は向きを変えない
-        speed: 560,
-        duration: 0.9,
-        damage: 38,
-        recover: 0.7,
-        wallStun: 1.6, // 壁に当たったときのスタン（秒）
-        reach: 'far',
-      },
-      doubleCharge: {
-        pattern: 'charge',
-        repeat: 2,
-        repeatTelegraph: 0.5, // 2回目以降の予告（秒）
-        telegraph: 0.7,
-        lockTime: 0.2,
-        speed: 600,
-        duration: 0.9,
-        damage: 38,
-        recover: 0.8,
-        wallStun: 1.6,
-        reach: 'far',
-      },
-      stomp: {
-        pattern: 'shockwave',
-        telegraph: 0.8,
-        damage: 22,
-        ringSpeed: 330, // 輪が広がる速さ（px/秒）
-        ringMax: 320, // 輪が消える半径
-        ringWidth: 14,
-        recover: 0.9,
-        reach: 'near',
-      },
-      // 放電弾：全方向に火花を飛ばす
-      sparks: { pattern: 'barrage', telegraph: 0.7, count: 10, spread: 360, waves: 1, shotSpeed: 230, shotRadius: 7, damage: 22, recover: 0.7 },
-      sparksHard: { pattern: 'barrage', telegraph: 0.6, count: 10, spread: 360, waves: 3, interval: 0.45, rotate: 18, shotSpeed: 250, shotRadius: 7, damage: 22, recover: 0.8 },
-      // 落雷の列：プレイヤーの場所から順に、突進の向きと平行な雷が落ちる
-      thunder: { pattern: 'lines', telegraph: 0.6, orient: 'aim', count: 3, spacing: 110, width: 34, delay: 0.8, stagger: 0.25, damage: 30, recover: 0.8 },
-      thunderHard: { pattern: 'lines', telegraph: 0.5, orient: 'aim', count: 5, spacing: 95, width: 34, delay: 0.7, stagger: 0.2, damage: 30, recover: 0.8 },
-      // 跳びかかり：着地で周りを攻撃し、衝撃波の輪が広がる
-      leap: { pattern: 'leap', telegraph: 0.9, lockTime: 0.3, air: 0.5, radius: 105, damage: 38, ring: { speed: 300, max: 260, width: 14, damage: 22 }, recover: 0.9, reach: 'far' },
-      // 大技「過充電」：溜めている間、放電弾が出る。溜めきると、部屋の端まで届く輪が3回広がる
-      overcharge: {
-        pattern: 'endure', telegraph: 0.8, duration: 5, break: 0.06, stun: 4, recover: 1.2,
-        pulse: { move: 'sparks', interval: 1.7 },
-        blast: { count: 3, interval: 0.45, damage: 38, ringSpeed: 380, ringMax: 980, ringWidth: 18 },
-      },
+      // 固有「電線ひっぱり」：電柱のあいだの電線が、部屋を横切ってしなり、伸びきったら、逆向きに戻ってくる。端まで逃げるか、電線の幅の外へ出る
+      wirepull: { pattern: 'wirepull', telegraph: 0.9, lockTime: 0.35, wires: 1, length: 360, offset: 170, speed: 380, backSpeed: 470, damage: 34, recover: 0.8, reach: 'far' },
+      wirepullHard: { pattern: 'wirepull', telegraph: 0.9, lockTime: 0.35, wires: 2, length: 360, offset: 170, speed: 420, backSpeed: 520, damage: 34, recover: 0.8, reach: 'far' },
+      // 固有「碍子落とし」：天井の碍子が落ちて割れ、破片が全方向に飛ぶ。割れた場所に、短い間だけ電気の床が残る
+      insulators: { pattern: 'insulators', telegraph: 0.6, count: 6, minDist: 90, radius: 42, delay: 0.85, stagger: 0.16, damage: 28, shards: { count: 8, speed: 220, radius: 6, damage: 18, life: 2.6 }, pool: { radius: 34, arm: 0.1, life: 2.2, tick: 0.5, damage: 12 }, recover: 0.8 },
+      insulatorsHard: { pattern: 'insulators', telegraph: 0.5, count: 8, minDist: 90, radius: 42, delay: 0.8, stagger: 0.14, damage: 28, shards: { count: 8, speed: 230, radius: 6, damage: 18, life: 2.6 }, pool: { radius: 34, arm: 0.1, life: 2.2, tick: 0.5, damage: 12 }, recover: 0.8 },
+      // 固有「杭の放電」：プレイヤーのまわりに杭を打ち、杭を結ぶ線が電気を帯びる。内側は安全だが、外へ出る隙間（gap px）は1か所だけ
+      stakefence: { pattern: 'stakefence', telegraph: 0.7, stakes: 3, radius: 150, gap: 90, arm: 0.9, life: 5, damage: 30, recover: 1.0 },
+      stakefenceHard: { pattern: 'stakefence', telegraph: 0.6, stakes: 4, radius: 170, gap: 80, arm: 0.8, life: 5, damage: 30, recover: 1.0 },
+      // 固有「帯電」：体に電気をため、放射状の稲妻がのびて、ゆっくり回る。稲妻のすき間に入れば当たらない
+      statics: { pattern: 'statics', telegraph: 0.9, rays: 8, spin: 0.55, width: 14, warn: 0.6, live: 3.2, damage: 32, recover: 0.9, reach: 'near' },
+      staticsHard: { pattern: 'statics', telegraph: 0.8, rays: 12, spin: 0.65, width: 14, warn: 0.5, live: 3.4, damage: 32, recover: 0.9, reach: 'near' },
+      // 固有「牙の突き上げ」：前の床を掘り返し、床板が順に跳ね上がる。当たると宙に浮かされて、float 秒のあいだ操作できない
+      tuskrip: { pattern: 'tuskrip', telegraph: 0.8, lockTime: 0.25, count: 8, step: 66, radius: 40, delay: 0.55, stagger: 0.1, damage: 30, float: 0.5, recover: 0.9, reach: 'near' },
+      // 大技「過電圧」：壁ぎわの電線が、内側へ3回狭まる。電線と壁のあいだは、いる間ずっとダメージ。電柱のそば（安全の円）だけが助かる
+      overvolt: { pattern: 'overvolt', telegraph: 1.8, steps: [50, 100, 150], warn: 1.1, hold: 2.3, tick: 0.5, damage: 34, safes: 2, safeRadius: 70, recover: 1.5 },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'charge' }],
-    ultimate: { move: 'overcharge', announce: '過充電' },
+    reactions: [{ when: 'far', seconds: 4, move: 'wirepull' }],
+    ultimate: { move: 'overvolt', announce: '過電圧' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.3, max: 2.2 }, moves: ['charge', 'sparks', 'stomp', 'thunder'] },
+      { hpAbove: 0.5, idle: { min: 1.3, max: 2.2 }, moves: ['wirepull', 'insulators', 'stakefence', 'statics', 'tuskrip'] },
       {
         hpAbove: 0,
         idle: { min: 1.0, max: 1.6 },
-        moves: ['doubleCharge', 'leap', 'sparksHard', 'thunderHard', 'stomp'],
-        combos: [{ moves: ['leap', 'stomp'] }, { moves: ['doubleCharge', 'sparksHard'] }],
+        moves: ['wirepullHard', 'insulatorsHard', 'stakefenceHard', 'staticsHard', 'tuskrip'],
+        combos: [{ moves: ['tuskrip', 'wirepullHard'] }, { moves: ['stakefenceHard', 'staticsHard'] }],
         announce: '暴走',
       },
     ],
@@ -143,32 +115,30 @@ export const bosses = [
     credits: 90,
     drops: { count: 3, rarityBonus: 1 },
     attacks: {
-      // 冷気ブレス
-      breath: { pattern: 'cone', telegraph: 0.9, lockTime: 0.3, range: 400, arc: 54, duration: 1.1, damage: 26, slow: true, recover: 0.7 },
-      // 尻尾なぎ払い
-      sweep: { pattern: 'slam', telegraph: 0.65, radius: 135, damage: 36, recover: 0.6, reach: 'near' },
-      // 氷柱の雨
-      icicles: { pattern: 'rain', telegraph: 0.4, count: 7, interval: 0.28, delay: 0.85, radius: 36, spread: 60, damage: 29, recover: 0.7 },
-      iciclesHard: { pattern: 'rain', telegraph: 0.3, count: 11, interval: 0.2, delay: 0.8, radius: 36, spread: 80, damage: 29, recover: 0.6 },
-      // 滑空：部屋を一直線に飛び抜ける。壁に当たると、少しだけ隙ができる
-      dive: { pattern: 'charge', telegraph: 0.75, lockTime: 0.25, speed: 680, duration: 0.8, damage: 34, recover: 0.6, wallStun: 0.8, reach: 'far' },
-      // 氷の破片：プレイヤーへ扇形に3回撃つ。当たると減速
-      shards: { pattern: 'barrage', telegraph: 0.6, lockTime: 0.15, count: 5, spread: 50, waves: 3, interval: 0.4, track: true, shotSpeed: 300, shotRadius: 7, damage: 22, slow: true, recover: 0.7, reach: 'far' },
-      // 霜だまり：踏むと減速してダメージを受ける床が、しばらく残る
-      frost: { pattern: 'pools', telegraph: 0.6, count: 4, radius: 56, spread: 130, arm: 0.9, life: 6, tick: 0.6, damage: 14, slow: true, recover: 0.6 },
-      // 大技「絶対零度」：部屋全体が凍りつく。光る円の中だけが助かる
-      zero: { pattern: 'safezone', telegraph: 1.9, waveTelegraph: 1.4, zones: 2, radius: 78, within: 190, waves: 3, active: 0.35, damage: 44, recover: 1.5 },
+      // 固有「氷の羽根」：羽根を投げる。羽根は弧を描いて飛び、outT 秒後に、竜のいる場所へ戻ってくる（行きと帰りで当たる）
+      featherbolt: { pattern: 'featherbolt', telegraph: 0.7, lockTime: 0.2, count: 3, spread: 50, speed: 260, turn: 1.1, outT: 1.5, back: 300, damage: 26, radius: 11, recover: 0.8, reach: 'far' },
+      featherboltHard: { pattern: 'featherbolt', telegraph: 0.6, lockTime: 0.2, count: 5, spread: 70, speed: 270, turn: 1.3, outT: 1.5, back: 320, damage: 26, radius: 11, recover: 0.8, reach: 'far' },
+      // 固有「氷柱の波」：爪でなぞった線に沿って、氷柱が順に生える
+      iciclewave: { pattern: 'iciclewave', telegraph: 0.7, lockTime: 0.25, lines: 1, lineSpread: 0, count: 10, step: 58, radius: 32, delay: 0.5, stagger: 0.09, damage: 28, recover: 0.8 },
+      iciclewaveHard: { pattern: 'iciclewave', telegraph: 0.6, lockTime: 0.25, lines: 3, lineSpread: 50, count: 10, step: 58, radius: 32, delay: 0.5, stagger: 0.09, damage: 28, recover: 0.8 },
+      // 固有「凍る息」：扇形に冷気を吹く（浴びると減速）。吹いた場所に、凍る床（慣性がついて止まりにくい）が残る
+      frostbreath: { pattern: 'frostbreath', telegraph: 0.9, lockTime: 0.3, range: 400, arc: 54, duration: 1.2, tick: 0.3, damage: 24, patch: { r: 54, life: 7, max: 12 }, recover: 0.8 },
+      // 固有「霜の翼」：左右に氷の壁が立って、一本道の通路ができる。通路に、氷柱の波が走る。壁は life 秒で崩れる
+      frostwings: { pattern: 'frostwings', telegraph: 0.8, pillar: 'icepillar', gap: 150, spacing: 30, life: 7, marks: 10, laneOffset: 38, markRadius: 44, delay: 0.9, stagger: 0.3, damage: 30, recover: 1.0 },
+      // 固有「寒空の影」：竜が空へ消え、影が部屋の中を動き回る。止まった場所に降りてきて、周りを凍らせる
+      skyshadow: { pattern: 'skyshadow', telegraph: 0.6, roam: 3.0, speed: 300, wander: 140, land: 0.8, radius: 110, damage: 36, recover: 0.9 },
+      // 大技「絶対零度」：部屋が凍りつき、「凍え」がたまる。焚き火の円の中にいる間だけ、下がる。満タンで凍結ダメージ
+      absolutezero: { pattern: 'absolutezero', telegraph: 1.9, duration: 14, fires: 3, radius: 90, move: 3.6, warn: 0.9, rate: 0.16, cool: 0.5, damage: 40, freeze: 0.8, after: 0.55, recover: 1.5 },
     },
-    reactions: [{ when: 'far', seconds: 4, move: 'dive' }],
-    ultimate: { move: 'zero', announce: '絶対零度' },
+    reactions: [{ when: 'far', seconds: 4, move: 'featherbolt' }],
+    ultimate: { move: 'absolutezero', announce: '絶対零度' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['breath', 'shards', 'icicles', 'sweep', 'dive'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.9 }, moves: ['featherbolt', 'iciclewave', 'frostbreath', 'frostwings', 'skyshadow'] },
       {
         hpAbove: 0,
         idle: { min: 0.8, max: 1.4 },
-        moves: ['iciclesHard', 'dive', 'breath', 'sweep', 'shards'],
-        combos: [{ moves: ['dive', 'sweep'] }, { moves: ['shards', 'breath'] }],
-        side: { moves: ['frost'], every: { min: 9, max: 13 } },
+        moves: ['featherboltHard', 'iciclewaveHard', 'frostbreath', 'frostwings', 'skyshadow'],
+        combos: [{ moves: ['frostbreath', 'iciclewaveHard'] }, { moves: ['skyshadow', 'featherboltHard'] }],
         announce: '凍結開始',
         arena: { inset: 90, seconds: 22 },
       },
@@ -190,34 +160,40 @@ export const bosses = [
     credits: 150,
     drops: { count: 3, rarityBonus: 2 },
     attacks: {
-      // レーザーの回転掃射
-      laser: { pattern: 'laser', telegraph: 0.9, lead: 55, turn: 190, speed: 95, width: 22, range: 1100, damage: 34, recover: 0.7 },
-      // ドローン召喚
-      summon: { pattern: 'summon', telegraph: 0.7, enemy: 'drone', count: 3, max: 6, recover: 0.6 },
-      // 全体衝撃波（部屋の端まで届く輪。ダッシュの無敵ですり抜ける）
-      nova: { pattern: 'shockwave', telegraph: 0.9, damage: 29, ringSpeed: 340, ringMax: 980, ringWidth: 16, recover: 0.8 },
+      // 固有「命令ブロック」：番号つきのブロックが、番号の順に爆発する。次に爆発するブロックの枠が光る
+      opblocks: { pattern: 'opblocks', telegraph: 0.7, count: 6, sep: 100, radius: 56, warn: 0.9, gap: 0.55, damage: 34, recover: 0.8 },
+      opblocksHard: { pattern: 'opblocks', telegraph: 0.6, count: 8, sep: 92, radius: 56, warn: 0.8, gap: 0.45, damage: 34, recover: 0.8 },
+      // 固有「配線トレース」：基板の線の上を、光の点が、曲がりながら走る。通ったあとの線は、しばらく感電する
+      tracepath: { pattern: 'tracepath', telegraph: 0.7, edges: 7, warn: 1.1, speed: 380, trailLife: 2.8, width: 12, damage: 30, recover: 0.8 },
+      tracepathHard: { pattern: 'tracepath', telegraph: 0.6, edges: 10, warn: 1.0, speed: 440, trailLife: 2.8, width: 12, damage: 30, recover: 0.8 },
+      // 固有「子機の円陣」：子機が本体のまわりを回り、プレイヤーへ弾を撃つ。duration 秒たつと戻る。全部壊すと、本体に open 秒の隙ができる
+      satellites: { pattern: 'satellites', telegraph: 0.7, enemy: 'satdrone', count: 3, orbit: 92, spin: 1.1, duration: 8, open: 3, recover: 0.8, reach: 'far' },
+      // 固有「再起動」：四隅の端末が光る。charge 秒のあいだに1つでも壊さないと、部屋の端（safe px）以外に放電する。壊すと、本体に隙ができる
+      reboot: { pattern: 'reboot', telegraph: 0.7, terminal: 'terminal', inset: 60, charge: 6.5, safe: 80, damage: 44, open: 3.5, recover: 1.0 },
+      // 固有「基板ショート」：基板の線の交差点が順に光り、十字の稲妻が走る
+      shortcircuit: { pattern: 'shortcircuit', telegraph: 0.7, count: 5, delay: 0.9, stagger: 0.4, width: 26, damage: 32, recover: 0.8 },
+      shortcircuitHard: { pattern: 'shortcircuit', telegraph: 0.6, count: 7, delay: 0.85, stagger: 0.32, width: 26, damage: 32, recover: 0.8 },
       // 冷却：数秒の大きな隙
       vent: { pattern: 'vent', duration: 3.6 },
-      // 格子レーザー：横と縦の線が、プレイヤーの場所から順に交互に光る
-      grid: { pattern: 'lines', telegraph: 0.6, orient: 'cross', count: 6, spacing: 120, width: 30, delay: 0.85, stagger: 0.22, damage: 34, recover: 0.7, reach: 'far' },
-      // うずまき弾：全方向の弾を、少しずつ向きをずらして撃ち続ける
-      spiral: { pattern: 'barrage', telegraph: 0.7, count: 8, spread: 360, waves: 6, interval: 0.28, rotate: 13, shotSpeed: 210, shotRadius: 7, damage: 26, recover: 0.8 },
-      // 過熱床：踏むとダメージを受ける床が、しばらく残る
-      scorch: { pattern: 'pools', telegraph: 0.6, count: 5, radius: 60, spread: 150, arm: 1.0, life: 7, tick: 0.5, damage: 18, recover: 0.6 },
-      // 大技「照準固定」：照準の円が追いかけてきて、止まった場所を撃つ
-      lockon: { pattern: 'chase', telegraph: 1.0, count: 6, interval: 1.0, spawn: 150, speed: 330, follow: 1.3, lock: 0.55, radius: 60, damage: 40, recover: 1.2 },
+      // 大技「全システム停止」：部屋が暗転し、命令ブロックが12個。番号は最初の数秒しか見えない。配線トレースも重なる
+      systemhalt: {
+        pattern: 'systemhalt', telegraph: 1.8, count: 12, sep: 72, radius: 50, warn: 1.2, gap: 0.38, damage: 34, dim: 0.4, hideAfter: 3.2, traceDelay: 2.5,
+        trace: { edges: 9, warn: 1.0, speed: 420, trailLife: 2.6, width: 12, damage: 30 },
+        recover: 1.5,
+      },
     },
-    ultimate: { move: 'lockon', announce: '照準固定' },
+    reactions: [{ when: 'far', seconds: 4, move: 'satellites' }],
+    ultimate: { move: 'systemhalt', announce: '全システム停止' },
     phases: [
-      { hpAbove: 0.5, idle: { min: 1.2, max: 1.8 }, moves: ['laser', 'summon', 'spiral', 'nova', 'grid'] },
+      { hpAbove: 0.5, idle: { min: 1.2, max: 1.8 }, moves: ['opblocks', 'tracepath', 'satellites', 'reboot', 'shortcircuit'] },
       // オーバーヒート：攻撃が速くなるが、3回攻撃するたびに冷却の隙ができる
       {
         hpAbove: 0,
         idle: { min: 0.7, max: 1.1 },
         speed: 1.4,
-        moves: ['laser', 'nova', 'grid', 'summon', 'spiral'],
-        combos: [{ moves: ['grid', 'nova'] }],
-        side: { moves: ['scorch'], every: { min: 10, max: 14 } },
+        moves: ['opblocksHard', 'tracepathHard', 'satellites', 'reboot', 'shortcircuitHard'],
+        combos: [{ moves: ['shortcircuitHard', 'opblocksHard'] }],
+        side: { moves: ['tracepath'], every: { min: 10, max: 14 } },
         rest: { after: 3, move: 'vent' },
         announce: 'オーバーヒート',
       },

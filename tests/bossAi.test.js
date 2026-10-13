@@ -5,6 +5,7 @@ import { PATTERNS } from '../src/game/bossPatterns.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { chooseMove, moveOptions, reachOf } from '../src/logic/bossAi.js';
+import { withShared } from './fixtures/sharedAttacks.js';
 
 // 2026-10-06 のボスの行動の作り直し：状況で技を選ぶ、反応、連携、重ねる攻撃、大技
 
@@ -22,6 +23,7 @@ function seeded(seed) {
 function bossWorld(id, rng = () => 0.5) {
   const world = createWorld({ waves: [{ boss: id }], rng });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  withShared(world.boss); // 共通の部品の攻撃（突進・耐える・安全地帯・追尾など）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -67,7 +69,7 @@ describe('ボスの定義（行動の選び方）', () => {
     }
   });
 
-  it('どのボスも大技を持ち、後半には連携がある。マップ1〜3の9体は、大技の部品が3種類を3体ずつ。マップ4からは、そのボスだけの大技もある', () => {
+  it('どのボスも大技を持ち、後半には連携がある。マップ1の3体と、マップ4からは、そのボスだけの大技。マップ2〜3の6体は、まだ共通の大技の部品（順に作り直す）', () => {
     const count = {};
     for (const boss of DATA.bosses.all().filter((b) => !b.hidden)) {
       expect(boss.ultimate?.announce, boss.id).toBeTruthy();
@@ -75,7 +77,7 @@ describe('ボスの定義（行動の選び方）', () => {
       count[pattern] = (count[pattern] ?? 0) + 1;
       expect(boss.phases.at(-1).combos?.length, boss.id).toBeGreaterThanOrEqual(1);
     }
-    expect(count).toEqual({ endure: 3, safezone: 3, chase: 3, douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1 });
+    expect(count).toEqual({ endure: 2, safezone: 2, chase: 2, douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1, overvolt: 1, absolutezero: 1, systemhalt: 1 });
   });
 });
 
@@ -137,11 +139,11 @@ describe('戦いの中での選び方', () => {
     const world = bossWorld('boltboar');
     const b = world.boss;
     world.player.inv = Infinity;
-    b.memory.last = 'stomp';
+    b.memory.last = 'tuskrip';
     b.react.far = 99;
     b.idleT = 0;
     expect(runUntil(world, () => !!b.act, 1)).toBe(true);
-    expect(b.act.name).toBe('charge');
+    expect(b.act.name).toBe('wirepull');
     expect(b.react.far).toBeLessThan(1);
   });
 
@@ -219,15 +221,15 @@ describe('戦いの中での選び方', () => {
   });
 
   it('重ねる攻撃：後半は、本体の行動とは別に、残る攻撃が差し込まれる', () => {
-    const world = bossWorld('cryowyvern', seeded(3));
+    const world = bossWorld('overload', seeded(3));
     const b = world.boss;
     world.player.inv = Infinity;
     b.hp = b.maxHp * 0.4;
     expect(runUntil(world, () => b.phaseIndex === 1)).toBe(true);
-    expect(runUntil(world, () => b.side?.name === 'frost', 20)).toBe(true);
-    expect(runUntil(world, () => world.hazards.some((h) => h.type === 'pool'), 4)).toBe(true);
+    expect(runUntil(world, () => b.side?.name === 'tracepath', 25)).toBe(true);
+    expect(runUntil(world, () => world.hazards.some((h) => h.type === 'trace'), 4)).toBe(true);
     // 前半には出ない
-    const early = bossWorld('cryowyvern', seeded(3));
+    const early = bossWorld('overload', seeded(3));
     early.player.inv = Infinity;
     expect(runUntil(early, () => !!early.boss.side, 20)).toBe(false);
   });
@@ -235,9 +237,11 @@ describe('戦いの中での選び方', () => {
 
 describe('大技', () => {
   // HP を残りわずかにして、大技を始めさせる
-  function ultimateWorld(id, rng) {
+  //   move を書くと、そのボスの大技を、共通の部品の大技（overcharge / zero / lockon）に差し替える
+  function ultimateWorld(id, rng, move = null) {
     const world = bossWorld(id, rng);
     const b = world.boss;
+    if (move) b.def = { ...b.def, ultimate: { move, announce: move } };
     b.idleT = Infinity;
     b.hp = Math.round(b.maxHp * (BOSS_AI.ultimateAt - 0.01));
     updateWorld(world, DT, idle);
@@ -254,17 +258,17 @@ describe('大技', () => {
     expect(b.act).toBeNull();
     b.hp = b.maxHp * 0.24;
     updateWorld(world, DT, idle);
-    expect(b.act.name).toBe('overcharge');
+    expect(b.act.name).toBe('overvolt');
     expect(b.act.ultimate).toBe(true);
     expect(b.ultimateDone).toBe(true);
-    expect(runUntil(world, () => !b.act, 20)).toBe(true);
+    expect(runUntil(world, () => !b.act, 30)).toBe(true);
     b.idleT = Infinity;
     for (let i = 0; i < 30; i++) updateWorld(world, DT, idle);
     expect(b.act).toBeNull(); // 2回目は出ない
   });
 
   it('耐える：溜めている間に決まったダメージを与えると中断でき、長いスタンになる。輪は出ない', () => {
-    const world = ultimateWorld('boltboar');
+    const world = ultimateWorld('boltboar', undefined, 'overcharge');
     const b = world.boss;
     const def = b.def.attacks.overcharge;
     world.player.inv = Infinity;
@@ -292,7 +296,7 @@ describe('大技', () => {
   });
 
   it('耐える：中断できないと、部屋の端まで届く輪が決まった回数だけ広がる。溜めている間は、別の技が重ねて出る', () => {
-    const world = ultimateWorld('boltboar');
+    const world = ultimateWorld('boltboar', undefined, 'overcharge');
     const b = world.boss;
     const def = b.def.attacks.overcharge;
     world.player.inv = Infinity;
@@ -330,7 +334,7 @@ describe('大技', () => {
 
   it('安全地帯：円の外にいると当たり、中にいれば当たらない。1つ目の円は必ずプレイヤーの近くに出る。決まった回数くり返す', () => {
     for (const seed of [1, 2, 3, 4, 5]) {
-      const world = ultimateWorld('cryowyvern', seeded(seed));
+      const world = ultimateWorld('cryowyvern', seeded(seed), 'zero');
       const b = world.boss;
       const def = b.def.attacks.zero;
       const p = world.player;
@@ -342,7 +346,7 @@ describe('大技', () => {
       }
     }
 
-    const world = ultimateWorld('cryowyvern');
+    const world = ultimateWorld('cryowyvern', undefined, 'zero');
     const b = world.boss;
     const def = b.def.attacks.zero;
     const p = world.player;
@@ -364,7 +368,7 @@ describe('大技', () => {
     expect(p.hp).toBe(PLAYER.maxHp);
 
     // 円の外に立ったままだと当たる。予告の間は当たらない
-    const w2 = ultimateWorld('cryowyvern');
+    const w2 = ultimateWorld('cryowyvern', undefined, 'zero');
     const b2 = w2.boss;
     const p2 = w2.player;
     const out = () => {
@@ -383,7 +387,7 @@ describe('大技', () => {
   });
 
   it('追尾：照準がプレイヤーを追い、止まってから攻撃する。止まったあとに離れれば当たらない', () => {
-    const world = ultimateWorld('overload');
+    const world = ultimateWorld('overload', undefined, 'lockon');
     const b = world.boss;
     const def = b.def.attacks.lockon;
     const p = world.player;
@@ -403,7 +407,7 @@ describe('大技', () => {
     expect(p.hp).toBe(PLAYER.maxHp - def.damage);
 
     // 走り続けていれば当たらない（止まった照準から離れられる）。数は決まった個数
-    const w2 = ultimateWorld('overload');
+    const w2 = ultimateWorld('overload', undefined, 'lockon');
     const b2 = w2.boss;
     const p2 = w2.player;
     let count = 0;

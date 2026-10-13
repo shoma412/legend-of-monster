@@ -14,6 +14,7 @@ import { recalcStats } from './build.js';
 import { createEnemy, dropDebris } from './enemyAI.js';
 import { loosenScreen, suck } from './wind.js';
 import { ventSpots } from '../logic/ventSpots.js';
+import { installMap1 } from './map1Bosses.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -2152,9 +2153,18 @@ PATTERNS.flare = {
 };
 
 // 広がる輪などの、ボスから離れて残る攻撃
+// ボスごとの固有の「残る攻撃」の動き（src/game/map1Bosses.js など）。種類の名前 → { update(world, h, dt) }
+export const HAZARD_TYPES = {};
+installMap1(PATTERNS, HAZARD_TYPES);
+
 export function updateHazards(world, dt) {
   const p = world.player;
   for (const h of world.hazards) {
+    const custom = HAZARD_TYPES[h.type];
+    if (custom) {
+      custom.update(world, h, dt);
+      continue;
+    }
     if (h.type === 'cloud') {
       // 雨雲：プレイヤーを追い、真下に雨を降らせる（屋根の下なら当たらない）。決まった間隔で、雲の真下に落雷（屋根でも防げない）
       if (h.dead || !h.owner || h.owner.dead) {
@@ -2268,7 +2278,19 @@ export function updateHazards(world, dt) {
       // 落下地点の予告。時間が来たら、その円の中にいると当たる
       h.t -= dt;
       if (h.t <= 0) {
-        if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r)) hurtPlayer(world, h.damage);
+        // float を書くと、当たったプレイヤーは、その秒数だけ操作できない（牙の突き上げ）
+        if (circlesOverlap(h.x, h.y, h.r, p.x, p.y, p.r) && hurtPlayer(world, h.damage) && h.float) p.floatT = Math.max(p.floatT ?? 0, h.float);
+        // shards を書くと、落ちた場所から全方向に弾が飛ぶ。pool を書くと、その場に危険な床が残る（碍子落とし）
+        if (h.shards) {
+          const base = world.rng() * Math.PI * 2;
+          for (let k = 0; k < h.shards.count; k++) {
+            const a = base + (k * Math.PI * 2) / h.shards.count;
+            world.shots.push({ x: h.x, y: h.y, vx: Math.cos(a) * h.shards.speed, vy: Math.sin(a) * h.shards.speed, r: h.shards.radius, damage: h.shards.damage, life: h.shards.life ?? 3, slow: false, color: h.color });
+          }
+        }
+        if (h.pool) {
+          world.hazards.push({ type: 'pool', x: h.x, y: h.y, r: h.pool.radius, arm: h.pool.arm, armMax: h.pool.arm, life: h.pool.life, tick: h.pool.tick, acc: h.pool.tick, damage: h.pool.damage, slow: false, color: h.color });
+        }
         // 部屋の仕掛けの落下物は、敵にも当たる
         if (h.enemyDamage > 0) {
           for (const e of world.enemies) {

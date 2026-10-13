@@ -5,6 +5,7 @@ import { PATTERNS } from '../src/game/bossPatterns.js';
 import { chooseImplant } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
+import { SHARED_ATTACKS, withShared } from './fixtures/sharedAttacks.js';
 
 const DT = 1 / 60;
 const idle = { mx: 0, my: 0, attack: false, attackPressed: false, dashPressed: false };
@@ -14,6 +15,7 @@ const def = DATA.bosses.get('boltboar');
 function bossWorld() {
   const world = createWorld({ waves: [{ boss: 'boltboar' }], rng: () => 0.5 });
   while (!world.boss || world.boss.spawnT > 0) updateWorld(world, DT, idle);
+  withShared(world.boss); // 共通の部品の攻撃（突進・衝撃波）を、部品のテストに使えるようにする
   return world;
 }
 
@@ -70,12 +72,12 @@ describe('ボルトボア', () => {
     expect(runUntil(world, () => b.act?.name === 'charge')).toBe(true);
     world.player.x = b.x - 250;
     const x0 = b.x;
-    run(world, def.attacks.charge.telegraph - 0.1);
+    run(world, SHARED_ATTACKS.charge.telegraph - 0.1);
     expect(b.act.phase).toBe('telegraph');
     expect(b.x).toBe(x0);
     expect(world.player.hp).toBe(PLAYER.maxHp);
     expect(runUntil(world, () => world.player.hp < PLAYER.maxHp, 2)).toBe(true);
-    expect(world.player.hp).toBe(PLAYER.maxHp - def.attacks.charge.damage);
+    expect(world.player.hp).toBe(PLAYER.maxHp - SHARED_ATTACKS.charge.damage);
   });
 
   it('突進を避けて壁に当てるとスタンし、その間は触れてもダメージを受けない', () => {
@@ -83,6 +85,7 @@ describe('ボルトボア', () => {
     const b = world.boss;
     const p = world.player;
     // 壁際に立ち、突進が始まったら無敵で通り抜けさせる
+    b.next = 'charge';
     p.x = world.bounds.left + p.r;
     expect(runUntil(world, () => b.act?.phase === 'active')).toBe(true);
     b.x = 400;
@@ -109,7 +112,7 @@ describe('ボルトボア', () => {
     p.inv = 0;
     const hp = p.hp;
     expect(runUntil(world, () => ring.done || ring.dead, 3)).toBe(true);
-    expect(p.hp).toBe(hp - def.attacks.stomp.damage);
+    expect(p.hp).toBe(hp - SHARED_ATTACKS.stomp.damage);
 
     // もう一度。今度は輪が届く間ずっと無敵
     b.next = 'stomp';

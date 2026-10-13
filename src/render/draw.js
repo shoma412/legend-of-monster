@@ -5,6 +5,7 @@ import { DATA } from '../data/index.js';
 import { pad } from '../game/padInput.js';
 import { xpToNext } from '../logic/level.js';
 import { drawBackdrop } from './backdrop.js';
+import { BOSS_TELEGRAPHS_MAP1, HAZARD_DRAWS, drawBoard } from './map1Draw.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
@@ -601,6 +602,8 @@ export function drawPlayer(g, world) {
     g.lineStyle(2, hex(COLORS.amber), 0.9).strokeCircle(p.x, p.y, p.r + 12 + pulse);
     g.lineStyle(6, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, p.r + 12 + pulse);
   }
+  // 宙に浮かされている・凍っている間：頭の上に、水色の輪
+  if (p.floatT > 0) g.lineStyle(2.5, hex(ELEMENT_COLORS.cold), 0.5 + 0.4 * Math.abs(Math.sin(world.time * 14))).strokeCircle(p.x, p.y - 6, p.r + 6);
   // 煙幕：まわりに煙の輪
   if (p.smokeT > 0) {
     g.fillStyle(hex(COLORS.dim), 0.16).fillCircle(p.x, p.y, p.smokeRadius);
@@ -1934,8 +1937,20 @@ export function drawBossTelegraph(g, world) {
   if (b.side) BOSS_TELEGRAPHS[b.side.def.pattern]?.(g, b, b.side, world);
 }
 
+Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1);
+
+// オーバーロードの、基板の線を走らせる攻撃のあいだだけ、基板の線を薄く出す
+const BOARD_PATTERNS = ['tracepath', 'shortcircuit', 'systemhalt'];
+
 export function drawHazards(g, world) {
+  const act = world.boss?.act;
+  if (act && BOARD_PATTERNS.includes(act.def.pattern)) drawBoard(g, world.bounds);
   for (const h of world.hazards) {
+    const custom = HAZARD_DRAWS[h.type];
+    if (custom) {
+      custom(g, h, world);
+      continue;
+    }
     if (h.type === 'cloud') {
       // 雨雲：真下の雨の範囲（輪と雨すじ）と、雲。消える前は薄くなる
       const c = hex(h.color);

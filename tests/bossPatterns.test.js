@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PLAYER } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { PATTERNS } from '../src/game/bossPatterns.js';
+import { SHARED_ATTACKS } from './fixtures/sharedAttacks.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 
 // 2026-10-06 に足した攻撃パターンの部品：弾のばらまき、跳びかかり、線の攻撃、残る床
@@ -23,7 +24,7 @@ function startAttack(world, name) {
   const p = world.player;
   const dx = p.x - b.x;
   const dy = p.y - b.y;
-  b.act = { name, def: b.def.attacks[name], phase: '', t: 0 };
+  b.act = { name, def: SHARED_ATTACKS[name] ?? b.def.attacks[name], phase: '', t: 0 };
   PATTERNS[b.act.def.pattern].start(world, b, b.act, { dx, dy, dist: Math.hypot(dx, dy) || 1 });
   return b.act;
 }
@@ -65,7 +66,7 @@ describe('ボスの攻撃の数', () => {
 describe('弾のばらまき', () => {
   it('放電弾：予告のあと、全方向に弾が飛ぶ', () => {
     const world = bossWorld('boltboar');
-    const def = world.boss.def.attacks.sparks;
+    const def = SHARED_ATTACKS.sparks;
     world.player.inv = Infinity;
     startAttack(world, 'sparks');
     expect(world.shots).toHaveLength(0);
@@ -80,7 +81,7 @@ describe('弾のばらまき', () => {
 
   it('うずまき弾：何回かに分けて撃ち、毎回向きがずれる', () => {
     const world = bossWorld('overload');
-    const def = world.boss.def.attacks.spiral;
+    const def = SHARED_ATTACKS.spiral;
     world.player.inv = Infinity;
     const act = startAttack(world, 'spiral');
     const bases = new Set();
@@ -101,7 +102,7 @@ describe('弾のばらまき', () => {
   it('氷の破片：プレイヤーへ向かって扇形に飛び、当たるとダメージと減速', () => {
     const world = bossWorld('cryowyvern');
     const p = world.player;
-    const def = world.boss.def.attacks.shards;
+    const def = SHARED_ATTACKS.shards;
     startAttack(world, 'shards');
     expect(runUntil(world, () => world.shots.length > 0)).toBe(true);
     expect(world.shots.every((s) => s.vx < 0)).toBe(true); // プレイヤーは左にいる
@@ -115,7 +116,7 @@ describe('線の攻撃', () => {
   it('落雷の列：予告の線が出て、少し遅れて光る。立ち止まっていると当たる', () => {
     const world = bossWorld('boltboar');
     const p = world.player;
-    const def = world.boss.def.attacks.thunder;
+    const def = SHARED_ATTACKS.thunder;
     startAttack(world, 'thunder');
     expect(runUntil(world, () => world.hazards.some((h) => h.type === 'bar'))).toBe(true);
     const bars = world.hazards.filter((h) => h.type === 'bar');
@@ -142,7 +143,7 @@ describe('線の攻撃', () => {
 
   it('格子レーザー：横の線と縦の線が半分ずつ出る', () => {
     const world = bossWorld('overload');
-    const def = world.boss.def.attacks.grid;
+    const def = SHARED_ATTACKS.grid;
     world.player.inv = Infinity;
     startAttack(world, 'grid');
     runUntil(world, () => world.hazards.some((h) => h.type === 'bar'));
@@ -160,7 +161,7 @@ describe('跳びかかり', () => {
     const world = bossWorld('boltboar');
     const b = world.boss;
     const p = world.player;
-    const def = b.def.attacks.leap;
+    const def = SHARED_ATTACKS.leap;
     const target = { x: p.x, y: p.y };
     startAttack(world, 'leap');
     expect(runUntil(world, () => b.act?.phase === 'air')).toBe(true);
@@ -191,7 +192,7 @@ describe('残る床', () => {
     const world = bossWorld('cryowyvern');
     const b = world.boss;
     const p = world.player;
-    const def = b.def.attacks.frost;
+    const def = SHARED_ATTACKS.frost;
     startAttack(world, 'frost');
     expect(runUntil(world, () => world.hazards.some((h) => h.type === 'pool'))).toBe(true);
     const pools = world.hazards.filter((h) => h.type === 'pool');
