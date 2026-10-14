@@ -177,7 +177,7 @@ export function gearPrice(item) {
 }
 
 // 闇市の品ぞろえ：毎回ちがう。装備・修復キット・消耗品・インプラントは必ず1つずつ入り、残りは抽選（装備・消耗品・インプラント）
-export function generateShop(build, rng, tier = null) {
+export function generateShop(build, rng, tier = null, mythic = 0) {
   const shop = ECONOMY.shop;
   // 種類を決める：装備・回復（修復キット）・消耗品・インプラントは必ず1つずつ。残りは抽選
   const types = ['gear', 'kit', 'item', 'implant'];
@@ -203,7 +203,7 @@ export function generateShop(build, rng, tier = null) {
   const goods = [];
   for (const type of types) {
     if (type === 'gear') {
-      const item = makeItem(rng, { rarityBonus: shop.rarityBonus, tier });
+      const item = makeItem(rng, { rarityBonus: shop.rarityBonus, tier, mythic });
       goods.push({ type, item, price: gearPrice(item) });
     } else if (type === 'kit') {
       goods.push({ type, price: ECONOMY.prices.kit });
@@ -221,7 +221,7 @@ export function generateShop(build, rng, tier = null) {
 }
 
 // データ金庫：装備3つ（スロットはなるべく別々）
-export function generateVault(rng, tier = null) {
+export function generateVault(rng, tier = null, mythic = 0) {
   const slots = ['mod', 'armor', 'acc'];
-  return slots.slice(0, ROOMGEN.vault.count).map((slot) => makeItem(rng, { slot, rarityBonus: ROOMGEN.vault.rarityBonus, tier }));
+  return slots.slice(0, ROOMGEN.vault.count).map((slot) => makeItem(rng, { slot, rarityBonus: ROOMGEN.vault.rarityBonus, tier, mythic }));
 }

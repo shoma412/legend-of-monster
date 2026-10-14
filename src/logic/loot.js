@@ -12,7 +12,7 @@ function pick(list, rng) {
 
 // そのエリアでの、レア度ごとの出やすさ。tier はマップの中の何番目のエリアか（0 から）。null なら基本の値
 export function rarityWeights(tier = null) {
-  if (tier == null) return LOOT.rarities.map((r) => r.weight);
+  if (tier == null) return LOOT.rarities.filter((r) => !r.mythic).map((r) => r.weight); // ミシックは別の抽選（mythic）
   return LOOT.areaWeights[Math.max(0, Math.min(LOOT.areaWeights.length - 1, tier))];
 }
 
@@ -27,10 +27,19 @@ function rollOnce(rng, weights) {
 }
 
 // レア度の番号（0=コモン … 3=レジェンド）。bonus の回数だけ引き直して、いちばん良いものを取る
-export function rollRarity(rng, bonus = 0, tier = null) {
+//   mythic: ミシックになる確率（マップとエリアで決まる。0 なら、ミシックは出ない）。mythicTries: ミシックの抽選をやり直せる回数
+export function rollRarity(rng, bonus = 0, tier = null, mythic = 0, mythicTries = 1) {
   const weights = rarityWeights(tier);
   let best = rollOnce(rng, weights);
   for (let i = 0; i < bonus; i++) best = Math.max(best, rollOnce(rng, weights));
+  if (mythic > 0) {
+    for (let i = 0; i < mythicTries; i++) {
+      if (rng() < mythic) {
+        best = LOOT.rarities.length - 1;
+        break;
+      }
+    }
+  }
   return best;
 }
 
@@ -44,14 +53,15 @@ function rollLine(def, rarity, rng) {
 
 // 装備を1つ作る。{ slot, rarity, effects: [{ id, value } | { id, element }], unique, name }
 //   tier: マップの中の何番目のエリアか（レア度の出やすさが変わる）
-export function makeItem(rng, { rarityBonus = 0, minRarity = 0, slot = null, rarity = null, tier = null } = {}) {
-  const rarityIndex = rarity ?? Math.max(minRarity, rollRarity(rng, rarityBonus, tier));
+//   mythic: ミシックの出る確率。mythicLuck が true なら、レア度の底上げの回数ぶん、ミシックの抽選をやり直せる（マップ7）
+export function makeItem(rng, { rarityBonus = 0, minRarity = 0, slot = null, rarity = null, tier = null, mythic = 0, mythicLuck = false } = {}) {
+  const rarityIndex = rarity ?? Math.max(minRarity, rollRarity(rng, rarityBonus, tier, mythic, 1 + (mythicLuck ? rarityBonus : 0)));
   const rar = LOOT.rarities[rarityIndex];
   const slotDef = slot ? LOOT.slots.find((s) => s.id === slot) : pick(LOOT.slots, rng);
   const pool = DATA.gearEffects.all().filter(isAvailable);
 
-  // レジェンドは効果のうち1つが固有効果
-  const unique = rar.unique ? pick(DATA.legendEffects.all(), rng) : null;
+  // レジェンドは効果のうち1つが固有効果。ミシックは、ミシック専用の固有効果（そのスロット用のもの）
+  const unique = rar.unique ? pick(DATA.legendEffects.all().filter((u) => !!u.mythic === !!rar.mythic && (!u.slot || u.slot === slotDef.id)), rng) : null;
   const count = Math.min(pool.length, rar.effects - (unique ? 1 : 0));
 
   const chosen = [];

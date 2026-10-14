@@ -1,5 +1,5 @@
 // 1回のラン（出撃から死亡またはクリアまで）の進行。部屋をまたいで持ち越すものをまとめる。
-import { ENEMY_SCALING, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
+import { ENEMY_SCALING, LOOT, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
 import { roomBounds } from '../logic/geometry.js';
 import { allLampsLit, placeLamps } from './darkness.js';
 import { placeRoofs } from './acidRain.js';
@@ -93,7 +93,7 @@ export function enterRoom(run) {
   // 奥のエリアほど、敵の数が増える（部屋数ぶん先に進んだものとして数える）
   // 周が進むと、さらに敵が増え、エリートの特性も増える
   const depth = plan.step + run.areaIndex * ROOMGEN.depthPerArea + run.mods.stepBonus;
-  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits, tier: run.areaIndex };
+  const ctx = { area, step: depth, build: run.build, rng, fragment: pickFragment(save, area.id, 'vault', rng), eliteTraits: run.mods.eliteTraits, tier: run.areaIndex, mythic: LOOT.mythic[run.map.id]?.[run.areaIndex] ?? 0 };
   // 中断から再開した最初の部屋は、クリア済みで扉が開いた状態にする（中身は空）
   const resumed = !!run.resumed;
   run.resumed = false;
@@ -132,8 +132,14 @@ export function enterRoom(run) {
   room.healScale = run.mods.healScale;
   // 装備のレア度は、奥のエリアほど良くなる。マップの最後のボスは、装備と消耗品を落とさない（倒すと隠れ家に戻るため）
   // 環境（そのマップのすべての部屋に効く決まり）。暗闇のマップでは、戦闘のある部屋に非常灯を置く
-  if (run.map.environment) {
-    room.environment = DATA.environments.get(run.map.environment);
+  // ミシックの出る確率（マップとエリアで決まる）。マップ7では、レア度の底上げの回数ぶん、抽選をやり直せる
+  room.mythicChance = LOOT.mythic[run.map.id]?.[run.areaIndex] ?? 0;
+  room.bossMythic = LOOT.bossMythic[run.map.id]?.[run.areaIndex] ?? 0;
+  room.mythicLuck = run.map.id === 'map7';
+  // 環境は、マップ全体のものか、エリアごとのもの（エリアの environment が先）
+  const environmentId = area.environment ?? run.map.environment;
+  if (environmentId) {
+    room.environment = DATA.environments.get(environmentId);
     if (room.environment.dark && room.waves.length > 0) room.lamps = placeLamps(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
     // 酸の雨のマップでは、戦闘のある部屋に屋根を置く
     if (room.environment.rain && room.waves.length > 0) room.roofs = placeRoofs(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);

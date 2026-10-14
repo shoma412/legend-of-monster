@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   gateclose / holdshots / callguards / fissure / tailbomb / lockdown : 固有（ゲートキーパー）。数値の意味は、下の定義の注釈
 //   twister / sweepup / swirlshot / spiralbolt / cycloneram / eyestorm : 固有（サイクロン）。数値の意味は、下の定義の注釈
 //   compass / gust / windseed / windturn / windrush / stormfury : 固有（ウェザーベーン）。それぞれの数値の意味は、下の定義の注釈
 // shield: { arc } を書くと、正面のその角度（度）からの武器の攻撃を防ぐ（甲羅）。硬直中は開いて防げない
@@ -1110,6 +1111,54 @@ export const bosses = [
         moves: ['twisterHard', 'sweepupHard', 'swirlshotHard', 'spiralboltHard', 'cycloneram'],
         combos: [{ moves: ['twisterHard', 'spiralboltHard'] }, { moves: ['sweepupHard', 'swirlshotHard'] }],
         announce: '渦が、荒れる',
+      },
+    ],
+  },
+  // ---- マップ7 エリア1（docs/詳細仕様.md「36. マップ7「核心区」と、ミシック」）。最後のマップ。HP は前のボスより +7000 ----
+  {
+    id: 'gatekeeper',
+    name: 'ゲートキーパー',
+    alias: '門番', // 登場時に出す異名
+    shape: 'gatekeeper',
+    color: 'red',
+    weakness: 'heat',
+    material: 'gateCore',
+    radius: 54,
+    hp: 40000,
+    speed: 60,
+    contactDamage: 72,
+    xp: 1200,
+    credits: 600,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「閉門」：予告の帯（赤）のあと、両側から門板が閉まる。waves 回、向きは交互。すき間（gap px）に入る。stagger 秒ずつずれて閉まる
+      gateclose: { pattern: 'gateclose', telegraph: 0.8, waves: 2, stagger: 1.0, gap: 150, warn: 1.0, hold: 0.5, speed: 1400, damage: 70, recover: 0.9, reach: 'far' },
+      gatecloseHard: { pattern: 'gateclose', telegraph: 0.7, waves: 3, stagger: 0.85, gap: 135, warn: 0.9, hold: 0.45, speed: 1500, damage: 72, recover: 0.9, reach: 'far' },
+      // 固有「検問弾」：ボスのまわりに弾が count 発浮かんで止まり（hold 秒）、止まったあとのプレイヤーの位置めがけて飛ぶ（stagger 秒ずつずれる）
+      holdshots: { pattern: 'holdshots', telegraph: 0.7, count: 8, ring: 30, hold: 1.1, stagger: 0.12, speed: 380, radius: 10, damage: 54, recover: 0.8, reach: 'far' },
+      holdshotsHard: { pattern: 'holdshots', telegraph: 0.6, count: 12, ring: 30, hold: 1.0, stagger: 0.1, speed: 420, radius: 10, damage: 56, recover: 0.8, reach: 'far' },
+      // 固有「衛兵召喚」：盾を持った門衛が count 体、プレイヤーのまわりに出る（体力は hpMul 倍、life 秒で消える）
+      callguards: { pattern: 'callguards', telegraph: 0.9, enemy: 'gateguard', count: 2, spread: 170, hpMul: 0.45, life: 16, hold: 1.5, recover: 0.8, reach: 'near' },
+      callguardsHard: { pattern: 'callguards', telegraph: 0.8, enemy: 'gateguard', count: 3, spread: 180, hpMul: 0.45, life: 16, hold: 1.5, recover: 0.8, reach: 'near' },
+      // 固有「裂け目」：プレイヤーのほうへ、床の裂け目が count 本（spread 度ずつ開く）走る。warn 秒の予告のあと、一瞬だけ当たる
+      fissure: { pattern: 'fissure', telegraph: 0.8, count: 1, spread: 0, len: 1100, width: 70, warn: 0.9, damage: 66, recover: 0.8, reach: 'far' },
+      fissureHard: { pattern: 'fissure', telegraph: 0.7, count: 3, spread: 28, len: 1100, width: 66, warn: 0.8, damage: 68, recover: 0.8, reach: 'far' },
+      // 固有「尾行爆弾」：プレイヤーを追いかける爆弾が count 個。触れるか fuse 秒で爆発する（範囲 blast px）
+      tailbomb: { pattern: 'tailbomb', telegraph: 0.8, count: 2, stagger: 0.5, speed: 125, fuse: 3.4, blast: 100, damage: 66, recover: 0.8, reach: 'near' },
+      tailbombHard: { pattern: 'tailbomb', telegraph: 0.7, count: 3, stagger: 0.45, speed: 140, fuse: 3.0, blast: 105, damage: 68, recover: 0.8, reach: 'near' },
+      // 大技「全門閉鎖」：門板の波が waves 回、向きを変えながら every 秒ごとに閉まる（すき間は、毎回プレイヤーの近く）。検問弾も重なる
+      lockdown: { pattern: 'lockdown', telegraph: 1.8, waves: 6, every: 1.1, gap: 140, warn: 0.9, hold: 0.4, speed: 1500, damage: 72, shots: 10, shotHold: 1.2, shotSpeed: 420, shotDamage: 54, recover: 1.6 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'fissure' }],
+    ultimate: { move: 'lockdown', announce: '全門閉鎖' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['gateclose', 'holdshots', 'callguards', 'fissure', 'tailbomb'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['gatecloseHard', 'holdshotsHard', 'callguardsHard', 'fissureHard', 'tailbombHard'],
+        combos: [{ moves: ['gatecloseHard', 'holdshotsHard'] }, { moves: ['fissureHard', 'tailbombHard'] }],
+        announce: '門が、閉じる',
       },
     ],
   },

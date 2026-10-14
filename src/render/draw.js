@@ -11,6 +11,7 @@ import { BOSS_TELEGRAPHS_MAP3, HAZARD_DRAWS_MAP3 } from './map3Draw.js';
 import { BOSS_TELEGRAPHS_MAP4, HAZARD_DRAWS_MAP4 } from './map4Draw.js';
 import { BOSS_TELEGRAPHS_MAP5, HAZARD_DRAWS_MAP5 } from './map5Draw.js';
 import { BOSS_TELEGRAPHS_MAP6, HAZARD_DRAWS_MAP6 } from './map6Draw.js';
+import { BOSS_TELEGRAPHS_MAP7, HAZARD_DRAWS_MAP7 } from './map7Draw.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 import { cellHot, cellRect, orbitBlades } from '../logic/bossShapes.js';
 import { DEG } from '../logic/geometry.js';
@@ -1769,6 +1770,31 @@ SHAPES.tank = (g, b, color, world) => {
   }
 };
 
+// ゲートキーパー：左右に開く2枚の大きな門扉と、真ん中の赤い錠。攻撃の前は、門扉が少し閉じる
+SHAPES.gatekeeper = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const closing = pattern === 'gateclose' || pattern === 'lockdown';
+  const open = stunned ? 0.5 : closing ? 0.05 : 0.22 + 0.04 * Math.sin(world.time * 2);
+  // 門扉（左右）
+  for (const side of [-1, 1]) {
+    const pts = [local(b, r * (0.2 + open), side * r * 0.25), local(b, r * (0.2 + open), side * r * 1.1), local(b, -r * 0.9, side * r * 1.0), local(b, -r * 0.9, side * r * 0.25)];
+    g.fillStyle(BODY_FILL, 0.95).fillPoints(pts, true);
+    neonStroke(g, color, 3, () => g.strokePoints(pts, true, true));
+    for (let k = 1; k <= 2; k++) {
+      const a = local(b, r * (0.2 + open) - k * r * 0.45, side * r * 0.3);
+      const c = local(b, r * (0.2 + open) - k * r * 0.45, side * r * 1.0);
+      g.lineStyle(2, color, 0.5).lineBetween(a.x, a.y, c.x, c.y);
+    }
+  }
+  // 真ん中の錠
+  g.fillStyle(BODY_FILL, 1).fillCircle(b.x, b.y, r * 0.42);
+  neonStroke(g, color, 3, () => g.strokeCircle(b.x, b.y, r * 0.42));
+  g.fillStyle(hex(COLORS.red), stunned ? 0.3 : 0.9).fillCircle(b.x, b.y, r * 0.16);
+  if (!stunned) g.fillStyle(hex(COLORS.ink), 1).fillCircle(b.x + Math.cos(b.angle) * r * 0.08, b.y + Math.sin(b.angle) * r * 0.08, 3);
+};
+
 // サイクロン：回る渦巻きの腕と、真ん中の目（芯）。竜巻や台風の目のあいだは、速く回る
 SHAPES.cyclone = (g, b, color, world) => {
   const r = b.r;
@@ -2045,8 +2071,8 @@ export function drawBossTelegraph(g, world) {
   if (b.side) BOSS_TELEGRAPHS[b.side.def.pattern]?.(g, b, b.side, world);
 }
 
-Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1, BOSS_TELEGRAPHS_MAP2, BOSS_TELEGRAPHS_MAP3, BOSS_TELEGRAPHS_MAP4, BOSS_TELEGRAPHS_MAP5, BOSS_TELEGRAPHS_MAP6);
-Object.assign(HAZARD_DRAWS, HAZARD_DRAWS_MAP2, HAZARD_DRAWS_MAP3, HAZARD_DRAWS_MAP4, HAZARD_DRAWS_MAP5, HAZARD_DRAWS_MAP6);
+Object.assign(BOSS_TELEGRAPHS, BOSS_TELEGRAPHS_MAP1, BOSS_TELEGRAPHS_MAP2, BOSS_TELEGRAPHS_MAP3, BOSS_TELEGRAPHS_MAP4, BOSS_TELEGRAPHS_MAP5, BOSS_TELEGRAPHS_MAP6, BOSS_TELEGRAPHS_MAP7);
+Object.assign(HAZARD_DRAWS, HAZARD_DRAWS_MAP2, HAZARD_DRAWS_MAP3, HAZARD_DRAWS_MAP4, HAZARD_DRAWS_MAP5, HAZARD_DRAWS_MAP6, HAZARD_DRAWS_MAP7);
 // 大技「竣工」（アーキテクト）：今やっている技（方眼・設計図）の予告を、そのまま描く
 BOSS_TELEGRAPHS.finishwork = (g, b, act, world) => {
   if (act.child) BOSS_TELEGRAPHS[act.child.def.pattern]?.(g, b, act.child, world);
@@ -2388,6 +2414,11 @@ export function drawLoot(g, world) {
     const focused = l === world.focusLoot;
     // エピック以上は光の柱で目立たせる
     if (l.item.rarity >= 2) g.fillStyle(color, 0.22).fillRect(l.x - 2, l.y - 64, 4, 64);
+    // ミシックは、赤い太い光の柱と、広がる輪で、さらに目立たせる
+    if (l.item.rarity >= 4) {
+      g.fillStyle(color, 0.28 + 0.12 * Math.sin(world.time * 5)).fillRect(l.x - 6, l.y - 120, 12, 120);
+      g.lineStyle(2, color, 0.6).strokeCircle(l.x, l.y, 24 + 6 * Math.sin(world.time * 4));
+    }
     // スロットごとの形（武器モッド＝刃、防具＝盾、アクセ＝指輪）。色はレア度
     drawSlotIcon(g, l.item.slot, l.x, l.y + bob, focused ? 13 : 11, color);
     if (focused) g.lineStyle(1, color, 0.5).strokeCircle(l.x, l.y, LOOT.pickupRadius * 0.7);

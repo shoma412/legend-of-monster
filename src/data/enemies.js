@@ -33,6 +33,7 @@
 // tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
 // windproof: true は、風に流されない（ダクトネズミ、かざぐるま）
 // pinwheel: { interval, arms, turn, windMul, shotSpeed, radius }。動かない。回りながら弾を放射状に撃つ。風の間は回転が windMul 倍で、弾の腕が2倍（かざぐるま）
+// gateguard（門衛）は盾を持つ。ゲートキーパーの「衛兵召喚」でも出る
 // whirl: { pullR, pull, tick }。プレイヤーへ進みながら、pullR px 以内のプレイヤーを毎秒 pull px まで引き寄せる。触れると tick 秒ごとにダメージ（つむじ）
 // owner / orbit…: サイクロンの「巻き上げ投げ」の瓦礫（flotsam）は、ボスのまわりを回り、時間が来るとプレイヤーめがけて飛ぶ
 // seed: { arm, trigger, radius }。風がやんで arm 秒たつと地雷になり、trigger px まで近づかれると爆ぜる（ウェザーベーンの「風種」）
@@ -1102,5 +1103,44 @@ export const enemies = [
     dropChance: 0,
     knockbackResist: 1,
     windproof: true,
+  },
+  // ---- ここからマップ7 エリア1「中枢の門」（2026-10-15。最後のマップ。雑魚は、ミシック装備を前提にした強さ） ----
+  {
+    // 門衛：大きな盾を持つ番兵。正面は防がれるので、回り込む。盾の向きを変えるのが速い
+    id: 'gateguard',
+    name: '門衛',
+    behavior: 'guardian',
+    shape: 'shield',
+    color: 'red',
+    radius: 18,
+    hp: 260,
+    speed: 64,
+    damage: 40,
+    xp: 34,
+    credits: 11,
+    cost: 4,
+    dropChance: 0.3,
+    knockbackResist: 0.7,
+    turnRate: 2.4,
+    shield: { arc: 160 },
+    attack: { triggerRange: 54, range: 70, arc: 120, windup: 0.45, recover: 0.8 },
+  },
+  {
+    // 走査機：遠くから、長い照準線で狙う。撃つのが速く、痛い
+    id: 'scanner',
+    name: '走査機',
+    behavior: 'sniper',
+    shape: 'diamond',
+    color: 'red',
+    radius: 13,
+    hp: 150,
+    speed: 76,
+    damage: 58,
+    xp: 30,
+    credits: 10,
+    cost: 4,
+    dropChance: 0.3,
+    keepDistance: { min: 320, max: 480 },
+    snipe: { interval: 2.2, aim: 1.1, lock: 0.3, range: 1200, width: 10 },
   },
 ];

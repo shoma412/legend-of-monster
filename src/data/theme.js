@@ -26,6 +26,7 @@ export const RARITY_COLORS = {
   rare: '#2ef2ff',
   epic: '#c77dff',
   legend: '#ffc23a',
+  mythic: '#ff3b4a',
 };
 
 // エリアごとの床と壁の色（エリアの定義の theme で選ぶ）
@@ -46,6 +47,7 @@ export const AREA_THEMES = {
   neutralizer: { floor: 0x07090c, grid: 0x4a6a8a, wall: 0x10151c, edge: '#8fd8ff' },
   raintower: { floor: 0x08090a, grid: 0x6a7a4a, wall: 0x12140f, edge: '#fff36b' },
   vent: { floor: 0x07090d, grid: 0x4a5a7a, wall: 0x10131c, edge: '#8fd8ff' },
+  gate: { floor: 0x0b0709, grid: 0x7a3a4a, wall: 0x1a0f12, edge: '#ff3b4a' },
   stack: { floor: 0x07090d, grid: 0x4a6a8a, wall: 0x0f141c, edge: '#8fd8ff' },
   garden: { floor: 0x070b0c, grid: 0x4a7a7a, wall: 0x0f1818, edge: '#2ef2ff' },
   duct: { floor: 0x0a0907, grid: 0x7a6a4a, wall: 0x16130f, edge: '#ffb347' },

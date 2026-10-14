@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
 import { PATTERNS } from '../src/game/bossPatterns.js';
@@ -259,6 +259,9 @@ describe('隠しボスの部屋', () => {
     expect(DATA.enemies.has(def.attacks.plans.block)).toBe(true);
   });
 });
+
+beforeEach(() => vi.stubEnv('DEV', false));
+afterEach(() => vi.unstubAllEnvs());
 
 describe('通行証とマップ4', () => {
   it('セーブデータ：通行証の欄がある。古い版のデータは、通行証なしで読み込まれる', () => {

@@ -16,7 +16,7 @@ function say(world, text, color) {
 // 装備を足元に落とす（拾うかどうかは、比べてから決められる）
 function dropGear(world, rarityBonus) {
   const p = world.player;
-  world.loot.push({ x: p.x + 46, y: p.y, item: makeItem(world.rng, { rarityBonus, tier: world.room.lootTier }), t: 0 });
+  world.loot.push({ x: p.x + 46, y: p.y, item: makeItem(world.rng, { rarityBonus, tier: world.room.lootTier, mythic: world.room.mythicChance ?? 0, mythicLuck: !!world.room.mythicLuck }), t: 0 });
   sfx(world, 'equip');
 }
 

@@ -2,7 +2,8 @@
 import { CYCLE } from '../data/balance.js';
 import { maps } from '../data/maps.js';
 
-const isReady = (map) => map.ready !== false;
+// devOnly のマップは、開発中の画面（npm run dev）でだけ選べる
+const isReady = (map) => map.ready !== false && (!map.devOnly || !!import.meta.env?.DEV);
 
 // そのマップが、並びの何番目か。画面からは、定義を複製したもの（DATA.maps）が渡されるので、id で探す
 //   （同じ物かどうかで探すと、複製されたものは見つからず、「前のマップを完了していなくても選べる」不具合になっていた。2026-10-07 修正）

@@ -611,6 +611,27 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 中枢の門：赤い警告の縞、大きな門の枠（床に落ちた影）、閉まった扉の線
+  gate(g, rng, a) {
+    speckles(g, rng, a, 220, [0x0e0a0c, 0x140d10, 0x0a0709, 0x1c1115], 0.7);
+    const cx = (a.left + a.right) / 2;
+    // 真ん中の縦の継ぎ目（門の合わせ目）と、左右の扉の線
+    block(g, cx - 2, a.top + 20, PX / 2, a.h - 40, 0x4a1c24, 0.8);
+    for (const dx of [-170, 170]) block(g, cx + dx, a.top + 40, PX / 2, a.h - 80, 0x2e1218, 0.7);
+    // 警告の縞（上と下の壁ぎわ）
+    for (const y of [a.top + 12, a.bottom - 12 - PX * 2]) {
+      for (let x = a.left + 14; x < a.right - 30; x += 32) block(g, x, y, 16, PX * 2, x % 64 < 32 ? 0x6a1c28 : 0x1a0d10, 0.85);
+    }
+    // 床の錠の印（丸と十字）
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + a.w * (0.2 + 0.3 * i) + (rng() - 0.5) * 40;
+      const y = a.top + a.h * (0.3 + 0.4 * rng());
+      blob(g, x, y, 16, 12, 0x050304, 0.9);
+      block(g, x - 12, y - 1, 24, PX / 2, 0x6a2430, 0.7);
+      block(g, x - 1, y - 12, PX / 2, 24, 0x6a2430, 0.7);
+    }
+    for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x7a3a46, 0.3);
+  },
   // 排気塔：塔の内側。丸い床の同心円、壁ぎわの梯子、渦の跡、吹き上がる紙くず
   stack(g, rng, a) {
     speckles(g, rng, a, 220, [0x080c12, 0x0c121a, 0x05080d, 0x121b26], 0.7);

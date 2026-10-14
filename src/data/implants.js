@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 門（ゲートキーパー由来・守って押し返す） ----
+  {
+    id: 'checkpoint', species: 'gate', name: '検問',
+    desc: (k) => `立ち止まっている間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'standing' }] }),
+  },
+  {
+    id: 'bulwark', species: 'gate', name: '防壁',
+    desc: (k) => `被ダメージ −${pct(0.03 * k)}、最大HP +${num(15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.03 * k }, { stat: 'maxHp', add: 15 * k }] }),
+  },
+  {
+    id: 'gatepass', species: 'gate', name: '通行手形',
+    desc: (k) => `ダッシュのあと1秒間、被ダメージ −${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.1 * k, when: 'recentDash', window: 1 }] }),
+  },
+  {
+    id: 'lockout', species: 'gate', name: '封鎖',
+    desc: (k) => `状態異常（燃焼・減速・腐食）の敵へのダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'targetAfflicted' }] }),
+  },
+  {
+    id: 'gateward', species: 'gate', name: '衛兵',
+    desc: (k) => `HP が満タンのとき、与えるダメージ +${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.1 * k, when: 'hpFull' }] }),
+  },
   // ---- 渦（サイクロン由来・回す） ----
   {
     id: 'lowpressure', species: 'swirl', name: '低気圧',
@@ -680,6 +706,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  gate: {
+    name: '門', color: 'red', boss: 'gatekeeper',
+    bonuses: [
+      { need: 2, desc: '最大HP +20', effect: { mods: [{ stat: 'maxHp', add: 20 }] } },
+      { need: 3, desc: '被ダメージ −5%', effect: { mods: [{ stat: 'damageTaken', add: -0.05 }] } },
     ],
   },
   swirl: {

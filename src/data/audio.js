@@ -118,6 +118,9 @@ export const BGM = {
   // エリア4「排気塔」も、曲はまだ選んでいない（マップ1の曲を借りている）
   airstack: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossAirstack: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  // マップ7「核心区」。曲はまだ選んでいない（マップ1の曲を借りている）
+  gate: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossGate: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

@@ -279,6 +279,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-gatekeeper',
+    trigger: { at: 'bossIntro', boss: 'gatekeeper' },
+    lines: [
+      { who: 'jin', text: '……でかい門だ。真ん中に、赤い錠がある。' },
+      { who: 'noise', text: '街の中枢の入口だ。ここから先は、街が、自分の一番奥を守っている。番人は、通さないことしか考えていない。' },
+      { who: 'jin', text: '通る気で来たんだ。……こじ開ける。' },
+    ],
+  },
+  {
+    id: 'return-gatekeeper',
+    trigger: { at: 'hideout', bossKilled: 'gatekeeper' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……ずいぶん、赤い光を浴びてきたね。' },
+      { who: 'jin', text: '門が、閉まりっぱなしだった。' },
+      { who: 'hal', text: 'うちの玄関は、開けておくね。……こじ開けなくても、入れるように。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -414,6 +432,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'gatekeeper', lines: [{ who: 'hal', text: '門の錠、中がからっぽだった。誰も通さないために、ずっと閉じていたのに、守るものは、もう中に残っていなかったんだね。' }] },
     { after: 'cyclone', lines: [{ who: 'hal', text: '渦の芯、からっぽだった。街じゅうの風を集めたのに、何も残らなかったんだね。' }] },
     { after: 'weathervane', lines: [{ who: 'hal', text: '風見の盾、裏側だけ、ぴかぴかだった。風上にだけ向けて、風下の側は、誰にも見せなかったんだね。' }] },
     { after: 'ductcrawler', lines: [{ who: 'hal', text: '管掃除機の体の節、全部に、ほこりが詰まってた。掃除してた機械が、いちばん汚れてたなんて、皮肉だね。' }] },
@@ -459,7 +478,8 @@ export const talks = {
     { after: 'intake', lines: [{ who: 'noise', text: '吸気口が静かになった。次は送風路だ。管の中を、長いものが這っている。体の全部が攻撃だ。帯が光ったら、動け。' }] },
     { after: 'ductcrawler', lines: [{ who: 'noise', text: '送風路が静かになった。次は風見の庭だ。盾を風上に向けた機械がいる。風の予告を、見逃すな。' }] },
     { after: 'weathervane', lines: [{ who: 'noise', text: '風見の庭が静かになった。次は排気塔だ。街じゅうの風が集まる所に、大きな渦がいる。曲がる弾に気をつけろ。' }] },
-    { after: 'cyclone', lines: [{ who: 'noise', text: '排気塔が静かになった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'cyclone', lines: [{ who: 'noise', text: '排気塔が静かになった。次は、街の中枢だ。最後の門が、閉まっている。……準備を、怠るな。' }] },
+    { after: 'gatekeeper', lines: [{ who: 'noise', text: '中枢の門が開いた。……その先は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

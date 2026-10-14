@@ -31,16 +31,16 @@ const BUILDERS = {
   supply: () => ({ objects: [{ kind: 'heal', x: CX, y: CY, r: 50, used: false }] }),
 
   // 闇市：商品が並ぶ
-  market: ({ build, rng, tier }) => {
-    const goods = generateShop(build, rng, tier);
+  market: ({ build, rng, tier, mythic }) => {
+    const goods = generateShop(build, rng, tier, mythic);
     const spots = row(goods.length, 130, CY - 10);
     return { objects: goods.map((g, i) => ({ kind: 'shop', ...spots[i], r: 44, goods: g })) };
   },
 
   // データ金庫：装備が並び、1つだけ持っていける
   // fragment: ここで拾えるデータ片の id（まだ持っていないものがあるときだけ）
-  vault: ({ rng, fragment, tier }) => {
-    const items = generateVault(rng, tier);
+  vault: ({ rng, fragment, tier, mythic }) => {
+    const items = generateVault(rng, tier, mythic);
     const spots = row(items.length, 140, CY - 10);
     const objects = items.map((item, i) => ({ kind: 'vault', ...spots[i], r: 44, item }));
     if (fragment) objects.push({ kind: 'fragment', id: fragment, x: CX, y: CY + 110, r: 44 });

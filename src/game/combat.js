@@ -1,7 +1,7 @@
 // 攻撃を当てる・受ける処理
 import { COMBAT, FEEL, ITEMS, LOOT, PLAYER, STATUS } from '../data/balance.js';
 import { DATA } from '../data/index.js';
-import { COLORS, ELEMENT_COLORS } from '../data/theme.js';
+import { COLORS, ELEMENT_COLORS, RARITY_COLORS } from '../data/theme.js';
 import { calcDamage } from '../logic/damage.js';
 import { DEG, angleDiff } from '../logic/geometry.js';
 import { addXp } from '../logic/level.js';
@@ -11,7 +11,7 @@ import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
 import { createEnemy } from './enemyAI.js';
-import { addHitstop, addShake, burst, floatText, sfx } from './fx.js';
+import { addHitstop, addShake, burst, floatText, ring, sfx } from './fx.js';
 import { triggerCounter } from './player.js';
 
 // ---- 状態異常 ----
@@ -273,6 +273,15 @@ function splitOnDeath(world, enemy) {
   }
 }
 
+// ミシックが落ちたとき：赤い文字と光、音
+function announceMythic(world, enemy, item) {
+  if (item.rarity < LOOT.rarities.length - 1) return;
+  floatText(world, enemy.x, enemy.y - enemy.r - 30, 'MYTHIC', RARITY_COLORS.mythic, 24);
+  burst(world, enemy.x, enemy.y, RARITY_COLORS.mythic, 30, 300);
+  ring(world, enemy.x, enemy.y, 90, RARITY_COLORS.mythic);
+  sfx(world, 'levelup');
+}
+
 function dropLoot(world, enemy) {
   const drops = enemy.def.drops;
   // 周が進むと、ときどきレア度が1段上がる
@@ -284,10 +293,14 @@ function dropLoot(world, enemy) {
     // ボスなどの確定ドロップ
     for (let i = 0; i < drops.count; i++) {
       const offset = (i - (drops.count - 1) / 2) * 44;
-      world.loot.push({ x: enemy.x + offset, y: enemy.y, item: makeItem(world.rng, { rarityBonus: (drops.rarityBonus ?? 0) + lucky(), minRarity: drops.minRarity ?? (enemy.boss ? LOOT.bossMinRarity : 0), tier }), t: 0 });
+      const item = makeItem(world.rng, { rarityBonus: (drops.rarityBonus ?? 0) + lucky(), minRarity: drops.minRarity ?? (enemy.boss ? LOOT.bossMinRarity : 0), tier, mythic: enemy.boss ? world.room.bossMythic ?? 0 : world.room.mythicChance ?? 0, mythicLuck: !enemy.boss && !!world.room.mythicLuck });
+      world.loot.push({ x: enemy.x + offset, y: enemy.y, item, t: 0 });
+      announceMythic(world, enemy, item);
     }
   } else if (world.rng() < (enemy.def.dropChance ?? 0)) {
-    world.loot.push({ x: enemy.x, y: enemy.y, item: makeItem(world.rng, { rarityBonus: lucky(), tier }), t: 0 });
+    const item = makeItem(world.rng, { rarityBonus: lucky(), tier, mythic: world.room.mythicChance ?? 0, mythicLuck: !!world.room.mythicLuck });
+    world.loot.push({ x: enemy.x, y: enemy.y, item, t: 0 });
+    announceMythic(world, enemy, item);
   }
   // 消耗品。エリートとボスは確定で1つ、雑魚はたまに落とす。装備と同じく、近づいて E で拾う
   if (drops || world.rng() < ITEMS.dropChance) {

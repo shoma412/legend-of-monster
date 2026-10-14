@@ -636,4 +636,36 @@ export const areas = [
       ],
     },
   },
+  {
+    id: 'gate',
+    code: 'CORE 01',
+    name: '中枢の門',
+    theme: 'gate',
+    bgm: 'gate',
+    bossBgm: 'bossGate',
+    environment: 'dark', // このエリアだけの環境（マップ全体の環境より先）
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'gateguard', weight: 3 },
+      { id: 'scanner', weight: 3 },
+      { id: 'shield', weight: 1 },
+      { id: 'sniper', weight: 1 },
+      { id: 'grunt', weight: 1 },
+    ],
+    eliteBases: ['gateguard', 'scanner', 'shield'],
+    boss: 'gatekeeper',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ ……ここが、街の中枢の入口だ。門の前に、番人が立っている。',
+        '@noise＞ 門板は、両側から閉まる。すき間に入れ。浮かんだ弾は、止まったあとで、こちらを狙う。衛兵を呼ぶ。足元の爆弾は、追ってくる。熱が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……門が、開いた。',
+        '@noise＞ コアを回収しろ。……この先は、まだ準備ができていない。',
+      ],
+    },
+  },
 ];

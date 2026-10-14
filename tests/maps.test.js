@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CYCLE, META, PLAYER, ROOMGEN, ENEMY_SCALING } from '../src/data/balance.js';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
@@ -64,6 +64,10 @@ describe('マップの定義', () => {
   });
 });
 
+// マップ7は、開発中の画面でだけ選べる（devOnly）。公開版（DEV でない）の見え方を確かめる
+beforeEach(() => vi.stubEnv('DEV', false));
+afterEach(() => vi.unstubAllEnvs());
+
 describe('マップの解放と完了', () => {
   it('最初はマップ1だけ選べる。マップ2〜6は未解放、マップ7は準備中', () => {
     const save = createSave();
@@ -112,7 +116,7 @@ describe('マップの解放と完了', () => {
     expect(allMapsCleared(save)).toBe(false);
     // 7つすべてが完了になった瞬間だけ true（仮に、7つとも中身ができたものとして確かめる）
     const originals = maps.slice();
-    maps.forEach((m, i) => { maps[i] = { ...m, ready: true, areas: maps[0].areas }; });
+    maps.forEach((m, i) => { maps[i] = { ...m, ready: true, devOnly: false, areas: maps[0].areas }; });
     try {
       const fresh = createSave();
       const results = maps.map((m) => recordMapClear(fresh, m.id, 1));
@@ -180,7 +184,7 @@ describe('周回', () => {
     expect(ready).toHaveLength(7);
     {
       const partial = createSave();
-      for (const m of maps.filter((x) => x.ready !== false)) expect(recordMapClear(partial, m.id, 1).nextCycle).toBeNull();
+      for (const m of maps.filter((x) => x.ready !== false && !x.devOnly)) expect(recordMapClear(partial, m.id, 1).nextCycle).toBeNull();
       expect(partial.cycle).toBe(1);
     }
     ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 1).nextCycle).toBeNull());

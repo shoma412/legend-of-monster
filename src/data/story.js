@@ -22,6 +22,7 @@ export const materials = [
   { id: 'ductCore', name: 'ダクトコア', color: 'amber' },
   { id: 'vaneCore', name: 'ベーンコア', color: 'cyan' },
   { id: 'cycloneCore', name: 'サイクロンコア', color: 'cold' },
+  { id: 'gateCore', name: 'ゲートコア', color: 'red' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -288,6 +289,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'gt-01', area: 'gate', source: 'vault', title: '中枢の門 通行規則',
+    text: '門は、通行証のない者には開かない。通行証のない者が門の前に立った場合、門番は、まず声をかけ、次に、門を閉じる。三度目はない。',
+  },
+  {
+    id: 'gt-02', area: 'gate', source: 'vault', title: '衛兵 交代表',
+    text: '衛兵は、八時間ごとに交代する。交代は、門番が号令をかける。号令がかからなければ、衛兵は、立ったまま動かない。……号令は、もう長いこと、かかっていない。',
+  },
+  {
+    id: 'gt-memo', area: 'gate', source: 'vault', title: '警備員の走り書き',
+    text: '門板が閉まる前に、床が赤く光る。光った所の、真ん中に立つな。すき間は、光っていない所だ。……弾が止まったら、狙われている。動け。',
+  },
+  {
+    id: 'gt-core', area: 'gate', source: 'boss', title: 'ゲートキーパーのコアログ',
+    text: '照合：不一致。通行：拒否。通行証：なし。——街の中を知らない者を、通さない。街は、もう、誰も入れず、誰も出さない。',
   },
   {
     id: 'cy-01', area: 'airstack', source: 'vault', title: '排気塔 立入禁止の札',

@@ -254,6 +254,22 @@ const ACTIONS = {
     for (const e of enemiesNear(world, p.x, p.y, t.radius)) applyBurn(e, 1 + (world.player.stats.statusTime ?? 0));
   },
 
+  // 連鎖爆轟（ミシック）：攻撃が当たった敵が、確率で爆発して、まわりの敵にダメージ（武器の攻撃だけ。爆発では連鎖しない）
+  blastTarget(world, t, ctx) {
+    const e = ctx.target;
+    if (!ctx.primary || !e || e.dead || world.rng() >= t.chance) return;
+    ring(world, e.x, e.y, t.radius, COLORS.red);
+    burst(world, e.x, e.y, COLORS.red, 14, 260);
+    for (const o of enemiesNear(world, e.x, e.y, t.radius, e)) effectDamage(world, o, t.damage);
+  },
+
+  // 超過駆動（ミシック）：敵を倒すと、seconds 秒のあいだ、ステータスが上がる（付け直すと、時間が戻る）
+  killBuff(world, t) {
+    const p = world.player;
+    p.buffs = p.buffs.filter((x) => x.id !== 'overclock');
+    p.buffs.push({ id: 'overclock', stat: t.stat, add: t.add, t: t.seconds, max: t.seconds, color: COLORS.red });
+  },
+
   // 低気圧（種族「渦」）：敵を倒すと、そのまわりの敵に冷却のダメージを与え、渦のように横へ回す
   whirlBlast(world, t, ctx) {
     const from = ctx.target;
