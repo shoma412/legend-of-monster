@@ -1770,6 +1770,38 @@ SHAPES.tank = (g, b, color, world) => {
   }
 };
 
+// ノイズ（依頼人）：黒い核のまわりを、□ ▼ ◯ ☆ の4つの記号が回る。乱れて、ちらつく。最後の段階では、記号が静かになる
+SHAPES.noise = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const still = b.def.phases[b.phaseIndex ?? 0]?.still;
+  const t = world.time;
+  const jitter = still ? 0 : 1;
+  g.fillStyle(0x000000, 0.95).fillCircle(b.x, b.y, r * 0.62);
+  g.lineStyle(2.5, hex(COLORS.ink), still ? 0.4 : 0.9).strokeCircle(b.x, b.y, r * 0.62);
+  const COLS = [0xfff36b, 0xff7a3d, 0x8fd8ff, 0xb6ff3a];
+  for (let k = 0; k < 4; k++) {
+    const a = t * (still ? 0.3 : 1.4) + (k * Math.PI) / 2;
+    const x = b.x + Math.cos(a) * r * 1.05 + (Math.random() - 0.5) * 4 * jitter;
+    const y = b.y + Math.sin(a) * r * 1.05 + (Math.random() - 0.5) * 4 * jitter;
+    const s = r * 0.26;
+    g.lineStyle(3, COLS[k], still ? 0.5 : 0.95);
+    if (k === 0) g.strokeRect(x - s, y - s, s * 2, s * 2);
+    else if (k === 1) g.strokePoints([{ x: x - s, y: y - s }, { x: x + s, y: y - s }, { x, y: y + s }], true, true);
+    else if (k === 2) g.strokeCircle(x, y, s);
+    else {
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const rr = i % 2 === 0 ? s * 1.15 : s * 0.5;
+        const aa = -Math.PI / 2 + (i * Math.PI) / 5;
+        pts.push({ x: x + Math.cos(aa) * rr, y: y + Math.sin(aa) * rr });
+      }
+      g.strokePoints(pts, true, true);
+    }
+  }
+  if (!stunned) g.fillStyle(hex(COLORS.ink), still ? 0.5 : 1).fillCircle(b.x, b.y, r * 0.12);
+};
+
 // コギトール：回路の基板の胴と、真ん中の大きな演算の目。演算のあいだは、目が速く回る
 SHAPES.cogitor = (g, b, color, world) => {
   const r = b.r;

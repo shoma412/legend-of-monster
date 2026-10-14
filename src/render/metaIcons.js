@@ -163,6 +163,16 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.6, y - s * 0.3, x + s * 0.6, y - s * 0.3);
     g.lineBetween(x - s * 0.6, y + s * 0.3, x + s * 0.6, y + s * 0.3);
   },
+  // ノイズコア：□▼◯☆ の4つ
+  noiseCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    const k = s * 0.22;
+    g.lineStyle(1.3, c, 1).strokeRect(x - s * 0.34 - k / 2, y - s * 0.3 - k / 2, k, k);
+    g.strokeCircle(x + s * 0.34, y - s * 0.3, k / 2);
+    g.strokePoints([{ x: x - s * 0.34 - k / 2, y: y + s * 0.2 }, { x: x - s * 0.34 + k / 2, y: y + s * 0.2 }, { x: x - s * 0.34, y: y + s * 0.2 + k }], true, true);
+    g.lineBetween(x + s * 0.34 - k / 2, y + s * 0.3, x + s * 0.34 + k / 2, y + s * 0.3);
+    g.lineBetween(x + s * 0.34, y + s * 0.3 - k / 2, x + s * 0.34, y + s * 0.3 + k / 2);
+  },
   // コギトコア：基板と、真ん中の目
   cogCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

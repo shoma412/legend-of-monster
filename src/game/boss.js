@@ -207,7 +207,7 @@ export function updateBoss(world, b, dt) {
       }
     }
     b.restT -= dt;
-    if (b.restT <= 0 && d.dist > b.r + p.r + 24) {
+    if (b.restT <= 0 && d.dist > b.r + p.r + 24 && !phase.still) {
       b.x += (dx / d.dist) * b.def.speed * dt;
       b.y += (dy / d.dist) * b.def.speed * dt;
     }
@@ -289,5 +289,6 @@ export function updateBoss(world, b, dt) {
   clampToBounds(b, world.bounds);
   // 体に触れるとダメージ。スタン中は安全。跳んでいる間も当たらない
   const untouchable = b.act?.phase === 'stun' || b.act?.phase === 'air'; // スタン中と、跳んでいる間
-  if (!untouchable && circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, b.def.contactDamage);
+  // phase.still（ノイズの最後の段階）：動かず、体に触れてもダメージはない
+  if (!untouchable && !phase.still && circlesOverlap(b.x, b.y, b.r, p.x, p.y, p.r)) hurtPlayer(world, b.def.contactDamage);
 }

@@ -46,7 +46,7 @@ export function windDir(world) {
 }
 
 // 竜巻を1本つくる（竜巻・台風の目で使う）。def: { core, pullR, pull, speed, life, damage, tick }
-function makeTwister(world, def, x, y, color) {
+export function makeTwister(world, def, x, y, color) {
   const h = { type: 'twister', x, y, core: def.core, pullR: def.pullR, pull: def.pull, speed: def.speed, life: def.life, age: 0, damage: def.damage, tick: def.tick, acc: def.tick, wait: 0.5, color };
   world.hazards.push(h);
   return h;

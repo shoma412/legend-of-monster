@@ -762,7 +762,41 @@ export const areas = [
       ],
       bossDefeated: [
         '@noise＞ ……演算が、止まった。',
-        '@noise＞ コアを回収しろ。……この先に、私がいる。',
+        '@noise＞ コアを回収しろ。……この先に、私がいる。……聞こえるか。もう、声が、乱れる。',
+      ],
+    },
+  },
+  {
+    id: 'core',
+    code: 'CORE 05',
+    name: '中枢',
+    theme: 'core',
+    bgm: 'core',
+    bossBgm: 'bossCore',
+    environment: 'storm', // このエリアだけの環境（暗闇・酸の雨・強風の3つ）
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'orderbot', weight: 3 },
+      { id: 'glyphling', weight: 3 },
+      { id: 'calcbot', weight: 2 },
+      { id: 'clerk', weight: 2 },
+      { id: 'weldbot', weight: 1 },
+      { id: 'scanner', weight: 1 },
+    ],
+    eliteBases: ['orderbot', 'glyphling', 'calcbot'],
+    boss: 'noise',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ ……ここまで、来てくれた。聞こえるか。□▼◯☆。それが、私の名前だ。',
+        '@noise＞ 私は、この街の保守機械の一部。命令を、止められない。……だから、お前を、呼んだ。',
+        '@noise＞ 本気で、来い。手加減は、いらない。……最後は、静かに、頼む。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……止まった。',
+        '@noise＞ ありがとう。',
       ],
     },
   },

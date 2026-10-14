@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 命令（ノイズ由来・語りかける） ----
+  {
+    id: 'directive', species: 'order', name: '指令',
+    desc: (k) => `敵を倒すと、3秒間、攻撃速度 +${pct(0.15 * k)}`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'killBuff', buffId: 'directive', stat: 'attackSpeed', add: 0.15 * k, seconds: 3 }] }),
+  },
+  {
+    id: 'glyphguard', species: 'order', name: '記号の護り',
+    desc: (k) => `被ダメージ −${pct(0.06 * k)}、最大HP +${num(20 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.06 * k }, { stat: 'maxHp', add: 20 * k }] }),
+  },
+  {
+    id: 'override', species: 'order', name: '上書き',
+    desc: (k) => `会心ダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'critMul', add: 0.12 * k }] }),
+  },
+  {
+    id: 'pleading', species: 'order', name: '懇願',
+    desc: (k) => `HP が半分以下のとき、与えるダメージ +${pct(0.14 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.14 * k, when: 'hpBelowHalf' }] }),
+  },
+  {
+    id: 'lastword', species: 'order', name: '遺言',
+    desc: (k) => `倒れても、出撃ごとに1回、HP ${pct(Math.min(1, 0.3 * k))} で起き上がる（ほかの「起き上がる」と同じ1回）`,
+    effect: (k) => ({ mods: [{ stat: 'revive', add: Math.min(1, 0.3 * k) }] }),
+  },
   // ---- 演算（コギトール由来・読んで先に動く） ----
   {
     id: 'prefetch', species: 'calc', name: '先読み',
@@ -784,6 +810,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  order: {
+    name: '命令', color: 'ink', boss: 'noise',
+    bonuses: [
+      { need: 2, desc: '最大HP +30', effect: { mods: [{ stat: 'maxHp', add: 30 }] } },
+      { need: 3, desc: '与えるダメージ +10%', effect: { mods: [{ stat: 'attackMul', add: 0.1 }] } },
     ],
   },
   calc: {

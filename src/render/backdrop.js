@@ -611,6 +611,29 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 中枢：赤い光の脈、中心へ集まる線、割れた床と、浮かぶ記号
+  core(g, rng, a) {
+    speckles(g, rng, a, 220, [0x0c0709, 0x140a0d, 0x080506, 0x1c0e12], 0.7);
+    const cx = (a.left + a.right) / 2;
+    const cy = (a.top + a.bottom) / 2;
+    // 中心へ集まる線
+    for (let i = 0; i < 12; i++) {
+      const ang = (i * Math.PI * 2) / 12;
+      for (let d = 60; d < Math.min(a.w, a.h) * 0.55; d += 22) block(g, cx + Math.cos(ang) * d * 1.5 - 2, cy + Math.sin(ang) * d * 0.9 - 2, PX / 2, PX / 2, 0x5a1c28, 0.6);
+    }
+    // 中心の円
+    for (let r = 70; r <= 130; r += 30) for (let k = 0; k < 36; k++) block(g, cx + Math.cos((k / 36) * Math.PI * 2) * r * 1.5 - 2, cy + Math.sin((k / 36) * Math.PI * 2) * r * 0.9 - 2, PX / 2, PX / 2, 0x7a2434, 0.7);
+    // 浮かぶ記号（□ ▼ ◯ ☆）の影
+    for (let i = 0; i < 8; i++) {
+      const x = a.left + 50 + rng() * (a.w - 100);
+      const y = a.top + 50 + rng() * (a.h - 100);
+      const kind = i % 4;
+      if (kind === 0) block(g, x, y, 14, PX / 2, 0x4a1c28, 0.6), block(g, x, y + 14, 14, PX / 2, 0x4a1c28, 0.6);
+      else if (kind === 2) blob(g, x, y, 8, 8, 0x3a141e, 0.6);
+      else block(g, x, y, PX, PX, 0x6a2434, 0.5);
+    }
+    for (let i = 0; i < 16; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0xff5a6a, 0.3);
+  },
   // 演算層：基板の配線、チップの影、床から吹く風の筋
   logic(g, rng, a) {
     speckles(g, rng, a, 220, [0x070b10, 0x0b1118, 0x04070b, 0x101a24], 0.7);

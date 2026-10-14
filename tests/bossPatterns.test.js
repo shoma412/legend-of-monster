@@ -40,7 +40,7 @@ describe('ボスの攻撃の数', () => {
   it('どのボスも、前半で4種類以上、後半で5種類以上の攻撃を使う', () => {
     for (const boss of DATA.bosses.all()) {
       expect(new Set(boss.phases[0].moves).size, boss.id).toBeGreaterThanOrEqual(4);
-      expect(new Set(boss.phases.at(-1).moves).size, boss.id).toBeGreaterThanOrEqual(5);
+      expect(new Set(boss.phases.filter((ph) => !ph.still).at(-1).moves).size, boss.id).toBeGreaterThanOrEqual(5);
     }
   });
 

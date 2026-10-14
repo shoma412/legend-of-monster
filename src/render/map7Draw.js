@@ -177,6 +177,15 @@ export const HAZARD_DRAWS_MAP7 = {
 };
 
 export const BOSS_TELEGRAPHS_MAP7 = {
+  glyphfall: ringTelegraph,
+  codelock: ringTelegraph,
+  orderwall: ringTelegraph,
+  glyphshots: ringTelegraph,
+  halt: ringTelegraph,
+  memorygate: ringTelegraph,
+  memorytwister: ringTelegraph,
+  memoryshade: ringTelegraph,
+  plea: () => {},
   forecast: ringTelegraph,
   multiplex: ringTelegraph,
   interrupt: ringTelegraph,

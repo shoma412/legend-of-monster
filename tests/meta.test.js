@@ -404,9 +404,9 @@ describe('記録', () => {
 });
 
 describe('M9 で足した実績', () => {
-  it('実績は50個あり、どれも名前と説明がある', () => {
+  it('実績は51個あり、どれも名前と説明がある', () => {
     const list = DATA.achievements.all();
-    expect(list).toHaveLength(50);
+    expect(list).toHaveLength(51);
     for (const def of list) {
       expect(def.name, def.id).toBeTruthy();
       expect(def.desc, def.id).toBeTruthy();

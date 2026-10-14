@@ -75,7 +75,7 @@ describe('ボスの定義（行動の選び方）', () => {
       count[pattern] = (count[pattern] ?? 0) + 1;
       expect(boss.phases.at(-1).combos?.length, boss.id).toBeGreaterThanOrEqual(1);
     }
-    expect(count).toEqual({ douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1, overvolt: 1, absolutezero: 1, systemhalt: 1, mudflow: 1, hightide: 1, regrowth: 1, stormfury: 1, eyestorm: 1, lockdown: 1, rewind: 1, fullline: 1, allthreads: 1, junkstorm: 1, webweave: 1, collapse: 1 });
+    expect(count).toEqual({ douse: 1, searchlight: 1, afterimage: 1, melt: 1, saturate: 1, unroof: 1, fullopen: 1, blowthrough: 1, overvolt: 1, absolutezero: 1, systemhalt: 1, mudflow: 1, hightide: 1, regrowth: 1, stormfury: 1, eyestorm: 1, lockdown: 1, rewind: 1, fullline: 1, allthreads: 1, plea: 1, junkstorm: 1, webweave: 1, collapse: 1 });
   });
 });
 

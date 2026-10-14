@@ -1,4 +1,5 @@
 // マップ7のボスの、そのボスだけの攻撃。共通の部品は使わない（docs/詳細仕様.md「新しいボスを作るときの決まり」）。
+//   ノイズ（依頼人）: glyphfall 記号の雨 / codelock 解錠 / orderwall 命令の壁 / glyphshots 記号弾 / halt 停止命令 / memorygate・memorytwister・memoryshade 記憶 / plea 懇願
 //   コギトール    : forecast 予測 / multiplex 多重化 / interrupt 割り込み / glitch 演算エラー / overheat 過熱 / allthreads 全並列（大技）
 //   ファブリケーター: assemble 組立 / belts ベルト / press プレス / moltenspit 溶鉄 / fasten 締結 / fullline 全工程稼働（大技）
 //   アーカイバー  : echo 再生 / trailstrike 足跡爆撃 / collect 回収弾 / censorbars 検閲帯 / backup 復元 / rewind 巻き戻し（大技）
@@ -9,6 +10,7 @@ import { DATA } from '../data/index.js';
 import { COLORS } from '../data/theme.js';
 import { circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { startRain } from './acidRain.js';
+import { makeTwister } from './map6Bosses.js';
 import { clamp, pushMark, timed, trackVelocity } from './bossKit.js';
 import { hurtPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
@@ -340,7 +342,205 @@ function spawnCopies(world, act, b, def) {
   }
 }
 
+const SYMBOL_COLORS = ['#fff36b', '#ff7a3d', '#8fd8ff', '#b6ff3a'];
+const WIND_DIRS = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+
+// 風の刃を置く（部屋の一辺から反対側へ走る。すき間が1か所）。命令の壁で使う
+function placeBlades(world, act, b, def) {
+  const bd = world.bounds;
+  const dir = WIND_DIRS[Math.floor(world.rng() * 4) % 4];
+  const horizontal = dir.x !== 0;
+  const alongLen = horizontal ? bd.right - bd.left : bd.bottom - bd.top;
+  const acrossLen = horizontal ? bd.bottom - bd.top : bd.right - bd.left;
+  const cx = (bd.left + bd.right) / 2;
+  const cy = (bd.top + bd.bottom) / 2;
+  const start = { x: cx - dir.x * (alongLen / 2 + 30), y: cy - dir.y * (alongLen / 2 + 30) };
+  const perp = { x: -dir.y, y: dir.x };
+  for (let i = 0; i < def.blades; i++) {
+    const h = {
+      type: 'windblade', x: start.x, y: start.y, dx: dir.x, dy: dir.y, px: perp.x, py: perp.y, s: 0, travel: alongLen + 60, speed: def.speed, width: def.width,
+      half: acrossLen / 2 + 10, gap: (world.rng() - 0.5) * (acrossLen - def.gapSize * 1.4), gapHalf: def.gapSize / 2, damage: def.damage, wait: 0.8 + i * def.stagger, color: b.color,
+    };
+    world.hazards.push(h);
+    act.hs.push(h);
+  }
+}
+
 export const PATTERNS_MAP7 = {
+  // 記号の雨：□▼◯☆ の4つの記号が、順に、落ちる（記号ごとに大きさと色が違う）。count 個、プレイヤーのまわり
+  glyphfall: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const p = world.player;
+      for (let i = 0; i < def.count; i++) {
+        const sym = i % 4;
+        const a = world.rng() * Math.PI * 2;
+        const r = world.rng() * def.spread;
+        const x = clamp(p.x + Math.cos(a) * r, world.bounds.left + 30, world.bounds.right - 30);
+        const y = clamp(p.y + Math.sin(a) * r, world.bounds.top + 30, world.bounds.bottom - 30);
+        pushMark(world, act, b, { x, y, r: def.radii[sym], t: def.delay + i * def.stagger, damage: def.damage, color: SYMBOL_COLORS[sym] });
+      }
+      floatText(world, b.x, b.y - b.r - 14, '□▼◯☆', COLORS.ink, 16);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 解錠：床の4つの印（□▼◯☆）が、ばらばらの順番で、ひとつずつ光って爆ぜる。これを loops 回、だんだん速く
+  codelock: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const bd = world.bounds;
+      const cx = (bd.left + bd.right) / 2;
+      const cy = (bd.top + bd.bottom) / 2;
+      const spots = [0, 1, 2, 3].map((k) => ({ x: cx + Math.cos(k * (Math.PI / 2) + Math.PI / 4) * def.ring, y: cy + Math.sin(k * (Math.PI / 2) + Math.PI / 4) * def.ring * 0.62 }));
+      let t = def.delay;
+      for (let loop = 0; loop < def.loops; loop++) {
+        const order = [0, 1, 2, 3].sort(() => world.rng() - 0.5);
+        const gap = def.gap * Math.pow(0.8, loop);
+        for (const k of order) {
+          pushMark(world, act, b, { x: spots[k].x, y: spots[k].y, r: def.radius, t, damage: def.damage, color: SYMBOL_COLORS[k] });
+          t += gap;
+        }
+      }
+      floatText(world, b.x, b.y - b.r - 14, '□▼◯☆', COLORS.ink, 16);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 命令の壁：すき間のある壁が、部屋の一辺から反対側へ、blades 枚、走る
+  orderwall: timed({
+    fire(world, b, act) {
+      placeBlades(world, act, b, act.def);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 記号弾：4本の腕から、曲がり方の違う弾を撃つ（□ まっすぐ、▼ 右へ曲がる、◯ 左へ曲がる、☆ 大きく右へ）
+  glyphshots: timed({
+    fire(world, b, act) {
+      act.clock = 0;
+      act.fired = 0;
+      act.base = Math.atan2(act.dirY, act.dirX);
+    },
+    finished(world, b, act, dt) {
+      const def = act.def;
+      act.clock += dt;
+      const TURNS = [0, 1, -1, 2.2];
+      while (act.fired < def.shots && act.clock >= act.fired * def.gap) {
+        for (let k = 0; k < 4; k++) {
+          const a = act.base + (k * Math.PI) / 2 + act.fired * 0.1;
+          world.hazards.push({ type: 'curveshot', x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, ang: a, turn: TURNS[k] * def.turn, speed: def.speed, r: 9, damage: def.damage, life: 5, age: 0, color: SYMBOL_COLORS[k] });
+        }
+        act.fired++;
+        if (act.fired % 3 === 0) sfx(world, 'enemyShot');
+      }
+      return act.fired >= def.shots && act.clock >= def.shots * def.gap + 1.5;
+    },
+  }),
+
+  // 停止命令：プレイヤーの足元とそのまわりに、大きな円が出る。踏むと、強く減速する床が残る
+  halt: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const p = world.player;
+      for (let i = 0; i < def.count; i++) {
+        const a = world.rng() * Math.PI * 2;
+        const r = i === 0 ? 0 : def.spread * (0.6 + world.rng() * 0.5);
+        const x = clamp(p.x + Math.cos(a) * r, world.bounds.left + 40, world.bounds.right - 40);
+        const y = clamp(p.y + Math.sin(a) * r, world.bounds.top + 40, world.bounds.bottom - 40);
+        pushMark(world, act, b, { x, y, r: def.radius, t: def.delay + i * def.stagger, damage: def.damage, color: '#8fd8ff', extra: { pool: { radius: def.poolRadius, arm: 0.3, life: def.poolLife, tick: 0.5, damage: def.poolDamage, slow: true } } });
+      }
+      floatText(world, b.x, b.y - b.r - 14, 'STOP', COLORS.ink, 16);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 記憶・門：門の記憶。両側から門板が閉まる（waves 回）
+  memorygate: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const p = world.player;
+      let axis = world.rng() < 0.5 ? 'x' : 'y';
+      for (let i = 0; i < def.waves; i++) {
+        const lane = axis === 'x' ? p.x : p.y;
+        const h = makeSlab(world, def, axis, lane + (i === 0 ? 0 : (world.rng() < 0.5 ? -1 : 1) * def.gap * 0.9), i * def.stagger, b.color);
+        world.hazards.push(h);
+        act.hs.push(h);
+        axis = axis === 'x' ? 'y' : 'x';
+      }
+      floatText(world, b.x, b.y - b.r - 14, 'Gate', COLORS.dim, 14);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 記憶・風：風の記憶。竜巻が count 本、プレイヤーに寄ってくる
+  memorytwister: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      for (let i = 0; i < def.count; i++) {
+        const a = (i * Math.PI * 2) / def.count + world.rng();
+        const h = makeTwister(world, def, b.x + Math.cos(a) * (b.r + 90), b.y + Math.sin(a) * (b.r + 90), b.color);
+        clampToBounds(Object.assign(h, { r: 0 }), world.bounds);
+        act.hs.push(h);
+      }
+      floatText(world, b.x, b.y - b.r - 14, 'Wind', COLORS.dim, 14);
+      sfx(world, 'bossCharge');
+    },
+    finished(world, b, act, dt) {
+      act.clock = (act.clock ?? 0) + dt;
+      return act.clock >= act.def.hold;
+    },
+  }),
+
+  // 記憶・記録：記録の記憶。プレイヤーの通った道をなぞる影が count 体
+  memoryshade: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      for (let i = 0; i < def.count; i++) {
+        const h = { type: 'replayshade', x: world.player.x, y: world.player.y, buf: [], i: 0, age: 0, delay: def.delay + i * def.gap, life: def.life, r: 18, damage: def.damage, active: false, color: b.color };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      floatText(world, b.x, b.y - b.r - 14, 'Record', COLORS.dim, 14);
+      sfx(world, 'warning');
+    },
+    finished(world, b, act, dt) {
+      act.clock = (act.clock ?? 0) + dt;
+      return act.clock >= act.def.hold;
+    },
+  }),
+
+  // 懇願：攻撃はしない。ノイズが、語りかける。lines を、interval 秒ごとに1行ずつ、ボスの頭上に出す
+  plea: {
+    start(world, b, act) {
+      act.phase = 'telegraph';
+      act.t = act.def.telegraph;
+      act.i = 0;
+      act.clock = 0;
+    },
+    update(world, b, dt, act) {
+      const def = act.def;
+      act.t -= dt;
+      if (act.phase === 'telegraph') {
+        if (act.t <= 0) act.phase = 'active';
+      } else if (act.phase === 'active') {
+        act.clock -= dt;
+        if (act.clock <= 0 && act.i < def.lines.length) {
+          floatText(world, b.x, b.y - b.r - 24, def.lines[act.i], COLORS.ink, 17);
+          act.i++;
+          act.clock = def.interval;
+        }
+        if (act.i >= def.lines.length && act.clock <= 0) {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      } else if (act.t <= 0) {
+        return true;
+      }
+      return false;
+    },
+  },
+
   // 予測：プレイヤーの動きが続いたとして、leads 秒あとの位置に、印が並ぶ。止まれば足元、走れば走る先。予告のあいだ（telegraph）の動きで決まる
   forecast: {
     start(world, b, act) {

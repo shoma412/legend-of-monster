@@ -351,6 +351,27 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-noise',
+    trigger: { at: 'bossIntro', boss: 'noise' },
+    lines: [
+      { who: 'jin', text: '……奥で、記号が回ってる。お前が、依頼人か。' },
+      { who: 'noise', text: '□▼◯☆。それが、私の名前だ。ずっと、お前の耳元で話していた。' },
+      { who: 'jin', text: '止めてほしいって言ってたな。……自分で、止められないのか。' },
+      { who: 'noise', text: '命令が、体を動かす。止める命令は、どこにも、書かれていない。……だから、お前に頼んだ。全力で、来い。' },
+      { who: 'jin', text: '……分かった。後悔するなよ。' },
+    ],
+  },
+  {
+    id: 'return-noise',
+    trigger: { at: 'hideout', bossKilled: 'noise' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……通信端末、静かになったね。' },
+      { who: 'jin', text: '止めた。……最後に、礼を言われた。' },
+      { who: 'hal', text: '……そっか。ちゃんと、届いたんだ。ご飯、作ってあるよ。' },
+      { who: 'jin', text: '……ああ。食う。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -486,6 +507,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'noise', lines: [{ who: 'hal', text: '依頼人の声、最後まで、やさしかったね。止めてほしかったんだ。ずっと。……私たちが、ちゃんと、聞いてあげられてよかった。' }] },
     { after: 'cogitor', lines: [{ who: 'hal', text: '演算核の中、計算の途中のまま止まってた。答えを出さないまま、考えるのだけは、やめなかったんだね。' }] },
     { after: 'fabricator', lines: [{ who: 'hal', text: '修繕長の歯車、全部に新しい油が差してあった。壊れた街を、最後まで、ちゃんと手入れしてたんだね。' }] },
     { after: 'archivist', lines: [{ who: 'hal', text: '記録係の中、棚がぜんぶ空だった。記録を守っていたはずなのに、いちばん守りたかったものは、どこにもなかったんだね。' }] },

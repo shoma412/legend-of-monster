@@ -26,6 +26,7 @@ export const achievements = [
   { id: 'rainmaker', icon: 'skull', color: 'shock', name: '雨降らし狩り', desc: 'レインメーカーを倒した', on: 'bossKill', check: 'bossIs', boss: 'rainmaker' },
   { id: 'intake', icon: 'skull', color: 'cold', name: '吸い込み口狩り', desc: 'インテークを倒した', on: 'bossKill', check: 'bossIs', boss: 'intake' },
   { id: 'ductcrawler', icon: 'skull', color: 'amber', name: '管這い狩り', desc: 'ダクトクローラーを倒した', on: 'bossKill', check: 'bossIs', boss: 'ductcrawler' },
+  { id: 'noise', icon: 'crown', color: 'red', name: '依頼完了', desc: '依頼人を止めた（最後のマップを完了した）', on: 'bossKill', check: 'bossIs', boss: 'noise' },
   { id: 'cogitor', icon: 'skull', color: 'cyan', name: '演算停止', desc: 'コギトールを倒した', on: 'bossKill', check: 'bossIs', boss: 'cogitor' },
   { id: 'fabricator', icon: 'skull', color: 'amber', name: '修繕停止', desc: 'ファブリケーターを倒した', on: 'bossKill', check: 'bossIs', boss: 'fabricator' },
   { id: 'archivist', icon: 'skull', color: 'cyan', name: '記録抹消', desc: 'アーカイバーを倒した', on: 'bossKill', check: 'bossIs', boss: 'archivist' },

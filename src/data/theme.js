@@ -47,6 +47,7 @@ export const AREA_THEMES = {
   neutralizer: { floor: 0x07090c, grid: 0x4a6a8a, wall: 0x10151c, edge: '#8fd8ff' },
   raintower: { floor: 0x08090a, grid: 0x6a7a4a, wall: 0x12140f, edge: '#fff36b' },
   vent: { floor: 0x07090d, grid: 0x4a5a7a, wall: 0x10131c, edge: '#8fd8ff' },
+  core: { floor: 0x0a0608, grid: 0x8a2a3a, wall: 0x1c0c10, edge: '#ff3b4a' },
   logic: { floor: 0x060a0e, grid: 0x2a6a8a, wall: 0x0c141c, edge: '#2ef2ff' },
   factory: { floor: 0x0a0807, grid: 0x7a5a3a, wall: 0x18120d, edge: '#ffb347' },
   archive: { floor: 0x07090c, grid: 0x3a6a7a, wall: 0x0e1418, edge: '#2ef2ff' },

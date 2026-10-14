@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   glyphfall / codelock / orderwall / glyphshots / halt / memorygate / memorytwister / memoryshade / plea : 固有（ノイズ。依頼人）。数値の意味は、下の定義の注釈
 //   forecast / multiplex / interrupt / glitch / overheat / allthreads : 固有（コギトール）。数値の意味は、下の定義の注釈
 //   assemble / belts / press / moltenspit / fasten / fullline : 固有（ファブリケーター）。数値の意味は、下の定義の注釈
 //   echo / trailstrike / collect / censorbars / backup / rewind : 固有（アーカイバー）。数値の意味は、下の定義の注釈
@@ -1318,6 +1319,64 @@ export const bosses = [
         combos: [{ moves: ['multiplexHard', 'glitchHard'] }, { moves: ['interruptHard', 'forecastHard'] }],
         announce: '並列処理、開始',
       },
+    ],
+  },
+  // ---- マップ7 エリア5（docs/詳細仕様.md「36. マップ7「核心区」と、ミシック」の「⑤エリア5」）。最後のボス。名前は、はっきり出さない ----
+  {
+    id: 'noise',
+    name: '□▼◯☆',
+    alias: '依頼人', // 登場時に出す異名
+    shape: 'noise',
+    color: 'ink',
+    weakness: null,
+    material: 'noiseCore',
+    radius: 56,
+    hp: 80000,
+    speed: 66,
+    contactDamage: 92,
+    xp: 3000,
+    credits: 1500,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「記号の雨」：□▼◯☆ の記号が、プレイヤーのまわり（spread px）に count 個、順に落ちる（記号ごとに大きさが違う）
+      glyphfall: { pattern: 'glyphfall', telegraph: 0.8, count: 12, spread: 240, radii: [40, 54, 46, 62], delay: 0.9, stagger: 0.14, damage: 86, recover: 0.8, reach: 'far' },
+      glyphfallHard: { pattern: 'glyphfall', telegraph: 0.7, count: 18, spread: 290, radii: [42, 56, 48, 64], delay: 0.85, stagger: 0.1, damage: 90, recover: 0.8, reach: 'far' },
+      // 固有「解錠」：床の4つの印が、ばらばらの順番で、ひとつずつ爆ぜる。loops 回、だんだん速く（gap が 0.8 倍ずつ）
+      codelock: { pattern: 'codelock', telegraph: 0.9, ring: 280, radius: 100, loops: 2, delay: 1.0, gap: 0.8, damage: 92, recover: 0.9, reach: 'near' },
+      codelockHard: { pattern: 'codelock', telegraph: 0.8, ring: 290, radius: 100, loops: 3, delay: 0.9, gap: 0.7, damage: 94, recover: 0.9, reach: 'near' },
+      // 固有「命令の壁」：すき間（gapSize px）のある壁が、blades 枚、走る
+      orderwall: { pattern: 'orderwall', telegraph: 0.8, blades: 3, stagger: 0.9, speed: 420, width: 28, gapSize: 130, damage: 90, recover: 0.9, reach: 'far' },
+      orderwallHard: { pattern: 'orderwall', telegraph: 0.7, blades: 4, stagger: 0.75, speed: 470, width: 28, gapSize: 115, damage: 94, recover: 0.9, reach: 'far' },
+      // 固有「記号弾」：4本の腕から、曲がり方の違う弾を撃つ（□ まっすぐ、▼ 右へ、◯ 左へ、☆ 大きく右へ）
+      glyphshots: { pattern: 'glyphshots', telegraph: 0.8, shots: 22, gap: 0.12, turn: 0.9, speed: 250, damage: 76, recover: 0.8, reach: 'far' },
+      glyphshotsHard: { pattern: 'glyphshots', telegraph: 0.7, shots: 28, gap: 0.1, turn: 1.0, speed: 270, damage: 80, recover: 0.8, reach: 'far' },
+      // 固有「停止命令」：大きな円が count 個。踏むと強く減速する床が残る（poolLife 秒）
+      halt: { pattern: 'halt', telegraph: 0.8, count: 3, spread: 160, radius: 70, delay: 0.9, stagger: 0.25, damage: 70, poolRadius: 120, poolLife: 6, poolDamage: 20, recover: 0.8, reach: 'near' },
+      haltHard: { pattern: 'halt', telegraph: 0.7, count: 4, spread: 190, radius: 70, delay: 0.85, stagger: 0.2, damage: 74, poolRadius: 130, poolLife: 7, poolDamage: 22, recover: 0.8, reach: 'near' },
+      // 固有「記憶・門」「記憶・風」「記憶・記録」：これまでの区画の記憶を、ノイズが再生する
+      memorygate: { pattern: 'memorygate', telegraph: 1.0, waves: 2, stagger: 1.0, gap: 140, warn: 1.0, hold: 0.5, speed: 1500, damage: 90, recover: 0.9, reach: 'far' },
+      memorytwister: { pattern: 'memorytwister', telegraph: 1.0, count: 3, core: 26, pullR: 180, pull: 100, speed: 62, life: 8, damage: 88, tick: 0.5, hold: 1.6, recover: 0.9, reach: 'far' },
+      memoryshade: { pattern: 'memoryshade', telegraph: 1.0, count: 2, delay: 2.0, gap: 1.3, life: 10, hold: 1.6, damage: 90, recover: 0.9, reach: 'far' },
+      // 固有「懇願」：攻撃はしない。語りかける。lines を interval 秒ごとに1行ずつ出す
+      plea: { pattern: 'plea', telegraph: 1.2, lines: ['……まだ、動いている。', '止めて、くれ。', '攻撃を、続けてくれ。'], interval: 1.6, recover: 1.2 },
+      // 大技「懇願（最後）」
+      pleaLast: {
+        pattern: 'plea', telegraph: 2.0, interval: 2.2, recover: 2.0,
+        lines: ['……ありがとう。ここまで、来てくれて。', '私は、街を止めたかった。', '命令を、止める方法が、なかった。', '私を、止めてくれ。', '……お前の足跡は、全部、覚えている。'],
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'glyphfall' }],
+    ultimate: { move: 'pleaLast', announce: '止めてくれ' },
+    phases: [
+      { hpAbove: 0.66, idle: { min: 0.9, max: 1.4 }, moves: ['glyphfall', 'codelock', 'orderwall', 'glyphshots', 'halt'] },
+      {
+        hpAbove: 0.33,
+        idle: { min: 0.7, max: 1.1 },
+        moves: ['glyphfallHard', 'codelockHard', 'orderwallHard', 'glyphshotsHard', 'haltHard', 'memorygate', 'memorytwister', 'memoryshade'],
+        combos: [{ moves: ['memorygate', 'glyphshotsHard'] }, { moves: ['memorytwister', 'codelockHard'] }, { moves: ['memoryshade', 'haltHard'] }],
+        announce: '記憶を、再生する',
+      },
+      { hpAbove: 0, idle: { min: 2.6, max: 3.4 }, still: true, moves: ['plea'], combos: [{ moves: ['plea', 'plea'] }], announce: '……止めてくれ' },
     ],
   },
   // ---- マップ4の隠しボス（docs/詳細仕様.md「24. マップ4」の「隠しボス「ノクターン」」）。出し方は、マップの定義（secretBoss.rule）----
