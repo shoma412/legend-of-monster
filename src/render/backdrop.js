@@ -611,6 +611,29 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 修繕工場：床の黄色い縞、ベルトの跡、歯車の影、火花の跡
+  factory(g, rng, a) {
+    speckles(g, rng, a, 220, [0x0d0a08, 0x140f0b, 0x090705, 0x1b140e], 0.7);
+    // ベルトの跡（横の帯）
+    for (let i = 0; i < 2; i++) {
+      const y = a.top + a.h * (0.33 + 0.34 * i);
+      block(g, a.left + 20, y - 24, a.w - 40, PX / 2, 0x4a3820, 0.7);
+      block(g, a.left + 20, y + 24, a.w - 40, PX / 2, 0x4a3820, 0.7);
+      for (let x = a.left + 40; x < a.right - 40; x += 60) block(g, x, y - 2, 18, PX / 2, 0x2e2314, 0.7);
+    }
+    // 警告の縞（上と下の壁ぎわ）
+    for (const y of [a.top + 12, a.bottom - 12 - PX * 2]) {
+      for (let x = a.left + 14; x < a.right - 30; x += 32) block(g, x, y, 16, PX * 2, x % 64 < 32 ? 0x6a4a14 : 0x1a1308, 0.85);
+    }
+    // 歯車の影
+    for (let i = 0; i < 3; i++) {
+      const x = a.left + a.w * (0.2 + 0.3 * i) + (rng() - 0.5) * 50;
+      const y = a.top + a.h * (0.2 + 0.6 * rng());
+      blob(g, x, y, 22, 22, 0x050403, 0.85);
+      for (let k = 0; k < 8; k++) block(g, x + Math.cos((k * Math.PI) / 4) * 26 - 2, y + Math.sin((k * Math.PI) / 4) * 26 - 2, PX, PX, 0x2a2014, 0.8);
+    }
+    for (let i = 0; i < 16; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0xff9a3d, 0.3);
+  },
   // 記録庫：背の高い棚の列（上から見た影）、床の目録の線、雨漏りの水たまり
   archive(g, rng, a) {
     speckles(g, rng, a, 220, [0x080c10, 0x0c1218, 0x05080b, 0x121b22], 0.7);

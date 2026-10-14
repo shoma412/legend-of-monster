@@ -1770,6 +1770,35 @@ SHAPES.tank = (g, b, color, world) => {
   }
 };
 
+// ファブリケーター：大きな歯車の胴と、横に伸びる2本の作業アーム。工程のあいだは、アームの先が赤く光る
+SHAPES.fabricator = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const busy = pattern === 'press' || pattern === 'fullline' || pattern === 'moltenspit';
+  const spin = world.time * (stunned ? 0 : busy ? 1.6 : 0.5);
+  // 歯車
+  const pts = [];
+  for (let i = 0; i < 24; i++) {
+    const a = spin + (i / 24) * Math.PI * 2;
+    const rr = r * (i % 2 === 0 ? 1.08 : 0.92);
+    pts.push({ x: b.x + Math.cos(a) * rr, y: b.y + Math.sin(a) * rr });
+  }
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(pts, true);
+  neonStroke(g, color, 3, () => g.strokePoints(pts, true, true));
+  // 作業アーム（向いている方向の左右）
+  for (const side of [-1, 1]) {
+    const base = local(b, r * 0.5, side * r * 0.8);
+    const tip = local(b, r * 1.5, side * r * 1.1);
+    g.lineStyle(5, color, 0.8).lineBetween(base.x, base.y, tip.x, tip.y);
+    g.fillStyle(hex(busy ? COLORS.red : COLORS.ink), 1).fillCircle(tip.x, tip.y, 6);
+  }
+  // 中心の目
+  g.fillStyle(0x000000, 1).fillCircle(b.x, b.y, r * 0.32);
+  g.lineStyle(2.5, color, 0.9).strokeCircle(b.x, b.y, r * 0.32);
+  if (!stunned) g.fillStyle(hex(COLORS.ink), 1).fillCircle(b.x + Math.cos(b.angle) * r * 0.1, b.y + Math.sin(b.angle) * r * 0.1, r * 0.1);
+};
+
 // アーカイバー：棚のように重なる箱の胴と、真ん中の目（レンズ）。再生や巻き戻しのあいだは、目が赤くなる
 SHAPES.archivist = (g, b, color, world) => {
   const r = b.r;

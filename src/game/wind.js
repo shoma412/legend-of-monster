@@ -107,24 +107,24 @@ export function updateWind(world, dt) {
     world.wind = null;
     return;
   }
-  const w = (world.wind ??= { phase: 'clear', t: env.cycle.clear, max: env.cycle.clear, dirX: 1, dirY: 0 });
+  const w = (world.wind ??= { phase: 'clear', t: (env.windCycle ?? env.cycle).clear, max: (env.windCycle ?? env.cycle).clear, dirX: 1, dirY: 0 });
   const p = world.player;
   // ボスが吸っている間は、風は止まる（予告や風の途中だったら、やめて、少しあとに出直す）
   if (world.suction && world.suction.until >= world.time) {
-    if (w.phase !== 'clear') Object.assign(w, { phase: 'clear', t: env.cycle.retry, max: env.cycle.clear, pushing: false });
+    if (w.phase !== 'clear') Object.assign(w, { phase: 'clear', t: (env.windCycle ?? env.cycle).retry, max: (env.windCycle ?? env.cycle).clear, pushing: false });
     return;
   }
   w.t -= dt;
   if (w.t <= 0) {
     if (w.phase === 'clear') {
       const dir = DIRECTIONS[Math.floor(world.rng() * DIRECTIONS.length) % DIRECTIONS.length];
-      Object.assign(w, { phase: 'warn', t: env.cycle.warn, max: env.cycle.warn, dirX: dir.x, dirY: dir.y });
+      Object.assign(w, { phase: 'warn', t: (env.windCycle ?? env.cycle).warn, max: (env.windCycle ?? env.cycle).warn, dirX: dir.x, dirY: dir.y });
       floatText(world, p.x, p.y - 44, 'Gale', WIND_COLOR, 16);
       sfx(world, 'warning');
     } else if (w.phase === 'warn') {
-      Object.assign(w, { phase: 'blow', t: env.cycle.blow, max: env.cycle.blow });
+      Object.assign(w, { phase: 'blow', t: (env.windCycle ?? env.cycle).blow, max: (env.windCycle ?? env.cycle).blow });
     } else {
-      Object.assign(w, { phase: 'clear', t: env.cycle.clear, max: env.cycle.clear });
+      Object.assign(w, { phase: 'clear', t: (env.windCycle ?? env.cycle).clear, max: (env.windCycle ?? env.cycle).clear });
     }
   }
   if (w.phase !== 'blow') return;

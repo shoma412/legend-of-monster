@@ -130,8 +130,8 @@ const BEHAVIORS = {
     const env = rainEnv(world);
     if (!env) return;
     e.rainAcc = (e.rainAcc ?? 0) + dt;
-    if (e.rainAcc < env.damage.tick) return;
-    e.rainAcc -= env.damage.tick;
+    if (e.rainAcc < (env.rainDamage ?? env.damage).tick) return;
+    e.rainAcc -= (env.rainDamage ?? env.damage).tick;
     if (d.dist <= e.def.cloud.radius + p.r && !underRoof(world, p.x, p.y)) rainHit(world);
   },
 

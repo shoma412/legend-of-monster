@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   assemble / belts / press / moltenspit / fasten / fullline : 固有（ファブリケーター）。数値の意味は、下の定義の注釈
 //   echo / trailstrike / collect / censorbars / backup / rewind : 固有（アーカイバー）。数値の意味は、下の定義の注釈
 //   gateclose / holdshots / callguards / fissure / tailbomb / lockdown : 固有（ゲートキーパー）。数値の意味は、下の定義の注釈
 //   twister / sweepup / swirlshot / spiralbolt / cycloneram / eyestorm : 固有（サイクロン）。数値の意味は、下の定義の注釈
@@ -1208,6 +1209,59 @@ export const bosses = [
         moves: ['echoHard', 'trailstrikeHard', 'collectHard', 'censorbarsHard', 'backupHard'],
         combos: [{ moves: ['echoHard', 'censorbarsHard'] }, { moves: ['collectHard', 'trailstrikeHard'] }],
         announce: '記録を、上書きする',
+      },
+    ],
+  },
+  // ---- マップ7 エリア3（docs/詳細仕様.md「36. マップ7「核心区」と、ミシック」の「③エリア3」）。HP は前のボスより +6000 ----
+  {
+    id: 'fabricator',
+    name: 'ファブリケーター',
+    alias: '修繕長', // 登場時に出す異名
+    shape: 'fabricator',
+    color: 'amber',
+    weakness: 'cold',
+    material: 'fabCore',
+    radius: 54,
+    hp: 52000,
+    speed: 58,
+    contactDamage: 82,
+    xp: 1400,
+    credits: 700,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「組立」：部屋のふちから部品が count 個飛んできて、プレイヤーのまわり（minDist〜maxDist px）で砲台に組み上がる（turretLife 秒で壊れる）
+      assemble: { pattern: 'assemble', telegraph: 0.9, enemy: 'turretunit', count: 3, minDist: 150, maxDist: 280, gap: 0.3, fly: 1.0, turretLife: 12, hold: 1.8, recover: 0.8, reach: 'far' },
+      assembleHard: { pattern: 'assemble', telegraph: 0.8, enemy: 'turretunit', count: 5, minDist: 150, maxDist: 300, gap: 0.25, fly: 0.9, turretLife: 12, hold: 1.8, recover: 0.8, reach: 'far' },
+      // 固有「ベルト」：床の帯が count 本、向きを交互に、プレイヤーを流す（speed px/秒）。warn 秒の予告のあと、life 秒つづく
+      belts: { pattern: 'belts', telegraph: 0.8, count: 3, width: 130, speed: 260, warn: 1.0, life: 6, recover: 0.8, reach: 'far' },
+      beltsHard: { pattern: 'belts', telegraph: 0.7, count: 4, width: 120, speed: 300, warn: 0.9, life: 7, recover: 0.8, reach: 'far' },
+      // 固有「プレス」：巨大な押し潰しが、rows 段 × cols 列。段ごとに向きが逆で、stagger 秒ずつ順に落ちる
+      press: { pattern: 'press', telegraph: 0.8, rows: 2, cols: 6, radius: 82, delay: 1.0, stagger: 0.38, rowGap: 0.5, damage: 86, recover: 0.9, reach: 'near' },
+      pressHard: { pattern: 'press', telegraph: 0.7, rows: 3, cols: 7, radius: 78, delay: 0.95, stagger: 0.3, rowGap: 0.4, damage: 88, recover: 0.9, reach: 'near' },
+      // 固有「溶鉄」：プレイヤーの足元とそのまわりに、溶鉄が count 個落ちる。落ちた所に、燃える床が残る
+      moltenspit: { pattern: 'moltenspit', telegraph: 0.7, count: 3, spread: 150, radius: 56, delay: 0.9, stagger: 0.25, damage: 72, poolRadius: 70, poolLife: 6, poolDamage: 24, recover: 0.8, reach: 'far' },
+      moltenspitHard: { pattern: 'moltenspit', telegraph: 0.6, count: 5, spread: 190, radius: 56, delay: 0.85, stagger: 0.2, damage: 74, poolRadius: 70, poolLife: 7, poolDamage: 26, recover: 0.8, reach: 'far' },
+      // 固有「締結」：留め具が points か所に打たれ、その間を電撃の線がつなぐ（プレイヤーの足元も点の1つ）。warn 秒の予告のあと、一瞬だけ当たる
+      fasten: { pattern: 'fasten', telegraph: 0.7, points: 5, warn: 1.2, width: 28, damage: 78, recover: 0.8, reach: 'far' },
+      fastenHard: { pattern: 'fasten', telegraph: 0.6, points: 7, warn: 1.1, width: 28, damage: 80, recover: 0.8, reach: 'far' },
+      // 大技「全工程稼働」：ベルト2本が duration 秒回り続け、プレス（pressEvery 秒ごと）と溶鉄（moltenEvery 秒ごと）が次々に来る
+      fullline: {
+        pattern: 'fullline', telegraph: 1.8, duration: 11, beltWidth: 150, beltSpeed: 280, pressEvery: 2.4, moltenEvery: 3.0,
+        press: { cols: 6, radius: 80, delay: 1.0, stagger: 0.32, damage: 88 },
+        molten: { count: 3, spread: 170, radius: 56, delay: 0.9, stagger: 0.25, damage: 74, poolRadius: 70, poolLife: 6, poolDamage: 26 },
+        recover: 1.6,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'fasten' }],
+    ultimate: { move: 'fullline', announce: '全工程稼働' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['assemble', 'belts', 'press', 'moltenspit', 'fasten'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['assembleHard', 'beltsHard', 'pressHard', 'moltenspitHard', 'fastenHard'],
+        combos: [{ moves: ['beltsHard', 'pressHard'] }, { moves: ['assembleHard', 'moltenspitHard'] }],
+        announce: '工程、加速',
       },
     ],
   },

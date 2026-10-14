@@ -53,7 +53,7 @@ export function rainHit(world) {
   const p = world.player;
   if (!env || world.mode !== 'play' || p.stats.rainProof > 0) return;
   const taken = Math.max(PLAYER.minDamageTaken, statWith(world, 'damageTaken'));
-  const amount = Math.min(Math.max(0, p.hp - 1), Math.max(1, Math.round(env.damage.amount * taken * dotScale(world) * (world.room.damageScale ?? 1))));
+  const amount = Math.min(Math.max(0, p.hp - 1), Math.max(1, Math.round((env.rainDamage ?? env.damage).amount * taken * dotScale(world) * (world.room.damageScale ?? 1))));
   if (world.rain) world.rain.hits++;
   world.rainHits = (world.rainHits ?? 0) + 1;
   if (amount > 0) {
@@ -74,24 +74,24 @@ export function updateRain(world, dt) {
     world.rain = null;
     return;
   }
-  const r = (world.rain ??= { phase: 'clear', t: env.cycle.clear, max: env.cycle.clear, acc: 0, hits: 0 });
+  const r = (world.rain ??= { phase: 'clear', t: (env.rainCycle ?? env.cycle).clear, max: (env.rainCycle ?? env.cycle).clear, acc: 0, hits: 0 });
   const p = world.player;
   r.t -= dt;
   if (r.t <= 0) {
     if (r.phase === 'clear') {
-      Object.assign(r, { phase: 'warn', t: env.cycle.warn, max: env.cycle.warn });
+      Object.assign(r, { phase: 'warn', t: (env.rainCycle ?? env.cycle).warn, max: (env.rainCycle ?? env.cycle).warn });
       floatText(world, p.x, p.y - 44, 'Acid Rain', ELEMENT_COLORS.corrode, 16);
       sfx(world, 'warning');
     } else if (r.phase === 'warn') {
-      Object.assign(r, { phase: 'rain', t: env.cycle.rain, max: env.cycle.rain, acc: 0 });
+      Object.assign(r, { phase: 'rain', t: (env.rainCycle ?? env.cycle).rain, max: (env.rainCycle ?? env.cycle).rain, acc: 0 });
     } else {
-      Object.assign(r, { phase: 'clear', t: env.cycle.clear, max: env.cycle.clear });
+      Object.assign(r, { phase: 'clear', t: (env.rainCycle ?? env.cycle).clear, max: (env.rainCycle ?? env.cycle).clear });
     }
   }
   if (r.phase !== 'rain') return;
   r.acc += dt;
-  if (r.acc < env.damage.tick) return;
-  r.acc -= env.damage.tick;
+  if (r.acc < (env.rainDamage ?? env.damage).tick) return;
+  r.acc -= (env.rainDamage ?? env.damage).tick;
   // プレイヤー：屋根の外にいると、少しずつ削られる（これで倒れることはない。ダッシュでは防げない）
   if (!underRoof(world, p.x, p.y)) rainHit(world);
   // 敵：屋根の外にいると、腐食が付く

@@ -51,3 +51,17 @@ export const environments = [
     hotWalls: { count: { min: 3, max: 5 }, length: { min: 120, max: 200 }, damage: 28, depth: 10 },
   },
 ];
+
+// ---- 環境を重ねたもの（2026-10-15。マップ7のエリアで使う）----
+// 酸の雨と強風は「周期（cycle）」「ダメージ（damage）」の名前がぶつかるので、重ねたものでは rainCycle / rainDamage / windCycle という名前に分ける。
+//   dark（暗闇）の項目は、そのまま重ねる
+const byId = (id) => environments.find((e) => e.id === id);
+const dark = byId('dark');
+const rain = byId('acidrain');
+const gale = byId('gale');
+const windPart = (({ cycle, ...rest }) => ({ ...rest, windCycle: cycle }))(gale);
+const rainPart = (({ cycle, damage, ...rest }) => ({ ...rest, rainCycle: cycle, rainDamage: damage }))(rain);
+environments.push(
+  { ...dark, ...windPart, id: 'darkgale', name: '暗闇と強風' },
+  { ...dark, ...rainPart, ...windPart, id: 'storm', name: '暗闇・酸の雨・強風' },
+);

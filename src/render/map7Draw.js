@@ -15,6 +15,43 @@ function slabRects(world, h, trav) {
 }
 
 export const HAZARD_DRAWS_MAP7 = {
+  // 部品の飛来：飛んでいく四角い部品と、組み上がる場所の印
+  partflight(g, h, world) {
+    const body = hex(h.color);
+    g.lineStyle(1.5, RED(), 0.4).strokeCircle(h.tx, h.ty, 24);
+    if (h.t < 0) return;
+    g.lineStyle(1, body, 0.25).lineBetween(h.sx, h.sy, h.x, h.y);
+    g.fillStyle(0x0a0814, 1).fillRect(h.x - 8, h.y - 8, 16, 16);
+    g.lineStyle(2.5, body, 0.95).strokeRect(h.x - 8, h.y - 8, 16, 16);
+  },
+
+  // ベルト：流れる向きの矢印が動く帯
+  belt(g, h, world) {
+    const bd = world.bounds;
+    const body = hex(h.color);
+    const warn = h.warn > 0;
+    const alpha = warn ? 0.06 + 0.12 * (1 - h.warn / h.warnMax) : 0.16;
+    const x = h.axis === 'h' ? bd.left : h.pos - h.width / 2;
+    const y = h.axis === 'h' ? h.pos - h.width / 2 : bd.top;
+    const w = h.axis === 'h' ? bd.right - bd.left : h.width;
+    const hh = h.axis === 'h' ? h.width : bd.bottom - bd.top;
+    g.fillStyle(warn ? RED() : body, alpha).fillRect(x, y, w, hh);
+    g.lineStyle(2, warn ? RED() : body, warn ? 0.6 : 0.5).strokeRect(x, y, w, hh);
+    if (warn) return;
+    const shift = (world.time * h.speed * 0.5) % 60;
+    if (h.axis === 'h') {
+      for (let px = bd.left - 60; px < bd.right + 60; px += 60) {
+        const cx = px + h.dir * shift;
+        g.lineStyle(2.5, body, 0.5).lineBetween(cx - h.dir * 10, h.pos - 14, cx + h.dir * 10, h.pos).lineBetween(cx + h.dir * 10, h.pos, cx - h.dir * 10, h.pos + 14);
+      }
+    } else {
+      for (let py = bd.top - 60; py < bd.bottom + 60; py += 60) {
+        const cy = py + h.dir * shift;
+        g.lineStyle(2.5, body, 0.5).lineBetween(h.pos - 14, cy - h.dir * 10, h.pos, cy + h.dir * 10).lineBetween(h.pos, cy + h.dir * 10, h.pos + 14, cy - h.dir * 10);
+      }
+    }
+  },
+
   // 再生の影：出る場所に待っている間は、細い輪。動き出したら、プレイヤーの形の影
   replayshade(g, h, world) {
     const body = hex(h.color);
@@ -123,6 +160,12 @@ export const HAZARD_DRAWS_MAP7 = {
 };
 
 export const BOSS_TELEGRAPHS_MAP7 = {
+  assemble: ringTelegraph,
+  belts: ringTelegraph,
+  press: ringTelegraph,
+  moltenspit: ringTelegraph,
+  fasten: ringTelegraph,
+  fullline: ringTelegraph,
   echo: ringTelegraph,
   // 足跡爆撃：記録した足跡を、赤い輪で見せる
   trailstrike: (g, b, act, world) => {

@@ -163,6 +163,15 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.6, y - s * 0.3, x + s * 0.6, y - s * 0.3);
     g.lineBetween(x - s * 0.6, y + s * 0.3, x + s * 0.6, y + s * 0.3);
   },
+  // ファブコア：歯車
+  fabCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      g.lineStyle(1.3, c, 1).lineBetween(x + Math.cos(a) * s * 0.28, y + Math.sin(a) * s * 0.28, x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5);
+    }
+    g.strokeCircle(x, y, s * 0.28);
+  },
   // アーカイブコア：重なった頁
   archiveCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

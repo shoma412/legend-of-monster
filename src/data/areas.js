@@ -696,6 +696,39 @@ export const areas = [
       ],
       bossDefeated: [
         '@noise＞ ……記録が、途切れた。',
+        '@noise＞ コアを回収しろ。次は、修繕工場だ。街が、お前を直そうとしている。',
+      ],
+    },
+  },
+  {
+    id: 'factory',
+    code: 'CORE 03',
+    name: '修繕工場',
+    theme: 'factory',
+    bgm: 'factory',
+    bossBgm: 'bossFactory',
+    environment: 'gale', // このエリアだけの環境（強風と、換気扇の壁）
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'weldbot', weight: 3 },
+      { id: 'bolter', weight: 3 },
+      { id: 'pinwheel', weight: 2 },
+      { id: 'windrider', weight: 2 },
+      { id: 'gateguard', weight: 1 },
+      { id: 'scanner', weight: 1 },
+    ],
+    eliteBases: ['weldbot', 'bolter', 'gateguard'],
+    boss: 'fabricator',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ ここは、街が自分を直す工場だ。壊れたものを、全部ここで直している。……お前も、壊れたものとして扱われる。',
+        '@noise＞ 床のベルトに流されるな。壁の換気扇にも触れるな。足元に砲台が組み上がる。冷却が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……工場が、止まった。',
         '@noise＞ コアを回収しろ。……この先は、まだ準備ができていない。',
       ],
     },

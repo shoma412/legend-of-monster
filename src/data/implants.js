@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 修繕（ファブリケーター由来・直して耐える） ----
+  {
+    id: 'spotweld', species: 'repair', name: '点溶接',
+    desc: (k) => `風の間、被ダメージ −${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.08 * k, when: 'windBlowing' }] }),
+  },
+  {
+    id: 'overhaul', species: 'repair', name: 'オーバーホール',
+    desc: (k) => `被弾後の無敵時間 +${Math.round(0.12 * k * 100) / 100}秒`,
+    effect: (k) => ({ mods: [{ stat: 'hurtInvincible', add: 0.12 * k }] }),
+  },
+  {
+    id: 'toolbox', species: 'repair', name: '工具箱',
+    desc: (k) => `修復キットの回復量 +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'kitBonus', add: 0.15 * k }] }),
+  },
+  {
+    id: 'torque', species: 'repair', name: 'トルク',
+    desc: (k) => `敵を倒してから4秒間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentKill', window: 4 }] }),
+  },
+  {
+    id: 'fastener', species: 'repair', name: '締結具',
+    desc: (k) => `ダッシュの距離 +${pct(0.12 * k)}、ダッシュの回復 +${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'dashDistance', add: 0.12 * k }, { stat: 'dashHaste', add: 0.08 * k }] }),
+  },
   // ---- 記録（アーカイバー由来・覚えて返す） ----
   {
     id: 'bookmark', species: 'record', name: 'しおり',
@@ -732,6 +758,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  repair: {
+    name: '修繕', color: 'amber', boss: 'fabricator',
+    bonuses: [
+      { need: 2, desc: '最大HP +30', effect: { mods: [{ stat: 'maxHp', add: 30 }] } },
+      { need: 3, desc: '与えるダメージ +8%', effect: { mods: [{ stat: 'attackMul', add: 0.08 }] } },
     ],
   },
   record: {

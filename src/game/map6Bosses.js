@@ -36,7 +36,7 @@ function clearWind(world) {
   const env = windEnv(world);
   const w = world.wind;
   if (!env || !w) return;
-  Object.assign(w, { phase: 'clear', t: env.cycle.clear, max: env.cycle.clear, pushing: false });
+  Object.assign(w, { phase: 'clear', t: (env.windCycle ?? env.cycle).clear, max: (env.windCycle ?? env.cycle).clear, pushing: false });
 }
 
 // 風の向き（いま吹いている、または予告された向き）。なければ null

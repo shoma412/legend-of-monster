@@ -315,6 +315,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-fabricator',
+    trigger: { at: 'bossIntro', boss: 'fabricator' },
+    lines: [
+      { who: 'jin', text: '……工場の真ん中で、でかい歯車が回ってる。' },
+      { who: 'noise', text: '街の修繕を、ぜんぶ仕切っている機械だ。お前のことも、「直す対象」だと思っている。' },
+      { who: 'jin', text: '直されてたまるか。……こっちが、先に止める。' },
+    ],
+  },
+  {
+    id: 'return-fabricator',
+    trigger: { at: 'hideout', bossKilled: 'fabricator' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……右腕、ちょっと焦げてる。' },
+      { who: 'jin', text: '溶鉄をかぶった。' },
+      { who: 'hal', text: '直すのは、私の仕事。……工場に、取られなくてよかった。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -450,6 +468,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'fabricator', lines: [{ who: 'hal', text: '修繕長の歯車、全部に新しい油が差してあった。壊れた街を、最後まで、ちゃんと手入れしてたんだね。' }] },
     { after: 'archivist', lines: [{ who: 'hal', text: '記録係の中、棚がぜんぶ空だった。記録を守っていたはずなのに、いちばん守りたかったものは、どこにもなかったんだね。' }] },
     { after: 'gatekeeper', lines: [{ who: 'hal', text: '門の錠、中がからっぽだった。誰も通さないために、ずっと閉じていたのに、守るものは、もう中に残っていなかったんだね。' }] },
     { after: 'cyclone', lines: [{ who: 'hal', text: '渦の芯、からっぽだった。街じゅうの風を集めたのに、何も残らなかったんだね。' }] },
@@ -499,7 +518,8 @@ export const talks = {
     { after: 'weathervane', lines: [{ who: 'noise', text: '風見の庭が静かになった。次は排気塔だ。街じゅうの風が集まる所に、大きな渦がいる。曲がる弾に気をつけろ。' }] },
     { after: 'cyclone', lines: [{ who: 'noise', text: '排気塔が静かになった。次は、街の中枢だ。最後の門が、閉まっている。……準備を、怠るな。' }] },
     { after: 'gatekeeper', lines: [{ who: 'noise', text: '中枢の門が開いた。次は記録庫だ。街の全部の記憶が、しまってある。雨が降っている。屋根を、探せ。' }] },
-    { after: 'archivist', lines: [{ who: 'noise', text: '記録庫が静かになった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'archivist', lines: [{ who: 'noise', text: '記録庫が静かになった。次は修繕工場だ。強い風が吹いている。ベルトと、プレスと、溶けた鉄に気をつけろ。' }] },
+    { after: 'fabricator', lines: [{ who: 'noise', text: '修繕工場が止まった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

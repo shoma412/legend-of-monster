@@ -24,6 +24,7 @@ export const materials = [
   { id: 'cycloneCore', name: 'サイクロンコア', color: 'cold' },
   { id: 'gateCore', name: 'ゲートコア', color: 'red' },
   { id: 'archiveCore', name: 'アーカイブコア', color: 'cyan' },
+  { id: 'fabCore', name: 'ファブコア', color: 'amber' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -290,6 +291,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'fb-01', area: 'factory', source: 'vault', title: '修繕工場 作業手順',
+    text: '壊れたものは、捨てない。直す。直せないものは、別のものを作る材料にする。人間も、例外ではない。……この一文は、設計者の冗談だったと、信じたい。',
+  },
+  {
+    id: 'fb-02', area: 'factory', source: 'vault', title: 'ボルト打ち 点検票',
+    text: '連射は四発まで。それ以上は、銃身が焼ける。点検票は、毎日書くこと。……最後の記入は、六年前の日付で止まっている。',
+  },
+  {
+    id: 'fb-memo', area: 'factory', source: 'vault', title: '工員の走り書き',
+    text: 'ベルトの速さは、場所で違う。押し流されても、慌てるな。プレスは、端から順に落ちる。落ちる順番を、覚えろ。……修繕長は、直すことしか、しない。',
+  },
+  {
+    id: 'fb-core', area: 'factory', source: 'boss', title: 'ファブリケーターのコアログ',
+    text: '修繕：継続。対象：侵入者。診断：異物。——直す。直す。直す。直せないなら、部品にする。',
   },
   {
     id: 'ar-01', area: 'archive', source: 'vault', title: '記録庫 閲覧規則',

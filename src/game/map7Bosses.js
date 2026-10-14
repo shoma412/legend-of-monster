@@ -1,11 +1,12 @@
 // マップ7のボスの、そのボスだけの攻撃。共通の部品は使わない（docs/詳細仕様.md「新しいボスを作るときの決まり」）。
+//   ファブリケーター: assemble 組立 / belts ベルト / press プレス / moltenspit 溶鉄 / fasten 締結 / fullline 全工程稼働（大技）
 //   アーカイバー  : echo 再生 / trailstrike 足跡爆撃 / collect 回収弾 / censorbars 検閲帯 / backup 復元 / rewind 巻き戻し（大技）
 //   ゲートキーパー: gateclose 閉門 / holdshots 検問弾 / callguards 衛兵召喚 / fissure 裂け目 / tailbomb 尾行爆弾 / lockdown 全門閉鎖（大技）
 // 残る床や線は hazard（world.hazards）として置き、動きは HAZARDS_MAP7 の update、絵は src/render/map7Draw.js の draw で扱う。
 import { FEEL } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS } from '../data/theme.js';
-import { circlesOverlap, distToSegment } from '../logic/geometry.js';
+import { circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { startRain } from './acidRain.js';
 import { clamp, pushMark, timed } from './bossKit.js';
 import { hurtPlayer } from './combat.js';
@@ -30,6 +31,47 @@ function makeSlab(world, def, axis, lane, wait, color) {
 
 // ---- ハザード（残る攻撃）の動き ----
 export const HAZARDS_MAP7 = {
+  // 部品の飛来：部屋のふちから、組み上がる場所へ飛んで、着いたら砲台（enemy）になる
+  partflight: {
+    update(world, h, dt) {
+      h.t += dt;
+      const k = Math.min(1, h.t / h.dur);
+      h.x = h.sx + (h.tx - h.sx) * k;
+      h.y = h.sy + (h.ty - h.sy) * k;
+      if (k >= 1) {
+        const [scale, hpScale] = SCALE(world);
+        const e = createEnemy(DATA.enemies.get(h.enemy), h.tx, h.ty, 0.3, world.rng, scale, hpScale);
+        e.expire = world.time + h.life;
+        world.enemies.push(e);
+        ring(world, h.tx, h.ty, 50, h.color);
+        burst(world, h.tx, h.ty, h.color, 16, 220);
+        sfx(world, 'block');
+        h.dead = true;
+      }
+    },
+  },
+
+  // ベルト：帯の中にいると、dir の向きへ流される（ダッシュ中は流されない）。warn 秒の予告のあと、life 秒つづく
+  belt: {
+    update(world, h, dt) {
+      const p = world.player;
+      if (h.warn > 0) {
+        h.warn -= dt;
+        return;
+      }
+      h.age += dt;
+      const d = h.axis === 'h' ? Math.abs(p.y - h.pos) : Math.abs(p.x - h.pos);
+      if (d <= h.width / 2 && p.dashT <= 0) {
+        if (h.axis === 'h') p.x += h.dir * h.speed * dt;
+        else p.y += h.dir * h.speed * dt;
+        clampToBounds(p, world.bounds);
+      }
+      if (h.age >= h.life) h.dead = true;
+    },
+  },
+
+  // 修繕工場のゆれる床（検閲帯と同じく、予告のあと一瞬だけ当たる）は、ここには書かない（マークを使う）
+
   // 再生の影：プレイヤーが通ってきた道を、delay 秒遅れで、そのままなぞって追ってくる。出てから delay 秒は、出た場所で待つ（当たらない）
   replayshade: {
     update(world, h, dt) {
@@ -207,7 +249,147 @@ export const HAZARDS_MAP7 = {
   },
 };
 
+// プレスの並びを1段ぶん置く（左から右、または右から左へ、順に落ちる）
+function pressRow(world, act, b, def, rowFrac, dir, baseDelay) {
+  const bd = world.bounds;
+  const w = bd.right - bd.left;
+  const h = bd.bottom - bd.top;
+  for (let j = 0; j < def.cols; j++) {
+    const x = bd.left + (j + 0.5) * (w / def.cols);
+    const y = bd.top + rowFrac * h;
+    pushMark(world, act, b, { x, y, r: def.radius, t: baseDelay + (dir > 0 ? j : def.cols - 1 - j) * def.stagger, damage: def.damage, color: b.color });
+  }
+}
+
+// 溶鉄を落とす（プレイヤーの足元と、そのまわり）。落ちた所に、燃える床が残る
+function moltenDrop(world, act, b, def) {
+  const p = world.player;
+  for (let i = 0; i < def.count; i++) {
+    const a = world.rng() * Math.PI * 2;
+    const r = i === 0 ? 0 : def.spread * (0.6 + world.rng() * 0.5);
+    const x = clamp(p.x + Math.cos(a) * r, world.bounds.left + 30, world.bounds.right - 30);
+    const y = clamp(p.y + Math.sin(a) * r, world.bounds.top + 30, world.bounds.bottom - 30);
+    pushMark(world, act, b, { x, y, r: def.radius, t: def.delay + i * def.stagger, damage: def.damage, color: '#ff7a3d', extra: { pool: { radius: def.poolRadius, arm: 0.4, life: def.poolLife, tick: 0.5, damage: def.poolDamage, dot: 'burn' } } });
+  }
+}
+
 export const PATTERNS_MAP7 = {
+  // 組立：部屋のふちから部品が飛んできて、プレイヤーのまわりで砲台に組み上がる（turretLife 秒で壊れる）。壊せる
+  assemble: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const p = world.player;
+      const bd = world.bounds;
+      for (let i = 0; i < def.count; i++) {
+        const a = world.rng() * Math.PI * 2;
+        const r = def.minDist + world.rng() * (def.maxDist - def.minDist);
+        const tx = clamp(p.x + Math.cos(a) * r, bd.left + 40, bd.right - 40);
+        const ty = clamp(p.y + Math.sin(a) * r, bd.top + 40, bd.bottom - 40);
+        const side = Math.floor(world.rng() * 4) % 4;
+        const sx = side === 0 ? bd.left : side === 1 ? bd.right : tx;
+        const sy = side === 2 ? bd.top : side === 3 ? bd.bottom : ty;
+        const h = { type: 'partflight', sx, sy, tx, ty, x: sx, y: sy, t: -i * def.gap, dur: def.fly, enemy: def.enemy, life: def.turretLife, color: b.color };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      sfx(world, 'enemyShot');
+    },
+    finished(world, b, act, dt) {
+      act.clock = (act.clock ?? 0) + dt;
+      return act.clock >= act.def.hold;
+    },
+  }),
+
+  // ベルト：床の帯が count 本、向きを交互に、プレイヤーを流す。流される先の壁や、換気扇の壁に気をつける
+  belts: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const bd = world.bounds;
+      const horizontal = world.rng() < 0.5;
+      const len = horizontal ? bd.bottom - bd.top : bd.right - bd.left;
+      const start = horizontal ? bd.top : bd.left;
+      for (let i = 0; i < def.count; i++) {
+        const pos = start + (len * (i + 1)) / (def.count + 1);
+        const h = { type: 'belt', axis: horizontal ? 'h' : 'v', pos, width: def.width, dir: i % 2 === 0 ? 1 : -1, speed: def.speed, warn: def.warn, warnMax: def.warn, age: 0, life: def.life, color: b.color };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      sfx(world, 'warning');
+    },
+  }),
+
+  // プレス：巨大な押し潰しが、列ごとに、左から右へ（段ごとに向きが逆）順に落ちる
+  press: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      for (let r = 0; r < def.rows; r++) pressRow(world, act, b, def, (r + 1) / (def.rows + 1), r % 2 === 0 ? 1 : -1, def.delay + r * def.rowGap);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 溶鉄：プレイヤーの足元とそのまわりに溶鉄が落ちる。落ちた所に、燃える床が残る
+  moltenspit: timed({
+    fire(world, b, act) {
+      moltenDrop(world, act, b, act.def);
+      sfx(world, 'enemyShot');
+    },
+  }),
+
+  // 締結：部屋のあちこちに留め具が打たれ、その間を電撃の線がつなぐ（予告のあと、一瞬だけ当たる）。プレイヤーの足元も、点の1つ
+  fasten: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const p = world.player;
+      const bd = world.bounds;
+      const pts = [{ x: clamp(p.x, bd.left + 30, bd.right - 30), y: clamp(p.y, bd.top + 30, bd.bottom - 30) }];
+      for (let tries = 0; tries < 80 && pts.length < def.points; tries++) {
+        const sx = bd.left + 40 + world.rng() * (bd.right - bd.left - 80);
+        const sy = bd.top + 40 + world.rng() * (bd.bottom - bd.top - 80);
+        if (pts.every((q) => Math.hypot(q.x - sx, q.y - sy) >= 160)) pts.push({ x: sx, y: sy });
+      }
+      const segs = [];
+      for (let i = 0; i < pts.length - 1; i++) segs.push([pts[i], pts[i + 1]]);
+      segs.push([pts[pts.length - 1], pts[0]]);
+      const h = { type: 'netline', points: pts, segs, phase: 'warn', warn: def.warn, warnMax: def.warn, t: 0, flash: 0.3, width: def.width, damage: def.damage, color: '#ffb347' };
+      world.hazards.push(h);
+      act.hs.push(h);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 全工程稼働（大技）：ベルトが回り続け、プレスと溶鉄が次々に来る。duration 秒つづく
+  fullline: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      const bd = world.bounds;
+      act.clock = 0;
+      act.pressAt = 0.6;
+      act.moltenAt = 1.2;
+      const len = bd.bottom - bd.top;
+      for (let i = 0; i < 2; i++) {
+        const h = { type: 'belt', axis: 'h', pos: bd.top + (len * (i + 1)) / 3, width: def.beltWidth, dir: i % 2 === 0 ? 1 : -1, speed: def.beltSpeed, warn: 1.0, warnMax: 1.0, age: 0, life: def.duration, color: b.color };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      addShake(world, FEEL.shake.charged);
+      sfx(world, 'explode');
+    },
+    finished(world, b, act, dt) {
+      const def = act.def;
+      act.clock += dt;
+      if (act.clock >= act.pressAt && act.clock < def.duration - 2) {
+        act.pressAt += def.pressEvery;
+        pressRow(world, act, b, def.press, 0.25 + world.rng() * 0.5, world.rng() < 0.5 ? 1 : -1, def.press.delay);
+        sfx(world, 'warning');
+      }
+      if (act.clock >= act.moltenAt && act.clock < def.duration - 2) {
+        act.moltenAt += def.moltenEvery;
+        moltenDrop(world, act, b, def.molten);
+      }
+      return act.clock >= def.duration + 1 && act.hs.every((h) => h.dead);
+    },
+  }),
+
   // 再生：プレイヤーの通った道をなぞる影が、count 体、delay 秒遅れで追ってくる（life 秒で消える）
   echo: timed({
     fire(world, b, act) {

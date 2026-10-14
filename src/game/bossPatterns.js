@@ -1710,7 +1710,7 @@ export function updateHazards(world, dt) {
           // grow / rMax を書くと、床が広がり続ける（汚泥の噴水）。slow なら、踏むと減速する
           world.hazards.push({
             type: 'pool', x: h.x, y: h.y, r: h.pool.radius, arm: h.pool.arm, armMax: h.pool.arm, life: h.pool.life, tick: h.pool.tick, acc: h.pool.tick, damage: h.pool.damage,
-            slow: !!h.pool.slow, grow: h.pool.grow, rMax: h.pool.rMax, color: h.color,
+            slow: !!h.pool.slow, grow: h.pool.grow, rMax: h.pool.rMax, dot: h.pool.dot, color: h.color,
           });
         }
         // split を書くと、落ちた場所から、小さな塊が周りへ飛び散って落ちる（汚水の塊）
