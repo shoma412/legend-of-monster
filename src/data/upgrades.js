@@ -438,6 +438,470 @@ export const upgrades = [
     costs: [{ spiderCore: 1, nocturneCore: 1, catalystCore: 1 }],
     perLevel: { mods: [{ stat: 'attackMul', add: 0.08 }, { stat: 'critChance', add: 0.04 }] },
   },
+  // ---- ここから、マップ7の周回に向けて足した強化（since: 10）。すべての素材ごとに2系統（第2層・第3層）＋ 2種類の組み合わせ ＋ 3種類の組み合わせ ----
+  // 第2層：1種類の素材（3段）
+  {
+    id: 'l2-boar', category: 'skill', name: 'ボア・会心威力II', desc: '会心ダメージ +5%', max: 3, since: 10,
+    costs: [{ boarCore: 1 }, { boarCore: 1 }, { boarCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.05 }] },
+  },
+  {
+    id: 'l2-cryo', category: 'skill', name: 'クライオ・弱点II', desc: '弱点を突いたときのダメージ +4%', max: 3, since: 10,
+    costs: [{ cryoCore: 1 }, { cryoCore: 1 }, { cryoCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.04 }] },
+  },
+  {
+    id: 'l2-over', category: 'skill', name: 'オーバー・会心II', desc: '会心率 +1.2%', max: 3, since: 10,
+    costs: [{ overCore: 1 }, { overCore: 1 }, { overCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.012 }] },
+  },
+  {
+    id: 'l2-serpent', category: 'gear', name: 'サーペント・跳躍II', desc: 'ダッシュの距離 +4%', max: 3, since: 10,
+    costs: [{ serpentCore: 1 }, { serpentCore: 1 }, { serpentCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashDistance', add: 0.04 }] },
+  },
+  {
+    id: 'l2-crab', category: 'skill', name: 'クラブ・火力II', desc: '攻撃力 +3%', max: 3, since: 10,
+    costs: [{ crabCore: 1 }, { crabCore: 1 }, { crabCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.03 }] },
+  },
+  {
+    id: 'l2-hydra', category: 'gear', name: 'ハイドラ・回避II', desc: 'ダッシュの回復 +3%', max: 3, since: 10,
+    costs: [{ hydraCore: 1 }, { hydraCore: 1 }, { hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.03 }] },
+  },
+  {
+    id: 'l2-hound', category: 'body', name: 'ハウンド・耐久II', desc: '最大HP +25', max: 3, since: 10,
+    costs: [{ houndCore: 1 }, { houndCore: 1 }, { houndCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 25 }] },
+  },
+  {
+    id: 'l2-spider', category: 'gear', name: 'スパイダー・脚力II', desc: '移動速度 +2%', max: 3, since: 10,
+    costs: [{ spiderCore: 1 }, { spiderCore: 1 }, { spiderCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.02 }] },
+  },
+  {
+    id: 'l2-titan', category: 'body', name: 'タイタン・猶予II', desc: '被弾後の無敵 +0.03秒', max: 3, since: 10,
+    costs: [{ titanCore: 1 }, { titanCore: 1 }, { titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.03 }] },
+  },
+  {
+    id: 'l2-moth', category: 'body', name: 'モス・再生II', desc: 'HP が毎秒 0.25 回復', max: 3, since: 10,
+    costs: [{ mothCore: 1 }, { mothCore: 1 }, { mothCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.25 }] },
+  },
+  {
+    id: 'l2-lens', category: 'body', name: 'レンズ・耐性II', desc: '持続ダメージで受ける量 −4%', max: 3, since: 10,
+    costs: [{ lensCore: 1 }, { lensCore: 1 }, { lensCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.04 }] },
+  },
+  {
+    id: 'l2-breaker', category: 'body', name: 'ブレーカー・装甲II', desc: '被ダメージ −2%', max: 3, since: 10,
+    costs: [{ breakerCore: 1 }, { breakerCore: 1 }, { breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.02 }] },
+  },
+  {
+    id: 'l2-rust', category: 'gear', name: 'ラスト・補給II', desc: '修復キットの回復量 +6%', max: 3, since: 10,
+    costs: [{ rustCore: 1 }, { rustCore: 1 }, { rustCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.06 }] },
+  },
+  {
+    id: 'l2-buffer', category: 'skill', name: 'バッファー・連撃II', desc: '攻撃速度 +3%', max: 3, since: 10,
+    costs: [{ bufferCore: 1 }, { bufferCore: 1 }, { bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackSpeed', add: 0.03 }] },
+  },
+  {
+    id: 'l2-rain', category: 'skill', name: 'レイン・状態II', desc: '状態異常の時間 +8%', max: 3, since: 10,
+    costs: [{ rainCore: 1 }, { rainCore: 1 }, { rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.08 }] },
+  },
+  {
+    id: 'l2-intake', category: 'skill', name: 'インテーク・会心威力II', desc: '会心ダメージ +5%', max: 3, since: 10,
+    costs: [{ intakeCore: 1 }, { intakeCore: 1 }, { intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.05 }] },
+  },
+  {
+    id: 'l2-duct', category: 'skill', name: 'ダクト・弱点II', desc: '弱点を突いたときのダメージ +4%', max: 3, since: 10,
+    costs: [{ ductCore: 1 }, { ductCore: 1 }, { ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.04 }] },
+  },
+  {
+    id: 'l2-vane', category: 'skill', name: 'ベーン・会心II', desc: '会心率 +1.2%', max: 3, since: 10,
+    costs: [{ vaneCore: 1 }, { vaneCore: 1 }, { vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.012 }] },
+  },
+  {
+    id: 'l2-cyclone', category: 'gear', name: 'サイクロン・跳躍II', desc: 'ダッシュの距離 +4%', max: 3, since: 10,
+    costs: [{ cycloneCore: 1 }, { cycloneCore: 1 }, { cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashDistance', add: 0.04 }] },
+  },
+  {
+    id: 'l2-gate', category: 'skill', name: 'ゲート・火力II', desc: '攻撃力 +3%', max: 3, since: 10,
+    costs: [{ gateCore: 1 }, { gateCore: 1 }, { gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.03 }] },
+  },
+  {
+    id: 'l2-archive', category: 'gear', name: 'アーカイブ・回避II', desc: 'ダッシュの回復 +3%', max: 3, since: 10,
+    costs: [{ archiveCore: 1 }, { archiveCore: 1 }, { archiveCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.03 }] },
+  },
+  {
+    id: 'l2-fab', category: 'body', name: 'ファブ・耐久II', desc: '最大HP +25', max: 3, since: 10,
+    costs: [{ fabCore: 1 }, { fabCore: 1 }, { fabCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 25 }] },
+  },
+  {
+    id: 'l2-cog', category: 'gear', name: 'コギト・脚力II', desc: '移動速度 +2%', max: 3, since: 10,
+    costs: [{ cogCore: 1 }, { cogCore: 1 }, { cogCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.02 }] },
+  },
+  {
+    id: 'l2-noise', category: 'body', name: 'ノイズ・猶予II', desc: '被弾後の無敵 +0.03秒', max: 3, since: 10,
+    costs: [{ noiseCore: 1 }, { noiseCore: 1 }, { noiseCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.03 }] },
+  },
+  {
+    id: 'l2-architect', category: 'body', name: 'アーキテクト・再生II', desc: 'HP が毎秒 0.25 回復', max: 3, since: 10,
+    costs: [{ architectCore: 1 }, { architectCore: 1 }, { architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.25 }] },
+  },
+  {
+    id: 'l2-nocturne', category: 'body', name: 'ノクターン・耐性II', desc: '持続ダメージで受ける量 −4%', max: 3, since: 10,
+    costs: [{ nocturneCore: 1 }, { nocturneCore: 1 }, { nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.04 }] },
+  },
+  {
+    id: 'l2-catalyst', category: 'body', name: 'カタリスト・装甲II', desc: '被ダメージ −2%', max: 3, since: 10,
+    costs: [{ catalystCore: 1 }, { catalystCore: 1 }, { catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.02 }] },
+  },
+  // 第3層：1種類の素材（3段）
+  {
+    id: 'l3-boar', category: 'gear', name: 'ボア・回避III', desc: 'ダッシュの回復 +3%', max: 3, since: 10,
+    costs: [{ boarCore: 1 }, { boarCore: 1 }, { boarCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.03 }] },
+  },
+  {
+    id: 'l3-cryo', category: 'gear', name: 'クライオ・補給III', desc: '修復キットの回復量 +6%', max: 3, since: 10,
+    costs: [{ cryoCore: 1 }, { cryoCore: 1 }, { cryoCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.06 }] },
+  },
+  {
+    id: 'l3-over', category: 'skill', name: 'オーバー・火力III', desc: '攻撃力 +3%', max: 3, since: 10,
+    costs: [{ overCore: 1 }, { overCore: 1 }, { overCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.03 }] },
+  },
+  {
+    id: 'l3-serpent', category: 'body', name: 'サーペント・装甲III', desc: '被ダメージ −2%', max: 3, since: 10,
+    costs: [{ serpentCore: 1 }, { serpentCore: 1 }, { serpentCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.02 }] },
+  },
+  {
+    id: 'l3-crab', category: 'gear', name: 'クラブ・跳躍III', desc: 'ダッシュの距離 +4%', max: 3, since: 10,
+    costs: [{ crabCore: 1 }, { crabCore: 1 }, { crabCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashDistance', add: 0.04 }] },
+  },
+  {
+    id: 'l3-hydra', category: 'body', name: 'ハイドラ・耐性III', desc: '持続ダメージで受ける量 −4%', max: 3, since: 10,
+    costs: [{ hydraCore: 1 }, { hydraCore: 1 }, { hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.04 }] },
+  },
+  {
+    id: 'l3-hound', category: 'skill', name: 'ハウンド・会心III', desc: '会心率 +1.2%', max: 3, since: 10,
+    costs: [{ houndCore: 1 }, { houndCore: 1 }, { houndCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.012 }] },
+  },
+  {
+    id: 'l3-spider', category: 'body', name: 'スパイダー・再生III', desc: 'HP が毎秒 0.25 回復', max: 3, since: 10,
+    costs: [{ spiderCore: 1 }, { spiderCore: 1 }, { spiderCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.25 }] },
+  },
+  {
+    id: 'l3-titan', category: 'skill', name: 'タイタン・弱点III', desc: '弱点を突いたときのダメージ +4%', max: 3, since: 10,
+    costs: [{ titanCore: 1 }, { titanCore: 1 }, { titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.04 }] },
+  },
+  {
+    id: 'l3-moth', category: 'body', name: 'モス・猶予III', desc: '被弾後の無敵 +0.03秒', max: 3, since: 10,
+    costs: [{ mothCore: 1 }, { mothCore: 1 }, { mothCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.03 }] },
+  },
+  {
+    id: 'l3-lens', category: 'skill', name: 'レンズ・会心威力III', desc: '会心ダメージ +5%', max: 3, since: 10,
+    costs: [{ lensCore: 1 }, { lensCore: 1 }, { lensCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.05 }] },
+  },
+  {
+    id: 'l3-breaker', category: 'gear', name: 'ブレーカー・脚力III', desc: '移動速度 +2%', max: 3, since: 10,
+    costs: [{ breakerCore: 1 }, { breakerCore: 1 }, { breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.02 }] },
+  },
+  {
+    id: 'l3-rust', category: 'skill', name: 'ラスト・状態III', desc: '状態異常の時間 +8%', max: 3, since: 10,
+    costs: [{ rustCore: 1 }, { rustCore: 1 }, { rustCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.08 }] },
+  },
+  {
+    id: 'l3-buffer', category: 'body', name: 'バッファー・耐久III', desc: '最大HP +25', max: 3, since: 10,
+    costs: [{ bufferCore: 1 }, { bufferCore: 1 }, { bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 25 }] },
+  },
+  {
+    id: 'l3-rain', category: 'skill', name: 'レイン・連撃III', desc: '攻撃速度 +3%', max: 3, since: 10,
+    costs: [{ rainCore: 1 }, { rainCore: 1 }, { rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackSpeed', add: 0.03 }] },
+  },
+  {
+    id: 'l3-intake', category: 'gear', name: 'インテーク・回避III', desc: 'ダッシュの回復 +3%', max: 3, since: 10,
+    costs: [{ intakeCore: 1 }, { intakeCore: 1 }, { intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.03 }] },
+  },
+  {
+    id: 'l3-duct', category: 'gear', name: 'ダクト・補給III', desc: '修復キットの回復量 +6%', max: 3, since: 10,
+    costs: [{ ductCore: 1 }, { ductCore: 1 }, { ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.06 }] },
+  },
+  {
+    id: 'l3-vane', category: 'skill', name: 'ベーン・火力III', desc: '攻撃力 +3%', max: 3, since: 10,
+    costs: [{ vaneCore: 1 }, { vaneCore: 1 }, { vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.03 }] },
+  },
+  {
+    id: 'l3-cyclone', category: 'body', name: 'サイクロン・装甲III', desc: '被ダメージ −2%', max: 3, since: 10,
+    costs: [{ cycloneCore: 1 }, { cycloneCore: 1 }, { cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.02 }] },
+  },
+  {
+    id: 'l3-gate', category: 'gear', name: 'ゲート・跳躍III', desc: 'ダッシュの距離 +4%', max: 3, since: 10,
+    costs: [{ gateCore: 1 }, { gateCore: 1 }, { gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashDistance', add: 0.04 }] },
+  },
+  {
+    id: 'l3-archive', category: 'body', name: 'アーカイブ・耐性III', desc: '持続ダメージで受ける量 −4%', max: 3, since: 10,
+    costs: [{ archiveCore: 1 }, { archiveCore: 1 }, { archiveCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.04 }] },
+  },
+  {
+    id: 'l3-fab', category: 'skill', name: 'ファブ・会心III', desc: '会心率 +1.2%', max: 3, since: 10,
+    costs: [{ fabCore: 1 }, { fabCore: 1 }, { fabCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.012 }] },
+  },
+  {
+    id: 'l3-cog', category: 'body', name: 'コギト・再生III', desc: 'HP が毎秒 0.25 回復', max: 3, since: 10,
+    costs: [{ cogCore: 1 }, { cogCore: 1 }, { cogCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.25 }] },
+  },
+  {
+    id: 'l3-noise', category: 'skill', name: 'ノイズ・弱点III', desc: '弱点を突いたときのダメージ +4%', max: 3, since: 10,
+    costs: [{ noiseCore: 1 }, { noiseCore: 1 }, { noiseCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.04 }] },
+  },
+  {
+    id: 'l3-architect', category: 'body', name: 'アーキテクト・猶予III', desc: '被弾後の無敵 +0.03秒', max: 3, since: 10,
+    costs: [{ architectCore: 1 }, { architectCore: 1 }, { architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.03 }] },
+  },
+  {
+    id: 'l3-nocturne', category: 'skill', name: 'ノクターン・会心威力III', desc: '会心ダメージ +5%', max: 3, since: 10,
+    costs: [{ nocturneCore: 1 }, { nocturneCore: 1 }, { nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.05 }] },
+  },
+  {
+    id: 'l3-catalyst', category: 'gear', name: 'カタリスト・脚力III', desc: '移動速度 +2%', max: 3, since: 10,
+    costs: [{ catalystCore: 1 }, { catalystCore: 1 }, { catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.02 }] },
+  },
+  // 2種類の素材（2段）
+  {
+    id: 'pr-boar-buffer', category: 'skill', name: 'ボア×バッファー・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ boarCore: 1, bufferCore: 1 }, { boarCore: 1, bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-cryo-rain', category: 'body', name: 'クライオ×レイン・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ cryoCore: 1, rainCore: 1 }, { cryoCore: 1, rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-over-intake', category: 'skill', name: 'オーバー×インテーク・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ overCore: 1, intakeCore: 1 }, { overCore: 1, intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-serpent-duct', category: 'skill', name: 'サーペント×ダクト・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ serpentCore: 1, ductCore: 1 }, { serpentCore: 1, ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-crab-vane', category: 'body', name: 'クラブ×ベーン・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ crabCore: 1, vaneCore: 1 }, { crabCore: 1, vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-hydra-cyclone', category: 'skill', name: 'ハイドラ×サイクロン・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ hydraCore: 1, cycloneCore: 1 }, { hydraCore: 1, cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-hound-gate', category: 'skill', name: 'ハウンド×ゲート・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ houndCore: 1, gateCore: 1 }, { houndCore: 1, gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-spider-archive', category: 'body', name: 'スパイダー×アーカイブ・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ spiderCore: 1, archiveCore: 1 }, { spiderCore: 1, archiveCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-titan-fab', category: 'skill', name: 'タイタン×ファブ・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ titanCore: 1, fabCore: 1 }, { titanCore: 1, fabCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-moth-cog', category: 'skill', name: 'モス×コギト・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ mothCore: 1, cogCore: 1 }, { mothCore: 1, cogCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-lens-noise', category: 'body', name: 'レンズ×ノイズ・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ lensCore: 1, noiseCore: 1 }, { lensCore: 1, noiseCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-breaker-architect', category: 'skill', name: 'ブレーカー×アーキテクト・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ breakerCore: 1, architectCore: 1 }, { breakerCore: 1, architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-rust-nocturne', category: 'skill', name: 'ラスト×ノクターン・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ rustCore: 1, nocturneCore: 1 }, { rustCore: 1, nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-buffer-catalyst', category: 'body', name: 'バッファー×カタリスト・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ bufferCore: 1, catalystCore: 1 }, { bufferCore: 1, catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-rain-boar', category: 'skill', name: 'レイン×ボア・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ rainCore: 1, boarCore: 1 }, { rainCore: 1, boarCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-intake-cryo', category: 'skill', name: 'インテーク×クライオ・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ intakeCore: 1, cryoCore: 1 }, { intakeCore: 1, cryoCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-duct-over', category: 'body', name: 'ダクト×オーバー・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ ductCore: 1, overCore: 1 }, { ductCore: 1, overCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-vane-serpent', category: 'skill', name: 'ベーン×サーペント・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ vaneCore: 1, serpentCore: 1 }, { vaneCore: 1, serpentCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-cyclone-crab', category: 'skill', name: 'サイクロン×クラブ・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ cycloneCore: 1, crabCore: 1 }, { cycloneCore: 1, crabCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-gate-hydra', category: 'body', name: 'ゲート×ハイドラ・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ gateCore: 1, hydraCore: 1 }, { gateCore: 1, hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-archive-hound', category: 'skill', name: 'アーカイブ×ハウンド・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ archiveCore: 1, houndCore: 1 }, { archiveCore: 1, houndCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-fab-spider', category: 'skill', name: 'ファブ×スパイダー・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ fabCore: 1, spiderCore: 1 }, { fabCore: 1, spiderCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-cog-titan', category: 'body', name: 'コギト×タイタン・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ cogCore: 1, titanCore: 1 }, { cogCore: 1, titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-noise-moth', category: 'skill', name: 'ノイズ×モス・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ noiseCore: 1, mothCore: 1 }, { noiseCore: 1, mothCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  {
+    id: 'pr-architect-lens', category: 'skill', name: 'アーキテクト×レンズ・火力', desc: '攻撃力 +3.6%、HP が毎秒 0.3 回復', max: 2, since: 10,
+    costs: [{ architectCore: 1, lensCore: 1 }, { architectCore: 1, lensCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.036 }, { stat: 'hpRegen', add: 0.3 }] },
+  },
+  {
+    id: 'pr-nocturne-breaker', category: 'body', name: 'ノクターン×ブレーカー・再生', desc: 'HP が毎秒 0.45 回復', max: 2, since: 10,
+    costs: [{ nocturneCore: 1, breakerCore: 1 }, { nocturneCore: 1, breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.45 }] },
+  },
+  {
+    id: 'pr-catalyst-rust', category: 'skill', name: 'カタリスト×ラスト・状態', desc: '状態異常の時間 +14.4%', max: 2, since: 10,
+    costs: [{ catalystCore: 1, rustCore: 1 }, { catalystCore: 1, rustCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.144 }] },
+  },
+  // 3種類の素材（1段）
+  {
+    id: 'tr-boar-moth-cyclone', category: 'skill', name: 'ボモサの極意・会心', desc: '会心率 +3.6%、ダッシュの距離 +12%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ boarCore: 1, mothCore: 1, cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.036 }, { stat: 'dashDistance', add: 0.12 }] },
+  },
+  {
+    id: 'tr-cryo-lens-gate', category: 'body', name: 'クレゲの極意・装甲', desc: '被ダメージ −6%、修復キットの回復量 +18%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ cryoCore: 1, lensCore: 1, gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.06 }, { stat: 'kitBonus', add: 0.18 }] },
+  },
+  {
+    id: 'tr-over-breaker-archive', category: 'gear', name: 'オブアの極意・回避', desc: 'ダッシュの回復 +9%、最大HP +75', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ overCore: 1, breakerCore: 1, archiveCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.09 }, { stat: 'maxHp', add: 75 }] },
+  },
+  {
+    id: 'tr-serpent-rust-fab', category: 'skill', name: 'サラフの極意・状態', desc: '状態異常の時間 +24%、会心ダメージ +15%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ serpentCore: 1, rustCore: 1, fabCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.24 }, { stat: 'critMul', add: 0.15 }] },
+  },
+  {
+    id: 'tr-crab-buffer-cog', category: 'body', name: 'クバコの極意・猶予', desc: '被弾後の無敵 +0.09秒、HP が毎秒 0.75 回復', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ crabCore: 1, bufferCore: 1, cogCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.09 }, { stat: 'hpRegen', add: 0.75 }] },
+  },
+  {
+    id: 'tr-hydra-rain-noise', category: 'skill', name: 'ハレノの極意・会心', desc: '会心率 +3.6%、ダッシュの距離 +12%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ hydraCore: 1, rainCore: 1, noiseCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.036 }, { stat: 'dashDistance', add: 0.12 }] },
+  },
+  {
+    id: 'tr-hound-intake-architect', category: 'body', name: 'ハイアの極意・装甲', desc: '被ダメージ −6%、修復キットの回復量 +18%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ houndCore: 1, intakeCore: 1, architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.06 }, { stat: 'kitBonus', add: 0.18 }] },
+  },
+  {
+    id: 'tr-spider-duct-nocturne', category: 'gear', name: 'スダノの極意・回避', desc: 'ダッシュの回復 +9%、最大HP +75', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ spiderCore: 1, ductCore: 1, nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.09 }, { stat: 'maxHp', add: 75 }] },
+  },
+  {
+    id: 'tr-titan-vane-catalyst', category: 'skill', name: 'タベカの極意・状態', desc: '状態異常の時間 +24%、会心ダメージ +15%', max: 1, since: 10,
+    treeMaxDepth: 6,
+    costs: [{ titanCore: 1, vaneCore: 1, catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.24 }, { stat: 'critMul', add: 0.15 }] },
+  },
 ];
 
 // 武器の解放
