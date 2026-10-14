@@ -113,7 +113,7 @@ export class HideoutScene extends Phaser.Scene {
 
     this.menu = new MenuOverlay(this, {
       title: 'HIDEOUT',
-      tabs: ['upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
+      tabs: ['upgrade', 'endless', 'record', 'fragment', 'achievement', 'controls', 'settings'],
       actions: [
         { label: '閉じる（Tab）', run: () => this.menu.close() },
         {

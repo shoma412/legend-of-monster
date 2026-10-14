@@ -3,6 +3,7 @@ import { META } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { weaponUnlocks } from '../data/upgrades.js';
 import { unlockAchievements } from './achievements.js';
+import { endlessMods } from './endless.js';
 import { buildTree, isReachable } from './skillTree.js';
 
 // ---- 恒久強化 ----
@@ -70,6 +71,9 @@ export function permanentBonuses(save) {
       if (def.perLevel.weaponMod) bonus.weaponMods[def.perLevel.weaponMod.weapon] = def.perLevel.weaponMod;
     }
   }
+  // 終わりのない強化
+  const late = endlessMods(save);
+  if (late.length > 0) bonus.effects.push({ mods: late });
   return bonus;
 }
 

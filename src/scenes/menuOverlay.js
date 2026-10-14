@@ -19,7 +19,8 @@ import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscr
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem, describeLine } from '../logic/loot.js';
-import { buyNode, saveTree, treeNodeState } from '../logic/meta.js';
+import { ENDLESS_LINES, buyEndless, describeEndless, endlessCost, endlessLevel, endlessValue } from '../logic/endless.js';
+import { buyNode, canAfford, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
 import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
@@ -59,7 +60,7 @@ const TREE_FILTERS = [
 const MENU_ZOOM = 1.45;
 
 const TAB_LABELS = {
-  status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', record: '記録',
+  status: 'ステータス', gear: '装備', map: '地図', upgrade: '恒久強化', endless: '無限強化', record: '記録',
   fragment: 'データ片', achievement: '実績', controls: '操作', settings: '設定', credits: 'クレジット',
 };
 
@@ -450,6 +451,7 @@ export class MenuOverlay {
   rowCount() {
     if (this.tabId === 'upgrade') return this.treeOrder().length;
     if (this.tabId === 'fragment') return DATA.fragments.all().length;
+    if (this.tabId === 'endless') return ENDLESS_LINES.length;
     return 0;
   }
 
@@ -529,6 +531,20 @@ export class MenuOverlay {
 
   confirmRow() {
     if (this.tabId === 'upgrade') this.buy(this.treeOrder()[this.cursor].id);
+    else if (this.tabId === 'endless') this.buyEndlessLine(ENDLESS_LINES[this.cursor]?.id);
+  }
+
+  // 終わりのない強化を、1段買う
+  buyEndlessLine(id) {
+    if (this.options.readOnlyUpgrades || !id) return;
+    const { save } = this.options.context();
+    if (buyEndless(save, id)) {
+      playSe('buy');
+      this.options.onBuy?.();
+    } else {
+      playSe('deny');
+    }
+    this.render();
   }
 
   buy(id) {
@@ -617,6 +633,7 @@ export class MenuOverlay {
     else if (id === 'gear') this.renderGear(ctx.world);
     else if (id === 'map') this.renderMap(ctx.run);
     else if (id === 'upgrade') this.renderUpgrades(save);
+    else if (id === 'endless') this.renderEndless(save);
     else if (id === 'record') this.renderRecords(save);
     else if (id === 'fragment') this.renderFragments(save);
     else if (id === 'achievement') this.renderAchievements(save);
@@ -869,6 +886,29 @@ export class MenuOverlay {
     const tree = saveTree(save);
     const { pos } = layoutTree(tree);
     return [...tree.nodes].sort((n1, n2) => n1.depth - n2.depth || pos[n1.id].row - pos[n2.id].row);
+  }
+
+  // 終わりのない強化：スキルツリーを取りきったあとも、ボス素材がある限り、段を上げ続けられる（段に上限はない）
+  renderEndless(save) {
+    this.text(40, 114, '終わりのない強化：1段ごとに少しずつ強くなる。段に上限はない。W・S：選ぶ　Enter：1段取る', 12, COLORS.dim);
+    this.panel(40, 132, 880, 28);
+    this.renderMaterialStrip(save, 54, 138, 852);
+    this.cursor = Math.max(0, Math.min(ENDLESS_LINES.length - 1, this.cursor));
+    ENDLESS_LINES.forEach((line, i) => {
+      const y = 166 + i * 24;
+      const level = endlessLevel(save, line.id);
+      const cost = endlessCost(line, level + 1);
+      const can = canAfford(save, cost);
+      const on = i === this.cursor;
+      this.panel(40, y, 880, 22, on ? COLORS.cyan : COLORS.line, () => {
+        this.cursor = i;
+        this.confirmRow();
+      });
+      this.text(52, y + 4, line.name, 13, on ? COLORS.cyan : COLORS.ink, { fontStyle: '700' });
+      this.text(190, y + 4, `Lv ${level}`, 13, COLORS.amber);
+      this.text(262, y + 5, `${line.label} ${describeEndless(line, endlessValue(line, level))} → ${describeEndless(line, endlessValue(line, level + 1))}`, 12, COLORS.dim);
+      this.text(908, y + 5, costText(cost, save), 12, can ? COLORS.green : COLORS.red).setOrigin(1, 0);
+    });
   }
 
   renderUpgrades(save) {
