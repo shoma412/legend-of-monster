@@ -49,7 +49,7 @@ describe('枠より大きいツリーを、引いて全体を見る・寄って�
       expect(world.extent.x * TREE_VIEW.min).toBeLessThanOrEqual(540 / 2);
       expect(world.extent.y * TREE_VIEW.min).toBeLessThanOrEqual(296 / 2);
       const start = createTreeView();
-      expect(start.zoom).toBe(TREE_VIEW.min);
+      expect(start.zoom).toBeCloseTo(0.6); // 最初は、中心まわりが読める大きさ
       expect(clampView({ zoom: TREE_VIEW.min, x: 300, y: 200 })).toEqual({ zoom: TREE_VIEW.min, x: 0, y: 0 });
       const near = clampView({ zoom: 1, x: 99999, y: 0 });
       expect(near.x).toBeGreaterThan(world.extent.x * 0.5);
