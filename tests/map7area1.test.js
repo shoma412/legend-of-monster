@@ -184,9 +184,9 @@ describe('エリア1「中枢の門」の定義', () => {
   const map = maps.find((m) => m.id === 'map7');
   const area = DATA.areas.get('gate');
 
-  it('マップ7は、開発中の画面でだけ選べる。背景・曲・ボス・素材・データ片4つがそろっている', () => {
+  it('マップ7の1つ目のエリア。背景・曲・ボス・素材・データ片4つがそろっている', () => {
     expect(map.name).toBe('核心区');
-    expect(map.devOnly).toBe(true);
+    expect(map.requiresPass).toBeUndefined();
     expect(map.enemyScale).toBeGreaterThan(maps.find((m) => m.id === 'map6').enemyScale);
     expect(map.areas[0]).toBe('gate');
     expect(area.name).toBe('中枢の門');

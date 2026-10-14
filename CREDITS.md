@@ -68,6 +68,16 @@ BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている�
 | maou_loop_bgm_neorock76.ogg | マップ5 ボス3（これから使う） | ネオロック76 | https://maou.audio/bgm_neorock76/ | 2026-10-09 |
 | maou_loop_bgm_neorock67.ogg | マップ5 隠しボス（これから使う） | ネオロック67 | https://maou.audio/bgm_neorock67/ | 2026-10-09 |
 | maou_loop_bgm_neorock77.ogg | マップ3 ボス3 クレーンタイタン（隠しボスも、見つけたエリアのボス曲が流れる） | ネオロック77 | https://maou.audio/bgm_neorock77/ | 2026-10-07 |
+| maou_loop_bgm_cyber36.ogg | マップ7 エリア1 中枢の門 | サイバー36 | https://maou.audio/bgm_cyber36/ | 2026-10-15 |
+| maou_loop_bgm_neorock58.ogg | マップ7 ボス1 ゲートキーパー | ネオロック58 | https://maou.audio/bgm_neorock58/ | 2026-10-15 |
+| maou_loop_bgm_cyber32.ogg | マップ7 エリア2 記録庫 | サイバー32 | https://maou.audio/bgm_cyber32/ | 2026-10-15 |
+| maou_loop_bgm_neorock63.ogg | マップ7 ボス2 アーカイバー | ネオロック63 | https://maou.audio/bgm_neorock63/ | 2026-10-15 |
+| maou_loop_bgm_cyber40.ogg | マップ7 エリア3 修繕工場 | サイバー40 | https://maou.audio/bgm_cyber40/ | 2026-10-15 |
+| maou_loop_bgm_neorock64.ogg | マップ7 ボス3 ファブリケーター | ネオロック64 | https://maou.audio/bgm_neorock64/ | 2026-10-15 |
+| maou_loop_bgm_cyber41.ogg | マップ7 エリア4 演算層 | サイバー41 | https://maou.audio/bgm_cyber41/ | 2026-10-15 |
+| maou_loop_bgm_neorock69.ogg | マップ7 ボス4 コギトール | ネオロック69 | https://maou.audio/bgm_neorock69/ | 2026-10-15 |
+| maou_loop_bgm_cyber44.ogg | マップ7 エリア5 中枢 | サイバー44 | https://maou.audio/bgm_cyber44/ | 2026-10-15 |
+| maou_loop_bgm_neorock73.ogg | マップ7 ボス5 ノイズ（依頼人） | ネオロック73 | https://maou.audio/bgm_neorock73/ | 2026-10-15 |
 
 曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。
 

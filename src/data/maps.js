@@ -33,6 +33,5 @@ export const maps = [
   // 2026-10-13：雑魚を強めにするため、enemyScale を 5 から 6 に上げた（マップ6から、雑魚もボスも強めに作る）
   { id: 'map6', code: 'MAP 06', name: '送風区', areas: ['airintake', 'airduct', 'airgarden', 'airstack'], enemyScale: 6, environment: 'gale', requiresPass: 'map5' },
   // 最後のマップ。エリアは5つ（最後のエリアのボスは、依頼人のノイズ）。エリアごとに環境が変わる（エリアの environment）。雑魚もボスも、ミシック装備を前提にした強さ。
-  //   devOnly: 全部できるまで、公開版では「準備中」にする（開発中の画面 npm run dev でだけ選べる）。入る条件の通行証（マップ6の隠しボス）は、⑥のあとで決める
-  { id: 'map7', code: 'MAP 07', name: '核心区', areas: ['gate', 'archive', 'factory', 'logic', 'core'], enemyScale: 10, devOnly: true },
+  { id: 'map7', code: 'MAP 07', name: '核心区', areas: ['gate', 'archive', 'factory', 'logic', 'core'], enemyScale: 10 },
 ];

@@ -118,17 +118,17 @@ export const BGM = {
   // エリア4「排気塔」も、曲はまだ選んでいない（マップ1の曲を借りている）
   airstack: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossAirstack: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  // マップ7「核心区」。曲はまだ選んでいない（マップ1の曲を借りている）
-  gate: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossGate: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  archive: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossArchive: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  factory: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossFactory: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  logic: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossLogic: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  core: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossCore: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  // マップ7「核心区」（2026-10-15）。エリアごとに、魔王魂の曲（新しく足したもの）。5エリア × （道中 + ボス）
+  gate: { file: 'audio/bgm/maou_loop_bgm_cyber36.ogg', song: 'slum' },
+  bossGate: { file: 'audio/bgm/maou_loop_bgm_neorock58.ogg', song: 'bossSlum' },
+  archive: { file: 'audio/bgm/maou_loop_bgm_cyber32.ogg', song: 'slum' },
+  bossArchive: { file: 'audio/bgm/maou_loop_bgm_neorock63.ogg', song: 'bossSlum' },
+  factory: { file: 'audio/bgm/maou_loop_bgm_cyber40.ogg', song: 'slum' },
+  bossFactory: { file: 'audio/bgm/maou_loop_bgm_neorock64.ogg', song: 'bossSlum' },
+  logic: { file: 'audio/bgm/maou_loop_bgm_cyber41.ogg', song: 'slum' },
+  bossLogic: { file: 'audio/bgm/maou_loop_bgm_neorock69.ogg', song: 'bossSlum' },
+  core: { file: 'audio/bgm/maou_loop_bgm_cyber44.ogg', song: 'slum' },
+  bossCore: { file: 'audio/bgm/maou_loop_bgm_neorock73.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----
