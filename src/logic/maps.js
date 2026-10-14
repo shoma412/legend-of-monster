@@ -81,13 +81,25 @@ export function bestReachText(save, areaOf) {
 }
 
 // その周での、敵の強さなどの変化。1周目は何も変わらない
+// 敵の HP の倍率。1周ごとに +15%。10周目からは毎周 +20%、そこから 5周ごとに伸びが +5% ずつ増える
+export function hpScaleFor(cycle) {
+  let scale = 1;
+  for (let c = 2; c <= cycle; c++) {
+    scale += c < CYCLE.hpLateFrom ? CYCLE.hpPerCycle : CYCLE.hpLatePerCycle + CYCLE.hpLateStep * Math.floor((c - CYCLE.hpLateFrom) / CYCLE.hpLateEvery);
+  }
+  return scale;
+}
+
 export function cycleMods(cycle = 1) {
   const n = Math.max(0, cycle - 1);
   return {
-    hpScale: 1 + n * CYCLE.hpPerCycle, // 敵の HP の倍率
+    hpScale: hpScaleFor(cycle), // 敵の HP の倍率
     damageScale: 1 + n * CYCLE.damagePerCycle, // 受けるダメージの倍率
     stepBonus: n * CYCLE.stepsPerCycle, // 敵の量：この部屋数ぶん奥のものとして数える
-    materialBonus: Math.floor(n / CYCLE.materialEvery), // ボス素材の追加
+    materialBonus: Math.floor(n / CYCLE.materialEvery) + (cycle >= CYCLE.noSupplyFrom ? (cycle - CYCLE.noSupplyFrom + 1) * CYCLE.materialLateEvery : 0), // ボス素材の追加
+    mythicMul: cycle >= CYCLE.mythicFrom ? Math.min(CYCLE.mythicMax, 1 + (cycle - CYCLE.mythicFrom + 1) * CYCLE.mythicPerCycle) : 1, // ミシックの確率の倍率
+    extraEnv: cycle >= CYCLE.extraEnvFrom, // エリアごとに、環境が1つ重なる
+    noSupply: cycle >= CYCLE.noSupplyFrom, // 補給部屋が出ない
     materialTwoChance: Math.min(1, CYCLE.materialTwoBase + n * CYCLE.materialTwoPerCycle), // ボス素材が1個でなく2個になる確率
     rarityChance: Math.min(1, n * CYCLE.rarityPerCycle), // 装備のレア度が1段上がる確率
     eliteTraits: cycle >= CYCLE.eliteTwoTraitsFrom ? 2 : 1, // エリートの特性の数
@@ -109,6 +121,8 @@ export function cycleNotes(cycle) {
   const rules = [];
   if (m.eliteTraits > 1) rules.push('エリートの特性が2つ');
   if (m.bossHard) rules.push('ボスが最初から本気');
+  if (m.extraEnv) rules.push('環境が重なる');
+  if (m.noSupply) rules.push('補給部屋なし');
   if (m.healScale < 1) rules.push('補給の回復が半分');
   if (rules.length > 0) notes.push(rules.join('　'));
   return notes;

@@ -58,5 +58,8 @@ export const achievements = [
   { id: 'map2', icon: 'flag', color: 'cold', name: '排水区停止', desc: 'マップ2を完了した', on: 'mapClear', check: 'mapIs', map: 'map2' },
   { id: 'map3', icon: 'flag', color: 'heat', name: '建設区停止', desc: 'マップ3を完了した', on: 'mapClear', check: 'mapIs', map: 'map3' },
   { id: 'cycle-3', icon: 'repeat', color: 'red', name: '異物認定', desc: '3周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 3 },
+  { id: 'cycle-10', icon: 'repeat', color: 'red', name: '終わらない修繕', desc: '10周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 10 },
+  { id: 'cycle-20', icon: 'crown', color: 'red', name: '街の記憶', desc: '20周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 20 },
+  { id: 'cycle-50', icon: 'crown', color: 'red', name: '設計図の外へ', desc: '50周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 50 },
   { id: 'cycle-5', icon: 'crown', color: 'red', name: '修繕不能', desc: '5周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 5 },
 ];

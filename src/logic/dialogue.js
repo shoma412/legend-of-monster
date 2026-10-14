@@ -15,6 +15,12 @@ export function displayName(character, rng = Math.random) {
   return character.glitch ? glitchName(rng) : character.name;
 }
 
+// 依頼人（ノイズ）を止めたあとの通信：ノイズの声は雑音だけになり、ハルが代わりに受ける（2026-10-15）
+export function afterNoise(save, lines) {
+  if (!(save?.bossKills?.noise > 0)) return lines;
+  return ['@noise＞ ……ザ……ザザ……', 'ハル＞ 通信は、私が代わりに受けるね。気をつけて。'];
+}
+
 // 文章の中の印（@noise）を、ごまかした名前に置き換える（通信ログ、エンディング）
 export function resolveNames(lines, rng = Math.random) {
   return lines.map((line) => line.split(NOISE_TAG).join(glitchName(rng)));

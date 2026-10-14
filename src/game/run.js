@@ -6,6 +6,7 @@ import { placeRoofs } from './acidRain.js';
 import { placeHotWalls, placeScreens } from './wind.js';
 import { DATA } from '../data/index.js';
 import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/areaGen.js';
+import { addOneEnv } from '../logic/envs.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
 import { createGearLog, logBuildGear } from '../logic/gearLog.js';
 import { applyCarryOver, permanentBonuses, pickFragment, processEvent, recordCarryOver, recordProgress, startRunRecord } from '../logic/meta.js';
@@ -44,7 +45,7 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
     mods: cycleMods(cycle), // この周での、敵の強さなどの変化
     ending: false, // このランで、7つすべてのマップを初めて完了した（エンディングを出す）
     areaIndex: 0,
-    plan: createAreaPlan(area, rng), // エリアの地図と、今いる場所
+    plan: createAreaPlan(area, rng, cycleMods(cycle)), // エリアの地図と、今いる場所
     build: createBuild(bonus), // 装備・インプラント・レベル・クレジット・修復キット
     hp: null, // 前の部屋を出たときのHP（null は満タン）
     kills: 0,
@@ -133,11 +134,16 @@ export function enterRoom(run) {
   // 装備のレア度は、奥のエリアほど良くなる。マップの最後のボスは、装備と消耗品を落とさない（倒すと隠れ家に戻るため）
   // 環境（そのマップのすべての部屋に効く決まり）。暗闇のマップでは、戦闘のある部屋に非常灯を置く
   // ミシックの出る確率（マップとエリアで決まる）。マップ7では、レア度の底上げの回数ぶん、抽選をやり直せる
-  room.mythicChance = LOOT.mythic[run.map.id]?.[run.areaIndex] ?? 0;
+  room.mythicChance = Math.min(1, (LOOT.mythic[run.map.id]?.[run.areaIndex] ?? 0) * (run.mods.mythicMul ?? 1));
   room.bossMythic = LOOT.bossMythic[run.map.id]?.[run.areaIndex] ?? 0;
   room.mythicLuck = run.map.id === 'map7';
   // 環境は、マップ全体のものか、エリアごとのもの（エリアの environment が先）
-  const environmentId = area.environment ?? run.map.environment;
+  let environmentId = area.environment ?? run.map.environment;
+  // 長い周回：エリアごとに、環境が1つ重なる（そのエリアの間は同じもの）
+  if (run.mods.extraEnv && !run.inSecret) {
+    const extra = ((run.extraEnv ??= {})[run.areaIndex] ??= run.rng());
+    environmentId = addOneEnv(environmentId ? DATA.environments.get(environmentId) : null, extra);
+  }
   if (environmentId) {
     room.environment = DATA.environments.get(environmentId);
     if (room.environment.dark && room.waves.length > 0) room.lamps = placeLamps(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
@@ -188,7 +194,7 @@ export function leaveRoom(run, world, nextId) {
   if (nextId === NEXT_AREA) {
     // 次のエリアへ。新しい地図を作る
     run.areaIndex++;
-    run.plan = createAreaPlan(currentArea(run), run.rng);
+    run.plan = createAreaPlan(currentArea(run), run.rng, run.mods);
     placeSecret(run);
     if (run.secret?.rule === 'lamps') run.secret.lampsOk = true; // 判定は、エリアごとにやり直す
     if (run.secret?.rule === 'rain') run.secret.dryOk = true;

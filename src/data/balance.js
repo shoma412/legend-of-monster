@@ -48,6 +48,17 @@ export const ENEMY_SCALING = {
 
 // 周回（すべてのマップを完了すると、次の周に進める。周が1つ進むごとに敵が強くなる）
 export const CYCLE = {
+  // 長い周回（2026-10-15）：10周目から、HP の伸びが毎周 +20% になり、さらに 5周ごとに +5% ずつ増える（上限なし）
+  hpLateFrom: 10,
+  hpLatePerCycle: 0.2,
+  hpLateStep: 0.05,
+  hpLateEvery: 5,
+  mythicFrom: 10, // この周から、ミシックの確率が毎周 +5% ずつ上がる（上限 ×2）
+  mythicPerCycle: 0.05,
+  mythicMax: 2,
+  extraEnvFrom: 15, // この周から、エリアごとにランダムで環境が1つ重なる（暗闇・酸の雨・強風のうち、まだないもの）
+  noSupplyFrom: 20, // この周から、補給部屋が出ない。ボス素材も毎周 +1 個
+  materialLateEvery: 1,
   hpPerCycle: 0.15, // 敵の HP の増え方（1周ごと）
   damagePerCycle: 0.08, // 受けるダメージの増え方（1周ごと）
   stepsPerCycle: 1, // 敵の量：1周ごとに、この部屋数ぶん奥のものとして数える

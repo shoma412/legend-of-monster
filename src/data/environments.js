@@ -63,5 +63,7 @@ const windPart = (({ cycle, ...rest }) => ({ ...rest, windCycle: cycle }))(gale)
 const rainPart = (({ cycle, damage, ...rest }) => ({ ...rest, rainCycle: cycle, rainDamage: damage }))(rain);
 environments.push(
   { ...dark, ...windPart, id: 'darkgale', name: '暗闇と強風' },
+  { ...dark, ...rainPart, id: 'darkrain', name: '暗闇と酸の雨' },
+  { ...rainPart, ...windPart, id: 'raingale', name: '酸の雨と強風' },
   { ...dark, ...rainPart, ...windPart, id: 'storm', name: '暗闇・酸の雨・強風' },
 );

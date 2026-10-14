@@ -35,8 +35,10 @@ function shuffle(list, rng) {
 //   current: 今いる部屋の id / visited: 通ってきた部屋の id / step: 何部屋目か（0から）
 const LANE_ROWS = { 2: [0.25, 0.75], 3: [0, 0.5, 1] };
 
-export function createAreaPlan(area, rng) {
-  const gen = area.map;
+//   mods.noSupply（20周目から）：補給部屋が出ない（ボス前の補給は、戦闘の部屋になる）
+export function createAreaPlan(area, rng, mods = {}) {
+  const gen = mods.noSupply ? { ...area.map, preBoss: 'combat' } : area.map;
+  const specialRooms = mods.noSupply ? area.specialRooms.filter((t) => t !== 'supply') : area.specialRooms;
   const length = gen.length.min + Math.floor(rng() * (gen.length.max - gen.length.min + 1));
   const columns = length - 3; // 途中の列の数（最初の部屋・ボス前の補給・ボスを除く）
   // 列ごとの部屋の数（2〜3）
@@ -47,9 +49,9 @@ export function createAreaPlan(area, rng) {
   // 扉の選択肢が全部同じ種類にならないように、同じ列で隣り合う部屋は必ず違う種類にする
   // （扉は、次の列の隣り合った2〜3部屋へ開くので、これで必ず2種類以上になる）。
   const elites = gen.elites.min + Math.floor(rng() * (gen.elites.max - gen.elites.min + 1));
-  const marked = shuffle([...Array(elites).fill('elite'), ...shuffle(area.specialRooms, rng).slice(0, gen.specials)], rng);
+  const marked = shuffle([...Array(elites).fill('elite'), ...shuffle(specialRooms, rng).slice(0, gen.specials)], rng);
   // どの列にも「戦闘でない部屋」が1つは要る。足りないぶんは、特殊部屋を足す（同じ種類が2つ出ることがある）
-  while (marked.length < columns) marked.push(pick(area.specialRooms, rng));
+  while (marked.length < columns) marked.push(pick(specialRooms, rng));
 
   // まず、列ごとに1つずつ置く（3部屋の列は真ん中、2部屋の列はどちらか）
   const grid = lanes.map((n) => Array(n).fill('combat'));

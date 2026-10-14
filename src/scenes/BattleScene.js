@@ -19,7 +19,7 @@ import { PAD } from '../logic/gamepad.js';
 import { canSuspend } from '../logic/suspend.js';
 import { advanceWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
-import { markSeen, pendingDialogue, resolveNames } from '../logic/dialogue.js';
+import { afterNoise, markSeen, pendingDialogue, resolveNames } from '../logic/dialogue.js';
 import { choiceBlocked, chooseEncounter } from '../game/encounters.js';
 import { nodeState } from '../logic/areaGen.js';
 import { implantCap, xpToNext } from '../logic/level.js';
@@ -566,14 +566,14 @@ export class BattleScene extends Phaser.Scene {
     this.bossIntroDone = true;
     this.bossWarning?.forEach((t) => t.destroy());
     this.bossName.setText(`${boss.def.name} — ${boss.def.alias}`).setVisible(true);
-    this.commLog.play(resolveNames(boss.def.comms?.intro ?? this.area.comms.bossIntro));
+    this.commLog.play(resolveNames(afterNoise(this.run.save, boss.def.comms?.intro ?? this.area.comms.bossIntro)));
   }
 
   showClear(boss) {
     this.clearShown = true;
     const world = this.world;
     if (boss) {
-      this.commLog.play(resolveNames(boss.def.comms?.defeated ?? this.area.comms.bossDefeated));
+      this.commLog.play(resolveNames(afterNoise(this.run.save, boss.def.comms?.defeated ?? this.area.comms.bossDefeated)));
       if (boss.def.hidden) {
         // 隠しボス：倒すと元の部屋へ戻る扉が開く（マップの完了にはならない）
         this.clearText.setText(`> TARGET DOWN // ${boss.def.name}\nHP全回復。右の扉から元の部屋へ戻る`).setVisible(true);

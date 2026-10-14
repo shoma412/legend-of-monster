@@ -561,6 +561,7 @@ export const talks = {
     { after: 'gatekeeper', lines: [{ who: 'noise', text: '中枢の門が開いた。次は記録庫だ。街の全部の記憶が、しまってある。雨が降っている。屋根を、探せ。' }] },
     { after: 'archivist', lines: [{ who: 'noise', text: '記録庫が静かになった。次は修繕工場だ。強い風が吹いている。ベルトと、プレスと、溶けた鉄に気をつけろ。' }] },
     { after: 'fabricator', lines: [{ who: 'noise', text: '修繕工場が止まった。次は演算層だ。暗くて、風が吹く。読まれるな。' }] },
+    { after: 'noise', lines: [{ who: 'noise', text: 'ザ……ザザ……' }, { who: 'hal', text: 'ノイズの端末、もう雑音しか出ないよ。……私が代わりに聞いておく。依頼は、もう届かないけど。' }] },
     { after: 'cogitor', lines: [{ who: 'noise', text: '演算層が止まった。……あとは、中枢だけだ。そこに、私がいる。……体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
