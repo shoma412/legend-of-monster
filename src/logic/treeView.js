@@ -8,8 +8,18 @@ export const TREE_VIEW = {
   reach: 260, // 円の中心から、これより遠くは真ん中に出せない（px。拡大していないときの長さ。横長の円なので、横の長さに合わせる）
 };
 
+// ツリーの大きさに合わせて、いちばん引いた倍率（全体が見える）と、動かせる範囲を決める（画面の枠より大きいツリーでも、全部見られる）。
+//   rectW・rectH は、ツリーを出す枠の広さ。extent は、いちばん外のマスの、中心からの長さ
+export function setTreeLimits({ extent, rectW, rectH, pad = 24 }) {
+  const fitX = (rectW / 2 - pad) / Math.max(1, extent.x);
+  const fitY = (rectH / 2 - pad - 20) / Math.max(1, extent.y);
+  TREE_VIEW.min = Math.max(0.04, Math.min(1, fitX, fitY));
+  TREE_VIEW.reach = Math.max(260, Math.max(extent.x, extent.y) + pad);
+  if (TREE_VIEW.max < TREE_VIEW.min * 4) TREE_VIEW.max = TREE_VIEW.min * 4;
+}
+
 export function createTreeView() {
-  return { zoom: 1, x: 0, y: 0 };
+  return { zoom: Math.max(TREE_VIEW.min, Math.min(1, 0.6)), x: 0, y: 0 }; // 最初は、中心まわりが読める大きさ（全体は、引けば見える）
 }
 
 // 見ている場所が、円から離れすぎないようにする。いちばん引いた状態では、必ず円の真ん中に戻す
@@ -17,7 +27,7 @@ export function clampView(view) {
   const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom));
   if (zoom <= TREE_VIEW.min + 1e-6) return { zoom: TREE_VIEW.min, x: 0, y: 0 };
   // 寄っているほど、遠くまで動かせる
-  const limit = TREE_VIEW.reach * (1 - 1 / zoom);
+  const limit = TREE_VIEW.reach * (1 - TREE_VIEW.min / zoom);
   const dist = Math.hypot(view.x, view.y);
   const k = dist > limit ? limit / dist : 1;
   return { zoom, x: view.x * k, y: view.y * k };

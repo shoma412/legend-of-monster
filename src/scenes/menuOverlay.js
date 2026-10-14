@@ -9,7 +9,7 @@ import { CREDITS } from '../data/credits.js';
 import { isBackKey } from '../logic/keys.js';
 import { firstTarget, moveFocus, nearestTarget } from '../logic/focusNav.js';
 import { pad } from '../game/padInput.js';
-import { placeLabel, spreadNodes } from '../logic/treeSpread.js';
+import { placeLabel } from '../logic/treeSpread.js';
 import { formatPlayTime } from '../logic/gearLog.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
@@ -22,8 +22,9 @@ import { ELEMENT_NAMES, describeItem, describeLine } from '../logic/loot.js';
 import { ENDLESS_LINES, buyEndless, describeEndless, endlessCost, endlessLevel, endlessValue } from '../logic/endless.js';
 import { buyNode, canAfford, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
+import { TREE_RINGS, TREE_STRETCH, worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
-import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -42,11 +43,7 @@ const LOCKED = '#4a4470';
 const TREE_RECT = { left: 40, top: 166, right: 580, bottom: 462 };
 const RECORD_TABS = ['ログ', '装備', 'インプラント']; // 記録の中のタブ
 const TREE_CENTER = { x: 310, y: 316 };
-const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114]; // 段ごとの、中心からの距離（縦の長さ。拡大していないとき）
-const TREE_PUSH = 0.5; // 3つに分かれた枝の左右を、外へずらす長さ（次の輪までの間の、何割か。輪と輪の間に置くと、となりの枝のマスと重ならない）
-const TREE_PUSH_OUTER = 7; // いちばん外の輪のマスを、外へずらす長さ（px）
-const TREE_SPREAD_BOUNDS = { x: 256, y: 107 }; // マスを動かしてよい範囲（中心からの長さ。枠と、上下の帯に隠れない所まで）
-const TREE_STRETCH = 2.15; // 横は、縦の何倍に広げるか（枠が横長なので、横に広げてマスの間をあける）
+// 輪の大きさと、マスの位置の計算は src/logic/treeGeometry.js（マスが増えても重ならないように、輪を広げる。枠より大きいときは、引いて見る・動かして見る）
 // 絞り込み：選んだもの以外のマスを薄くする
 const TREE_FILTERS = [
   { id: 'all', label: 'すべて', w: 58 },
@@ -227,41 +224,9 @@ export class MenuOverlay {
     return this.isOpen && !this.dialog && this.tabId === 'upgrade' && inRect(at.x, at.y, TREE_RECT);
   }
 
-  // スキルツリーのマスの、円の中での位置（中心が 0,0。拡大していないときの長さ）
+  // スキルツリーのマスの、円の中での位置（中心が 0,0。拡大していないときの長さ）。マスが増えても重ならないように、輪を広げてある（src/logic/treeGeometry.js）
   treeLocal(layout, id) {
-    // 輪の上に並べたあと、マス同士・マスと線が重ならないように、少しずつ動かしたもの（配置ごとに1回だけ計算する）
-    if (!layout.local) {
-      const ids = Object.keys(layout.pos);
-      const index = Object.fromEntries(ids.map((key, i) => [key, i]));
-      const nodes = ids.map((key) => ({ ...this.treeBase(layout, key), parent: layout.pos[key].parent ? index[layout.pos[key].parent] : -1 }));
-      const pts = spreadNodes(nodes, TREE_SPREAD_BOUNDS);
-      layout.local = Object.fromEntries(ids.map((key, i) => [key, pts[i]]));
-    }
-    return layout.local[id];
-  }
-
-  // 輪の上の、もとの位置
-  treeBase(layout, id) {
-    const p = layout.pos[id];
-    const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
-    const radius = this.treeRadius(p) * this.treeFit(layout);
-    return { x: Math.cos(angle) * radius * TREE_STRETCH, y: Math.sin(angle) * radius };
-  }
-
-  // マスの、中心からの距離（縮める前）。外へずらすマスは、次の輪との間に置く
-  treeRadius(p) {
-    const col = Math.min(TREE_RINGS.length - 1, p.col);
-    const gap = col < TREE_RINGS.length - 1 ? (TREE_RINGS[col + 1] - TREE_RINGS[col]) * TREE_PUSH : TREE_PUSH_OUTER;
-    return TREE_RINGS[col] + (p.push > 0 ? gap : 0);
-  }
-
-  // 外へずらしたマスが枠からはみ出さないように、ぜんたいを縮める割合（いちばん外の輪より外に出たマスがあるときだけ）
-  treeFit(layout) {
-    if (layout.fit === undefined) {
-      const outer = TREE_RINGS.at(-1);
-      layout.fit = outer / Math.max(outer, ...Object.values(layout.pos).map((p) => this.treeRadius(p)));
-    }
-    return layout.fit;
+    return worldLayout(layout).points[id];
   }
 
   get tabId() {
@@ -920,6 +885,13 @@ export class MenuOverlay {
 
     const tree = saveTree(save);
     const layout = layoutTree(tree);
+    // マスが枠に入りきらない大きさのときも、引けば全体が見え、寄れば動かして見られる（見ていい範囲を、ツリーの大きさに合わせる）
+    const world = worldLayout(layout);
+    if (this.treeLayoutRef !== layout) {
+      this.treeLayoutRef = layout;
+      setTreeLimits({ extent: world.extent, rectW: TREE_RECT.right - TREE_RECT.left, rectH: TREE_RECT.bottom - TREE_RECT.top });
+      this.treeView = createTreeView();
+    }
     const order = this.treeOrder();
     this.cursor = Math.max(0, Math.min(order.length - 1, this.cursor));
     const picked = order[this.cursor];
@@ -944,7 +916,7 @@ export class MenuOverlay {
     const zoom = view.zoom;
     const at = (id) => toScreen(view, TREE_CENTER, this.treeLocal(layout, id));
     const root = toScreen(view, TREE_CENTER, { x: 0, y: 0 });
-    const R = 8 * Math.min(2, zoom ** 0.7); // マスの大きさ（寄ると、少し大きくなる）
+    const R = Math.max(1.4, 8 * Math.min(2, zoom < 1 ? zoom : zoom ** 0.7)); // マスの大きさ（寄ると、少し大きくなる。引くと、マス同士の間と同じ割合で小さくなるので、引いても重ならない）
     const CATEGORY = { body: { label: '体', color: COLORS.green }, skill: { label: '技', color: COLORS.red }, gear: { label: '備', color: COLORS.cyan } };
     const state = Object.fromEntries(tree.nodes.map((n) => [n.id, treeNodeState(save, n.id)]));
     // 絞り込み：選んだもの以外は、薄く描く（線も）。「取れる」は、手前を取ってあるマス（素材が足りないものも含む）
@@ -964,11 +936,11 @@ export class MenuOverlay {
     // 段の目安の輪（薄く）。枠の中に見えているところだけ、短い線をつないで描く
     for (let d = 1; d < TREE_RINGS.length; d++) {
       g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.32 : 0.2);
-      const parts = 72;
+      const parts = 160;
       for (let k = 0; k < parts; k++) {
         const a1 = (k / parts) * Math.PI * 2;
         const a2 = ((k + 1) / parts) * Math.PI * 2;
-        const ring = TREE_RINGS[d] * this.treeFit(layout);
+        const ring = world.radiusFor(TREE_RINGS[d] * world.fit);
         const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * ring * TREE_STRETCH, y: Math.sin(a1) * ring });
         const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * ring * TREE_STRETCH, y: Math.sin(a2) * ring });
         line(p1.x, p1.y, p2.x, p2.y);
@@ -1022,7 +994,7 @@ export class MenuOverlay {
       if (st === 'open') g.lineStyle(4, hex(COLORS.amber), 0.2).strokeCircle(p.x, p.y, R + 3);
       if (i === this.cursor) g.lineStyle(2, hex(COLORS.cyan), 1).strokeCircle(p.x, p.y, R + 4);
       else if (onPath.has(n.id)) g.lineStyle(1.5, hex(COLORS.cyan), 0.8).strokeCircle(p.x, p.y, R + 3);
-      this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
+      if (R >= 6) this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
       // 十分に寄ったら、マスの下に強化の名前も出す
       if (zoom >= 1.9) labels.push({ id: n.id, p, name: def.name, color: st === 'locked' ? LOCKED : COLORS.ink });
       }

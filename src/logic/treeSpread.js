@@ -59,7 +59,11 @@ export function spreadNodes(nodes, bounds, opts = SPREAD) {
       // つながっていない線（そのマスから出る線と、そのマスへ入る線は除く）
       for (let k = 0; k < pts.length; k++) {
         if (k === i || nodes[k].parent === i || nodes[i].parent === k) continue;
-        const c = closestOnSegment(pts[i], from(k), pts[k]);
+        const a = from(k);
+        const b = pts[k];
+        // 線の外枠から lineGap 以上離れているマスは、近づきようがない（計算を省く）
+        if (pts[i].x < Math.min(a.x, b.x) - opts.lineGap || pts[i].x > Math.max(a.x, b.x) + opts.lineGap || pts[i].y < Math.min(a.y, b.y) - opts.lineGap || pts[i].y > Math.max(a.y, b.y) + opts.lineGap) continue;
+        const c = closestOnSegment(pts[i], a, b);
         if (c.t <= 0 || c.t >= 1) continue; // 線の端は、マス同士の距離で見ている
         if (push(i, c, opts.lineGap, 0.6)) moved = true;
       }
@@ -85,7 +89,10 @@ export function countOverlaps(nodes, pts, radius = 8) {
     for (let j = i + 1; j < pts.length; j++) if (Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y) < radius * 2) nodeHits++;
     for (let k = 0; k < pts.length; k++) {
       if (k === i || nodes[k].parent === i || nodes[i].parent === k) continue;
-      const c = closestOnSegment(pts[i], nodes[k].parent >= 0 ? pts[nodes[k].parent] : root, pts[k]);
+      const a = nodes[k].parent >= 0 ? pts[nodes[k].parent] : root;
+      const b = pts[k];
+      if (pts[i].x < Math.min(a.x, b.x) - radius || pts[i].x > Math.max(a.x, b.x) + radius || pts[i].y < Math.min(a.y, b.y) - radius || pts[i].y > Math.max(a.y, b.y) + radius) continue;
+      const c = closestOnSegment(pts[i], a, b);
       if (c.t > 0 && c.t < 1 && Math.hypot(pts[i].x - c.x, pts[i].y - c.y) < radius) lineHits++;
     }
   }
