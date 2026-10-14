@@ -23,6 +23,7 @@ export const materials = [
   { id: 'vaneCore', name: 'ベーンコア', color: 'cyan' },
   { id: 'cycloneCore', name: 'サイクロンコア', color: 'cold' },
   { id: 'gateCore', name: 'ゲートコア', color: 'red' },
+  { id: 'archiveCore', name: 'アーカイブコア', color: 'cyan' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -289,6 +290,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'ar-01', area: 'archive', source: 'vault', title: '記録庫 閲覧規則',
+    text: '記録は、持ち出さないこと。閲覧者の足取りは、すべて記録される。記録された足取りは、閲覧者が帰ったあとも、保管される。',
+  },
+  {
+    id: 'ar-02', area: 'archive', source: 'vault', title: '事務機 取扱説明',
+    text: '事務機は、書類を三枚ずつ綴じる。綴じ終えた書類は、すぐに次を撃つ。手が止まったら、点検に出すこと。……もう、点検に出す人はいない。',
+  },
+  {
+    id: 'ar-memo', area: 'archive', source: 'vault', title: '閲覧者の走り書き',
+    text: '雨漏りのする書庫だった。屋根のある棚の下にいれば濡れない。……記録係は、歩いた道を全部覚えていて、あとからそれを返してくる。同じ道を、二度通るな。',
+  },
+  {
+    id: 'ar-core', area: 'archive', source: 'boss', title: 'アーカイバーのコアログ',
+    text: '保管：継続。閲覧者：1名。足取り：記録済み。——記録を増やすことしかできない。消し方を、誰も教えてくれなかった。',
   },
   {
     id: 'gt-01', area: 'gate', source: 'vault', title: '中枢の門 通行規則',

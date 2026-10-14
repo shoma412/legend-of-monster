@@ -664,6 +664,38 @@ export const areas = [
       ],
       bossDefeated: [
         '@noise＞ ……門が、開いた。',
+        '@noise＞ コアを回収しろ。次は、記録庫だ。街の記憶が、全部しまってある。',
+      ],
+    },
+  },
+  {
+    id: 'archive',
+    code: 'CORE 02',
+    name: '記録庫',
+    theme: 'archive',
+    bgm: 'archive',
+    bossBgm: 'bossArchive',
+    environment: 'acidrain', // このエリアだけの環境
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'clerk', weight: 3 },
+      { id: 'shredder', weight: 3 },
+      { id: 'scanner', weight: 2 },
+      { id: 'gateguard', weight: 1 },
+      { id: 'sniper', weight: 1 },
+    ],
+    eliteBases: ['clerk', 'shredder', 'gateguard'],
+    boss: 'archivist',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ ……ここには、街の全部の記録がある。誰が来て、誰が去ったかも。',
+        '@noise＞ 記録係は、お前の通った道を覚える。あとから、その道をなぞって追ってくる。止まるな。足元の柱は壊せ。壊さないと、あれは回復する。雷が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……記録が、途切れた。',
         '@noise＞ コアを回収しろ。……この先は、まだ準備ができていない。',
       ],
     },

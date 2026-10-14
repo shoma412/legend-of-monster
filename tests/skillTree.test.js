@@ -12,7 +12,7 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 71; // マップ6で足した6マス（since: 8）を含む
+const ALL_NODES = 166; // マップ6で足した6マス（since: 8）と、マップ7に向けて足した95マス（since: 9）を含む
 const WEAPON_NODES = 7; // 武器ごとの強化（since: 5）
 const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
@@ -135,7 +135,7 @@ describe('配置の決まり（どの種でも守られる）', () => {
       }
       const map1 = tree.nodes.filter((n) => n.rank <= RANK.overCore);
       expect(save.tree.owned).toHaveLength(map1.length);
-      expect(save.materials).toEqual({ boarCore: 99 - 12, cryoCore: 99 - 9, overCore: 99 - 2 });
+      expect(save.materials).toEqual({ boarCore: 99 - 15, cryoCore: 99 - 12, overCore: 99 - 5 }); // マップ7に向けて足した、各ボスの強化3段ぶん（since: 9）を含む
     }
   });
 

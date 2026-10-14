@@ -233,6 +233,211 @@ export const upgrades = [
     costs: [{ vaneCore: 1 }, { cycloneCore: 1 }],
     perLevel: { mods: [{ stat: 'dashHaste', add: 0.05 }] },
   },
+  // ---- ここから、マップ7に向けて足した強化（since: 9）。ボスの素材ごとに1つ（3段）＋ 2種類の素材（2段）＋ 3種類の素材（1段）。最後のマップの敵に、ちょうど届く強さになるように ----
+  // 1種類の素材：1段ごとに1個（1〜3段目のマスは、1種類を1個、という決まり）
+  {
+    id: 'steelrib', category: 'body', name: '鉄骨補強', desc: '最大HP +20', max: 3, since: 9,
+    costs: [{ boarCore: 1 }, { boarCore: 1 }, { boarCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 20 }] },
+  },
+  {
+    id: 'coolcircuit', category: 'skill', name: '冷却回路', desc: '攻撃力 +4%', max: 3, since: 9,
+    costs: [{ cryoCore: 1 }, { cryoCore: 1 }, { cryoCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.04 }] },
+  },
+  {
+    id: 'overcurrent', category: 'skill', name: '過電流回路', desc: '会心率 +2%', max: 3, since: 9,
+    costs: [{ overCore: 1 }, { overCore: 1 }, { overCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.02 }] },
+  },
+  {
+    id: 'coilmuscle', category: 'skill', name: '蛇腹の筋', desc: '攻撃速度 +4%', max: 3, since: 9,
+    costs: [{ serpentCore: 1 }, { serpentCore: 1 }, { serpentCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackSpeed', add: 0.04 }] },
+  },
+  {
+    id: 'carapace', category: 'body', name: '甲殻板', desc: '被ダメージ −3%', max: 3, since: 9,
+    costs: [{ crabCore: 1 }, { crabCore: 1 }, { crabCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.03 }] },
+  },
+  {
+    id: 'selfheal', category: 'body', name: '自己再生', desc: 'HP が毎秒 0.4 回復', max: 3, since: 9,
+    costs: [{ hydraCore: 1 }, { hydraCore: 1 }, { hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.4 }] },
+  },
+  {
+    id: 'houndlegs', category: 'gear', name: '猟犬の脚', desc: '移動速度 +3%', max: 3, since: 9,
+    costs: [{ houndCore: 1 }, { houndCore: 1 }, { houndCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.03 }] },
+  },
+  {
+    id: 'spidereye', category: 'skill', name: '蜘蛛の目', desc: '会心ダメージ +6%', max: 3, since: 9,
+    costs: [{ spiderCore: 1 }, { spiderCore: 1 }, { spiderCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.06 }] },
+  },
+  {
+    id: 'giantbone', category: 'body', name: '巨躯の骨', desc: '最大HP +30', max: 3, since: 9,
+    costs: [{ titanCore: 1 }, { titanCore: 1 }, { titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 30 }] },
+  },
+  {
+    id: 'mothwing', category: 'gear', name: '夜蛾の翅', desc: 'ダッシュの回復 +4%', max: 3, since: 9,
+    costs: [{ mothCore: 1 }, { mothCore: 1 }, { mothCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.04 }] },
+  },
+  {
+    id: 'lightcollector', category: 'skill', name: '集光器', desc: '弱点を突いたときのダメージ +5%', max: 3, since: 9,
+    costs: [{ lensCore: 1 }, { lensCore: 1 }, { lensCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.05 }] },
+  },
+  {
+    id: 'breakerplate', category: 'body', name: '遮断板', desc: '被弾後の無敵 +0.04秒', max: 3, since: 9,
+    costs: [{ breakerCore: 1 }, { breakerCore: 1 }, { breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'hurtInvincible', add: 0.04 }] },
+  },
+  {
+    id: 'rustfilm', category: 'body', name: '錆止め膜', desc: '持続ダメージで受ける量 −5%', max: 3, since: 9,
+    costs: [{ rustCore: 1 }, { rustCore: 1 }, { rustCore: 1 }],
+    perLevel: { mods: [{ stat: 'dotResist', add: 0.05 }] },
+  },
+  {
+    id: 'bufferfluid', category: 'skill', name: '緩衝液', desc: '状態異常の時間 +10%', max: 3, since: 9,
+    costs: [{ bufferCore: 1 }, { bufferCore: 1 }, { bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.1 }] },
+  },
+  {
+    id: 'rainfilter', category: 'gear', name: '雨水濾過', desc: '修復キットの回復量 +8%', max: 3, since: 9,
+    costs: [{ rainCore: 1 }, { rainCore: 1 }, { rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.08 }] },
+  },
+  {
+    id: 'intakevalve', category: 'skill', name: '吸気弁', desc: '攻撃力 +4%', max: 3, since: 9,
+    costs: [{ intakeCore: 1 }, { intakeCore: 1 }, { intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.04 }] },
+  },
+  {
+    id: 'ductcore', category: 'body', name: '管の芯', desc: '最大HP +40', max: 3, since: 9,
+    costs: [{ ductCore: 1 }, { ductCore: 1 }, { ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 40 }] },
+  },
+  {
+    id: 'vanefeather', category: 'skill', name: '風見の羽', desc: '攻撃速度 +4%', max: 3, since: 9,
+    costs: [{ vaneCore: 1 }, { vaneCore: 1 }, { vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackSpeed', add: 0.04 }] },
+  },
+  {
+    id: 'vortexring', category: 'gear', name: '渦の輪', desc: 'ダッシュの距離 +6%', max: 3, since: 9,
+    costs: [{ cycloneCore: 1 }, { cycloneCore: 1 }, { cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashDistance', add: 0.06 }] },
+  },
+  {
+    id: 'gatelock', category: 'body', name: '門の錠', desc: '被ダメージ −3%', max: 3, since: 9,
+    costs: [{ gateCore: 1 }, { gateCore: 1 }, { gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.03 }] },
+  },
+  {
+    id: 'blueprint', category: 'skill', name: '設計図', desc: '攻撃力 +5%', max: 3, since: 9,
+    costs: [{ architectCore: 1 }, { architectCore: 1 }, { architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.05 }] },
+  },
+  {
+    id: 'shadowfoot', category: 'gear', name: '影の足', desc: 'ダッシュの回復 +4%', max: 3, since: 9,
+    costs: [{ nocturneCore: 1 }, { nocturneCore: 1 }, { nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.04 }] },
+  },
+  {
+    id: 'catalystdust', category: 'skill', name: '触媒の粉', desc: '会心率 +2%', max: 3, since: 9,
+    costs: [{ catalystCore: 1 }, { catalystCore: 1 }, { catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.02 }] },
+  },
+  // 2種類の素材：1個ずつ（4〜5段目のマス）
+  {
+    id: 'trainingset', category: 'skill', name: '戦闘訓練', desc: '攻撃力 +5%', max: 2, since: 9,
+    costs: [{ boarCore: 1, rainCore: 1 }, { boarCore: 1, rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.05 }] },
+  },
+  {
+    id: 'reflexes', category: 'skill', name: '反射神経', desc: '会心率 +3%', max: 2, since: 9,
+    costs: [{ cryoCore: 1, intakeCore: 1 }, { cryoCore: 1, intakeCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.03 }] },
+  },
+  {
+    id: 'shockproof', category: 'body', name: '耐衝撃', desc: '被ダメージ −4%', max: 2, since: 9,
+    costs: [{ overCore: 1, ductCore: 1 }, { overCore: 1, ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.04 }] },
+  },
+  {
+    id: 'comboform', category: 'skill', name: '連撃の型', desc: '会心ダメージ +10%', max: 2, since: 9,
+    costs: [{ serpentCore: 1, vaneCore: 1 }, { serpentCore: 1, vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'critMul', add: 0.1 }] },
+  },
+  {
+    id: 'heavyarmor', category: 'body', name: '重装', desc: '最大HP +50', max: 2, since: 9,
+    costs: [{ crabCore: 1, cycloneCore: 1 }, { crabCore: 1, cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 50 }] },
+  },
+  {
+    id: 'regenarmor', category: 'body', name: '再生装甲', desc: 'HP が毎秒 0.6 回復', max: 2, since: 9,
+    costs: [{ hydraCore: 1, gateCore: 1 }, { hydraCore: 1, gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'hpRegen', add: 0.6 }] },
+  },
+  {
+    id: 'pursuit', category: 'skill', name: '追撃', desc: '攻撃力 +6%', max: 2, since: 9,
+    costs: [{ houndCore: 1, architectCore: 1 }, { houndCore: 1, architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.06 }] },
+  },
+  {
+    id: 'shadoweye', category: 'skill', name: '影の目', desc: '弱点を突いたときのダメージ +8%', max: 2, since: 9,
+    costs: [{ spiderCore: 1, nocturneCore: 1 }, { spiderCore: 1, nocturneCore: 1 }],
+    perLevel: { mods: [{ stat: 'weakBonus', add: 0.08 }] },
+  },
+  {
+    id: 'catalystguard', category: 'body', name: '触媒耐性', desc: '状態異常の時間 +12%、持続ダメージで受ける量 −4%', max: 2, since: 9,
+    costs: [{ titanCore: 1, catalystCore: 1 }, { titanCore: 1, catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.12 }, { stat: 'dotResist', add: 0.04 }] },
+  },
+  {
+    id: 'nightwind', category: 'gear', name: '夜風', desc: '移動速度 +4%', max: 2, since: 9,
+    costs: [{ mothCore: 1, ductCore: 1 }, { mothCore: 1, ductCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.04 }] },
+  },
+  // 3種類の素材：1個ずつ（6段目のマス）
+  {
+    id: 'ironoath', category: 'body', name: '鉄の誓い', desc: '最大HP +100、被ダメージ −5%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ boarCore: 1, titanCore: 1, gateCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 100 }, { stat: 'damageTaken', add: -0.05 }] },
+  },
+  {
+    id: 'absoluteaim', category: 'skill', name: '絶対精度', desc: '会心率 +5%、会心ダメージ +20%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ cryoCore: 1, lensCore: 1, cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.05 }, { stat: 'critMul', add: 0.2 }] },
+  },
+  {
+    id: 'windfoot', category: 'gear', name: '風の足', desc: '移動速度 +8%、ダッシュの回復 +8%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ houndCore: 1, ductCore: 1, vaneCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.08 }, { stat: 'dashHaste', add: 0.08 }] },
+  },
+  {
+    id: 'fullguard', category: 'body', name: '完全防護', desc: '被ダメージ −6%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ rustCore: 1, rainCore: 1, bufferCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.06 }] },
+  },
+  {
+    id: 'limitbreak', category: 'skill', name: '極限', desc: '攻撃力 +10%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ overCore: 1, serpentCore: 1, architectCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.1 }] },
+  },
+  {
+    id: 'shadowart', category: 'skill', name: '影の極意', desc: '攻撃力 +8%、会心率 +4%', max: 1, since: 9,
+    treeMaxDepth: 6,
+    costs: [{ spiderCore: 1, nocturneCore: 1, catalystCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.08 }, { stat: 'critChance', add: 0.04 }] },
+  },
 ];
 
 // 武器の解放

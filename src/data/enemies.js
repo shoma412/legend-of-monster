@@ -33,6 +33,7 @@
 // tailwindHaste: 追い風（風が、プレイヤーのほうへ吹いている）の間の、動きの速さの倍率（風乗り）
 // windproof: true は、風に流されない（ダクトネズミ、かざぐるま）
 // pinwheel: { interval, arms, turn, windMul, shotSpeed, radius }。動かない。回りながら弾を放射状に撃つ。風の間は回転が windMul 倍で、弾の腕が2倍（かざぐるま）
+// prop: true の記録の柱（datapylon）は、ボスの「復元」で出る。壊せる。残っている間、ボスのHPが回復する
 // gateguard（門衛）は盾を持つ。ゲートキーパーの「衛兵召喚」でも出る
 // whirl: { pullR, pull, tick }。プレイヤーへ進みながら、pullR px 以内のプレイヤーを毎秒 pull px まで引き寄せる。触れると tick 秒ごとにダメージ（つむじ）
 // owner / orbit…: サイクロンの「巻き上げ投げ」の瓦礫（flotsam）は、ボスのまわりを回り、時間が来るとプレイヤーめがけて飛ぶ
@@ -1142,5 +1143,61 @@ export const enemies = [
     dropChance: 0.3,
     keepDistance: { min: 320, max: 480 },
     snipe: { interval: 2.2, aim: 1.1, lock: 0.3, range: 1200, width: 10 },
+  },
+  // ---- ここからマップ7 エリア2「記録庫」（2026-10-15） ----
+  {
+    // 事務機：距離を取って、3連射する。連射が速く、痛い
+    id: 'clerk',
+    name: '事務機',
+    behavior: 'gunner',
+    shape: 'pentagon',
+    color: 'cyan',
+    radius: 15,
+    hp: 190,
+    speed: 60,
+    damage: 40,
+    xp: 36,
+    credits: 12,
+    cost: 4,
+    dropChance: 0.3,
+    keepDistance: { min: 240, max: 380 },
+    shot: { speed: 330, radius: 7, life: 4, interval: 2.0, aim: 0.5, burst: 3, burstGap: 0.12 },
+  },
+  {
+    // 裁断機：回転刃で突っ込んでくる、重くて速い敵。ジグザグに走る
+    id: 'shredder',
+    name: '裁断機',
+    behavior: 'swarm',
+    shape: 'hexagon',
+    color: 'red',
+    radius: 16,
+    hp: 230,
+    speed: 112,
+    damage: 52,
+    xp: 34,
+    credits: 11,
+    cost: 4,
+    dropChance: 0.3,
+    knockbackResist: 0.6,
+    wobble: 0.6,
+  },
+  {
+    // 記録の柱（アーカイバーの「復元」）。壊せる。残っている間、ボスのHPが回復する
+    id: 'datapylon',
+    name: '記録の柱',
+    behavior: 'prop',
+    shape: 'post',
+    color: 'cyan',
+    prop: true,
+    radius: 18,
+    hp: 900,
+    speed: 0,
+    damage: 0,
+    xp: 0,
+    credits: 0,
+    cost: 99,
+    dropChance: 0,
+    knockbackResist: 1,
+    windproof: true,
   },
 ];

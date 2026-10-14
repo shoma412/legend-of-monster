@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   echo / trailstrike / collect / censorbars / backup / rewind : 固有（アーカイバー）。数値の意味は、下の定義の注釈
 //   gateclose / holdshots / callguards / fissure / tailbomb / lockdown : 固有（ゲートキーパー）。数値の意味は、下の定義の注釈
 //   twister / sweepup / swirlshot / spiralbolt / cycloneram / eyestorm : 固有（サイクロン）。数値の意味は、下の定義の注釈
 //   compass / gust / windseed / windturn / windrush / stormfury : 固有（ウェザーベーン）。それぞれの数値の意味は、下の定義の注釈
@@ -1159,6 +1160,54 @@ export const bosses = [
         moves: ['gatecloseHard', 'holdshotsHard', 'callguardsHard', 'fissureHard', 'tailbombHard'],
         combos: [{ moves: ['gatecloseHard', 'holdshotsHard'] }, { moves: ['fissureHard', 'tailbombHard'] }],
         announce: '門が、閉じる',
+      },
+    ],
+  },
+  // ---- マップ7 エリア2（docs/詳細仕様.md「36. マップ7「核心区」と、ミシック」の「②エリア2」）。HP は前のボスより +6000 ----
+  {
+    id: 'archivist',
+    name: 'アーカイバー',
+    alias: '記録係', // 登場時に出す異名
+    shape: 'archivist',
+    color: 'cyan',
+    weakness: 'shock',
+    material: 'archiveCore',
+    radius: 52,
+    hp: 46000,
+    speed: 58,
+    contactDamage: 76,
+    xp: 1300,
+    credits: 650,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「再生」：プレイヤーの通った道をなぞる影が count 体、delay 秒遅れで追ってくる（gap 秒ずつ遅れが増える）。life 秒で消える
+      echo: { pattern: 'echo', telegraph: 0.9, count: 1, delay: 2.2, gap: 1.2, life: 9, radius: 18, damage: 62, hold: 1.5, recover: 0.8, reach: 'far' },
+      echoHard: { pattern: 'echo', telegraph: 0.8, count: 2, delay: 2.0, gap: 1.2, life: 9, radius: 18, damage: 64, hold: 1.5, recover: 0.8, reach: 'far' },
+      // 固有「足跡爆撃」：予告のあいだに歩いた場所（every 秒ごと）に、あとから落雷の予告が並ぶ（最後の count か所）。delay 秒後から、stagger 秒ずつ落ちる
+      trailstrike: { pattern: 'trailstrike', telegraph: 1.6, every: 0.25, count: 6, radius: 48, delay: 0.9, stagger: 0.18, damage: 62, recover: 0.8, reach: 'far' },
+      trailstrikeHard: { pattern: 'trailstrike', telegraph: 1.8, every: 0.2, count: 9, radius: 48, delay: 0.85, stagger: 0.14, damage: 64, recover: 0.8, reach: 'far' },
+      // 固有「回収弾」：部屋の外まわりから、ボスめがけて弾が count 発（gap 秒ずつ）飛んでくる。ボスのいる場所を通る
+      collect: { pattern: 'collect', telegraph: 0.8, count: 14, gap: 0.22, speed: 330, radius: 9, damage: 56, recover: 0.8, reach: 'near' },
+      collectHard: { pattern: 'collect', telegraph: 0.7, count: 22, gap: 0.17, speed: 360, radius: 9, damage: 58, recover: 0.8, reach: 'near' },
+      // 固有「検閲帯」：黒い帯が count 本。warn 秒の予告のあと一瞬当たり、shift px ずれて、rewarn 秒の予告のあと、もう一度当たる
+      censorbars: { pattern: 'censorbars', telegraph: 0.8, count: 2, width: 110, shift: 220, warn: 1.1, rewarn: 0.8, stagger: 0.5, damage: 70, recover: 0.9, reach: 'far' },
+      censorbarsHard: { pattern: 'censorbars', telegraph: 0.7, count: 3, width: 105, shift: 240, warn: 1.0, rewarn: 0.7, stagger: 0.4, damage: 72, recover: 0.9, reach: 'far' },
+      // 固有「復元」：記録の柱が count 本出る（体力は hpMul 倍）。残っている間、ボスのHPが毎秒 healPerSec の割合 × 本数で回復する。maxTime 秒で切り上げる
+      backup: { pattern: 'backup', telegraph: 0.9, enemy: 'datapylon', count: 2, hpMul: 0.5, healPerSec: 0.012, maxTime: 14, recover: 0.8, reach: 'near' },
+      backupHard: { pattern: 'backup', telegraph: 0.8, enemy: 'datapylon', count: 3, hpMul: 0.5, healPerSec: 0.012, maxTime: 14, recover: 0.8, reach: 'near' },
+      // 大技「巻き戻し」：再生の影が count 体（遅れをずらして）追ってくる。同時に、酸の雨が rain 秒降る
+      rewind: { pattern: 'rewind', telegraph: 1.8, count: 3, delay: 1.6, gap: 1.4, life: 13, radius: 18, damage: 66, rain: 12, recover: 1.6 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'trailstrike' }],
+    ultimate: { move: 'rewind', announce: '巻き戻し' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['echo', 'trailstrike', 'collect', 'censorbars', 'backup'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['echoHard', 'trailstrikeHard', 'collectHard', 'censorbarsHard', 'backupHard'],
+        combos: [{ moves: ['echoHard', 'censorbarsHard'] }, { moves: ['collectHard', 'trailstrikeHard'] }],
+        announce: '記録を、上書きする',
       },
     ],
   },

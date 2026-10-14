@@ -1770,6 +1770,27 @@ SHAPES.tank = (g, b, color, world) => {
   }
 };
 
+// アーカイバー：棚のように重なる箱の胴と、真ん中の目（レンズ）。再生や巻き戻しのあいだは、目が赤くなる
+SHAPES.archivist = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const hot = pattern === 'echo' || pattern === 'rewind' || pattern === 'trailstrike';
+  // 棚段（3段の箱）
+  for (let i = -1; i <= 1; i++) {
+    const w = r * (1.5 - Math.abs(i) * 0.15);
+    const x = b.x - w / 2;
+    const y = b.y + i * r * 0.62 - r * 0.28;
+    g.fillStyle(BODY_FILL, 0.95).fillRect(x, y, w, r * 0.56);
+    neonStroke(g, color, 2.5, () => g.strokeRect(x, y, w, r * 0.56));
+    for (let k = 1; k < 4; k++) g.lineStyle(1, color, 0.4).lineBetween(x + (w * k) / 4, y + 3, x + (w * k) / 4, y + r * 0.56 - 3);
+  }
+  // 目
+  g.fillStyle(0x000000, 1).fillCircle(b.x, b.y, r * 0.3);
+  g.lineStyle(2.5, color, 0.9).strokeCircle(b.x, b.y, r * 0.3);
+  g.fillStyle(hex(hot ? COLORS.red : COLORS.ink), stunned ? 0.3 : 1).fillCircle(b.x + Math.cos(b.angle) * r * 0.1, b.y + Math.sin(b.angle) * r * 0.1, r * 0.12);
+};
+
 // ゲートキーパー：左右に開く2枚の大きな門扉と、真ん中の赤い錠。攻撃の前は、門扉が少し閉じる
 SHAPES.gatekeeper = (g, b, color, world) => {
   const r = b.r;

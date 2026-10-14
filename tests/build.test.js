@@ -73,11 +73,11 @@ describe('定義データのつじつま', () => {
     }
   });
 
-  it('仕様どおり、インプラント109種（種族20個×5、汎用9）・固有効果10種（レジェンド4＋ミシック6）・装備効果10種がある', () => {
-    expect(DATA.implants.all()).toHaveLength(109);
+  it('仕様どおり、インプラント114種（種族21個×5、汎用9）・固有効果10種（レジェンド4＋ミシック6）・装備効果10種がある', () => {
+    expect(DATA.implants.all()).toHaveLength(114);
     expect(DATA.legendEffects.all()).toHaveLength(10);
     expect(DATA.gearEffects.all()).toHaveLength(10);
-    for (const id of ['boar', 'wyvern', 'core', 'serpent', 'crab', 'hydra', 'hound', 'spider', 'titan', 'moth', 'sentinel', 'breaker', 'rust', 'buffer', 'rain', 'intake', 'duct', 'vane', 'swirl', 'gate']) expect(DATA.implants.all().filter((d) => d.species === id)).toHaveLength(5);
+    for (const id of ['boar', 'wyvern', 'core', 'serpent', 'crab', 'hydra', 'hound', 'spider', 'titan', 'moth', 'sentinel', 'breaker', 'rust', 'buffer', 'rain', 'intake', 'duct', 'vane', 'swirl', 'gate', 'record']) expect(DATA.implants.all().filter((d) => d.species === id)).toHaveLength(5);
   });
 });
 
@@ -211,7 +211,7 @@ describe('レベルアップとインプラント', () => {
     const build = createBuild();
     build.implants.chain = LEVEL.implantMax;
     build.implants.overclock = 1;
-    const ids = rollImplantChoices(build, seeded(9), 99).map((d) => d.id);
+    const ids = rollImplantChoices(build, seeded(9), 300).map((d) => d.id);
     expect(ids).not.toContain('chain');
     expect(ids).toContain('overclock');
   });

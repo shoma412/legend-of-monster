@@ -121,6 +121,8 @@ export const BGM = {
   // マップ7「核心区」。曲はまだ選んでいない（マップ1の曲を借りている）
   gate: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossGate: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  archive: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossArchive: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

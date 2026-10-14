@@ -15,6 +15,44 @@ function slabRects(world, h, trav) {
 }
 
 export const HAZARD_DRAWS_MAP7 = {
+  // 再生の影：出る場所に待っている間は、細い輪。動き出したら、プレイヤーの形の影
+  replayshade(g, h, world) {
+    const body = hex(h.color);
+    if (!h.active) {
+      const k = Math.min(1, h.age / h.delay);
+      g.lineStyle(2, RED(), 0.25 + 0.5 * k).strokeCircle(h.x, h.y, h.r * (1.8 - 0.8 * k));
+      return;
+    }
+    g.fillStyle(body, 0.2).fillCircle(h.x, h.y, h.r * 1.5);
+    g.fillStyle(0x0a0814, 0.9).fillCircle(h.x, h.y, h.r);
+    g.lineStyle(3, body, 0.95).strokeCircle(h.x, h.y, h.r);
+    g.lineStyle(1.5, WHITE, 0.6).strokeCircle(h.x, h.y, h.r * 0.5);
+    // しっぽ（通ってきた道）
+    const tail = h.buf.slice(Math.max(0, h.i - 12), h.i);
+    for (let k = 0; k < tail.length; k++) g.fillStyle(body, 0.08 + 0.3 * (k / tail.length)).fillCircle(tail[k].x, tail[k].y, h.r * 0.5);
+  },
+
+  // 検閲帯：黒い帯。予告は赤、当たるときは黒く塗る。ずれる先も、うっすら見える
+  censor(g, h, world) {
+    const bd = world.bounds;
+    const rect = (pos, w) => (h.axis === 'x' ? [pos - w / 2, bd.top, w, bd.bottom - bd.top] : [bd.left, pos - w / 2, bd.right - bd.left, w]);
+    const pos = h.steps[h.step];
+    if (h.phase === 'warn') {
+      const k = 1 - h.warn / h.warnMax;
+      const r = rect(pos, h.width);
+      g.fillStyle(RED(), 0.06 + 0.16 * k).fillRect(r[0], r[1], r[2], r[3]);
+      g.lineStyle(2, RED(), 0.4 + 0.5 * k).strokeRect(r[0], r[1], r[2], r[3]);
+      if (h.step + 1 < h.steps.length) {
+        const n = rect(h.steps[h.step + 1], h.width);
+        g.lineStyle(1, RED(), 0.25).strokeRect(n[0], n[1], n[2], n[3]);
+      }
+      return;
+    }
+    const r = rect(pos, h.width);
+    g.fillStyle(0x000000, 0.92).fillRect(r[0], r[1], r[2], r[3]);
+    g.lineStyle(2, WHITE, 0.7).strokeRect(r[0], r[1], r[2], r[3]);
+  },
+
   // 門板：予告（閉まりきったときの位置を、赤く示す）→ 閉まる板
   gateslab(g, h, world) {
     if (h.wait > 0) return;
@@ -85,6 +123,17 @@ export const HAZARD_DRAWS_MAP7 = {
 };
 
 export const BOSS_TELEGRAPHS_MAP7 = {
+  echo: ringTelegraph,
+  // 足跡爆撃：記録した足跡を、赤い輪で見せる
+  trailstrike: (g, b, act, world) => {
+    if (act.phase !== 'telegraph') return;
+    ringTelegraph(g, b, act, world);
+    for (const s of act.samples ?? []) g.lineStyle(1.5, RED(), 0.45).strokeCircle(s.x, s.y, act.def.radius * 0.6);
+  },
+  collect: ringTelegraph,
+  censorbars: ringTelegraph,
+  backup: ringTelegraph,
+  rewind: ringTelegraph,
   gateclose: ringTelegraph,
   holdshots: ringTelegraph,
   callguards: ringTelegraph,

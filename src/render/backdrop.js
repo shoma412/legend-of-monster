@@ -611,6 +611,21 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 記録庫：背の高い棚の列（上から見た影）、床の目録の線、雨漏りの水たまり
+  archive(g, rng, a) {
+    speckles(g, rng, a, 220, [0x080c10, 0x0c1218, 0x05080b, 0x121b22], 0.7);
+    // 棚の列
+    for (let i = 0; i < 4; i++) {
+      const y = a.top + a.h * (0.2 + 0.2 * i);
+      block(g, a.left + 40, y, a.w - 80, PX * 2, 0x14242c, 0.9);
+      for (let x = a.left + 50; x < a.right - 50; x += 36) block(g, x, y - 2, PX / 2, PX * 3, 0x2a4450, 0.7);
+    }
+    // 床の目録の線
+    for (let x = a.left + 90; x < a.right - 20; x += 180) block(g, x, a.top + 40, PX / 2, a.h - 80, 0x16303a, 0.5);
+    // 水たまり
+    for (let i = 0; i < 5; i++) blob(g, a.left + 60 + rng() * (a.w - 120), a.top + 60 + rng() * (a.h - 120), 18 + rng() * 14, 8 + rng() * 6, 0x0a2a36, 0.7);
+    for (let i = 0; i < 12; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x6a8a94, 0.3);
+  },
   // 中枢の門：赤い警告の縞、大きな門の枠（床に落ちた影）、閉まった扉の線
   gate(g, rng, a) {
     speckles(g, rng, a, 220, [0x0e0a0c, 0x140d10, 0x0a0709, 0x1c1115], 0.7);

@@ -266,8 +266,9 @@ const ACTIONS = {
   // 超過駆動（ミシック）：敵を倒すと、seconds 秒のあいだ、ステータスが上がる（付け直すと、時間が戻る）
   killBuff(world, t) {
     const p = world.player;
-    p.buffs = p.buffs.filter((x) => x.id !== 'overclock');
-    p.buffs.push({ id: 'overclock', stat: t.stat, add: t.add, t: t.seconds, max: t.seconds, color: COLORS.red });
+    const id = t.buffId ?? 'overclock';
+    p.buffs = p.buffs.filter((x) => x.id !== id);
+    p.buffs.push({ id, stat: t.stat, add: t.add, t: t.seconds, max: t.seconds, color: COLORS.red });
   },
 
   // 低気圧（種族「渦」）：敵を倒すと、そのまわりの敵に冷却のダメージを与え、渦のように横へ回す

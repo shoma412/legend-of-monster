@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 記録（アーカイバー由来・覚えて返す） ----
+  {
+    id: 'bookmark', species: 'record', name: 'しおり',
+    desc: (k) => `敵を倒すと、3秒間、与えるダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'killBuff', buffId: 'bookmark', stat: 'attackMul', add: 0.12 * k, seconds: 3 }] }),
+  },
+  {
+    id: 'indexing', species: 'record', name: '索引',
+    desc: (k) => `弱点を突いたときのダメージ +${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'weakBonus', add: 0.1 * k }] }),
+  },
+  {
+    id: 'duplicate', species: 'record', name: '複製記録',
+    desc: (k) => `被弾後の無敵時間 +${Math.round(0.1 * k * 100) / 100}秒`,
+    effect: (k) => ({ mods: [{ stat: 'hurtInvincible', add: 0.1 * k }] }),
+  },
+  {
+    id: 'freshfile', species: 'record', name: '新規ファイル',
+    desc: (k) => `HP が満タンの敵へのダメージ +${pct(0.15 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.15 * k, when: 'targetFull' }] }),
+  },
+  {
+    id: 'archivekeep', species: 'record', name: '保管庫',
+    desc: (k) => `修復キットの回復量 +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'kitBonus', add: 0.12 * k }] }),
+  },
   // ---- 門（ゲートキーパー由来・守って押し返す） ----
   {
     id: 'checkpoint', species: 'gate', name: '検問',
@@ -706,6 +732,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  record: {
+    name: '記録', color: 'cyan', boss: 'archivist',
+    bonuses: [
+      { need: 2, desc: '会心率 +4%', effect: { mods: [{ stat: 'critChance', add: 0.04 }] } },
+      { need: 3, desc: '与えるダメージ +8%', effect: { mods: [{ stat: 'attackMul', add: 0.08 }] } },
     ],
   },
   gate: {

@@ -188,7 +188,7 @@ describe('エリア1「中枢の門」の定義', () => {
     expect(map.name).toBe('核心区');
     expect(map.devOnly).toBe(true);
     expect(map.enemyScale).toBeGreaterThan(maps.find((m) => m.id === 'map6').enemyScale);
-    expect(map.areas).toEqual(['gate']);
+    expect(map.areas[0]).toBe('gate');
     expect(area.name).toBe('中枢の門');
     expect(area.environment).toBe('dark');
     expect(AREA_THEMES[area.theme]).toBeDefined();
