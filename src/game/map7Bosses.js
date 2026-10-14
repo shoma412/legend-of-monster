@@ -1,4 +1,5 @@
 // マップ7のボスの、そのボスだけの攻撃。共通の部品は使わない（docs/詳細仕様.md「新しいボスを作るときの決まり」）。
+//   コギトール    : forecast 予測 / multiplex 多重化 / interrupt 割り込み / glitch 演算エラー / overheat 過熱 / allthreads 全並列（大技）
 //   ファブリケーター: assemble 組立 / belts ベルト / press プレス / moltenspit 溶鉄 / fasten 締結 / fullline 全工程稼働（大技）
 //   アーカイバー  : echo 再生 / trailstrike 足跡爆撃 / collect 回収弾 / censorbars 検閲帯 / backup 復元 / rewind 巻き戻し（大技）
 //   ゲートキーパー: gateclose 閉門 / holdshots 検問弾 / callguards 衛兵召喚 / fissure 裂け目 / tailbomb 尾行爆弾 / lockdown 全門閉鎖（大技）
@@ -8,7 +9,7 @@ import { DATA } from '../data/index.js';
 import { COLORS } from '../data/theme.js';
 import { circlesOverlap, clampToBounds, distToSegment } from '../logic/geometry.js';
 import { startRain } from './acidRain.js';
-import { clamp, pushMark, timed } from './bossKit.js';
+import { clamp, pushMark, timed, trackVelocity } from './bossKit.js';
 import { hurtPlayer } from './combat.js';
 import { createEnemy } from './enemyAI.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
@@ -31,6 +32,29 @@ function makeSlab(world, def, axis, lane, wait, color) {
 
 // ---- ハザード（残る攻撃）の動き ----
 export const HAZARDS_MAP7 = {
+  // 演算エラー：床の四角い区画が、予告のあと、一瞬だけ当たる
+  glitchcell: {
+    update(world, h, dt) {
+      const p = world.player;
+      if (h.wait > 0) {
+        h.wait -= dt;
+        return;
+      }
+      if (h.phase === 'warn') {
+        h.warn -= dt;
+        if (h.warn <= 0) {
+          h.phase = 'active';
+          h.t = 0;
+          sfx(world, 'zap');
+        }
+        return;
+      }
+      h.t += dt;
+      if (Math.abs(p.x - h.x) <= h.w / 2 + p.r && Math.abs(p.y - h.y) <= h.h / 2 + p.r) hurtPlayer(world, h.damage);
+      if (h.t >= 0.4) h.dead = true;
+    },
+  },
+
   // 部品の飛来：部屋のふちから、組み上がる場所へ飛んで、着いたら砲台（enemy）になる
   partflight: {
     update(world, h, dt) {
@@ -273,7 +297,156 @@ function moltenDrop(world, act, b, def) {
   }
 }
 
+// 演算エラーの区画を、プレイヤーのまわりに count 個置く（床の格子に合わせて、大きさ cell px の四角）
+function glitchCells(world, act, b, def) {
+  const p = world.player;
+  const bd = world.bounds;
+  for (let i = 0; i < def.count; i++) {
+    const gx = Math.round((p.x + (world.rng() - 0.5) * def.spread * 2) / def.cell) * def.cell;
+    const gy = Math.round((p.y + (world.rng() - 0.5) * def.spread * 2) / def.cell) * def.cell;
+    const h = {
+      type: 'glitchcell', x: clamp(gx, bd.left + def.cell / 2, bd.right - def.cell / 2), y: clamp(gy, bd.top + def.cell / 2, bd.bottom - def.cell / 2), w: def.cell, h: def.cell,
+      wait: i * def.stagger, phase: 'warn', warn: def.warn, warnMax: def.warn, t: 0, damage: def.damage, color: b.color,
+    };
+    world.hazards.push(h);
+    act.hs.push(h);
+  }
+}
+
+// 予測の印を置く（プレイヤーのいまの動きが続いたとしたときの、leads 秒あとの位置）
+function forecastMarks(world, act, b, def) {
+  const p = world.player;
+  def.leads.forEach((lead, i) => {
+    const x = clamp(p.x + (act.vx ?? 0) * lead, world.bounds.left + 30, world.bounds.right - 30);
+    const y = clamp(p.y + (act.vy ?? 0) * lead, world.bounds.top + 30, world.bounds.bottom - 30);
+    pushMark(world, act, b, { x, y, r: def.radius, t: lead + def.delay, damage: def.damage, color: b.color });
+  });
+}
+
+// 分身を count 体、部屋のあちこちに出す（弾を放射状に撃つ。life 秒で消える）
+function spawnCopies(world, act, b, def) {
+  const [scale, hpScale] = SCALE(world);
+  const kind = DATA.enemies.get(def.enemy);
+  const bd = world.bounds;
+  for (let i = 0; i < def.count; i++) {
+    const a = (i * Math.PI * 2) / def.count + world.rng() * 0.5;
+    const x = clamp((bd.left + bd.right) / 2 + Math.cos(a) * 300, bd.left + 50, bd.right - 50);
+    const y = clamp((bd.top + bd.bottom) / 2 + Math.sin(a) * 170, bd.top + 50, bd.bottom - 50);
+    const e = createEnemy(kind, x, y, 0.4, world.rng, scale, hpScale);
+    e.hp = e.maxHp = Math.max(1, Math.round(e.maxHp * def.hpMul));
+    e.expire = world.time + def.life;
+    world.enemies.push(e);
+    act.hs.push(e);
+  }
+}
+
 export const PATTERNS_MAP7 = {
+  // 予測：プレイヤーの動きが続いたとして、leads 秒あとの位置に、印が並ぶ。止まれば足元、走れば走る先。予告のあいだ（telegraph）の動きで決まる
+  forecast: {
+    start(world, b, act) {
+      act.phase = 'telegraph';
+      act.t = act.def.telegraph;
+      act.lx = null;
+      act.hs = [];
+      sfx(world, 'bossCharge');
+    },
+    update(world, b, dt, act) {
+      const def = act.def;
+      trackVelocity(act, world.player, dt);
+      act.t -= dt;
+      if (act.phase === 'telegraph') {
+        if (act.t <= 0) {
+          act.phase = 'active';
+          forecastMarks(world, act, b, def);
+          sfx(world, 'enemyShot');
+        }
+      } else if (act.phase === 'active') {
+        if (act.hs.every((h) => h.dead)) {
+          act.phase = 'recover';
+          act.t = def.recover;
+        }
+      } else if (act.t <= 0) {
+        return true;
+      }
+      return false;
+    },
+  },
+
+  // 多重化：分身が count 体出て、それぞれ、弾を放射状に撃つ（life 秒で消える）。壊せる
+  multiplex: timed({
+    fire(world, b, act) {
+      spawnCopies(world, act, b, act.def);
+      floatText(world, b.x, b.y - b.r - 14, 'Fork', COLORS.cyan, 14);
+      sfx(world, 'warning');
+    },
+    finished(world, b, act, dt) {
+      act.clock = (act.clock ?? 0) + dt;
+      return act.clock >= act.def.hold;
+    },
+  }),
+
+  // 割り込み：広がる輪が count 回。当たるとダメージと減速（動きを止められる）
+  interrupt: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      for (let i = 0; i < def.count; i++) {
+        const h = { type: 'elemring', x: b.x, y: b.y, r: b.r, speed: def.speed, max: def.max, width: def.width, damage: def.damage, fx: { slow: true, dots: [], power: 1 }, wait: i * def.gap + 0.001, color: '#8fd8ff' };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      sfx(world, 'bossCharge');
+    },
+  }),
+
+  // 演算エラー：床の四角い区画が、プレイヤーのまわりで、次々に誤作動する
+  glitch: timed({
+    fire(world, b, act) {
+      glitchCells(world, act, b, act.def);
+      sfx(world, 'warning');
+    },
+  }),
+
+  // 過熱：部屋の外から、ボスへ向かって縮む熱の輪が count 本
+  overheat: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      for (let i = 0; i < def.count; i++) {
+        const h = { type: 'closering', owner: b, x: b.x, y: b.y, r: def.start, min: def.min, speed: def.speed, width: def.width, damage: def.damage, wait: i * def.gap, color: '#ff7a3d' };
+        world.hazards.push(h);
+        act.hs.push(h);
+      }
+      sfx(world, 'bossCharge');
+    },
+  }),
+
+  // 全並列（大技）：分身が出続け、予測と演算エラーが重なる。duration 秒つづく
+  allthreads: timed({
+    fire(world, b, act) {
+      const def = act.def;
+      act.clock = 0;
+      act.lx = null;
+      act.forecastAt = 1.0;
+      act.glitchAt = 0.5;
+      spawnCopies(world, act, b, def.copies);
+      addShake(world, FEEL.shake.charged);
+      sfx(world, 'explode');
+    },
+    finished(world, b, act, dt) {
+      const def = act.def;
+      trackVelocity(act, world.player, dt);
+      act.clock += dt;
+      if (act.clock >= act.forecastAt && act.clock < def.duration - 2) {
+        act.forecastAt += def.forecastEvery;
+        forecastMarks(world, act, b, def.forecast);
+      }
+      if (act.clock >= act.glitchAt && act.clock < def.duration - 2) {
+        act.glitchAt += def.glitchEvery;
+        glitchCells(world, act, b, def.glitch);
+      }
+      return act.clock >= def.duration + 1 && act.hs.every((h) => h.dead);
+    },
+  }),
+
   // 組立：部屋のふちから部品が飛んできて、プレイヤーのまわりで砲台に組み上がる（turretLife 秒で壊れる）。壊せる
   assemble: timed({
     fire(world, b, act) {

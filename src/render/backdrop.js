@@ -611,6 +611,25 @@ const THEMES = {
     // 風に飛ばされた紙くず
     for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x5a6478, 0.35);
   },
+  // 演算層：基板の配線、チップの影、床から吹く風の筋
+  logic(g, rng, a) {
+    speckles(g, rng, a, 220, [0x070b10, 0x0b1118, 0x04070b, 0x101a24], 0.7);
+    // 配線（縦横）
+    for (let x = a.left + 70; x < a.right - 20; x += 110) {
+      block(g, x, a.top + 30, PX / 2, a.h - 60, 0x14303e, 0.55);
+      for (let y = a.top + 50; y < a.bottom - 40; y += 90 + ((x * 7) % 50)) block(g, x - 6, y, PX * 3, PX / 2, 0x1e4a5e, 0.7);
+    }
+    for (let y = a.top + 90; y < a.bottom - 30; y += 130) block(g, a.left + 24, y, a.w - 48, PX / 2, 0x14303e, 0.45);
+    // チップ
+    for (let i = 0; i < 6; i++) {
+      const x = a.left + 60 + rng() * (a.w - 160);
+      const y = a.top + 60 + rng() * (a.h - 150);
+      block(g, x, y, 42, 30, 0x05080b, 0.95);
+      block(g, x, y, 42, PX / 2, 0x2e6a84, 0.7);
+      for (let k = 0; k < 5; k++) block(g, x + 4 + k * 8, y - 4, PX / 2, 4, 0x2e6a84, 0.8);
+    }
+    for (let i = 0; i < 14; i++) block(g, a.left + 30 + rng() * (a.w - 60), a.top + 50 + rng() * (a.h - 90), PX, PX / 2, 0x4aa8c8, 0.3);
+  },
   // 修繕工場：床の黄色い縞、ベルトの跡、歯車の影、火花の跡
   factory(g, rng, a) {
     speckles(g, rng, a, 220, [0x0d0a08, 0x140f0b, 0x090705, 0x1b140e], 0.7);

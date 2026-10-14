@@ -442,6 +442,32 @@ export const implants = [
     desc: (k) => `ダッシュのあと1.5秒間、与えるダメージ +${pct(0.12 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'recentDash', window: 1.5 }] }),
   },
+  // ---- 演算（コギトール由来・読んで先に動く） ----
+  {
+    id: 'prefetch', species: 'calc', name: '先読み',
+    desc: (k) => `敵を倒すと、3秒間、会心率 +${pct(0.15 * k)}`,
+    effect: (k) => ({ triggers: [{ on: 'kill', do: 'killBuff', buffId: 'prefetch', stat: 'critChance', add: 0.15 * k, seconds: 3 }] }),
+  },
+  {
+    id: 'cache', species: 'calc', name: 'キャッシュ',
+    desc: (k) => `ダッシュの回復 +${pct(0.1 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'dashHaste', add: 0.1 * k }] }),
+  },
+  {
+    id: 'multithread', species: 'calc', name: '並列処理',
+    desc: (k) => `攻撃速度 +${pct(0.08 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackSpeed', add: 0.08 * k }] }),
+  },
+  {
+    id: 'ecc', species: 'calc', name: '誤り訂正',
+    desc: (k) => `被ダメージ −${pct(0.05 * k)}、最大HP +${num(10 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'damageTaken', add: -0.05 * k }, { stat: 'maxHp', add: 10 * k }] }),
+  },
+  {
+    id: 'overclocking', species: 'calc', name: '周波数',
+    desc: (k) => `エリートとボスへのダメージ +${pct(0.12 * k)}`,
+    effect: (k) => ({ mods: [{ stat: 'attackMul', add: 0.12 * k, when: 'targetBig' }] }),
+  },
   // ---- 修繕（ファブリケーター由来・直して耐える） ----
   {
     id: 'spotweld', species: 'repair', name: '点溶接',
@@ -758,6 +784,13 @@ export const species = {
     bonuses: [
       { need: 2, desc: 'ダッシュの回復が 10% 速くなる', effect: { mods: [{ stat: 'dashHaste', add: 0.1 }] } },
       { need: 3, desc: '減速中の敵へのダメージ +15%', effect: { mods: [{ stat: 'attackMul', add: 0.15, when: 'targetSlowed' }] } },
+    ],
+  },
+  calc: {
+    name: '演算', color: 'cyan', boss: 'cogitor',
+    bonuses: [
+      { need: 2, desc: '会心率 +4%', effect: { mods: [{ stat: 'critChance', add: 0.04 }] } },
+      { need: 3, desc: '攻撃速度 +10%', effect: { mods: [{ stat: 'attackSpeed', add: 0.1 }] } },
     ],
   },
   repair: {

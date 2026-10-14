@@ -15,6 +15,23 @@ function slabRects(world, h, trav) {
 }
 
 export const HAZARD_DRAWS_MAP7 = {
+  // 演算エラー：赤い枠 → 白く弾ける四角
+  glitchcell(g, h, world) {
+    if (h.wait > 0) return;
+    const x = h.x - h.w / 2;
+    const y = h.y - h.h / 2;
+    if (h.phase === 'warn') {
+      const k = 1 - h.warn / h.warnMax;
+      g.fillStyle(RED(), 0.05 + 0.15 * k).fillRect(x, y, h.w, h.h);
+      g.lineStyle(2, RED(), 0.4 + 0.5 * k).strokeRect(x, y, h.w, h.h);
+      return;
+    }
+    const body = hex(h.color);
+    g.fillStyle(body, 0.55).fillRect(x, y, h.w, h.h);
+    g.lineStyle(3, WHITE, 0.95).strokeRect(x, y, h.w, h.h);
+    g.lineStyle(1.5, WHITE, 0.7).lineBetween(x, y, x + h.w, y + h.h).lineBetween(x + h.w, y, x, y + h.h);
+  },
+
   // 部品の飛来：飛んでいく四角い部品と、組み上がる場所の印
   partflight(g, h, world) {
     const body = hex(h.color);
@@ -160,6 +177,12 @@ export const HAZARD_DRAWS_MAP7 = {
 };
 
 export const BOSS_TELEGRAPHS_MAP7 = {
+  forecast: ringTelegraph,
+  multiplex: ringTelegraph,
+  interrupt: ringTelegraph,
+  glitch: ringTelegraph,
+  overheat: ringTelegraph,
+  allthreads: ringTelegraph,
   assemble: ringTelegraph,
   belts: ringTelegraph,
   press: ringTelegraph,

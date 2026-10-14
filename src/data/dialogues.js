@@ -333,6 +333,24 @@ export const dialogues = [
     ],
   },
   {
+    id: 'boss-intro-cogitor',
+    trigger: { at: 'bossIntro', boss: 'cogitor' },
+    lines: [
+      { who: 'jin', text: '……暗い。風もある。奥で、何かが回ってる。' },
+      { who: 'noise', text: '演算核だ。街の判断を、全部ここで処理している。……この先に、私がいる。' },
+      { who: 'jin', text: '依頼人の、すぐ手前か。……読まれる前に、読み返してやる。' },
+    ],
+  },
+  {
+    id: 'return-cogitor',
+    trigger: { at: 'hideout', bossKilled: 'cogitor' },
+    lines: [
+      { who: 'hal', text: 'おかえり。……なんだか、目が赤いよ。' },
+      { who: 'jin', text: '暗い所に、長くいた。' },
+      { who: 'hal', text: '次で、終わりなんでしょう。……帰ってきてね。ちゃんと。' },
+    ],
+  },
+  {
     id: 'return-intake',
     trigger: { at: 'hideout', bossKilled: 'intake' },
     lines: [
@@ -468,6 +486,7 @@ export const talks = {
     { after: 'buffertank', lines: [{ who: 'hal', text: 'タンクの底、からっぽだった。最後のほうは、自分をすり減らして、薬のかわりにしてたんだね。' }] },
     { after: 'rainmaker', lines: [{ who: 'hal', text: '制御機のノズル、ひとつも詰まってなかった。あの雨の中で、自分だけは錆びないように手入れしてたんだね。' }] },
     { after: 'intake', lines: [{ who: 'hal', text: '吸気機の羽根、一枚も欠けてなかった。吸う人がいなくなっても、回るのだけは、やめなかったんだね。' }] },
+    { after: 'cogitor', lines: [{ who: 'hal', text: '演算核の中、計算の途中のまま止まってた。答えを出さないまま、考えるのだけは、やめなかったんだね。' }] },
     { after: 'fabricator', lines: [{ who: 'hal', text: '修繕長の歯車、全部に新しい油が差してあった。壊れた街を、最後まで、ちゃんと手入れしてたんだね。' }] },
     { after: 'archivist', lines: [{ who: 'hal', text: '記録係の中、棚がぜんぶ空だった。記録を守っていたはずなのに、いちばん守りたかったものは、どこにもなかったんだね。' }] },
     { after: 'gatekeeper', lines: [{ who: 'hal', text: '門の錠、中がからっぽだった。誰も通さないために、ずっと閉じていたのに、守るものは、もう中に残っていなかったんだね。' }] },
@@ -519,7 +538,8 @@ export const talks = {
     { after: 'cyclone', lines: [{ who: 'noise', text: '排気塔が静かになった。次は、街の中枢だ。最後の門が、閉まっている。……準備を、怠るな。' }] },
     { after: 'gatekeeper', lines: [{ who: 'noise', text: '中枢の門が開いた。次は記録庫だ。街の全部の記憶が、しまってある。雨が降っている。屋根を、探せ。' }] },
     { after: 'archivist', lines: [{ who: 'noise', text: '記録庫が静かになった。次は修繕工場だ。強い風が吹いている。ベルトと、プレスと、溶けた鉄に気をつけろ。' }] },
-    { after: 'fabricator', lines: [{ who: 'noise', text: '修繕工場が止まった。……その先は、まだ準備ができていない。体を直しておけ。' }] },
+    { after: 'fabricator', lines: [{ who: 'noise', text: '修繕工場が止まった。次は演算層だ。暗くて、風が吹く。読まれるな。' }] },
+    { after: 'cogitor', lines: [{ who: 'noise', text: '演算層が止まった。……あとは、中枢だけだ。そこに、私がいる。……体を直しておけ。' }] },
     { after: 'scraphound', lines: [{ who: 'noise', text: '資材置き場が静かになった。次は高架だ。行き先のない橋を、張り続けている者がいる。' }] },
     { after: 'girderspider', lines: [{ who: 'noise', text: '高架が止まった。残りは塔だ。いちばん上で、自分を積み上げている者がいる。' }] },
     { after: 'cranetitan', lines: [{ who: 'noise', text: '建設区は止まった。次は停電区だ。……ただし、あそこへ入るには、通行証が要る。' }] },

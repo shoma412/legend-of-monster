@@ -125,6 +125,8 @@ export const BGM = {
   bossArchive: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
   factory: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
   bossFactory: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  logic: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
+  bossLogic: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
 };
 
 // ---- コードで鳴らす曲 ----

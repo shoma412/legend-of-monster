@@ -25,6 +25,7 @@ export const materials = [
   { id: 'gateCore', name: 'ゲートコア', color: 'red' },
   { id: 'archiveCore', name: 'アーカイブコア', color: 'cyan' },
   { id: 'fabCore', name: 'ファブコア', color: 'amber' },
+  { id: 'cogCore', name: 'コギトコア', color: 'ice' },
   // 隠しボスの素材（2026-10-08 追加。恒久強化「記憶領域」に使う）。並びの最後に足す（並びの順番が、スキルツリーの「素材の順番」になるため）
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
@@ -291,6 +292,22 @@ export const fragments = [
   {
     id: 'dc-core', area: 'airduct', source: 'boss', title: 'ダクトクローラーのコアログ',
     text: '清掃：継続。通過：継続。停止命令：なし。——管の全部を、掃除し終わるまで、止まらない。管は、いつまでも終わらない。',
+  },
+  {
+    id: 'cg-01', area: 'logic', source: 'vault', title: '演算層 立入規則',
+    text: '演算層は、街の全部の判断を、一度に処理している。立ち入る者は、判断される。判断は、速い。立ち止まる者も、走る者も、同じように、予測される。',
+  },
+  {
+    id: 'cg-02', area: 'logic', source: 'vault', title: '演算機 動作ログ',
+    text: '対象の位置：予測。次の位置：予測。次の次：予測。——外れたことが、ない。外れるまで、続ける。……外れたら、どうするのか。仕様書に、書いていない。',
+  },
+  {
+    id: 'cg-memo', area: 'logic', source: 'vault', title: '保守員の走り書き',
+    text: '暗い層だった。風が、床から吹く。演算核は、こっちの動きを先読みしてくる。いちばんいいのは、急に向きを変えることだ。機械は、急な変更に、弱い。',
+  },
+  {
+    id: 'cg-core', area: 'logic', source: 'boss', title: 'コギトールのコアログ',
+    text: '演算：継続。結論：未決。依頼：停止。——街を止めてほしいと、私の一部が言っている。その一部を、私は、まだ、消せない。',
   },
   {
     id: 'fb-01', area: 'factory', source: 'vault', title: '修繕工場 作業手順',

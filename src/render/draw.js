@@ -1770,6 +1770,30 @@ SHAPES.tank = (g, b, color, world) => {
   }
 };
 
+// コギトール：回路の基板の胴と、真ん中の大きな演算の目。演算のあいだは、目が速く回る
+SHAPES.cogitor = (g, b, color, world) => {
+  const r = b.r;
+  const stunned = b.act?.phase === 'stun';
+  const pattern = b.act?.def.pattern;
+  const busy = pattern === 'allthreads' || pattern === 'forecast' || pattern === 'multiplex';
+  // 基板（八角形）と、配線
+  const body = polygon(b.x, b.y, r, 8, Math.PI / 8);
+  g.fillStyle(BODY_FILL, 0.95).fillPoints(body, true);
+  neonStroke(g, color, 3, () => g.strokePoints(body, true, true));
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 + Math.PI / 8;
+    g.lineStyle(1.5, color, 0.5).lineBetween(b.x + Math.cos(a) * r * 0.45, b.y + Math.sin(a) * r * 0.45, b.x + Math.cos(a) * r * 0.9, b.y + Math.sin(a) * r * 0.9);
+    g.fillStyle(color, 0.8).fillRect(b.x + Math.cos(a) * r * 0.9 - 2.5, b.y + Math.sin(a) * r * 0.9 - 2.5, 5, 5);
+  }
+  // 演算の目（回る三角）
+  const spin = world.time * (stunned ? 0 : busy ? 5 : 1.2);
+  for (let k = 0; k < 3; k++) {
+    const a = spin + (k * Math.PI * 2) / 3;
+    g.lineStyle(2.5, color, 0.9).lineBetween(b.x + Math.cos(a) * r * 0.42, b.y + Math.sin(a) * r * 0.42, b.x + Math.cos(a + 2.094) * r * 0.42, b.y + Math.sin(a + 2.094) * r * 0.42);
+  }
+  g.fillStyle(hex(busy ? COLORS.red : COLORS.ink), stunned ? 0.3 : 1).fillCircle(b.x, b.y, r * 0.12);
+};
+
 // ファブリケーター：大きな歯車の胴と、横に伸びる2本の作業アーム。工程のあいだは、アームの先が赤く光る
 SHAPES.fabricator = (g, b, color, world) => {
   const r = b.r;

@@ -47,6 +47,7 @@
 //   ブレーカー        : blackout・afterimage（固有）/ shortout 短絡 / cutterarm 遮断の腕 / railrush 過負荷突進
 //   ノクターン        : shadowstep・mirror（固有）/ leadblade 先読みの刃 / shadowring 影の包囲 / afterwing 黒い羽ばたき
 // 【決まり】2026-10-13 から、攻撃の部品は、そのボスだけが使う（共通の部品はなくす）。上の「charge」から「burrow」までの共通の部品は、まだ作り直していないボスが使っているあいだだけ残してある
+//   forecast / multiplex / interrupt / glitch / overheat / allthreads : 固有（コギトール）。数値の意味は、下の定義の注釈
 //   assemble / belts / press / moltenspit / fasten / fullline : 固有（ファブリケーター）。数値の意味は、下の定義の注釈
 //   echo / trailstrike / collect / censorbars / backup / rewind : 固有（アーカイバー）。数値の意味は、下の定義の注釈
 //   gateclose / holdshots / callguards / fissure / tailbomb / lockdown : 固有（ゲートキーパー）。数値の意味は、下の定義の注釈
@@ -1262,6 +1263,60 @@ export const bosses = [
         moves: ['assembleHard', 'beltsHard', 'pressHard', 'moltenspitHard', 'fastenHard'],
         combos: [{ moves: ['beltsHard', 'pressHard'] }, { moves: ['assembleHard', 'moltenspitHard'] }],
         announce: '工程、加速',
+      },
+    ],
+  },
+  // ---- マップ7 エリア4（docs/詳細仕様.md「36. マップ7「核心区」と、ミシック」の「④エリア4」）。HP は前のボスより +6000 ----
+  {
+    id: 'cogitor',
+    name: 'コギトール',
+    alias: '演算核', // 登場時に出す異名
+    shape: 'cogitor',
+    color: 'cyan',
+    weakness: 'corrode',
+    material: 'cogCore',
+    radius: 54,
+    hp: 58000,
+    speed: 62,
+    contactDamage: 88,
+    xp: 1500,
+    credits: 750,
+    drops: { count: 3, rarityBonus: 2 },
+    attacks: {
+      // 固有「予測」：予告のあいだの動きが続いたとして、leads 秒あとの位置に、落雷の印が並ぶ。止まれば足元、走れば走る先
+      forecast: { pattern: 'forecast', telegraph: 1.2, leads: [0.9, 1.4, 1.9], delay: 0.5, radius: 54, damage: 84, recover: 0.8, reach: 'far' },
+      forecastHard: { pattern: 'forecast', telegraph: 1.1, leads: [0.8, 1.2, 1.6, 2.0, 2.4], delay: 0.45, radius: 54, damage: 86, recover: 0.8, reach: 'far' },
+      // 固有「多重化」：分身が count 体、部屋に出て、弾を放射状に撃つ（体力は hpMul 倍、life 秒で消える）
+      multiplex: { pattern: 'multiplex', telegraph: 0.9, enemy: 'cogcopy', count: 3, hpMul: 0.6, life: 12, hold: 1.8, recover: 0.8, reach: 'near' },
+      multiplexHard: { pattern: 'multiplex', telegraph: 0.8, enemy: 'cogcopy', count: 4, hpMul: 0.6, life: 12, hold: 1.8, recover: 0.8, reach: 'near' },
+      // 固有「割り込み」：広がる輪が count 回。当たるとダメージと減速
+      interrupt: { pattern: 'interrupt', telegraph: 0.8, count: 2, gap: 0.6, speed: 360, max: 700, width: 22, damage: 70, recover: 0.8, reach: 'near' },
+      interruptHard: { pattern: 'interrupt', telegraph: 0.7, count: 3, gap: 0.5, speed: 400, max: 760, width: 22, damage: 72, recover: 0.8, reach: 'near' },
+      // 固有「演算エラー」：床の四角い区画（cell px）が、プレイヤーのまわり（spread px）で count 個、誤作動する
+      glitch: { pattern: 'glitch', telegraph: 0.7, count: 10, spread: 220, cell: 110, stagger: 0.12, warn: 0.9, damage: 82, recover: 0.8, reach: 'far' },
+      glitchHard: { pattern: 'glitch', telegraph: 0.6, count: 15, spread: 260, cell: 110, stagger: 0.09, warn: 0.85, damage: 84, recover: 0.8, reach: 'far' },
+      // 固有「過熱」：部屋の外から、ボスへ縮む熱の輪が count 本
+      overheat: { pattern: 'overheat', telegraph: 0.8, count: 3, gap: 0.9, start: 700, min: 60, speed: 280, width: 24, damage: 76, recover: 0.9, reach: 'far' },
+      overheatHard: { pattern: 'overheat', telegraph: 0.7, count: 4, gap: 0.75, start: 720, min: 60, speed: 320, width: 24, damage: 78, recover: 0.9, reach: 'far' },
+      // 大技「全並列」：分身が出続け、予測（forecastEvery 秒ごと）と演算エラー（glitchEvery 秒ごと）が重なる。duration 秒つづく
+      allthreads: {
+        pattern: 'allthreads', telegraph: 1.8, duration: 11, forecastEvery: 2.4, glitchEvery: 1.6,
+        copies: { enemy: 'cogcopy', count: 4, hpMul: 0.6, life: 14 },
+        forecast: { leads: [0.9, 1.4, 1.9, 2.4], delay: 0.5, radius: 54, damage: 86 },
+        glitch: { count: 8, spread: 240, cell: 110, stagger: 0.1, warn: 0.9, damage: 84 },
+        recover: 1.6,
+      },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'forecast' }],
+    ultimate: { move: 'allthreads', announce: '全並列' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 0.9, max: 1.4 }, moves: ['forecast', 'multiplex', 'interrupt', 'glitch', 'overheat'] },
+      {
+        hpAbove: 0,
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['forecastHard', 'multiplexHard', 'interruptHard', 'glitchHard', 'overheatHard'],
+        combos: [{ moves: ['multiplexHard', 'glitchHard'] }, { moves: ['interruptHard', 'forecastHard'] }],
+        announce: '並列処理、開始',
       },
     ],
   },

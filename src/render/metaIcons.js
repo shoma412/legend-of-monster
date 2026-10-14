@@ -163,6 +163,16 @@ export const MATERIAL_ICONS = {
     g.lineBetween(x - s * 0.6, y - s * 0.3, x + s * 0.6, y - s * 0.3);
     g.lineBetween(x - s * 0.6, y + s * 0.3, x + s * 0.6, y + s * 0.3);
   },
+  // コギトコア：基板と、真ん中の目
+  cogCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.3, c, 1).strokeRect(x - s * 0.34, y - s * 0.34, s * 0.68, s * 0.68);
+    g.strokeCircle(x, y, s * 0.16);
+    for (const k of [-1, 1]) {
+      g.lineBetween(x + k * s * 0.34, y - s * 0.16, x + k * s * 0.52, y - s * 0.16);
+      g.lineBetween(x + k * s * 0.34, y + s * 0.16, x + k * s * 0.52, y + s * 0.16);
+    }
+  },
   // ファブコア：歯車
   fabCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));

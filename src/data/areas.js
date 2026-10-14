@@ -729,7 +729,40 @@ export const areas = [
       ],
       bossDefeated: [
         '@noise＞ ……工場が、止まった。',
-        '@noise＞ コアを回収しろ。……この先は、まだ準備ができていない。',
+        '@noise＞ コアを回収しろ。次は、演算層だ。街が考える場所だ。暗い。風も吹く。',
+      ],
+    },
+  },
+  {
+    id: 'logic',
+    code: 'CORE 04',
+    name: '演算層',
+    theme: 'logic',
+    bgm: 'logic',
+    bossBgm: 'bossLogic',
+    environment: 'darkgale', // このエリアだけの環境（暗闇と強風）
+    first: 'combat',
+    map: { length: { min: 8, max: 10 }, lanes: { min: 2, max: 3 }, preBoss: 'supply', elites: { min: 2, max: 3 }, specials: 3, crossChance: 0.35 },
+    specialRooms: ['supply', 'market', 'vault', 'encounter'],
+    enemies: [
+      { id: 'calcbot', weight: 3 },
+      { id: 'gearling', weight: 3 },
+      { id: 'bolter', weight: 2 },
+      { id: 'scanner', weight: 2 },
+      { id: 'pinwheel', weight: 1 },
+      { id: 'gateguard', weight: 1 },
+    ],
+    eliteBases: ['calcbot', 'gearling', 'gateguard'],
+    boss: 'cogitor',
+    final: false,
+    comms: {
+      bossIntro: [
+        '@noise＞ ここが、街が考える場所だ。明かりは、ほとんど無い。風が吹く。……暗闇で、風に押される。',
+        '@noise＞ 演算核は、お前の動きを読んで、先に印を置く。止まっても、走っても、読まれる。分身は壊せ。腐食が効く。',
+      ],
+      bossDefeated: [
+        '@noise＞ ……演算が、止まった。',
+        '@noise＞ コアを回収しろ。……この先に、私がいる。',
       ],
     },
   },
