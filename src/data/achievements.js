@@ -1,7 +1,7 @@
 // 実績の定義（M5 で追加）
 // 1件 = { id, ... } の形で足す。仕上げやテストプレイの中で増やしていく前提。
 //
-// on    : きっかけになる出来事
+// on    : きっかけになる出来事（複数のときは、配列で書く）
 //         sortie（出撃）/ kill（敵を倒した）/ eliteKill / bossKill / implant（インプラントを入れた）/
 //         equip（装備を身につけた）/ fragment（データ片を手に入れた）/ runClear（最後のボスを倒した）/
 //         mapClear（マップを完了した）/ levelup（レベルが上がった）/ guard（ジャストガード成功）/ ougi（奥義を使った）/ buy（闇市で買った）/ item（消耗品を使った）
@@ -47,6 +47,22 @@ export const achievements = [
   { id: 'clear-greatsword', icon: 'greatsword', name: '大剣使い', desc: '大剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'greatsword' },
   { id: 'clear-sword', icon: 'sword', name: '片手剣使い', desc: '片手剣で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'sword' },
   { id: 'clear-gun', icon: 'gun', name: '銃使い', desc: '銃で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'gun' },
+  { id: 'clear-knuckle', icon: 'knuckle', name: 'ナックル使い', desc: 'ナックルで初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'knuckle' },
+  { id: 'clear-cannon', icon: 'cannon', name: '大砲使い', desc: '大砲で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'cannon' },
+  { id: 'clear-spear', icon: 'spear', name: '槍使い', desc: '槍で初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'spear' },
+  { id: 'clear-chakram', icon: 'chakram', name: 'チャクラム使い', desc: 'チャクラムで初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'chakram' },
+  { id: 'clear-drone', icon: 'drone', name: 'ドローン使い', desc: 'ドローンユニットで初めてクリアした', on: 'runClear', check: 'weaponIs', weapon: 'drone' },
+  { id: 'master-greatsword', icon: 'crown', color: 'shock', name: '大剣の達人', desc: '大剣で30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'greatsword', count: 30 },
+  { id: 'master-sword', icon: 'crown', color: 'shock', name: '片手剣の達人', desc: '片手剣で30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'sword', count: 30 },
+  { id: 'master-gun', icon: 'crown', color: 'shock', name: '銃の達人', desc: '銃で30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'gun', count: 30 },
+  { id: 'master-knuckle', icon: 'crown', color: 'shock', name: 'ナックルの達人', desc: 'ナックルで30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'knuckle', count: 30 },
+  { id: 'master-cannon', icon: 'crown', color: 'shock', name: '大砲の達人', desc: '大砲で30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'cannon', count: 30 },
+  { id: 'master-spear', icon: 'crown', color: 'shock', name: '槍の達人', desc: '槍で30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'spear', count: 30 },
+  { id: 'master-chakram', icon: 'crown', color: 'shock', name: 'チャクラムの達人', desc: 'チャクラムで30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'chakram', count: 30 },
+  { id: 'master-drone', icon: 'crown', color: 'shock', name: 'ドローンの達人', desc: 'ドローンユニットで30回クリアした', on: 'runClear', check: 'weaponClears', weapon: 'drone', count: 30 },
+  { id: 'all-weapons', icon: 'star', color: 'cold', name: '全武器使い', desc: '8種類すべての武器で、1回ずつクリアした', on: 'runClear', check: 'allWeaponsCleared' },
+  { id: 'clears-100', icon: 'tally', color: 'heat', name: '熟練の回収屋', desc: '通算100回クリアした', on: 'runClear', check: 'totalClears', count: 100 },
+  { id: 'all-bosses', icon: 'skull', color: 'red', name: '狩り尽くし', desc: '隠しボスを含む、すべてのボスを倒した', on: ['bossKill', 'secretKill'], check: 'allBosses' },
   { id: 'level-8', icon: 'up', name: 'フル改造', desc: '1回のランでレベル8に届いた', on: 'levelup', check: 'levelAtLeast', level: 8 },
   { id: 'just-guard', icon: 'guard', name: '見切り', desc: 'ジャストガードを成功させた', on: 'guard' },
   { id: 'ougi', icon: 'burst', name: '起死回生', desc: '奥義を使った', on: 'ougi' },

@@ -23,7 +23,7 @@ export function createSave() {
     bossKills: {}, // { ボスのid: 倒した回数 }
     fragments: [], // 手に入れたデータ片の id
     achievements: [], // 解除した実績の id
-    records: { runs: 0, clears: 0, kills: 0, bestMap: 0, bestArea: 0, bestStep: 0, playTime: 0 }, // bestMap は版5で追加。playTime はプレイ時間（秒。2026-10-11 追加）
+    records: { runs: 0, clears: 0, kills: 0, bestMap: 0, bestArea: 0, bestStep: 0, playTime: 0, weaponClears: {} }, // bestMap は版5で追加。playTime はプレイ時間（秒。2026-10-11 追加）。weaponClears は武器ごとのクリア回数（{ 武器のid: 回数 }。2026-10-16 追加）
     tutorialSeen: false, // 最初の操作説明を見たか
     seenDialogues: [], // 自動で出る会話のうち、もう見たものの id（版2で追加）
     // ここから版3で追加（マップと周回）
@@ -146,6 +146,13 @@ function addMaterials(materials, extra) {
 }
 
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
+// { id: 回数 } の形の記録を、壊れた値を捨てて整える
+function sanitizeCounts(value) {
+  const out = {};
+  if (value && typeof value === 'object') for (const [id, n] of Object.entries(value)) if (Number.isInteger(n) && n > 0) out[id] = n;
+  return out;
+}
+
 export function normalizeSave(data) {
   const base = createSave();
   if (!data || typeof data !== 'object' || typeof data.version !== 'number' || data.version > SAVE_VERSION) return null;
@@ -171,7 +178,7 @@ export function normalizeSave(data) {
     bossKills: { ...(d.bossKills ?? {}) },
     fragments: Array.isArray(d.fragments) ? [...new Set(d.fragments)] : [],
     achievements: Array.isArray(d.achievements) ? [...new Set(d.achievements)] : [],
-    records: { ...base.records, ...(d.records ?? {}) },
+    records: { ...base.records, ...(d.records ?? {}), weaponClears: sanitizeCounts(d.records?.weaponClears) },
     tutorialSeen: d.tutorialSeen === true,
     seenDialogues: Array.isArray(d.seenDialogues) ? [...new Set(d.seenDialogues)] : [],
     maps: Object.fromEntries(Object.entries(d.maps ?? {}).map(([id, m]) => [id, { clears: m?.clears ?? 0, clearedCycle: m?.clearedCycle ?? 0 }])),

@@ -349,6 +349,44 @@ export const ACHIEVEMENT_ICONS = {
     glowLine(g, c, 3.5, () => g.lineBetween(x - s * 0.8, y - s * 0.3, x + s * 0.9, y - s * 0.3));
     glowLine(g, c, 3.5, () => g.lineBetween(x - s * 0.5, y - s * 0.3, x - s * 0.7, y + s * 0.7));
   },
+  // 拳（ナックル）
+  knuckle(g, x, y, s, c) {
+    glowLine(g, c, 3, () => g.strokeRect(x - s * 0.7, y - s * 0.45, s * 1.4, s * 0.9));
+    for (const k of [-0.35, 0, 0.35]) glowLine(g, c, 2, () => g.lineBetween(x + s * k, y - s * 0.45, x + s * k, y + s * 0.45));
+  },
+  // 大砲
+  cannon(g, x, y, s, c) {
+    glowLine(g, c, 4.5, () => g.lineBetween(x - s * 0.8, y + s * 0.3, x + s * 0.8, y - s * 0.4));
+    glowLine(g, c, 2.5, () => {
+      g.beginPath();
+      g.arc(x - s * 0.45, y + s * 0.6, s * 0.3, 0, Math.PI * 2, false);
+      g.strokePath();
+    });
+  },
+  // 槍
+  spear(g, x, y, s, c) {
+    glowLine(g, c, 2.5, () => g.lineBetween(x - s * 0.85, y + s * 0.85, x + s * 0.4, y - s * 0.4));
+    poly(g, c, [{ x: x + s * 0.25, y: y - s * 0.15 }, { x: x + s * 0.95, y: y - s * 0.95 }, { x: x + s * 0.65, y: y - s * 0.05 }]);
+  },
+  // 輪（チャクラム）
+  chakram(g, x, y, s, c) {
+    glowLine(g, c, 2.5, () => {
+      g.beginPath();
+      g.arc(x, y, s * 0.85, 0, Math.PI * 2, false);
+      g.strokePath();
+    });
+    glowLine(g, c, 2, () => {
+      g.beginPath();
+      g.arc(x, y, s * 0.4, 0, Math.PI * 2, false);
+      g.strokePath();
+    });
+  },
+  // 子機（ドローンユニット）
+  drone(g, x, y, s, c) {
+    for (const [dx, dy] of [[-0.45, -0.3], [0.45, 0.3]]) {
+      poly(g, c, [{ x: x + s * dx, y: y + s * (dy - 0.45) }, { x: x + s * (dx + 0.4), y: y + s * dy }, { x: x + s * dx, y: y + s * (dy + 0.45) }, { x: x + s * (dx - 0.4), y: y + s * dy }]);
+    }
+  },
   // 上向きの矢印（レベル）
   up(g, x, y, s, c) {
     glowLine(g, c, 2.5, () => g.lineBetween(x, y + s, x, y - s * 0.7));

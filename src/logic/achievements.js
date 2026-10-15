@@ -17,6 +17,13 @@ const CHECKS = {
   runsAtLeast: (def, event, save) => save.records.runs >= def.count,
   mapIs: (def, event) => event.map === def.map,
   cycleAtLeast: (def, event) => event.cycle >= def.cycle,
+  // その武器で、count 回クリアした（武器ごとのクリア回数は、save.records.weaponClears。2026-10-16 から数える）
+  weaponClears: (def, event, save) => (save.records.weaponClears?.[def.weapon] ?? 0) >= def.count,
+  // 8種類すべての武器で、クリアしたことがある（記録がなくても、その武器の「初めてクリア」の実績があればよい）
+  allWeaponsCleared: (def, event, save) => DATA.weapons.ids().every((id) => (save.records.weaponClears?.[id] ?? 0) > 0 || save.achievements.includes(`clear-${id}`)),
+  totalClears: (def, event, save) => save.records.clears >= def.count,
+  // 隠しボスを含む、すべてのボスを倒した
+  allBosses: (def, event, save) => DATA.bosses.ids().every((id) => (save.bossKills[id] ?? 0) > 0),
 };
 
 export function hasCheck(name) {
@@ -27,7 +34,7 @@ export function hasCheck(name) {
 export function unlockAchievements(save, run, event) {
   const unlocked = [];
   for (const def of DATA.achievements.all()) {
-    if (def.on !== event.type || save.achievements.includes(def.id)) continue;
+    if (![def.on].flat().includes(event.type) || save.achievements.includes(def.id)) continue;
     if (def.check && !CHECKS[def.check](def, event, save, run)) continue;
     save.achievements.push(def.id);
     unlocked.push(def);

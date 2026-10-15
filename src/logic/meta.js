@@ -138,7 +138,12 @@ export function processEvent(save, run, event) {
 
   if (event.type === 'fragment') gainFragment(save, run, event.id, notes);
 
-  if (event.type === 'runClear') save.records.clears++;
+  if (event.type === 'runClear') {
+    save.records.clears++;
+    // 武器ごとのクリア回数（実績「○○の達人」に使う）
+    const weapons = (save.records.weaponClears ??= {});
+    if (run?.weaponId) weapons[run.weaponId] = (weapons[run.weaponId] ?? 0) + 1;
+  }
 
   for (const def of unlockAchievements(save, run, event)) addAchievement(run, notes, def);
   return notes;
