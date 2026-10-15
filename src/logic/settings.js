@@ -42,6 +42,7 @@ export function createSettings({ mobile = false } = {}) {
     quality: mobile ? 2 : 1,
     frameRate: 0,
     controls: 'manual',
+    language: null, // 言語（ja / en / ko）。null は、まだ選んでいない（ブラウザの言語に合わせる）
   };
 }
 
@@ -62,6 +63,7 @@ export function normalizeSettings(data, options = {}) {
     quality: QUALITIES.some((q) => q.id === data.quality) ? data.quality : base.quality,
     frameRate: FRAME_RATES.some((r) => r.id === data.frameRate) ? data.frameRate : base.frameRate,
     controls: CONTROL_MODES.some((c) => c.id === data.controls) ? data.controls : base.controls,
+    language: ['ja', 'en', 'ko'].includes(data.language) ? data.language : null,
   };
 }
 

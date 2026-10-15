@@ -8,6 +8,8 @@ import { installMobileText } from './mobile/mobileText.js';
 import { initTouchControls } from './mobile/touchControls.js';
 import { initGamepad } from './gamepad/gamepad.js';
 import { installPadText, watchPadText } from './gamepad/padText.js';
+import { detectLang, setLang } from './i18n/translate.js';
+import { installTextTranslation } from './i18n/phaserText.js';
 import { installCursor } from './render/cursor.js';
 import { setRenderScale } from './render/view.js';
 import { BattleScene } from './scenes/BattleScene.js';
@@ -44,6 +46,9 @@ loadFonts().then(() => {
   if (mobile) installMobileText(Phaser);
   // パソコン：ゲームの画面の上では、マウスカーソルを、見やすい照準の形にする
   else installCursor();
+  // 言語：選んだ言語（まだなら、ブラウザの言語）。文字の訳は、ほかの言い換えより外側に入れる
+  setLang(getSettings().language ?? detectLang(navigator.languages ?? [navigator.language]));
+  installTextTranslation(Phaser);
   // 画質：ゲームの中の座標は 960×540 のまま、描く先のキャンバスだけを倍の細かさで作る（src/render/view.js）
   const quality = getSettings().quality;
   setRenderScale(quality);

@@ -29,6 +29,8 @@ import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
 import { drawAchievementIcon, drawFragmentIcon, drawMaterialIcon } from '../render/metaIcons.js';
+import { retranslateGame } from '../i18n/phaserText.js';
+import { LANGS, getLang, setLang } from '../i18n/translate.js';
 import { renderControls } from './controlsPanel.js';
 import { touch } from '../game/touchInput.js';
 
@@ -1389,15 +1391,15 @@ export class MenuOverlay {
         this.button(220 + i * 156, y, 148, 26, opt.label, on ? COLORS.cyan : COLORS.dim, () => pick(opt));
       });
     };
-    this.text(64, 270, '画面', 12, COLORS.cyan, { fontStyle: '700' });
-    choiceRow(292, '表示の大きさ', DISPLAY_SIZES, s.displaySize, (opt) => {
+    this.text(64, 266, '画面', 12, COLORS.cyan, { fontStyle: '700' });
+    choiceRow(286, '表示の大きさ', DISPLAY_SIZES, s.displaySize, (opt) => {
       s.displaySize = opt.id;
       saveSettings();
       applyDisplaySize(game);
       playSe('select');
       this.render();
     });
-    choiceRow(326, '画質', QUALITIES, s.quality, (opt) => {
+    choiceRow(316, '画質', QUALITIES, s.quality, (opt) => {
       if (opt.id === s.quality) return;
       // 画質は起動時に決まるので、変えるには読み込み直す必要がある
       this.confirm('画質を変えるには、ゲームを読み込み直します。\nランの途中なら、今回の進捗は失われます。よろしいですか？', () => {
@@ -1406,17 +1408,17 @@ export class MenuOverlay {
         window.location.reload();
       });
     });
-    this.text(696, 331, '上げるほどくっきりするが、重くなる', 11, COLORS.dim);
-    choiceRow(360, 'フレームレート', FRAME_RATES, s.frameRate, (opt) => {
+    this.text(696, 321, '上げるほどくっきりするが、重くなる', 11, COLORS.dim);
+    choiceRow(346, 'フレームレート', FRAME_RATES, s.frameRate, (opt) => {
       s.frameRate = opt.id;
       saveSettings();
       applyFrameRate(game);
       playSe('select');
       this.render();
     });
-    this.text(64, 398, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
+    this.text(64, 382, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
     if (canFullscreen()) {
-      this.button(220, 394, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
+      this.button(220, 378, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
         toggleFullscreen().then((ok) => {
           if (!ok) playSe('deny');
           this.scene.time.delayedCall(200, () => this.isOpen && this.render());
@@ -1424,15 +1426,24 @@ export class MenuOverlay {
       });
     } else {
       // アプリに埋め込まれた画面などでは、フルスクリーンにできない
-      this.button(220, 394, 148, 26, '使えない', LOCKED, () => playSe('deny'));
-      this.text(380, 399, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
+      this.button(220, 378, 148, 26, '使えない', LOCKED, () => playSe('deny'));
+      this.text(380, 383, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
     }
-    this.text(64, 432, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
+    // 言語：選んだら、すぐ画面の文字が変わる
+    choiceRow(412, '言語', LANGS, getLang(), (opt) => {
+      s.language = opt.id;
+      saveSettings();
+      setLang(opt.id);
+      retranslateGame(game);
+      playSe('select');
+      this.render();
+    });
+    this.text(64, 444, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
     // プレイ時間（セーブデータを開いているときだけ。タイトルの設定では出さない）
     const save = this.options.context().save;
     if (save?.records) {
-      this.text(896, 398, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
-      this.text(896, 416, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(896, 382, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(896, 400, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
     }
   }
 }

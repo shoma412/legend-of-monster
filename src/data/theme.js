@@ -60,8 +60,8 @@ export const AREA_THEMES = {
 
 export const FONTS = {
   // 古い端末の画面のようなドット文字。DotGothic16 に無い字だけ Noto Sans JP で補う
-  display: '"DotGothic16", "Noto Sans JP", system-ui, sans-serif',
-  body: '"DotGothic16", "Noto Sans JP", system-ui, sans-serif',
+  display: '"DotGothic16", "Noto Sans JP", "Noto Sans KR", system-ui, sans-serif',
+  body: '"DotGothic16", "Noto Sans JP", "Noto Sans KR", system-ui, sans-serif',
 };
 
 // '#rrggbb' を Phaser の図形描画で使う数値に直す
