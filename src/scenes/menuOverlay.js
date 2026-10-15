@@ -23,7 +23,7 @@ import { buyNode, canAfford, saveTree, treeNodeState, weaponAvailable } from '..
 import { layoutTree } from '../logic/skillTree.js';
 import { worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
-import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomBy, zoomKeep } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
@@ -125,6 +125,7 @@ export class MenuOverlay {
     this.zoomDrag = null;
     this.zoomButton = null;
     if (touch.enabled) {
+      scene.input.addPointer(1); // ピンチ（2本指）のために、指を2本まで受け取る
       this.zoomButton = scene.add.text(W - 40, 30, '拡大', { fontFamily: FONTS.body, fontSize: '15px', fontStyle: '700', color: COLORS.amber, backgroundColor: '#110f1d', padding: { x: 14, y: 8 } })
         .setOrigin(1, 0).setDepth(31).setVisible(false).setInteractive({ useHandCursor: true });
       this.zoomButton.on('pointerdown', () => this.setZoom(!this.zoom.on));
@@ -150,12 +151,34 @@ export class MenuOverlay {
       this.listDrag = touch.enabled && this.isOpen && !this.zoomDrag && !treePan ? { y: at.y, acc: 0 } : null;
     });
     scene.input.on('pointerup', () => {
+      if (scene.input.manager.pointers.filter((p) => p.isDown).length < 2) this.pinch = null;
       this.treeDrag = null;
       this.zoomDrag = null;
       this.barDrag = null;
       this.listDrag = null;
     });
     scene.input.on('pointermove', (pointer) => {
+      // モバイル版：スキルツリーで、2本の指の間を広げると拡大、狭めると縮小（ピンチ）
+      if (touch.enabled && this.isOpen && !this.dialog && this.tabId === 'upgrade') {
+        const down = scene.input.manager.pointers.filter((p) => p.isDown);
+        if (down.length >= 2) {
+          const a = this.local(down[0]);
+          const b = this.local(down[1]);
+          const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          if (inRect(mid.x, mid.y, TREE_RECT)) {
+            const dist = Math.hypot(a.x - b.x, a.y - b.y);
+            if (this.pinch && this.pinch.dist > 8 && Math.abs(dist / this.pinch.dist - 1) > 0.01) {
+              this.treeView = zoomBy(this.treeView, TREE_CENTER, mid, dist / this.pinch.dist);
+              this.render();
+            }
+            this.pinch = { dist };
+            this.pinchAt = performance.now();
+            this.treeDrag = null; // ピンチの間は、1本指のなぞり・タップは、働かせない
+            this.listDrag = null;
+            return;
+          }
+        }
+      }
       if (this.barDrag && pointer.isDown && this.isOpen) {
         this.dragBar(pointer);
         return;
@@ -189,7 +212,8 @@ export class MenuOverlay {
       const at = this.local(pointer);
       const dx = at.x - drag.x;
       const dy = at.y - drag.y;
-      if (!drag.moved && Math.hypot(dx, dy) < 4) return; // クリックのつもりの、小さなぶれは無視する
+      // クリックのつもりの、小さなぶれは無視する（指は、マウスより、ぶれる。モバイル版は大きめに）
+      if (!drag.moved && Math.hypot(dx, dy) < (touch.enabled ? TAP_SLOP : 4)) return;
       drag.moved = true;
       drag.x = at.x;
       drag.y = at.y;
@@ -1002,6 +1026,7 @@ export class MenuOverlay {
       const hit = this.scene.add.circle(p.x, p.y, R + 3, 0x000000, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => {
         if (this.treeDrag?.moved) return;
+        if (this.pinchAt && performance.now() - this.pinchAt < 400) return; // ピンチのあとに、指を離したときの、誤タップ
         if (this.cursor === i) this.buy(n.id);
         else {
           this.cursor = i;

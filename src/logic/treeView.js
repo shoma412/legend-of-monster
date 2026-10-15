@@ -100,6 +100,13 @@ export function easeTo(view, target, dt) {
 }
 
 // 見ている場所は変えずに、拡大（direction が 1）・縮小（-1）する
+// 倍率を factor 倍にする（ピンチイン・ピンチアウト用。段階ではなく、指の間の広がりに合わせて、なめらかに変える）。pointer の下の場所は、動かさない
+export function zoomBy(view, center, pointer, factor) {
+  const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom * factor));
+  const under = toLocal(view, center, pointer);
+  return clampView({ zoom, x: under.x - (pointer.x - center.x) / zoom, y: under.y - (pointer.y - center.y) / zoom });
+}
+
 export function zoomKeep(view, direction) {
   const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom * (direction > 0 ? TREE_VIEW.step : 1 / TREE_VIEW.step)));
   return { zoom, x: view.x, y: view.y };

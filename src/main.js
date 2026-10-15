@@ -75,6 +75,7 @@ loadFonts().then(() => {
     },
     scene: [TitleScene, SaveSelectScene, HideoutScene, BattleScene, EndingScene],
   });
+  if (import.meta.env.DEV) window.__game = game; // 確認用（開発中の画面だけ）
   watchPadText(game);
   // モバイル版：画面にスティックとボタンを出す
   if (mobile) initTouchControls(document.getElementById('game'));

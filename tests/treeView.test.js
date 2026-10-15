@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TREE_PAD, TREE_VIEW, easeTo, nearestNode, panStick, zoomKeep, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt } from '../src/logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, easeTo, nearestNode, panStick, zoomKeep, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt, zoomBy } from '../src/logic/treeView.js';
 
 // スキルツリーの円の、拡大・縮小と移動（docs/詳細仕様.md「23. スキルツリー → 画面」）
 
@@ -23,6 +23,20 @@ describe('スキルツリーの円の拡大・縮小', () => {
     const again = toScreen(after, center, under);
     expect(again.x).toBeCloseTo(pointer.x);
     expect(again.y).toBeCloseTo(pointer.y);
+  });
+
+  it('ピンチ（zoomBy）：指の間の広がりに合わせて、なめらかに拡大・縮小する。2本の指の真ん中の下にあるものは、動かない。上限・下限もある', () => {
+    const pointer = { x: 320, y: 300 };
+    let view = createTreeView();
+    view = zoomAt(view, center, pointer, 1);
+    const under = toLocal(view, center, pointer);
+    const wider = zoomBy(view, center, pointer, 1.5);
+    expect(wider.zoom).toBeCloseTo(Math.min(TREE_VIEW.max, view.zoom * 1.5));
+    const again = toScreen(wider, center, under);
+    expect(again.x).toBeCloseTo(pointer.x);
+    expect(again.y).toBeCloseTo(pointer.y);
+    expect(zoomBy(view, center, pointer, 100).zoom).toBe(TREE_VIEW.max);
+    expect(zoomBy(view, center, pointer, 0.001).zoom).toBe(TREE_VIEW.min);
   });
 
   it('倍率には上限と下限がある。いちばん引くと、必ず円の真ん中に戻る', () => {
