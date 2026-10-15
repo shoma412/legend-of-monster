@@ -905,7 +905,7 @@ function updateDrones(world, dt, input) {
       }
     }
     if (!best) return;
-    d.cd = cfg.interval / speed;
+    d.cd = (cfg.crowd?.[total] ?? cfg.interval) / speed;
     fireDroneShot(world, d, Math.atan2(best.y - d.y, best.x - d.x));
   });
 }

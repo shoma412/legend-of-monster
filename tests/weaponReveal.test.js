@@ -89,3 +89,39 @@ describe('ドローンユニットの下方修正', () => {
     expect(unlockWeapon(save, 'sword')).toBe(true);
   });
 });
+
+describe('ドローンの下方修正：子機が多いと、撃つ間隔が伸びる', () => {
+  it('3機は 0.5 秒、4機は 0.7 秒ごと。4機でも、撃つ回数は、2機の 1.5 倍に届かない', () => {
+    const def = DATA.weapons.get('drone').drones;
+    expect(def.crowd).toEqual({ 3: 0.5, 4: 0.7 });
+    const shots = (count) => {
+      const world = createWorld({ waves: [{}], rng: () => 0.99, weaponId: 'drone' });
+      world.waveTimer = Infinity;
+      const p = world.player;
+      p.build.weaponId = 'drone';
+      recalcStats(p);
+      p.stats.droneCount = count - 2;
+      p.x = 300;
+      p.y = 300;
+      p.inv = Infinity;
+      const e = createEnemy(DATA.enemies.get('grunt'), 450, 300, 0, world.rng);
+      e.def = { ...e.def, speed: 0, knockbackResist: 1 };
+      e.cd = 999;
+      e.hp = e.maxHp = 1e9;
+      world.enemies.push(e);
+      let n = 0;
+      let prev = 0;
+      for (let t = 0; t < 6; t += 1 / 60) {
+        updateWorld(world, 1 / 60, { mx: 0, my: 0, attack: false, attackPressed: false, specialPressed: false, dashPressed: false });
+        const now = world.playerShots.length;
+        if (now > prev) n += now - prev;
+        prev = now;
+      }
+      return n;
+    };
+    const two = shots(2);
+    const four = shots(4);
+    expect(four).toBeGreaterThan(two);
+    expect(four / two).toBeLessThan(1.5);
+  });
+});
