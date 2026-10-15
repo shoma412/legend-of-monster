@@ -17,7 +17,7 @@ export function canAfford(save, cost) {
   return Object.entries(cost).every(([id, n]) => (save.materials[id] ?? 0) >= n);
 }
 
-function pay(save, cost) {
+export function pay(save, cost) {
   for (const [id, n] of Object.entries(cost)) save.materials[id] -= n;
 }
 

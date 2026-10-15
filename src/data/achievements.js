@@ -35,6 +35,7 @@ export const achievements = [
   { id: 'architect', icon: 'skull', color: 'amber', name: '設計変更', desc: '建設区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'architect' },
   { id: 'nocturne', icon: 'skull', color: 'magenta', name: '夜明け', desc: '停電区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'nocturne' },
   { id: 'catalyst', icon: 'skull', color: 'cold', name: '反応完了', desc: '溶解区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'catalyst' },
+  { id: 'calm', icon: 'skull', color: 'cyan', name: '凪', desc: '送風区の隠しボスを倒した', on: 'secretKill', check: 'bossIs', boss: 'calm' },
   { id: 'no-damage-boss', icon: 'shield', name: '無傷の仕事', desc: 'ダメージを受けずにボスを倒した', on: 'bossKill', check: 'noDamage' },
   { id: 'elite', icon: 'star', name: '危険個体処理', desc: 'エリートを倒した', on: 'eliteKill' },
   { id: 'family', icon: 'chip', name: '種族特化', desc: '同じ種族のインプラントを3種類そろえた', on: 'implant', check: 'familyBonus' },

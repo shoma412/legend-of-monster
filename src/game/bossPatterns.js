@@ -21,6 +21,7 @@ import { installMap4 } from './map4Bosses.js';
 import { installMap5 } from './map5Bosses.js';
 import { installMap6 } from './map6Bosses.js';
 import { installMap7 } from './map7Bosses.js';
+import { installCalm } from './calmBoss.js';
 import { addShake, burst, floatText, ring, sfx } from './fx.js';
 
 const ELEMENT_COLORS_BY_ID = { shock: '#fff36b', heat: '#ff7a3d', cold: '#8fd8ff', corrode: '#b6ff3a' }; // src/data/theme.js の ELEMENT_COLORS と同じ
@@ -1566,6 +1567,7 @@ installMap4(PATTERNS, HAZARD_TYPES);
 installMap5(PATTERNS, HAZARD_TYPES);
 installMap6(PATTERNS, HAZARD_TYPES);
 installMap7(PATTERNS, HAZARD_TYPES);
+installCalm(PATTERNS, HAZARD_TYPES);
 
 export function updateHazards(world, dt) {
   const p = world.player;

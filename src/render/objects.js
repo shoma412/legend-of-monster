@@ -389,6 +389,10 @@ export function focusPrompt(world) {
   if (o.kind === 'station') return o.prompt ? { text: o.prompt, color: o.color ?? COLORS.ink } : null;
   if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
+  if (o.kind === 'secretDoor' && o.cost) {
+    const list = Object.entries(o.cost).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　');
+    return { text: `E：コアを払って、隠し扉に入る（${list}。払うのは1回だけ。入ると、倒すまで出られない）`, color: COLORS.amber };
+  }
   if (o.kind === 'secretDoor') return { text: 'E：隠し扉に入る（強い反応がある。入ると、倒すまで出られない）', color: COLORS.amber };
   if (o.kind === 'kit') return { text: `E：修復キットを拾う（所持 ${p.build.kits}）`, color: COLORS.green };
   if (o.kind === 'pickup') {

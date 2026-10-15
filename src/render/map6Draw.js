@@ -6,6 +6,59 @@ const WHITE = 0xffffff;
 const RED = () => hex(COLORS.red);
 
 export const HAZARD_DRAWS_MAP6 = {
+  // 静寂の場：輪が縮む間は、細い輪。静まっている間は、画面がうすく暗くなり、ゆっくり脈打つ
+  hushfield(g, h, world) {
+    const body = hex(COLORS.cyan);
+    const bd = world.bounds;
+    if (h.stage === 'ring') {
+      const k = Math.max(0, 1 - h.t / h.max);
+      g.lineStyle(3, body, 0.35 + 0.4 * (1 - k)).strokeCircle(h.x, h.y, 60 + 520 * k);
+      return;
+    }
+    const pulse = 0.5 + 0.5 * Math.sin(world.time * 5);
+    g.fillStyle(0x07060d, 0.28 + 0.1 * pulse).fillRect(bd.left, bd.top, bd.right - bd.left, bd.bottom - bd.top);
+    g.lineStyle(2, body, 0.25 + 0.2 * pulse).strokeCircle(h.x, h.y, 70 + 18 * pulse);
+  },
+
+  // 凪の花：咲くまでの印（花びらの形）。咲く直前ほど濃く、大きくなる
+  bloom(g, h, world) {
+    const body = hex(h.color);
+    const k = 1 - Math.max(0, h.t) / h.max;
+    g.lineStyle(2, body, 0.25 + 0.5 * k).strokeCircle(h.x, h.y, h.r);
+    g.fillStyle(body, 0.08 + 0.18 * k).fillCircle(h.x, h.y, h.r);
+    for (let i = 0; i < 6; i++) {
+      const a = h.spin + (i * Math.PI) / 3 + world.time * 0.6;
+      g.lineStyle(2, body, 0.4 + 0.4 * k).lineBetween(h.x, h.y, h.x + Math.cos(a) * h.r * (0.4 + 0.5 * k), h.y + Math.sin(a) * h.r * (0.4 + 0.5 * k));
+    }
+  },
+
+  // 引き潮：安全な円の外を、うすく塗る。円の縁が光る（ダメージが出る前は、細い線）
+  ebb(g, h, world) {
+    const body = hex(h.color);
+    const bd = world.bounds;
+    const live = h.age >= h.warn;
+    g.fillStyle(body, live ? 0.12 : 0.05).fillRect(bd.left, bd.top, bd.right - bd.left, bd.bottom - bd.top);
+    g.fillStyle(0x07060d, 0.0).fillCircle(h.x, h.y, h.r);
+    g.lineStyle(live ? 4 : 2, body, live ? 0.85 : 0.5).strokeCircle(h.x, h.y, h.r);
+    g.lineStyle(1.5, WHITE, live ? 0.6 : 0.25).strokeCircle(h.x, h.y, h.r - 5);
+  },
+
+  // 無風の輪：すき間のある輪。すき間の両端を、短い線で示す
+  calmwave(g, h) {
+    if (h.delay > 0) return;
+    const body = hex(h.color);
+    const a0 = h.gapA + h.gapW / 2;
+    const a1 = h.gapA - h.gapW / 2 + Math.PI * 2;
+    g.lineStyle(h.width, body, 0.55);
+    g.beginPath();
+    g.arc(h.x, h.y, h.r, a0, a1, false);
+    g.strokePath();
+    g.lineStyle(2, WHITE, 0.8);
+    g.beginPath();
+    g.arc(h.x, h.y, h.r, a0, a1, false);
+    g.strokePath();
+  },
+
   // 竜巻：芯と、回る輪と、引き込む範囲
   twister(g, h, world) {
     const body = hex(h.color);
@@ -100,6 +153,10 @@ export const HAZARD_DRAWS_MAP6 = {
 };
 
 export const BOSS_TELEGRAPHS_MAP6 = {
+  hush: ringTelegraph,
+  bloom: ringTelegraph,
+  calmwave: ringTelegraph,
+  ebb: ringTelegraph,
   bladevolley: ringTelegraph,
   suctionring: ringTelegraph,
   downdraft: ringTelegraph,

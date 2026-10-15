@@ -1971,6 +1971,23 @@ SHAPES.weathervane = (g, b, color, world) => {
   }
 };
 
+// カーム：静かな目。何重もの輪（ゆっくり息をする）と、閉じかけたまぶたの線
+SHAPES.calm = (g, b, color, world) => {
+  const r = b.r;
+  const breathe = 1 + 0.04 * Math.sin(world.time * 1.6);
+  g.fillStyle(BODY_FILL, 0.95).fillCircle(b.x, b.y, r);
+  for (let i = 0; i < 3; i++) g.lineStyle(2, color, 0.7 - i * 0.18).strokeCircle(b.x, b.y, r * (1 - i * 0.22) * breathe);
+  neonStroke(g, color, 3, () => g.strokeCircle(b.x, b.y, r * breathe));
+  // まぶた（上と下の弧）と、目
+  g.lineStyle(3, color, 0.9).beginPath();
+  g.arc(b.x, b.y - r * 0.15, r * 0.55, Math.PI * 1.1, Math.PI * 1.9, false);
+  g.strokePath();
+  g.lineStyle(3, color, 0.9).beginPath();
+  g.arc(b.x, b.y + r * 0.15, r * 0.55, Math.PI * 0.1, Math.PI * 0.9, false);
+  g.strokePath();
+  g.fillStyle(hex(COLORS.ink), 1).fillCircle(b.x, b.y, 5);
+};
+
 // インテーク：八角形の送風機の胴と、正面に開いた大きな口。中で羽根が回る（吸っている間は、速く回る）
 SHAPES.intake = (g, b, color, world) => {
   const r = b.r;

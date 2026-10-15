@@ -1673,6 +1673,52 @@ export const upgrades = [
     costs: [{ titanCore: 1, gateCore: 1, serpentCore: 1 }],
     perLevel: { mods: [{ stat: 'statusTime', add: 0.28 }, { stat: 'critChance', add: 0.042 }] },
   },
+  // ---- ここから、隠しボス「カーム」のコアを使う強化（since: 12。2026-10-16）。カームコアだけの3系統（各3段）＋カームコアと、ほかの最終ボスのコアの組み合わせ6つ ----
+  {
+    id: 'calm-wind', category: 'gear', name: '凪の外套', desc: '風と吸い込みで流される量 −8%', max: 3, since: 12,
+    costs: [{ calmCore: 1 }, { calmCore: 1 }, { calmCore: 1 }],
+    perLevel: { mods: [{ stat: 'windResist', add: 0.08 }] },
+  },
+  {
+    id: 'calm-dash', category: 'gear', name: '凪の足', desc: 'ダッシュの回復 +4%', max: 3, since: 12,
+    costs: [{ calmCore: 1 }, { calmCore: 1 }, { calmCore: 1 }],
+    perLevel: { mods: [{ stat: 'dashHaste', add: 0.04 }] },
+  },
+  {
+    id: 'calm-hp', category: 'body', name: '凪の心臓', desc: '最大HP +30', max: 3, since: 12,
+    costs: [{ calmCore: 1 }, { calmCore: 1 }, { calmCore: 1 }],
+    perLevel: { mods: [{ stat: 'maxHp', add: 30 }] },
+  },
+  {
+    id: 'calm-over', category: 'skill', name: 'カーム×オーバー・火力', desc: '攻撃力 +5%', max: 1, since: 12,
+    costs: [{ calmCore: 1, overCore: 1 }],
+    perLevel: { mods: [{ stat: 'attackMul', add: 0.05 }] },
+  },
+  {
+    id: 'calm-hydra', category: 'gear', name: 'カーム×ハイドラ・補給', desc: '修復キットの回復量 +12%', max: 1, since: 12,
+    costs: [{ calmCore: 1, hydraCore: 1 }],
+    perLevel: { mods: [{ stat: 'kitBonus', add: 0.12 }] },
+  },
+  {
+    id: 'calm-titan', category: 'body', name: 'カーム×タイタン・装甲', desc: '被ダメージ −4%', max: 1, since: 12,
+    costs: [{ calmCore: 1, titanCore: 1 }],
+    perLevel: { mods: [{ stat: 'damageTaken', add: -0.04 }] },
+  },
+  {
+    id: 'calm-breaker', category: 'skill', name: 'カーム×ブレーカー・会心', desc: '会心率 +3%', max: 1, since: 12,
+    costs: [{ calmCore: 1, breakerCore: 1 }],
+    perLevel: { mods: [{ stat: 'critChance', add: 0.03 }] },
+  },
+  {
+    id: 'calm-rain', category: 'body', name: 'カーム×レイン・状態', desc: '状態異常の時間 +12%', max: 1, since: 12,
+    costs: [{ calmCore: 1, rainCore: 1 }],
+    perLevel: { mods: [{ stat: 'statusTime', add: 0.12 }] },
+  },
+  {
+    id: 'calm-cyclone', category: 'gear', name: 'カーム×サイクロン・脚力', desc: '移動速度 +4%', max: 1, since: 12,
+    costs: [{ calmCore: 1, cycloneCore: 1 }],
+    perLevel: { mods: [{ stat: 'moveSpeedMul', add: 0.04 }] },
+  },
 ];
 
 // map：その武器のラックが、隠れ家に現れるマップ（そのマップを1回クリアすると現れる。2026-10-16）

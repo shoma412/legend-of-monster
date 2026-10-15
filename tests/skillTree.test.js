@@ -12,7 +12,7 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 760; // マップ6で足した6マス（since: 8）、95マス（since: 9）、225マス（since: 10）、369マス（since: 11）を含む
+const ALL_NODES = 775; // マップ6で足した6マス（since: 8）、95マス（since: 9）、225マス（since: 10）、369マス（since: 11）、15マス（since: 12。カームコア）を含む
 const WEAPON_NODES = 7; // 武器ごとの強化（since: 5）
 const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）

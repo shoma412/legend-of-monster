@@ -186,7 +186,7 @@ describe('エリア1「中枢の門」の定義', () => {
 
   it('マップ7の1つ目のエリア。背景・曲・ボス・素材・データ片4つがそろっている', () => {
     expect(map.name).toBe('核心区');
-    expect(map.requiresPass).toBeUndefined();
+    expect(map.requiresPass).toBe('map6'); // 送風区の通行証（マップ6の隠しボス「カーム」）
     expect(map.enemyScale).toBeGreaterThan(maps.find((m) => m.id === 'map6').enemyScale);
     expect(map.areas[0]).toBe('gate');
     expect(area.name).toBe('中枢の門');

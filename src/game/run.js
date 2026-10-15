@@ -9,7 +9,7 @@ import { advancePlan, createAreaPlan, currentNode, doorOptions } from '../logic/
 import { addOneEnv } from '../logic/envs.js';
 import { cycleMods, recordMapClear } from '../logic/maps.js';
 import { createGearLog, logBuildGear } from '../logic/gearLog.js';
-import { applyCarryOver, permanentBonuses, pickFragment, processEvent, recordCarryOver, recordProgress, startRunRecord } from '../logic/meta.js';
+import { applyCarryOver, canAfford, pay, permanentBonuses, pickFragment, processEvent, recordCarryOver, recordProgress, startRunRecord } from '../logic/meta.js';
 import { createSave } from '../logic/save.js';
 import { createBuild, runSpecies } from '../logic/stats.js';
 import { SECRET_IN, SECRET_OUT, buildRoom, makeCrack } from './rooms.js';
@@ -87,6 +87,22 @@ export function hasNextArea(run) {
   return run.areaIndex + 1 < run.map.areas.length;
 }
 
+// 隠し壁を開けるのに、まだ払っていないコア（なければ null）。マップの secretBoss.cost を、1回払うと、そのマップでは次から払わない
+export function secretCost(run) {
+  const cost = run.map.secretBoss?.cost;
+  return cost && !(run.save.secretsOpened ?? []).includes(run.map.id) ? cost : null;
+}
+
+// 隠し扉に入るとき：コアが足りていれば払って、{ ok: true } を返す。足りなければ { ok: false, cost }。払う必要がなければ、そのまま { ok: true }
+export function payForSecret(run) {
+  const cost = secretCost(run);
+  if (!cost) return { ok: true };
+  if (!canAfford(run.save, cost)) return { ok: false, cost };
+  pay(run.save, cost);
+  (run.save.secretsOpened ??= []).push(run.map.id);
+  return { ok: true, paid: true, cost };
+}
+
 // 今の部屋の world を作る
 export function enterRoom(run) {
   const area = currentArea(run);
@@ -111,7 +127,8 @@ export function enterRoom(run) {
   // 隠しボスの部屋：倒すと、元の部屋へ戻る扉が開く
   if (run.inSecret) doors = [{ id: SECRET_OUT, type: 'secretBack' }];
   const room = buildRoom(type, ctx, doors);
-  // ひび割れた壁のある部屋（まだ隠しボスを倒していないとき）
+  // ひび割れた壁のある部屋（まだ隠しボスを倒していないとき）。開けるのにコアが要るマップでは、その内容を部屋に持たせる（扉の案内に出す）
+  room.secretCost = secretCost(run);
   const s = run.secret;
   if (s && !s.rule && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
   // 灯りを点けて回るマップ：条件を満たしてボス前の補給部屋に着くと、隠しエリアへの道が開いている
@@ -144,6 +161,8 @@ export function enterRoom(run) {
     const extra = ((run.extraEnv ??= {})[run.areaIndex] ??= run.rng());
     environmentId = addOneEnv(environmentId ? DATA.environments.get(environmentId) : null, extra);
   }
+  // 隠しボス「カーム」の部屋は、風が止まっている
+  if (run.inSecret && run.secret?.boss === 'calm') environmentId = null;
   if (environmentId) {
     room.environment = DATA.environments.get(environmentId);
     if (room.environment.dark && room.waves.length > 0) room.lamps = placeLamps(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);

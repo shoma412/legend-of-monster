@@ -3,10 +3,11 @@ import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { floatText } from '../game/fx.js';
 import { chooseImplant, skipImplantChoice } from '../game/build.js';
 import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
-import { NEXT_AREA, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../game/run.js';
+import { NEXT_AREA, SECRET_IN, createRun, currentArea, enterRoom, finishRun, handleEvents, hasNextArea, leaveRoom, payForSecret, skipToBoss } from '../game/run.js';
 import { getSave, persist, saveSuspend } from '../game/saveStore.js';
 import { permanentBonuses, recordCarryOver } from '../logic/meta.js';
 import { heartbeatInterval, lowHpLevel } from '../logic/lowHp.js';
@@ -443,6 +444,18 @@ export class BattleScene extends Phaser.Scene {
 
     // 扉を選んだら次の部屋へ
     if (world.exit) {
+      // 隠し扉：コアが要るマップでは、ここで払う（足りなければ、入らない）
+      if (world.exit === SECRET_IN) {
+        const paid = payForSecret(this.run);
+        if (!paid.ok) {
+          const short = Object.entries(paid.cost).filter(([id, n]) => (this.run.save.materials[id] ?? 0) < n).map(([id, n]) => `${DATA.materials.get(id).name} ×${n - (this.run.save.materials[id] ?? 0)}`).join('、');
+          floatText(world, world.player.x, world.player.y - 40, `コアが足りない：${short}`, COLORS.red, 14);
+          playSe('deny');
+          world.exit = null;
+          return;
+        }
+        if (paid.paid) persist();
+      }
       leaveRoom(this.run, world, world.exit);
       this.scene.restart({ run: this.run });
       return;

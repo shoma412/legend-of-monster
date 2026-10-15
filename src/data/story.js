@@ -31,6 +31,8 @@ export const materials = [
   { id: 'architectCore', name: 'アーキテクトコア', color: 'amber' },
   { id: 'nocturneCore', name: 'ノクターンコア', color: 'magenta' },
   { id: 'catalystCore', name: 'カタリストコア', color: 'ink' },
+  // マップ6の隠しボスの素材（2026-10-16 追加）。並びの最後に足す
+  { id: 'calmCore', name: 'カームコア', color: 'cyan' },
 ];
 
 // 出撃前の依頼文（隠れ家の出撃画面に出す）

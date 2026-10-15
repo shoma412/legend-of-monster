@@ -149,7 +149,7 @@ function updateSecret(world) {
   } else if (s.enemy.dead) {
     s.broken = true;
     world.enemies = world.enemies.filter((e) => e !== s.enemy);
-    world.objects.push({ kind: 'secretDoor', x: s.x, y: s.y, r: SECRET.doorRadius, side: s.side, target: SECRET_IN });
+    world.objects.push({ kind: 'secretDoor', x: s.x, y: s.y, r: SECRET.doorRadius, side: s.side, target: SECRET_IN, cost: world.room.secretCost ?? null });
     sfx(world, 'explode');
     addShake(world, FEEL.shake.heavy);
     burst(world, s.x, s.y, COLORS.amber, 30, 280);

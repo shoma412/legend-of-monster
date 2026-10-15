@@ -69,7 +69,7 @@ beforeEach(() => vi.stubEnv('DEV', false));
 afterEach(() => vi.unstubAllEnvs());
 
 describe('マップの解放と完了', () => {
-  it('最初はマップ1だけ選べる。マップ2〜7は未解放（マップ7は、マップ6の完了を待つ）', () => {
+  it('最初はマップ1だけ選べる。マップ2〜7は未解放（マップ7は、送風区の通行証を待つ）', () => {
     const save = createSave();
     expect(mapState(save, maps[0])).toBe('open');
     expect(canSortie(save, maps[0])).toBe(true);
@@ -82,9 +82,11 @@ describe('マップの解放と完了', () => {
     expect(mapState(save, maps[5])).toBe('locked');
     expect(mapState(save, maps[6])).toBe('locked');
     expect(canSortie(save, maps[6])).toBe(false);
-    // マップ6を完了すると、マップ7が選べる（通行証は要らない）
+    // マップ6を完了しても、マップ7には、送風区の通行証（マップ6の隠しボス「カーム」を倒すと手に入る）が要る
     for (const id of ['map1', 'map2', 'map3', 'map4', 'map5', 'map6']) recordMapClear(save, id, 1);
     save.passes.push('map3', 'map4', 'map5');
+    expect(mapState(save, maps[6])).toBe('locked');
+    save.passes.push('map6');
     expect(mapState(save, maps[6])).toBe('open');
   });
 

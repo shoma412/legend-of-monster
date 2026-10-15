@@ -229,6 +229,12 @@ export const MATERIAL_ICONS = {
     g.strokeCircle(x, y, s * 0.2);
   },
   // カタリストコア：回る3つの玉
+  // カームコア：静かな目（まぶたを閉じた線と、波紋）
+  calmCore(g, x, y, s, c) {
+    poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
+    g.lineStyle(1.2, c, 1).strokeCircle(x, y, s * 0.5);
+    g.lineStyle(1.5, c, 1).lineBetween(x - s * 0.35, y, x + s * 0.35, y);
+  },
   catalystCore(g, x, y, s, c) {
     poly(g, c, ngon(x, y, s, 6, Math.PI / 6));
     g.lineStyle(1.2, c, 1).strokeCircle(x, y, s * 0.42);

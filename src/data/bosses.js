@@ -1521,4 +1521,61 @@ export const bosses = [
       },
     ],
   },
+  // ---- マップ6の隠しボス（docs/詳細仕様.md「30. マップ6「送風区」」の「⑤隠しボス」）。コアを払って、ひび割れた壁を開けると戦える ----
+  {
+    id: 'calm',
+    name: 'カーム',
+    alias: '凪', // 登場時に出す異名
+    hidden: true,
+    shape: 'calm',
+    color: 'cyan',
+    weakness: null,
+    material: 'calmCore', // 倒すたびに1個（恒久強化に使う）
+    radius: 44,
+    hp: 30000,
+    speed: 0,
+    contactDamage: 0,
+    xp: 1100,
+    credits: 540,
+    drops: { count: 3, rarityBonus: 2, minRarity: 2 }, // 装備は、エピック以上を保証
+    comms: {
+      intro: [
+        '@noise＞ ……風が、止まっている。あそこだけ、音がしない。',
+        '@noise＞ 止まって耐えろ。動くものを、あれは許さない。弱点は、ない。',
+      ],
+      defeated: [
+        '@noise＞ ……風が、戻った。',
+        '@noise＞ 通行証を拾え。この先へ行くのに、要る。',
+      ],
+    },
+    attacks: {
+      // 固有「静寂」：輪が縮み（ringTime 秒）、静まる（quiet 秒）。静まっている間に動く（ダッシュも）と爆ぜる。止まっていれば当たらない弾が、すぐ脇（miss px）を通る。静寂がとけると、花びらの輪が広がる。rounds 回くり返す
+      hush: { pattern: 'hush', telegraph: 0.9, ringTime: 1.0, quiet: 1.4, moveLimit: 55, shots: 4, miss: 52, shotSpeed: 340, shotRadius: 9, damage: 46, release: 10, releaseSpeed: 190, rounds: 1, recover: 0.9, reach: 'far' },
+      hushHard: { pattern: 'hush', telegraph: 0.8, ringTime: 0.9, quiet: 1.5, moveLimit: 55, shots: 6, miss: 50, shotSpeed: 360, shotRadius: 9, damage: 48, release: 14, releaseSpeed: 210, rounds: 2, recover: 0.8, reach: 'far' },
+      // 固有「凪の花」：プレイヤーのまわり（spread px 以内）に、花の印が count 個、gap 秒ずつ遅れて出る。fuse 秒あとに咲いて、中にいるとダメージ。そのあと、遅い花びらが petals 枚、放射状に飛ぶ
+      bloom: { pattern: 'bloom', telegraph: 0.8, count: 5, gap: 0.35, spread: 230, fuse: 1.5, radius: 46, damage: 46, petals: 8, petalSpeed: 150, petalRadius: 8, petalDamage: 40, recover: 0.8, reach: 'far' },
+      bloomHard: { pattern: 'bloom', telegraph: 0.7, count: 8, gap: 0.28, spread: 250, fuse: 1.35, radius: 46, damage: 48, petals: 10, petalSpeed: 160, petalRadius: 8, petalDamage: 42, recover: 0.7, reach: 'far' },
+      // 固有「無風の輪」：ボスから、すき間（gapSize 度）のある輪が、waves 本、stagger 秒ずつ遅れて広がる。すき間の向きは、輪ごとに少しずれる（gapSpread 度）。ダッシュの無敵でも抜けられる
+      calmwave: { pattern: 'calmwave', telegraph: 0.9, waves: 3, stagger: 0.7, speed: 260, width: 22, gapSize: 80, gapSpread: 35, damage: 48, recover: 0.9, reach: 'far' },
+      calmwaveHard: { pattern: 'calmwave', telegraph: 0.8, waves: 4, stagger: 0.55, speed: 300, width: 22, gapSize: 66, gapSpread: 45, damage: 50, recover: 0.8, reach: 'far' },
+      // 固有「引き潮」：部屋の中心に、安全な円が出て、縮んでいく（r0 → rEnd を shrink 秒で。そのまま hold 秒）。円の外にいると、tick 秒ごとにダメージ。warn 秒は、まだダメージなし
+      ebb: { pattern: 'ebb', telegraph: 0.9, r0: 430, rEnd: 150, shrink: 3.2, hold: 2.0, warn: 0.8, tick: 0.45, damage: 40, recover: 0.9, reach: 'far' },
+      ebbHard: { pattern: 'ebb', telegraph: 0.8, r0: 430, rEnd: 120, shrink: 2.8, hold: 2.4, warn: 0.7, tick: 0.4, damage: 44, recover: 0.8, reach: 'far' },
+      // 大技「凪の底」：静寂が3回続く（静まる時間も長い）
+      stillbottom: { pattern: 'hush', telegraph: 1.6, ringTime: 1.1, quiet: 1.8, moveLimit: 55, shots: 6, miss: 50, shotSpeed: 360, shotRadius: 9, damage: 48, release: 16, releaseSpeed: 210, rounds: 3, recover: 1.4 },
+    },
+    reactions: [{ when: 'far', seconds: 3.5, move: 'bloom' }],
+    ultimate: { move: 'stillbottom', announce: '凪の底' },
+    phases: [
+      { hpAbove: 0.5, idle: { min: 1.0, max: 1.5 }, moves: ['hush', 'bloom', 'calmwave', 'ebb'] },
+      {
+        hpAbove: 0,
+
+        idle: { min: 0.6, max: 1.0 },
+        moves: ['hushHard', 'bloomHard', 'calmwaveHard', 'ebbHard', 'calmwave'],
+        combos: [{ moves: ['calmwaveHard', 'bloomHard'] }, { moves: ['bloomHard', 'hushHard'] }, { moves: ['ebbHard', 'calmwave'] }],
+        announce: '風が、息をひそめる',
+      },
+    ],
+  },
 ];

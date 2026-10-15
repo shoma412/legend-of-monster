@@ -34,6 +34,7 @@ export function createSave() {
     carrySpecies: null, // 持ち込みの種族の id（版4で追加。選んでいなければ null）
     carrySpecies2: null, // 持ち込みの2つ目の枠（版5で追加。恒久強化で枠を増やすと使える）
     passes: [], // 持っている通行証（隠しボスを倒したマップの id。版6で追加）
+    secretsOpened: [], // コアを払って、隠し壁を開けたマップの id（そのマップの隠しボスの壁は、次から払わずに入れる。2026-10-16 追加）
     // スキルツリー（版7で追加）。seed は配置を決める種（セーブデータごとに違う）、owned は取ったマスの id
     tree: { seed: newTreeSeed(), owned: [] },
     notices: [], // 次に隠れ家へ入ったときに、1回だけ出すお知らせ（版7で追加）
@@ -146,6 +147,13 @@ function addMaterials(materials, extra) {
 }
 
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
+// 通行証。マップ7は、送風区の通行証（map6）が要るようになった（2026-10-16）。すでにマップ7をクリアしたセーブデータは、持っている扱いにする
+function migratePasses(d) {
+  const passes = Array.isArray(d.passes) ? [...new Set(d.passes)] : [];
+  if ((d.maps?.map7?.clears ?? 0) > 0 && !passes.includes('map6')) passes.push('map6');
+  return passes;
+}
+
 // 取りやめた実績の id を、あとの実績に置き換える（2026-10-16：「依頼完了」(noise) は「核心区停止」(map7) にまとめた）
 function migrateAchievements(list) {
   if (!Array.isArray(list)) return [];
@@ -193,7 +201,8 @@ export function normalizeSave(data) {
     selectedCycle: Number.isInteger(d.selectedCycle) && d.selectedCycle >= 1 ? d.selectedCycle : 1,
     carrySpecies: typeof d.carrySpecies === 'string' ? d.carrySpecies : null,
     carrySpecies2: typeof d.carrySpecies2 === 'string' ? d.carrySpecies2 : null,
-    passes: Array.isArray(d.passes) ? [...new Set(d.passes)] : [],
+    passes: migratePasses(d),
+    secretsOpened: Array.isArray(d.secretsOpened) ? [...new Set(d.secretsOpened.filter((id) => typeof id === 'string'))] : [],
     tree: { seed, owned },
     notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
     carryOver: normalizeCarryOver(d.carryOver),
