@@ -157,7 +157,9 @@ export function createMapSelect(scene, options) {
       });
       root.add(card);
       text(x + CARD_W / 2, y + 16, map.code, 15, on ? COLORS.amber : color, { fontFamily: FONTS.display, fontStyle: '700' }).setOrigin(0.5);
-      text(x + CARD_W / 2, y + 52, usable ? map.name : '？？？', 16, usable ? COLORS.ink : LOCKED, { fontStyle: '700' }).setOrigin(0.5);
+      const cardName = text(x + CARD_W / 2, y + 52, usable ? map.name : '？？？', 16, usable ? COLORS.ink : LOCKED, { fontStyle: '700' }).setOrigin(0.5);
+      // 訳した名前が長いとき（English など）は、カードの幅に収まるように縮める
+      if (cardName.width > CARD_W - 12) cardName.setScale((CARD_W - 12) / cardName.width);
       text(x + CARD_W / 2, y + 84, STATE_LABELS[state], 12, color, { fontStyle: '700' }).setOrigin(0.5);
       const clears = save.maps[map.id]?.clears ?? 0;
       if (clears > 0) text(x + CARD_W / 2, y + 108, `クリア ${clears} 回`, 11, COLORS.dim).setOrigin(0.5);

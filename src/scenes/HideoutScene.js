@@ -81,8 +81,10 @@ export class HideoutScene extends Phaser.Scene {
     // 依頼文（出撃ゲートに近づくと出る）
     this.briefPanel = this.add.container(W - 330, 60).setDepth(8).setVisible(false);
     const briefText = this.add.text(14, 38, brief.lines.join('\n'), body(12, COLORS.ink, { lineSpacing: 8, wordWrap: { width: 250, useAdvancedWrap: true } }));
+    this.briefText = briefText;
+    this.briefRect = this.add.rectangle(0, 0, 278, briefText.height + 54, 0x110f1d, 0.94).setOrigin(0).setStrokeStyle(1, hex(COLORS.amber));
     this.briefPanel.add([
-      this.add.rectangle(0, 0, 278, briefText.height + 54, 0x110f1d, 0.94).setOrigin(0).setStrokeStyle(1, hex(COLORS.amber)),
+      this.briefRect,
       this.add.text(14, 12, brief.title, body(15, COLORS.amber, { fontStyle: '700' })),
       briefText,
     ]);
@@ -406,6 +408,8 @@ export class HideoutScene extends Phaser.Scene {
     this.promptText.setVisible(!!prompt);
     if (prompt) this.promptText.setText(prompt.text).setColor(prompt.color);
     this.briefPanel.setVisible(world.focusObject?.id === 'sortie' && !this.mapSelect.isOpen);
+    // 文の長さは言語で変わるので、枠の高さを、今の文に合わせる
+    this.briefRect.setSize(278, this.briefText.height + 54);
   }
 
   syncTexts(pool, items, depth) {

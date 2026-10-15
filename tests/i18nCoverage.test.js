@@ -93,3 +93,14 @@ describe('操作の説明の、武器ごとのクリック', () => {
     for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
   });
 });
+
+describe('エリートの名前', () => {
+  it('「敵の名前［特性・特性］」が、英語・韓国語に、日本語が残らない', () => {
+    const traits = DATA.eliteTraits.all().map((t) => t.name);
+    const list = [];
+    for (const e of DATA.enemies.all()) {
+      list.push(`${e.name}［${traits[0]}］`, `${e.name}［${traits[0]}・${traits[1]}］`, `${e.name}［${traits.join('・')}］`);
+    }
+    for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
+  });
+});
