@@ -748,19 +748,36 @@ export class MenuOverlay {
 
     this.panel(40, 122, 420, 336);
     this.text(54, 130, '身につけている装備', 14, COLORS.cyan, { fontStyle: '700' });
-    LOOT.slots.forEach((slot, i) => {
-      const y = 158 + i * 98;
+    // 装備の説明は、ミシックだと長くなる（効果5つ＋固有効果）。3つ分が枠に入りきらないときは、スクロールで見る
+    const TOP = 158;
+    const BOTTOM = 454;
+    const rows = LOOT.slots.map((slot) => {
       const item = b.gear[slot.id];
+      const desc = item ? this.text(54, -2000, describeItem(item).join('　'), 11, COLORS.ink, { lineSpacing: 3, wordWrap: { width: 390, useAdvancedWrap: true } }) : null;
+      return { slot, item, desc, h: item ? 40 + desc.height + 12 : 40 };
+    });
+    // いちばん下まで見たとき（scrollMax）の、いちばん上の行
+    let lastStart = rows.length;
+    for (let acc = 0; lastStart > 0 && acc + rows[lastStart - 1].h <= BOTTOM - TOP; lastStart--) acc += rows[lastStart - 1].h;
+    const first = this.window(rows.length, rows.length - lastStart, { x: 452, y: TOP, h: BOTTOM - TOP });
+    let y = TOP;
+    rows.forEach((row, i) => {
+      const { slot, item, desc } = row;
+      if (i < first || y + row.h > BOTTOM + 6) {
+        desc?.destroy();
+        return;
+      }
       drawSlotIcon(g, slot.id, 66, y + 12, 9, item ? hex(rarityColor(item)) : 0x4a4470);
       this.text(86, y, slot.name, 11, COLORS.dim);
       if (item) {
         this.text(86, y + 15, item.name, 14, rarityColor(item), { fontStyle: '700' });
-        this.text(54, y + 38, describeItem(item).join('　'), 11, COLORS.ink, { lineSpacing: 3, wordWrap: { width: 390, useAdvancedWrap: true } });
+        desc.setY(y + 38);
         const full = b.bag.length >= BAG.size;
         this.button(380, y, 66, 24, '外す', full ? LOCKED : COLORS.amber, act(() => unequipToBag(world, slot.id), 'pickup'));
       } else {
         this.text(86, y + 15, 'なし', 14, LOCKED);
       }
+      y += row.h;
     });
 
     this.panel(472, 122, 448, 336);

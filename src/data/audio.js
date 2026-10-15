@@ -106,18 +106,15 @@ export const BGM = {
   raintower: { file: 'audio/bgm/maou_loop_bgm_cyber35.ogg', song: 'tower' },
   bossRaintower: { file: 'audio/bgm/maou_loop_bgm_neorock76.ogg', song: 'bossTower' },
   bossCatalyst: { file: 'audio/bgm/maou_loop_bgm_neorock67.ogg', song: 'bossTower' },
-  // マップ6「送風区」。曲はまだ選んでいない（新しい曲を入れるまで、マップ1の曲を借りている）
-  airintake: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossAirintake: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  // エリア2「送風路」も、曲はまだ選んでいない（エリア1と同じ、マップ1の曲を借りている）
-  airduct: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossAirduct: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  // エリア3「風見の庭」も、曲はまだ選んでいない（マップ1の曲を借りている）
-  airgarden: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossAirgarden: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
-  // エリア4「排気塔」も、曲はまだ選んでいない（マップ1の曲を借りている）
-  airstack: { file: 'audio/bgm/maou_loop_bgm_cyber38.ogg', song: 'slum' },
-  bossAirstack: { file: 'audio/bgm/maou_loop_bgm_neorock80.ogg', song: 'bossSlum' },
+  // マップ6「送風区」（2026-10-16）。エリアごとに、魔王魂の曲（新しく足したもの）。4エリア × （道中 + ボス）
+  airintake: { file: 'audio/bgm/maou_loop_bgm_cyber11.ogg', song: 'slum' },
+  bossAirintake: { file: 'audio/bgm/maou_loop_bgm_neorock57.ogg', song: 'bossSlum' },
+  airduct: { file: 'audio/bgm/maou_loop_bgm_cyber13.ogg', song: 'slum' },
+  bossAirduct: { file: 'audio/bgm/maou_loop_bgm_neorock61.ogg', song: 'bossSlum' },
+  airgarden: { file: 'audio/bgm/maou_loop_bgm_cyber15.ogg', song: 'slum' },
+  bossAirgarden: { file: 'audio/bgm/maou_loop_bgm_neorock72.ogg', song: 'bossSlum' },
+  airstack: { file: 'audio/bgm/maou_loop_bgm_cyber16.ogg', song: 'slum' },
+  bossAirstack: { file: 'audio/bgm/maou_loop_bgm_neorock51.ogg', song: 'bossSlum' },
   // マップ7「核心区」（2026-10-15）。エリアごとに、魔王魂の曲（新しく足したもの）。5エリア × （道中 + ボス）
   gate: { file: 'audio/bgm/maou_loop_bgm_cyber36.ogg', song: 'slum' },
   bossGate: { file: 'audio/bgm/maou_loop_bgm_neorock58.ogg', song: 'bossSlum' },

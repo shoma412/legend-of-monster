@@ -78,6 +78,14 @@ BGM は、無料の音楽素材サイト「魔王魂」の曲を使っている�
 | maou_loop_bgm_neorock69.ogg | マップ7 ボス4 コギトール | ネオロック69 | https://maou.audio/bgm_neorock69/ | 2026-10-15 |
 | maou_loop_bgm_cyber44.ogg | マップ7 エリア5 中枢 | サイバー44 | https://maou.audio/bgm_cyber44/ | 2026-10-15 |
 | maou_loop_bgm_neorock73.ogg | マップ7 ボス5 ノイズ（依頼人） | ネオロック73 | https://maou.audio/bgm_neorock73/ | 2026-10-15 |
+| maou_loop_bgm_cyber11.ogg | マップ6 エリア1 吸気口 | サイバー11 | https://maou.audio/bgm_cyber11/ | 2026-10-16 |
+| maou_loop_bgm_neorock57.ogg | マップ6 ボス1 インテーク | ネオロック57 | https://maou.audio/bgm_neorock57/ | 2026-10-16 |
+| maou_loop_bgm_cyber13.ogg | マップ6 エリア2 送風路 | サイバー13 | https://maou.audio/bgm_cyber13/ | 2026-10-16 |
+| maou_loop_bgm_neorock61.ogg | マップ6 ボス2 ダクトクローラー | ネオロック61 | https://maou.audio/bgm_neorock61/ | 2026-10-16 |
+| maou_loop_bgm_cyber15.ogg | マップ6 エリア3 風見の庭 | サイバー15 | https://maou.audio/bgm_cyber15/ | 2026-10-16 |
+| maou_loop_bgm_neorock72.ogg | マップ6 ボス3 ウェザーベーン | ネオロック72 | https://maou.audio/bgm_neorock72/ | 2026-10-16 |
+| maou_loop_bgm_cyber16.ogg | マップ6 エリア4 排気塔 | サイバー16 | https://maou.audio/bgm_cyber16/ | 2026-10-16 |
+| maou_loop_bgm_neorock51.ogg | マップ6 ボス4 サイクロン | ネオロック51 | https://maou.audio/bgm_neorock51/ | 2026-10-16 |
 
 曲のファイルを読み込めなかったときは、コードで合成した曲（`src/data/audio.js` の `SONGS`）が代わりに鳴る。こちらは外部素材を使っていない。
 
