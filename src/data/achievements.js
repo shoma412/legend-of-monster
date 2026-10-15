@@ -76,7 +76,7 @@ export const achievements = [
   { id: 'map5', icon: 'flag', color: 'green', name: '溶解区停止', desc: 'マップ5を完了した', on: 'mapClear', check: 'mapIs', map: 'map5' },
   { id: 'map6', icon: 'flag', color: 'cold', name: '送風区停止', desc: 'マップ6を完了した', on: 'mapClear', check: 'mapIs', map: 'map6' },
   // 最後のマップ。ゲームクリアと同じ意味（前の実績「依頼完了」は、これにまとめた。2026-10-16）
-  { id: 'map7', icon: 'crown', color: 'red', name: '核心区停止', desc: 'マップ7を完了した（依頼人を止めた）', on: 'mapClear', check: 'mapIs', map: 'map7' },
+  { id: 'map7', icon: 'crown', color: 'red', name: '核心区停止', desc: 'マップ7を完了した', on: 'mapClear', check: 'mapIs', map: 'map7' },
   { id: 'cycle-3', icon: 'repeat', color: 'red', name: '異物認定', desc: '3周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 3 },
   { id: 'cycle-10', icon: 'repeat', color: 'red', name: '終わらない修繕', desc: '10周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 10 },
   { id: 'cycle-20', icon: 'crown', color: 'red', name: '街の記憶', desc: '20周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 20 },
