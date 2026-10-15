@@ -1185,13 +1185,13 @@ export class MenuOverlay {
       if (owned.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ持っていない（ボスを倒すと手に入る）', 12, LOCKED));
       else grid(owned, 4, (def, x, y) => this.materialCell(g, def, save.materials[def.id], x, y));
 
-      // ボス撃破。隠しボスは、倒すまで名前を出さない
-      const bosses = DATA.bosses.all().filter((b) => !b.hidden || (save.bossKills[b.id] ?? 0) > 0);
+      // ボス撃破。倒したことのあるボスだけを出す（まだ倒していないボスは、名前も出さない）
+      const bosses = DATA.bosses.all().filter((b) => (save.bossKills[b.id] ?? 0) > 0);
       blank();
       head('ボス撃破');
+      if (bosses.length === 0) lines.push((y) => this.text(X, y + 4, 'まだ倒していない', 12, LOCKED));
       grid(bosses, 3, (b, x, y) => {
-        const n = save.bossKills[b.id] ?? 0;
-        this.text(x, y, `${b.name}　×${n}`, 13, n > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
+        this.text(x, y, `${b.name}　×${save.bossKills[b.id]}`, 13, COLORS.ink, { fontStyle: '700' });
       });
     } else if (this.recordTab === 1) {
       // ---- 装備：手に入れたことのある装備（出撃中に、身につけたもの・バッグに入れたもの） ----
