@@ -682,24 +682,19 @@ export class MenuOverlay {
       this.text(296, 154 + i * 20, value, value.length > 14 ? 10 : 12, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
     });
 
-    // 装備（付け替えは「装備」タブで）
+    // 装備（付け替えは「装備」タブで）。ミシックは説明が長いので、入りきらないときはスクロールで見る（インプラントの列と、同じスクロール）
+    const GEAR_TOP = 156;
+    const LIST_BOTTOM = 448;
     this.panel(322, 122, 290, 336);
     this.text(336, 130, '装備', 14, COLORS.cyan, { fontStyle: '700' });
     const g = this.graphics();
-    let y = 156;
-    for (const slot of LOOT.slots) {
+    const gearRows = LOOT.slots.map((slot) => {
       const item = b.gear[slot.id];
-      drawSlotIcon(g, slot.id, 344, y + 8, 6, item ? hex(rarityColor(item)) : 0x4a4470);
-      this.text(358, y, slot.name, 11, COLORS.dim);
-      if (item) {
-        this.text(336, y + 17, item.name, 13, rarityColor(item), { fontStyle: '700' });
-        const lines = this.text(336, y + 35, describeItem(item).join('\n'), 11, COLORS.ink, { lineSpacing: 2, wordWrap: { width: 262, useAdvancedWrap: true } });
-        y += 42 + lines.height;
-      } else {
-        this.text(336, y + 17, 'なし', 13, LOCKED);
-        y += 42;
-      }
-    }
+      const desc = item ? this.text(336, -2000, describeItem(item).join('\n'), 11, COLORS.ink, { lineSpacing: 2, wordWrap: { width: 262, useAdvancedWrap: true } }) : null;
+      return { slot, item, desc, h: item ? 42 + desc.height : 42 };
+    });
+    let gearLast = gearRows.length; // いちばん下まで見たときの、いちばん上の行
+    for (let acc = 0; gearLast > 0 && acc + gearRows[gearLast - 1].h <= LIST_BOTTOM - GEAR_TOP; gearLast--) acc += gearRows[gearLast - 1].h;
 
     // インプラント
     this.panel(624, 122, 296, 336);
@@ -708,10 +703,30 @@ export class MenuOverlay {
     if (entries.length === 0) this.text(638, 156, 'なし', 13, LOCKED);
     // 入りきらないときは説明を省いて、名前だけ並べる。それでも多ければスクロールで見る
     const bonuses = activeSpeciesBonuses(b);
-    const LIST_BOTTOM = 448;
     const compact = entries.length * 46 + bonuses.length * 18 > LIST_BOTTOM - 156;
     const compactRows = Math.floor((LIST_BOTTOM - 156) / 17);
-    const firstEntry = compact ? this.window(entries.length + bonuses.length, compactRows, { x: 910, y: 156, h: LIST_BOTTOM - 160 }) : 0;
+    const implantMax = compact ? entries.length + bonuses.length - compactRows : 0;
+    // スクロールは1つ。装備の列とインプラントの列の、長いほうに合わせる
+    const first = this.window(Math.max(gearLast, implantMax) + 1, 1, gearLast > 0 || compact ? { x: 910, y: 156, h: LIST_BOTTOM - 160 } : null);
+    const firstEntry = Math.min(first, Math.max(0, implantMax));
+    const firstGear = Math.min(first, gearLast);
+    let gy = GEAR_TOP;
+    gearRows.forEach((row, i) => {
+      const { slot, item, desc } = row;
+      if (i < firstGear || gy + row.h > LIST_BOTTOM + 6) {
+        desc?.destroy();
+        return;
+      }
+      drawSlotIcon(g, slot.id, 344, gy + 8, 6, item ? hex(rarityColor(item)) : 0x4a4470);
+      this.text(358, gy, slot.name, 11, COLORS.dim);
+      if (item) {
+        this.text(336, gy + 17, item.name, 13, rarityColor(item), { fontStyle: '700' });
+        desc.setY(gy + 35);
+      } else {
+        this.text(336, gy + 17, 'なし', 13, LOCKED);
+      }
+      gy += row.h;
+    });
     let iy = 156;
     let line = 0; // 上から何行目か（詰めて並べるときに数える）
     const hidden = () => compact && (line++ < firstEntry || line > firstEntry + compactRows);
