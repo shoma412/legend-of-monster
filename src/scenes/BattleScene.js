@@ -526,7 +526,7 @@ export class BattleScene extends Phaser.Scene {
     const wind = world.wind;
     if (wind) {
       const arrow = wind.dirX > 0 ? '→' : wind.dirX < 0 ? '←' : wind.dirY > 0 ? '↓' : '↑';
-      const timer = wind.phase === 'blow' ? `強風 ${arrow}　残り ${Math.ceil(wind.t)}` : wind.phase === 'warn' ? `強風 ${arrow}　まで ${Math.ceil(wind.t)}` : `強風まで ${Math.ceil(wind.t + world.room.environment.cycle.warn)}`;
+      const timer = wind.phase === 'blow' ? `強風 ${arrow}　残り ${Math.ceil(wind.t)}` : wind.phase === 'warn' ? `強風 ${arrow}　まで ${Math.ceil(wind.t)}` : `強風まで ${Math.ceil(wind.t + (world.room.environment.windCycle ?? world.room.environment.cycle).warn)}`;
       this.lampText.setVisible(true).setText(timer).setColor(wind.phase === 'clear' ? COLORS.dim : '#8fd8ff');
     }
     this.waveText.setVisible(fighting).setText(`WAVE ${Math.max(1, world.wave + 1)}/${world.waves.length}　敵 ${world.enemies.filter((e) => !e.def.prop).length}`);
