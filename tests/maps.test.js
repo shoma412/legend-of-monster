@@ -8,7 +8,7 @@ import { buildRoom } from '../src/game/rooms.js';
 import { NEXT_AREA, createRun, currentArea, enterRoom, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { generateEliteWaves } from '../src/logic/areaGen.js';
-import { allMapsCleared, canSortie, canSortieCycle, cycleMods, cycleNotes, lockReason, mapState, recordMapClear } from '../src/logic/maps.js';
+import { advanceCycle, allMapsCleared, canSortie, canSortieCycle, cycleComplete, cycleMods, cycleNotes, lockReason, lockReasonAt, mapState, mapStateAt, recordMapClear } from '../src/logic/maps.js';
 import { SAVE_VERSION, createSave, loadSlot, slotKey } from '../src/logic/save.js';
 
 const DT = 1 / 60;
@@ -177,30 +177,51 @@ describe('マップの解放：画面から渡されるマップ（DATA.maps）�
 });
 
 describe('周回', () => {
-  it('7つのマップをすべて完了すると、次の周が選べる（マップ7まで）。同じ周をもう一度クリアしても増えない', () => {
+  it('7つのマップをすべて完了しても、周は自動では進まない。通信端末で話す（advanceCycle）と進む', () => {
     const save = createSave();
     expect(save.cycle).toBe(1);
     expect(canSortieCycle(save, maps[0], 2)).toBe(false);
-    // 7つすべてを完了すると2周目が選べる。途中（今できているマップを全部終えただけ）では、まだ進めない
     const ready = maps.map((m) => m.id);
     expect(ready).toHaveLength(7);
     {
       const partial = createSave();
-      for (const m of maps.slice(0, 6)) expect(recordMapClear(partial, m.id, 1).nextCycle).toBeNull();
-      expect(partial.cycle).toBe(1);
+      for (const m of maps.slice(0, 6)) expect(recordMapClear(partial, m.id, 1).cycleDone).toBe(false);
+      expect(cycleComplete(partial)).toBe(false);
+      expect(advanceCycle(partial)).toBe(false); // 途中では進めない
     }
-    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 1).nextCycle).toBeNull());
-    expect(save.cycle).toBe(1);
-    expect(recordMapClear(save, ready.at(-1), 1).nextCycle).toBe(2);
-    expect(canSortieCycle(save, maps[0], 2)).toBe(true);
-    expect(recordMapClear(save, 'map1', 1).nextCycle).toBeNull();
+    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 1).cycleDone).toBe(false));
+    expect(recordMapClear(save, ready.at(-1), 1).cycleDone).toBe(true);
+    expect(save.cycle).toBe(1); // 自動では進まない
+    expect(recordMapClear(save, 'map1', 1).cycleDone).toBe(false); // 同じ周をもう一度クリアしても、知らせは出ない
+    expect(advanceCycle(save)).toBe(true);
     expect(save.cycle).toBe(2);
-    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 2).nextCycle).toBeNull());
-    expect(recordMapClear(save, ready.at(-1), 2).nextCycle).toBe(3);
+    expect(advanceCycle(save)).toBe(false); // 2周目をクリアしていないので、続けては進めない
+    ready.slice(0, -1).forEach((id) => expect(recordMapClear(save, id, 2).cycleDone).toBe(false));
+    expect(recordMapClear(save, ready.at(-1), 2).cycleDone).toBe(true);
+    expect(advanceCycle(save)).toBe(true);
+    expect(save.cycle).toBe(3);
     expect(save.maps.map1).toEqual({ clears: 3, clearedCycle: 2 });
-    // 前の周も選べる
+  });
+
+  it('出撃できる周は、今の周だけ（前の周は選び直せない）。新しい周は、マップ1だけが開いていて、順に開く', () => {
+    const save = createSave();
+    for (const m of maps) recordMapClear(save, m.id, 1);
+    save.passes.push('map3', 'map4', 'map5');
     expect(canSortieCycle(save, maps[0], 1)).toBe(true);
-    expect(canSortieCycle(save, maps[0], 4)).toBe(false);
+    advanceCycle(save);
+    expect(canSortieCycle(save, maps[0], 1)).toBe(false); // 前の周には戻れない
+    expect(canSortieCycle(save, maps[0], 2)).toBe(true);
+    expect(canSortieCycle(save, maps[0], 3)).toBe(false);
+    // 新しい周：マップ1だけ
+    expect(mapStateAt(save, maps[0], 2)).toBe('open');
+    expect(mapStateAt(save, maps[1], 2)).toBe('locked');
+    expect(canSortieCycle(save, maps[1], 2)).toBe(false);
+    expect(lockReasonAt(save, maps[1], 2)).toContain('この周');
+    recordMapClear(save, 'map1', 2);
+    expect(mapStateAt(save, maps[0], 2)).toBe('done');
+    expect(mapStateAt(save, maps[1], 2)).toBe('open');
+    expect(canSortieCycle(save, maps[1], 2)).toBe(true);
+    expect(mapStateAt(save, maps[2], 2)).toBe('locked');
   });
 
   it('1周目は何も変わらない。周が進むごとに、HP +15%・受けるダメージ +8%', () => {
@@ -354,8 +375,8 @@ describe('セーブデータ（マップと周回）', () => {
 
   it('マップの記録と周は、保存して読み直しても残る', () => {
     const save = createSave();
-    for (const m of maps) recordMapClear(save, m.id, 1); // 7つすべてを完了して、2周目が開いた状態
-    save.selectedCycle = 2;
+    for (const m of maps) recordMapClear(save, m.id, 1); // 7つすべてを完了して、通信端末で2周目に進んだ状態
+    advanceCycle(save);
     const loaded = loadSlot(fakeStorage({ [slotKey(2)]: JSON.stringify(save) }), 2);
     expect(loaded.maps.map1).toEqual({ clears: 1, clearedCycle: 1 });
     expect(loaded.cycle).toBe(2);

@@ -13,6 +13,7 @@ import { weaponFor } from '../logic/stats.js';
 import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
+import { advanceCycle, cycleComplete } from '../logic/maps.js';
 import { canAfford, permanentBonuses, saveTree, treeNodeState, unlockWeapon } from '../logic/meta.js';
 import { createBuild, weaponTraitText } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
@@ -228,6 +229,9 @@ export class HideoutScene extends Phaser.Scene {
         // 今すぐ取れるマスがあれば、端末に数を出して知らせる
         const open = saveTree(save).nodes.filter((n) => treeNodeState(save, n.id) === 'open').length;
         Object.assign(o, open > 0 ? { color: COLORS.amber, sub: `取れるマス ${open}` } : { color: COLORS.green, sub: '恒久強化' });
+      } else if (o.id === 'talk:noise') {
+        const ready = this.canAdvanceCycle();
+        Object.assign(o, ready ? { color: COLORS.amber, sub: '次の周へ進める', prompt: 'E：通信端末で話す（次の周に進める）' } : { color: COLORS.ice, sub: '依頼主', prompt: 'E：依頼主と話す' });
       } else if (o.icon === 'gate') {
         o.prompt = `E：出撃先を選ぶ（${weaponUnlocks.find((w) => w.weapon === save.selected).name}）`;
       }
@@ -243,12 +247,42 @@ export class HideoutScene extends Phaser.Scene {
     p.dashCharges = p.stats.dashCharges;
   }
 
+  // 次の周に進めるか（依頼人を止めたあとで、今の周のマップを全部クリアしている）
+  canAdvanceCycle() {
+    return this.save.bossKills.noise > 0 && cycleComplete(this.save);
+  }
+
+  // 通信端末で、次の周に進むかを聞く（「進む」で周が上がる。前の周には戻れない）
+  offerNextCycle() {
+    const next = this.save.cycle + 1;
+    this.dialogue.play(
+      [
+        { who: 'noise', text: 'ザ……ザザ……' },
+        { who: 'hal', text: `端末が、まだ動いてる。街の設計図は残ってて、直す機械が、また動き出すみたい。次の ${next}周目に進む？　敵は、もっと強くなるよ。前の周には、戻れない。` },
+      ],
+      {
+        choices: [{ label: `${next}周目に進む` }, { label: 'まだやめておく' }],
+        onChoice: (i) => {
+          if (i !== 0 || !advanceCycle(this.save)) return [{ who: 'hal', text: '了解。気が向いたら、また話しかけて。' }];
+          persist();
+          this.refreshStations();
+          return [{ who: 'hal', text: `……わかった。${this.save.cycle}周目、マップ1から。気をつけて。` }];
+        },
+      },
+    );
+  }
+
   // E で調べたものの処理
   handleRequest(id) {
     const world = this.world;
     const p = world.player;
     if (id === 'sortie') {
       this.mapSelect.open();
+      return;
+    }
+    // 依頼人だったものの端末：今の周の7つのマップをクリアしていれば、次の周に進める
+    if (id === 'talk:noise' && this.canAdvanceCycle()) {
+      this.offerNextCycle();
       return;
     }
     if (id.startsWith('talk:')) {

@@ -42,9 +42,44 @@ export function canSortie(save, map) {
   return state === 'open' || state === 'done';
 }
 
-// その周で、そのマップを選べるか。2周目以降は、前の周までに解放したマップだけ
+// 2周目以降は、新しい周の最初はマップ1だけ。前のマップを「その周で」完了すると、次のマップが開く（2026-10-16）
+function cycleOpen(save, map, cycle) {
+  const index = indexOfMap(map);
+  return cycle <= 1 || index <= 0 || clearedCycle(save, maps[index - 1].id) >= cycle;
+}
+
+// その周での、マップの状態（mapState と同じ。2周目以降は、その周で完了したかどうかで決まる）
+export function mapStateAt(save, map, cycle) {
+  const state = mapState(save, map);
+  if (state !== 'open' && state !== 'done') return state;
+  if (!cycleOpen(save, map, cycle)) return 'locked';
+  return clearedCycle(save, map.id) >= cycle ? 'done' : 'open';
+}
+
+// その周で選べないマップの、理由の文
+export function lockReasonAt(save, map, cycle) {
+  const state = mapState(save, map);
+  if (state !== 'open' && state !== 'done') return lockReason(save, map);
+  return cycleOpen(save, map, cycle) ? '' : 'この周では、前のマップを完了すると、選べるようになる';
+}
+
+// その周で、そのマップを選べるか。選べる周は、今の周だけ（前の周は選び直せない。2026-10-16）
 export function canSortieCycle(save, map, cycle) {
-  return canSortie(save, map) && cycle >= 1 && cycle <= save.cycle;
+  return canSortie(save, map) && cycle === save.cycle && cycleOpen(save, map, cycle);
+}
+
+// 今の周で、7つすべてのマップを完了したか（隠れ家の通信端末で、次の周に進める）
+export function cycleComplete(save) {
+  return maps.every((map) => isReady(map) && clearedCycle(save, map.id) >= save.cycle);
+}
+
+// 次の周に進む（通信端末で話したとき）。進めたら true
+export function advanceCycle(save) {
+  if (!cycleComplete(save)) return false;
+  save.cycle++;
+  save.selectedCycle = save.cycle;
+  save.selectedMap = maps[0].id;
+  return true;
 }
 
 // 7つすべてのマップを完了したか（エンディングの条件。準備中のマップがある間は false）
@@ -53,21 +88,17 @@ export function allMapsCleared(save) {
 }
 
 // マップを完了したときの記録。新しく起きたことを返す
-//   { firstClear: そのマップを初めて完了した, nextCycle: 新しく選べるようになった周（なければ null）, ending: これで7つすべてを初めて完了した }
+//   { firstClear: そのマップを初めて完了した, cycleDone: これで今の周の7つがそろった（隠れ家の通信端末で、次の周に進める）, ending: これで7つすべてを初めて完了した }
 export function recordMapClear(save, mapId, cycle) {
   const before = allMapsCleared(save);
+  const wasComplete = cycleComplete(save);
   const entry = (save.maps[mapId] ??= { clears: 0, clearedCycle: 0 });
   const firstClear = entry.clearedCycle < 1;
   entry.clears++;
   entry.clearedCycle = Math.max(entry.clearedCycle, cycle);
-  // 7つのマップすべて（最後はマップ7）を、今選べる最高の周で完了したら、次の周が選べるようになる。
-  // まだ中身のできていないマップがある間は、次の周には進めない（2026-10-07 に、「今あるマップをすべて」から変えた）
-  let nextCycle = null;
-  if (maps.every((map) => clearedCycle(save, map.id) >= save.cycle)) {
-    save.cycle++;
-    nextCycle = save.cycle;
-  }
-  return { firstClear, nextCycle, ending: !before && allMapsCleared(save) };
+  // 7つのマップすべてを、今の周で完了したら、隠れ家の通信端末で次の周に進める（自動では進まない。2026-10-16）
+  const cycleDone = !wasComplete && cycleComplete(save);
+  return { firstClear, cycleDone, ending: !before && allMapsCleared(save) };
 }
 
 // 記録の「最高到達」の表示（例：MAP 02 DRAIN 01-4）。まだ出撃していなければ「なし」

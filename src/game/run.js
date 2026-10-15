@@ -240,7 +240,7 @@ export function handleEvents(run, world) {
       run.ending = result.ending; // 7つすべてを初めて完了したら、エンディングを出す
       notes.push(...processEvent(run.save, run, { type: 'mapClear', map: run.map.id, cycle: run.cycle }));
       if (result.firstClear) notes.push(note(run, `> マップ完了 // ${run.map.code} ${run.map.name}`));
-      if (result.nextCycle) notes.push(note(run, `> ${result.nextCycle}周目が選べるようになった`));
+      if (result.cycleDone) notes.push(note(run, `> ${run.cycle + 1}周目に進める // 隠れ家の通信端末で話す`));
     }
   }
   return notes;

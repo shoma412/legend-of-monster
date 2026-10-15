@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { hitEnemy } from '../src/game/combat.js';
 import { NEXT_AREA, createRun, enterRoom, handleEvents, hasNextArea, leaveRoom, skipToBoss } from '../src/game/run.js';
 import { updateWorld } from '../src/game/world.js';
-import { allMapsCleared, mapState, recordMapClear } from '../src/logic/maps.js';
+import { advanceCycle, allMapsCleared, cycleComplete, mapState, recordMapClear } from '../src/logic/maps.js';
 import { createSave } from '../src/logic/save.js';
 
 // マップ7を、最初のエリアから最後のボスまで通しで進める（エンディングと、2周目の解放まで）
@@ -51,7 +51,10 @@ describe('マップ7を通しで遊ぶ', () => {
     // 最後のボスを倒した：マップ完了と、エンディング
     expect(run.ending).toBe(true);
     expect(save.bossKills.noise).toBe(1);
-    expect(save.cycle).toBe(2); // 7つすべてを完了したので、2周目が選べる
+    expect(save.cycle).toBe(1); // 周は、自動では進まない（隠れ家の通信端末で話して進める）
+    expect(cycleComplete(save)).toBe(true);
+    expect(advanceCycle(save)).toBe(true);
+    expect(save.cycle).toBe(2);
     expect(save.materials.noiseCore).toBeGreaterThanOrEqual(1);
     expect(save.achievements).toContain('noise');
     expect(allMapsCleared(save)).toBe(true);

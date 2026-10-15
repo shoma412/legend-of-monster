@@ -8,7 +8,7 @@ import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { species } from '../data/implants.js';
-import { canSortieCycle, clearedCycle, cycleNotes, lockReason, mapState } from '../logic/maps.js';
+import { canSortieCycle, clearedCycle, cycleNotes, lockReasonAt, mapStateAt } from '../logic/maps.js';
 import { carryOverPicks, permanentBonuses } from '../logic/meta.js';
 import { carryOptions, implantDesc, mapSpecies } from '../logic/stats.js';
 
@@ -39,7 +39,7 @@ export function createMapSelect(scene, options) {
     open() {
       const save = options.save();
       index = Math.max(0, maps.findIndex((m) => m.id === save.selectedMap));
-      cycle = Math.max(1, Math.min(save.cycle, save.selectedCycle ?? 1));
+      cycle = save.cycle; // 出撃できる周は、今の周だけ（前の周は選び直せない）
       box.isOpen = true;
       root.setVisible(true);
       render();
@@ -66,22 +66,11 @@ export function createMapSelect(scene, options) {
   function remember() {
     const save = options.save();
     save.selectedMap = maps[index].id;
-    save.selectedCycle = cycle;
     options.onChange?.();
   }
 
   function move(delta) {
     index = (index + delta + maps.length) % maps.length;
-    playSe('select');
-    remember();
-    render();
-  }
-
-  function changeCycle(delta) {
-    const save = options.save();
-    const next = Math.max(1, Math.min(save.cycle, cycle + delta));
-    if (next === cycle) return;
-    cycle = next;
     playSe('select');
     remember();
     render();
@@ -158,7 +147,7 @@ export function createMapSelect(scene, options) {
     maps.forEach((map, i) => {
       const x = left + i * (CARD_W + CARD_GAP);
       const y = 84;
-      const state = mapState(save, map);
+      const state = mapStateAt(save, map, cycle);
       const on = i === index;
       const usable = state === 'open' || state === 'done';
       const color = !usable ? LOCKED : state === 'done' ? COLORS.green : COLORS.cyan;
@@ -176,7 +165,7 @@ export function createMapSelect(scene, options) {
 
     // 選んでいるマップのくわしい中身
     const map = maps[index];
-    const state = mapState(save, map);
+    const state = mapStateAt(save, map, cycle);
     const usable = state === 'open' || state === 'done';
     const py = 232;
     // 前の出撃でマップをクリアしていると、持ち越しの欄が出る（そのぶん、枠が下に伸びる）
@@ -211,18 +200,16 @@ export function createMapSelect(scene, options) {
         text(W - 80, py + 72, carry.length > 1 ? 'Q・E：1つ目　Z・C：2つ目' : 'Q・E で切り替え', 11, COLORS.dim).setOrigin(1, 0);
       }
 
-      // 周の選択（2周目以降が選べるときだけ）
+      // 今の周（2周目以降）。周は、隠れ家の通信端末で話して進める。前の周には戻れない
       if (save.cycle > 1) {
         const cx = 80;
         const cy = py + 124;
         text(cx, cy + 4, '周回', 13, COLORS.dim, { fontStyle: '700' });
-        button(cx + 50, cy, 30, 26, '◀', cycle > 1 ? COLORS.ink : LOCKED, () => changeCycle(-1));
-        text(cx + 130, cy + 13, `${cycle}周目`, 16, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
-        button(cx + 180, cy, 30, 26, '▶', cycle < save.cycle ? COLORS.ink : LOCKED, () => changeCycle(1));
+        text(cx + 80, cy + 13, `${cycle}周目`, 16, COLORS.amber, { fontStyle: '700' }).setOrigin(0.5);
         const notes = cycleNotes(cycle);
-        text(cx + 230, cy - 2, notes.length > 0 ? notes.join('\n') : '敵の強さは、最初と同じ', 12, notes.length > 0 ? COLORS.red : COLORS.dim, { lineSpacing: 4 });
+        text(cx + 130, cy - 2, notes.length > 0 ? notes.join('\n') : '敵の強さは、最初と同じ', 12, notes.length > 0 ? COLORS.red : COLORS.dim, { lineSpacing: 4 });
       } else {
-        text(80, py + 128, '7つのマップをすべて完了すると、次の周（敵が強くなる）に進めるようになる', 12, COLORS.dim);
+        text(80, py + 128, '7つのマップをすべて完了したら、隠れ家の通信端末で話すと、次の周（敵が強くなる）に進める', 12, COLORS.dim);
       }
 
       // 持ち越し：クレジットと、インプラントを選ぶ枠（◀ 名前 ▶）
@@ -245,22 +232,20 @@ export function createMapSelect(scene, options) {
         }
       }
     } else {
-      const why = lockReason(save, map);
+      const why = lockReasonAt(save, map, cycle);
       text(W / 2, py + 93, why, 15, LOCKED, { fontStyle: '700' }).setOrigin(0.5);
     }
 
     const weapon = DATA.weapons.get(save.selected);
     button(W / 2 - 230, 438 + keepRow, 220, 38, `出撃する（Enter）`, usable ? COLORS.amber : LOCKED, start);
     button(W / 2 + 10, 438 + keepRow, 220, 38, 'やめる（Tab）', COLORS.ink, () => box.close());
-    text(W / 2, Math.max(498 + keepRow * 0.6, 438 + keepRow + 47), `武器：${weapon.name}　　A・D：マップ${save.cycle > 1 ? '　W・S：周回' : ''}　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
+    text(W / 2, Math.max(498 + keepRow * 0.6, 438 + keepRow + 47), `武器：${weapon.name}　　A・D：マップ　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
   }
 
   const kb = scene.input.keyboard;
   const on = (keys, run) => keys.forEach((key) => kb.on(`keydown-${key}`, () => box.isOpen && run()));
   on(['A', 'LEFT'], () => move(-1));
   on(['D', 'RIGHT'], () => move(1));
-  on(['W', 'UP'], () => changeCycle(1));
-  on(['S', 'DOWN'], () => changeCycle(-1));
   on(['Q'], () => changeCarry(-1, 0));
   on(['E'], () => changeCarry(1, 0));
   on(['Z'], () => changeCarry(-1, 1));
