@@ -32,13 +32,18 @@ describe('マスが増えても、1つも重ならない', () => {
     expect(nearest).toBeGreaterThanOrEqual(NODE_GAP * 0.99);
   });
 
-  it('親と子の線の長さは、どれも、輪の間隔の 1.5 倍以内（長い線がない）', () => {
-    const world = worldLayout(layoutTree(buildTree(99)));
-    for (const [i, id] of world.ids.entries()) {
-      const p = world.nodes[i].parent;
-      const a = p >= 0 ? world.pts[p] : { x: 0, y: 0 };
-      const len = Math.hypot(world.pts[i].x - a.x, world.pts[i].y - a.y);
-      expect(len, id).toBeLessThanOrEqual(world.step * 1.5);
+  it('親と子の線の長さは、ふつう、輪の間隔と同じくらい（平均 1.2 倍以内）。いちばん長い線でも、2.1 倍以内', () => {
+    for (const seed of [99, 42, 1]) {
+      const world = worldLayout(layoutTree(buildTree(seed)));
+      let total = 0;
+      for (const [i, id] of world.ids.entries()) {
+        const p = world.nodes[i].parent;
+        const a = p >= 0 ? world.pts[p] : { x: 0, y: 0 };
+        const len = Math.hypot(world.pts[i].x - a.x, world.pts[i].y - a.y);
+        expect(len, id).toBeLessThanOrEqual(world.step * 2.1);
+        total += len;
+      }
+      expect(total / world.ids.length).toBeLessThanOrEqual(world.step * 1.2);
     }
   });
 

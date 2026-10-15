@@ -59,9 +59,9 @@ export function worldLayout(layout) {
   const { need } = needs(step);
 
   // 扇形を割り振る：自分の取り分の真ん中に自分を置き、枝の先へ、必要な広さに比例して分ける
+  //   自分の位置は、枝の先のマスの真ん中（線が斜めに伸びすぎない）。ただし、自分の取り分の中で、隣と NODE_GAP あくところまで
   const angle = new Map();
   const place = (id, a0, a1) => {
-    angle.set(id, (a0 + a1) / 2);
     const list = kids.get(id) ?? [];
     const total = list.reduce((s, c) => s + need(c), 0);
     let at = a0;
@@ -70,6 +70,9 @@ export function worldLayout(layout) {
       place(c, at, at + width);
       at += width;
     }
+    const own = NODE_GAP / (step * depthOf(id));
+    const want = list.length > 0 ? (angle.get(list[0]) + angle.get(list.at(-1))) / 2 : (a0 + a1) / 2;
+    angle.set(id, Math.max(a0 + own / 2, Math.min(a1 - own / 2, want)));
   };
   {
     const total = roots.reduce((s, r) => s + need(r), 0);
