@@ -1114,11 +1114,18 @@ export class MenuOverlay {
       });
     }
     // 凡例
-    [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]].forEach(([mark, meaning, color], k) => {
-      this.text(X + 18 + k * 88, 431, mark, 11, color, { fontStyle: '700' });
-      this.text(X + 33 + k * 88, 431, meaning, 11, COLORS.dim);
-    });
-    [['取得済み', 0, COLORS.green], ['取れる', 76, COLORS.amber], ['素材不足', 138, COLORS.dim], ['まだ', 214, LOCKED]].forEach(([label, dx, color]) => this.text(X + 18 + dx, 446, `● ${label}`, 11, color, { fontStyle: '700' }));
+    // 文字の幅は言語で変わるので、左から、出した文字の幅ぶんだけずらして並べる
+    let lx = X + 18;
+    for (const [mark, meaning, color] of [['体', '耐久', CATEGORY.body.color], ['技', '攻撃', CATEGORY.skill.color], ['備', '装備・移動', CATEGORY.gear.color]]) {
+      const m = this.text(lx, 431, mark, 11, color, { fontStyle: '700' });
+      const t = this.text(lx + m.width + 4, 431, meaning, 11, COLORS.dim);
+      lx += m.width + 4 + t.width + 14;
+    }
+    lx = X + 18;
+    for (const [label, color] of [['取得済み', COLORS.green], ['取れる', COLORS.amber], ['素材不足', COLORS.dim], ['まだ', LOCKED]]) {
+      const t = this.text(lx, 446, `● ${label}`, 11, color, { fontStyle: '700' });
+      lx += t.width + 14;
+    }
   }
 
   // ---- 記録 ----

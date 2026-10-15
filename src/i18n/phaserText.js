@@ -13,6 +13,8 @@ const baseSizeOf = (text) => {
 };
 
 function setTranslated(text, inner, ja) {
+  // 作っている途中の Text は、中の文がまだ無い。大きさを変えると描き直しが走るので、先に空の文を入れておく
+  if (text._text === undefined) text._text = '';
   const lang = getLang();
   const out = translate(ja, lang);
   const base = baseSizeOf(text);
