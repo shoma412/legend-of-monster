@@ -1862,6 +1862,11 @@ export const en = {
     "設計図の外へ": "Beyond the Blueprint",
     "修繕不能": "Beyond Repair",
     "保守員の走り書き": "Maintenance Worker's Scribbled Note",
+    "{}　← 今の武器": "{1}  ← Current weapon",
+    "左クリック：{}": "Left click: {1}",
+    "右クリック：{}": "Right click: {1}",
+    "RB：{}": "RB: {1}",
+    "LB：{}": "LB: {1}",
   },
   names: {
     "ステータス": "Status",

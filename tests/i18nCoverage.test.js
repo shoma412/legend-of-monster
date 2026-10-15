@@ -80,3 +80,16 @@ describe('物語（段階4）', () => {
     for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
   });
 });
+
+describe('操作の説明の、武器ごとのクリック', () => {
+  it('英語・韓国語に、日本語が残らない（今の武器の印も含む）', async () => {
+    const { mouseLines } = await import('../src/scenes/controlsPanel.js');
+    const list = [];
+    for (const w of DATA.weapons.all()) {
+      for (const line of mouseLines(w)) {
+        list.push(`${line.name}${line.current ? '　← 今の武器' : ''}`, `左クリック：${line.left}`, `右クリック：${line.right}`, `RB：${line.left}`, `LB：${line.right}`);
+      }
+    }
+    for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
+  });
+});

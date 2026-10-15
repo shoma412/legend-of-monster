@@ -18,7 +18,7 @@ import { bestReachText } from '../logic/maps.js';
 import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
-import { ELEMENT_NAMES, describeItem, describeLine } from '../logic/loot.js';
+import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
 import { buyNode, canAfford, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { worldLayout } from '../logic/treeGeometry.js';
@@ -1221,22 +1221,6 @@ export class MenuOverlay {
         });
       });
 
-      blank();
-      head('装備に付く効果（見た中で、いちばん高かった値）');
-      for (const def of DATA.gearEffects.all()) {
-        lines.push((y) => {
-          if (def.kind === 'element') {
-            const names = log.elements.map((id) => ELEMENT_NAMES[id]).filter(Boolean);
-            this.text(X, y + 4, def.label, 13, names.length > 0 ? COLORS.ink : LOCKED, { fontStyle: '700' });
-            this.text(X + 200, y + 5, names.length > 0 ? `見た属性：${names.join('・')}` : 'まだ見ていない', 12, names.length > 0 ? COLORS.ink : LOCKED);
-            return;
-          }
-          const value = log.best[def.id];
-          this.text(X, y + 4, def.label, 13, value ? COLORS.ink : LOCKED, { fontStyle: '700' });
-          this.text(X + 200, y + 5, value ? describeLine({ id: def.id, value }) : 'まだ見ていない', 12, value ? COLORS.amber : LOCKED);
-          this.text(X + 420, y + 5, `出る範囲：${describeLine({ id: def.id, value: def.min })} 〜 ${describeLine({ id: def.id, value: def.max }).replace(def.label, '').trim()}`, 11, COLORS.dim);
-        });
-      }
     } else {
       // ---- インプラント：手に入れたことのあるものだけ、説明つきで並べる。説明は Lv1 のときのもの ----
       const all = DATA.implants.all();
