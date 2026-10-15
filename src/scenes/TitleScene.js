@@ -4,6 +4,7 @@ import { playBgm, playSe, unlockAudio } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { setupView } from '../render/view.js';
+import logoUrl from '../assets/title-logo.png';
 import { MenuOverlay } from './menuOverlay.js';
 
 // タイトル画面。メニュー（はじめる／設定／クレジット）から、セーブ枠の選択か、設定・クレジットの画面へ。
@@ -12,29 +13,35 @@ export class TitleScene extends Phaser.Scene {
     super('Title');
   }
 
+  // タイトルのロゴ（src/assets/title-logo.png。由来は CREDITS.md）
+  preload() {
+    this.load.image('title-logo', logoUrl);
+  }
+
   create() {
     setTouchMode('select');
     const { width: W, height: H } = SCREEN;
     setupView(this);
     this.drawBackdrop(W, H);
 
-    const titleStyle = { fontFamily: FONTS.display, fontStyle: '700', fontSize: '64px' };
-    const legend = this.add.text(0, 0, 'LEGEND OF ', { ...titleStyle, color: COLORS.cyan })
-      .setShadow(0, 0, COLORS.cyan, 18, false, true);
-    const monster = this.add.text(0, 0, 'MONSTER', { ...titleStyle, color: COLORS.magenta })
-      .setShadow(0, 0, COLORS.magenta, 18, false, true);
-    const left = (W - legend.width - monster.width) / 2;
-    legend.setPosition(left, H * 0.3);
-    monster.setPosition(left + legend.width, H * 0.3);
+    // ロゴ（画像が読み込めなかったときだけ、文字で出す）
+    const LOGO_H = 270;
+    if (this.textures.exists('title-logo')) {
+      const logo = this.add.image(W / 2, 14 + LOGO_H / 2, 'title-logo');
+      logo.setScale(LOGO_H / logo.height);
+    } else {
+      this.add.text(W / 2, 14 + LOGO_H / 2, 'LEGEND OF MONSTER', { fontFamily: FONTS.display, fontStyle: '700', fontSize: '48px', color: COLORS.cyan })
+        .setOrigin(0.5).setShadow(0, 0, COLORS.cyan, 18, false, true);
+    }
 
-    this.add.text(W / 2, H * 0.3 + 92, 'CYBERPUNK HACK & SLASH ROGUELITE', {
-      fontFamily: FONTS.display, fontStyle: '500', fontSize: '15px', color: COLORS.dim,
+    this.add.text(W / 2, 296, 'CYBERPUNK HACK & SLASH ROGUELITE', {
+      fontFamily: FONTS.display, fontStyle: '500', fontSize: '14px', color: COLORS.dim,
     }).setOrigin(0.5).setLetterSpacing(4);
 
     // 公開版（体験版）だけに出す表示。開発中の画面には出ない
     if (!import.meta.env.DEV) {
-      this.add.text(W / 2, H * 0.3 + 128, '― 体験版 ―', {
-        fontFamily: FONTS.body, fontSize: '20px', color: COLORS.amber,
+      this.add.text(W / 2, 320, '― 体験版 ―', {
+        fontFamily: FONTS.body, fontSize: '16px', color: COLORS.amber,
       }).setOrigin(0.5).setShadow(0, 0, COLORS.amber, 8, false, true);
     }
 
@@ -46,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
       { label: 'クレジット', run: () => this.menu.open('credits') },
     ];
     this.itemTexts = this.items.map((item, i) => {
-      const t = this.add.text(W / 2, H * 0.62 + i * 38, item.label, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '22px', color: COLORS.dim }).setOrigin(0.5);
+      const t = this.add.text(W / 2, 358 + i * 36, item.label, { fontFamily: FONTS.body, fontStyle: '700', fontSize: '22px', color: COLORS.dim }).setOrigin(0.5);
       t.setInteractive({ useHandCursor: true })
         .on('pointerover', () => this.select(i))
         .on('pointerdown', () => {
