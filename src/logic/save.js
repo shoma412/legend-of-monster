@@ -36,7 +36,6 @@ export function createSave() {
     passes: [], // 持っている通行証（隠しボスを倒したマップの id。版6で追加）
     // スキルツリー（版7で追加）。seed は配置を決める種（セーブデータごとに違う）、owned は取ったマスの id
     tree: { seed: newTreeSeed(), owned: [] },
-    endless: {}, // 終わりのない強化の段数（2026-10-15 追加）。{ 系統のid: 段 }
     notices: [], // 次に隠れ家へ入ったときに、1回だけ出すお知らせ（版7で追加）
     // マップをクリアしたあとの持ち越し（2026-10-08 追加。なければ null）。{ credits, implants: 候補の id, picked: 選んだ id }。次に出撃したら消える
     carryOver: null,
@@ -169,7 +168,6 @@ export function normalizeSave(data) {
     carrySpecies2: typeof d.carrySpecies2 === 'string' ? d.carrySpecies2 : null,
     passes: Array.isArray(d.passes) ? [...new Set(d.passes)] : [],
     tree: { seed, owned },
-    endless: Object.fromEntries(Object.entries(d.endless ?? {}).filter(([k, v]) => typeof k === 'string' && Number.isFinite(v) && v > 0).map(([k, v]) => [k, Math.floor(v)])),
     notices: Array.isArray(d.notices) ? d.notices.filter((n) => typeof n === 'string') : [],
     carryOver: normalizeCarryOver(d.carryOver),
     gearLog: normalizeGearLog(d.gearLog),
