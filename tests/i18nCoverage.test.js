@@ -27,8 +27,8 @@ function untranslated(lang, list) {
   return [...new Set(list)].filter((s) => JAPANESE.test(translate(s)));
 }
 
-// 物語（会話・データ片・実績）は、段階4で訳す
-const STAGE3 = ['weapons', 'consumables', 'gearEffects', 'legendEffects', 'environments', 'rooms', 'maps', 'enemies', 'bosses', 'areas', 'materials', 'upgrades', 'eliteTraits', 'characters', 'encounters', 'gimmicks'];
+// 物語（会話・データ片・実績）は、段階4
+const STAGE3 = ['weapons', 'consumables', 'gearEffects', 'legendEffects', 'environments', 'rooms', 'maps', 'enemies', 'bosses', 'areas', 'materials', 'upgrades', 'eliteTraits', 'characters', 'encounters', 'gimmicks', 'dialogues', 'fragments', 'achievements'];
 
 describe('名前と説明の訳（段階3）', () => {
   for (const lang of ['en', 'ko']) {
@@ -67,6 +67,16 @@ describe('装備の名前と効果の行（段階3）', () => {
     const { weaponTraitText } = await import('../src/logic/stats.js');
     const list = DATA.weapons.all().map((w) => weaponTraitText(w)).filter(Boolean);
     expect(list.length).toBeGreaterThan(0);
+    for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
+  });
+});
+
+describe('物語（段階4）', () => {
+  it('依頼文・エンディング・ほかの文章が、英語・韓国語に、日本語が残らない', async () => {
+    const story = await import('../src/data/story.js');
+    const list = [...strings(story.brief), ...strings(story.ending), ...strings(DATA.dialogues.all())];
+    const { talks } = await import('../src/data/dialogues.js');
+    list.push(...strings(talks));
     for (const lang of ['en', 'ko']) expect(untranslated(lang, list)).toEqual([]);
   });
 });

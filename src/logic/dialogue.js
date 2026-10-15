@@ -1,6 +1,7 @@
 // 会話の進行に関する判定（どの会話を出すか、既読の記録、名前のごまかし）。画面には依存しない。
 import { GLITCH, NOISE_TAG } from '../data/characters.js';
 import { dialogues, talks } from '../data/dialogues.js';
+import { translate } from '../i18n/translate.js';
 
 // 記号の並びでごまかした名前（依頼主）。出すたびに変わる
 export function glitchName(rng = Math.random) {
@@ -23,7 +24,7 @@ export function afterNoise(save, lines) {
 
 // 文章の中の印（@noise）を、ごまかした名前に置き換える（通信ログ、エンディング）
 export function resolveNames(lines, rng = Math.random) {
-  return lines.map((line) => line.split(NOISE_TAG).join(glitchName(rng)));
+  return lines.map((line) => translate(line).split(NOISE_TAG).join(glitchName(rng)));
 }
 
 function matches(trigger, save, at, ctx) {

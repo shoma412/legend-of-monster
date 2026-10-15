@@ -7,6 +7,7 @@ import { playSe } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
+import { translate } from '../i18n/translate.js';
 import { displayName } from '../logic/dialogue.js';
 import { PORTRAIT_SIZE, ensurePortrait } from '../render/portraits.js';
 
@@ -83,7 +84,7 @@ export function createDialogueBox(scene) {
 
     update(deltaMs) {
       if (!box.isOpen) return;
-      const full = lines[index].text;
+      const full = textAt(index);
       if (shown < full.length) {
         shown = Math.min(full.length, shown + (TYPE_SPEED * deltaMs) / 1000);
         bodyText.setText(full.slice(0, Math.floor(shown)));
@@ -98,6 +99,9 @@ export function createDialogueBox(scene) {
       }
     },
   };
+
+  // 今の言語に訳した本文（1文字ずつ出すので、訳してから切る）
+  const textAt = (i) => translate(lines[i].text);
 
   function showLine() {
     const line = lines[index];
@@ -124,7 +128,7 @@ export function createDialogueBox(scene) {
     });
     if (on) {
       // 選択肢を出すときは、本文を1行ぶんにして場所を空ける
-      bodyText.setText(lines[index].text);
+      bodyText.setText(textAt(index));
       hint.setText('1 / 2 かクリックで選ぶ');
     }
   }
@@ -144,7 +148,7 @@ export function createDialogueBox(scene) {
 
   function advance() {
     if (!box.isOpen || choosing) return;
-    const full = lines[index].text;
+    const full = textAt(index);
     if (shown < full.length) {
       shown = full.length;
       bodyText.setText(full);
@@ -166,7 +170,7 @@ export function createDialogueBox(scene) {
     if (options.choices?.length) {
       index = lines.length - 1;
       showLine();
-      shown = lines[index].text.length;
+      shown = textAt(index).length;
       setChoices(true);
     } else {
       close();
