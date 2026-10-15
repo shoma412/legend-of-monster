@@ -4,6 +4,7 @@
 // on    : きっかけになる出来事（複数のときは、配列で書く）
 //         sortie（出撃）/ kill（敵を倒した）/ eliteKill / bossKill / implant（インプラントを入れた）/
 //         equip（装備を身につけた）/ fragment（データ片を手に入れた）/ runClear（最後のボスを倒した）/
+//         any（どの出来事でも。「すべての実績」のように、ほかの実績がそろったかを見るもの。配列の最後に置く）/
 //         mapClear（マップを完了した）/ levelup（レベルが上がった）/ guard（ジャストガード成功）/ ougi（奥義を使った）/ buy（闇市で買った）/ item（消耗品を使った）
 // icon  : 見た目（src/render/metaIcons.js の ACHIEVEMENT_ICONS）。color を書くと、解除したときの色が変わる（書かなければ金色）
 // check : 追加の条件の部品の名前（src/logic/achievements.js の CHECKS）。書かなければ、出来事が起きただけで解除
@@ -80,7 +81,7 @@ export const achievements = [
   { id: 'map7', icon: 'crown', color: 'red', name: '核心区停止', desc: 'マップ7を完了した', on: 'mapClear', check: 'mapIs', map: 'map7' },
   { id: 'cycle-3', icon: 'repeat', color: 'red', name: '異物認定', desc: '3周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 3 },
   { id: 'cycle-10', icon: 'repeat', color: 'red', name: '終わらない修繕', desc: '10周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 10 },
-  { id: 'cycle-20', icon: 'crown', color: 'red', name: '街の記憶', desc: '20周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 20 },
-  { id: 'cycle-50', icon: 'crown', color: 'red', name: '設計図の外へ', desc: '50周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 50 },
   { id: 'cycle-5', icon: 'crown', color: 'red', name: '修繕不能', desc: '5周目をクリアした', on: 'mapClear', check: 'cycleAtLeast', cycle: 5 },
+  // すべての実績（これ以外）を解除した。ほかの実績のあとで調べるので、配列の最後に置く（2026-10-16）
+  { id: 'all-achievements', icon: 'crown', color: 'amber', name: '全実績達成', desc: 'すべての実績を達成した', on: 'any', check: 'allAchievements' },
 ];

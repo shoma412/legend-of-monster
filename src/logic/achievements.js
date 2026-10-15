@@ -22,6 +22,8 @@ const CHECKS = {
   // 8種類すべての武器で、クリアしたことがある（記録がなくても、その武器の「初めてクリア」の実績があればよい）
   allWeaponsCleared: (def, event, save) => DATA.weapons.ids().every((id) => (save.records.weaponClears?.[id] ?? 0) > 0 || save.achievements.includes(`clear-${id}`)),
   totalClears: (def, event, save) => save.records.clears >= def.count,
+  // これ以外の実績を、すべて解除した
+  allAchievements: (def, event, save) => DATA.achievements.all().every((d) => d.id === def.id || save.achievements.includes(d.id)),
   // 隠しボスを含む、すべてのボスを倒した
   allBosses: (def, event, save) => DATA.bosses.ids().every((id) => (save.bossKills[id] ?? 0) > 0),
 };
@@ -34,7 +36,7 @@ export function hasCheck(name) {
 export function unlockAchievements(save, run, event) {
   const unlocked = [];
   for (const def of DATA.achievements.all()) {
-    if (![def.on].flat().includes(event.type) || save.achievements.includes(def.id)) continue;
+    if (save.achievements.includes(def.id) || !([def.on].flat().includes('any') || [def.on].flat().includes(event.type))) continue;
     if (def.check && !CHECKS[def.check](def, event, save, run)) continue;
     save.achievements.push(def.id);
     unlocked.push(def);

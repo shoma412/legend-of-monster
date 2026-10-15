@@ -97,3 +97,37 @@ describe('マップの実績', () => {
     expect(loaded.achievements).not.toContain('noise');
   });
 });
+
+describe('周回の実績は10周目まで。「全実績達成」', () => {
+  it('周回の実績は、3・5・10周目だけ（20周目・50周目はない）', () => {
+    const cycles = DATA.achievements.all().filter((d) => d.check === 'cycleAtLeast').map((d) => d.cycle).sort((a, b) => a - b);
+    expect(cycles).toEqual([3, 5, 10]);
+  });
+
+  it('これ以外の実績をすべて解除すると、「全実績達成」が解除される。1つ足りなければ、解除されない', () => {
+    const others = DATA.achievements.all().filter((d) => d.id !== 'all-achievements');
+    const save = createSave();
+    const missing = others.find((d) => d.on !== 'sortie'); // 出撃では解除されない実績を、1つだけ残す
+    for (const d of others) if (d.id !== missing.id) save.achievements.push(d.id);
+    processEvent(save, newRun('sword'), { type: 'sortie' });
+    expect(save.achievements).not.toContain('all-achievements');
+    save.achievements.push(missing.id);
+    processEvent(save, newRun('sword'), { type: 'sortie' });
+    expect(save.achievements).toContain('all-achievements');
+  });
+
+  it('最後の1つを解除した、そのときに、「全実績達成」も解除される（最後の実績は、初出撃）', () => {
+    const others = DATA.achievements.all().filter((d) => d.id !== 'all-achievements' && d.id !== 'first-sortie');
+    const save = createSave();
+    for (const d of others) save.achievements.push(d.id);
+    processEvent(save, newRun('sword'), { type: 'sortie' });
+    expect(save.achievements).toContain('first-sortie');
+    expect(save.achievements).toContain('all-achievements');
+  });
+
+  it('取りやめた20周目・50周目の実績は、以前のセーブデータから外れる', () => {
+    const save = createSave();
+    save.achievements.push('cycle-20', 'cycle-50', 'cycle-10');
+    expect(normalizeSave(JSON.parse(JSON.stringify(save))).achievements).toEqual(['cycle-10']);
+  });
+});

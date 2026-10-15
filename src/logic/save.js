@@ -157,7 +157,8 @@ function migratePasses(d) {
 // 取りやめた実績の id を、あとの実績に置き換える（2026-10-16：「依頼完了」(noise) は「核心区停止」(map7) にまとめた）
 function migrateAchievements(list) {
   if (!Array.isArray(list)) return [];
-  return [...new Set(list.map((id) => (id === 'noise' ? 'map7' : id)))];
+  // 取りやめた実績（20周目・50周目）は、一覧から外す（解除数が、実績の数を超えないように）
+  return [...new Set(list.map((id) => (id === 'noise' ? 'map7' : id)).filter((id) => id !== 'cycle-20' && id !== 'cycle-50'))];
 }
 
 // { id: 回数 } の形の記録を、壊れた値を捨てて整える

@@ -1910,6 +1910,8 @@ export const en = {
     "凪の外套": "Cloak of Calm",
     "凪の足": "Feet of Calm",
     "凪の心臓": "Heart of Calm",
+    "全実績達成": "Completionist",
+    "すべての実績を達成した": "Unlocked every achievement",
   },
   names: {
     "ステータス": "Status",
