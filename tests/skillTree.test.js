@@ -12,7 +12,7 @@ import { TREE, buildTree, cleanOwned, isReachable, layoutTree, treeNodeDefs, upg
 // 最初の34マスの強化（スキルツリーにしたときのもの）。あとから足した強化（since が 2 以上）は、別に確かめる
 const upgrades = allUpgrades.filter((d) => (d.since ?? 1) === 1);
 const FIRST_NODES = 34;
-const ALL_NODES = 391; // マップ6で足した6マス（since: 8）、マップ7に向けた95マス（since: 9）、周回に向けた225マス（since: 10）を含む
+const ALL_NODES = 760; // マップ6で足した6マス（since: 8）、95マス（since: 9）、225マス（since: 10）、369マス（since: 11）を含む
 const WEAPON_NODES = 7; // 武器ごとの強化（since: 5）
 const MAP5_NODES = 8; // マップ5で足したマス（since: 4）
 const MAP4_NODES = 7; // マップ4で足したマス（since: 2）
@@ -84,12 +84,12 @@ describe('配置の決まり（どの種でも守られる）', () => {
         const types = Object.keys(n.cost).length;
         if (types === 1) {
           // あとから大量に足したマス（since: 9 以上）は、枝が伸びるように、8段目まで置ける
-          expect(n.depth).toBeLessThanOrEqual(n.since >= 9 ? 8 : 3);
+          expect(n.depth).toBeLessThanOrEqual(n.since >= 11 ? 12 : n.since >= 9 ? 8 : 3);
           // 1〜3段目は、1種類を1個。あとから足したマス（since: 9 以上）は、奥ほど個数が増える
           expect(units(n.cost)).toBe(n.since >= 9 ? TREE.lateCostByDepth[n.depth] : 1);
         } else if (types === 2) {
           expect(n.depth).toBeGreaterThanOrEqual(4);
-          expect(n.depth).toBeLessThanOrEqual(5);
+          expect(n.depth).toBeLessThanOrEqual(n.since >= 11 ? 12 : 5); // since: 11 以上は、12段目まで
         } else {
           expect(n.depth).toBeGreaterThanOrEqual(6);
         }
@@ -128,7 +128,7 @@ describe('配置の決まり（どの種でも守られる）', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       const save = createSave();
       save.tree.seed = seed;
-      save.materials = { boarCore: 99, cryoCore: 99, overCore: 99 };
+      save.materials = { boarCore: 9999, cryoCore: 9999, overCore: 9999 };
       const tree = saveTree(save);
       let bought = true;
       while (bought) {
@@ -140,7 +140,7 @@ describe('配置の決まり（どの種でも守られる）', () => {
       // 使った素材は、マスの値段の合計（あとから足したマスは、奥ほど個数が増える）
       const spent = { boarCore: 0, cryoCore: 0, overCore: 0 };
       for (const n of map1) for (const [m, c] of Object.entries(n.cost)) spent[m] += c;
-      expect(save.materials).toEqual({ boarCore: 99 - spent.boarCore, cryoCore: 99 - spent.cryoCore, overCore: 99 - spent.overCore });
+      expect(save.materials).toEqual({ boarCore: 9999 - spent.boarCore, cryoCore: 9999 - spent.cryoCore, overCore: 9999 - spent.overCore });
       expect(spent.boarCore).toBeGreaterThan(21); // 奥のマスは、素材をたくさん使う
     }
   });
@@ -150,7 +150,7 @@ describe('配置の決まり（どの種でも守られる）', () => {
       const tree = buildTree(seed);
       const { pos, maxDepth } = layoutTree(tree);
       expect(maxDepth).toBeGreaterThanOrEqual(6); // 最初の配置は 6 段まで。あとから足した枝は、8 段まで伸びる
-      expect(maxDepth).toBeLessThanOrEqual(8);
+      expect(maxDepth).toBeLessThanOrEqual(12);
       const seen = new Set();
       for (const n of tree.nodes) {
         const p = pos[n.id];
@@ -189,7 +189,7 @@ describe('マスを取る', () => {
 
   it('手前のマスを取るまでは、素材があっても取れない', () => {
     const { save, tree } = setup();
-    for (const m of materials) save.materials[m.id] = 99;
+    for (const m of materials) save.materials[m.id] = 99999;
     const child = tree.nodes.find((n) => n.parent !== null);
     expect(treeNodeState(save, child.id)).toBe('locked');
     expect(buyNode(save, child.id)).toBe(false);
@@ -202,7 +202,7 @@ describe('マスを取る', () => {
 
   it('全部取ると、前に全部買ったときと同じ強さになる', () => {
     const { save, tree } = setup(5);
-    for (const m of materials) save.materials[m.id] = 99;
+    for (const m of materials) save.materials[m.id] = 99999;
     let bought = true;
     while (bought) {
       bought = false;
@@ -319,14 +319,14 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
       expect(tree.byId['catalyzer#0'].depth).toBeLessThanOrEqual(5);
       expect(tree.byId['memory#0'].depth).toBeGreaterThanOrEqual(4);
       expect(tree.byId['memory#0'].depth).toBeLessThanOrEqual(5);
-      expect(Math.max(...tree.nodes.map((n) => n.depth))).toBeLessThanOrEqual(8);
+      expect(Math.max(...tree.nodes.map((n) => n.depth))).toBeLessThanOrEqual(12);
       expect(tree.byId['sparekit#0'].depth).toBe(6);
       for (const n of extra) {
         const parent = tree.byId[n.parent];
         expect(parent, n.id).toBeDefined();
         expect(parent.depth).toBe(n.depth - 1);
         expect(parent.rank).toBeLessThanOrEqual(n.rank);
-        if (n.types === 1) expect(n.depth).toBeLessThanOrEqual(n.since >= 9 ? 8 : 3);
+        if (n.types === 1) expect(n.depth).toBeLessThanOrEqual(n.since >= 11 ? 12 : n.since >= 9 ? 8 : 3);
       }
     }
   });
@@ -384,7 +384,7 @@ describe('マップ5で足した8マス（since: 4）', () => {
       expect(tree.nodes).toHaveLength(ALL_NODES);
       const { pos, maxDepth } = layoutTree(tree);
       expect(maxDepth).toBeGreaterThanOrEqual(6); // 最初の配置は 6 段まで。あとから足した枝は、8 段まで伸びる
-      expect(maxDepth).toBeLessThanOrEqual(8);
+      expect(maxDepth).toBeLessThanOrEqual(12);
       expect(new Set(tree.nodes.map((n) => `${pos[n.id].col}/${pos[n.id].row.toFixed(4)}`)).size).toBe(ALL_NODES);
     }
   });

@@ -13,6 +13,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
   },
   test: {
+    testTimeout: 60000, // スキルツリー（760マス）の検査は、種を何十個も作るので、時間がかかる
     include: ['tests/**/*.test.js'],
     environment: 'node',
   },

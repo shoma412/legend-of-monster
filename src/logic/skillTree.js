@@ -21,8 +21,10 @@ export const TREE = {
   attempts: 400, // 決まりを満たす配置が見つかるまで、作り直す回数の上限
   lateFrom: 9, // since がこの値以上の強化は、1種類の素材のマスも、深い段（lateSingleMax 段目まで）に置ける。マスが増えても、枝が「ふくらむ」のでなく、「伸びる」ようにするため
   lateSingleMax: 8,
+  deepFrom: 11, // since がこの値以上のマスは、さらに深く（deepMax 段目まで）置ける。2種類の素材は4段目から、3種類の素材は6段目から
+  deepMax: 12,
   // あとから足したマス（since: 9 以上）は、奥のマスほど、素材がたくさん要る：段ごとの、値段の倍率（もとの値段 × この数）
-  lateCostByDepth: { 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 4, 8: 5 },
+  lateCostByDepth: { 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 4, 8: 5, 9: 6, 10: 7, 11: 8, 12: 10 },
   wideFrom: 2, // 画面の並び：この段のマスから3つに分かれるとき、左右の2つを外へずらす
 };
 
@@ -150,6 +152,7 @@ function extendTree(nodes, key) {
   const room = (node) => children.get(node.id) < (node.depth <= 2 ? TREE.maxChildren : TREE.maxChildrenDeep);
   const inRange = (def, depth) => {
     // あとから大量に足したマス（since: 9 以上）の、1種類の素材のマスは、3段目より深くにも置ける（きれいな枝になる）
+    if (def.since >= TREE.deepFrom) return depth >= TREE.depthByTypes[Math.min(3, def.types)][0] && depth <= Math.min(def.maxDepth ?? 99, TREE.deepMax);
     if (def.since >= TREE.lateFrom && def.types === 1) return depth >= 1 && depth <= Math.min(def.maxDepth ?? 99, TREE.lateSingleMax);
     return depth >= TREE.depthByTypes[def.types][0] && depth <= Math.min(def.maxDepth ?? 99, TREE.depthByTypes[def.types][1]);
   };
