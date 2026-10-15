@@ -113,7 +113,9 @@ export class HideoutScene extends Phaser.Scene {
 
     this.menu = new MenuOverlay(this, {
       title: 'HIDEOUT',
-      tabs: ['upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
+      tabs: ['status', 'upgrade', 'record', 'fragment', 'achievement', 'controls', 'settings'],
+      // 恒久強化を買えるのは、強化端末から開いたときだけ（Tab キーなどで開いたときは、見るだけ）
+      readOnlyUpgrades: () => !this.atUpgradeTerminal,
       actions: [
         { label: '閉じる（Tab）', run: () => this.menu.close() },
         {
@@ -129,7 +131,10 @@ export class HideoutScene extends Phaser.Scene {
         persist();
         this.applyUpgrades();
       },
-      onClose: () => this.refreshStations(),
+      onClose: () => {
+        this.atUpgradeTerminal = false;
+        this.refreshStations();
+      },
     });
 
     this.dialogue = createDialogueBox(this);
@@ -254,6 +259,7 @@ export class HideoutScene extends Phaser.Scene {
       return;
     }
     if (id.startsWith('menu:')) {
+      this.atUpgradeTerminal = id === 'menu:upgrade'; // 強化端末から開いたときだけ、恒久強化を買える
       this.menu.open(id.slice(5));
       return;
     }

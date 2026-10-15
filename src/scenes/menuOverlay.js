@@ -90,7 +90,7 @@ export class MenuOverlay {
   //   title, tabs: ['status', ...], actions: [{ label, color, run }],
   //   context: () => ({ save, player, world, run }),  今のセーブデータ・プレイヤー・部屋・ラン（使うタブに必要なものだけ）
   //   canOpen: () => boolean,              Esc・Tab で開いてよいか
-  //   readOnlyUpgrades: true,              恒久強化を見るだけにする
+  //   readOnlyUpgrades: true | () => boolean,  恒久強化を見るだけにする（関数なら、開くたびに調べる。隠れ家では、強化端末から開いたときだけ買える）
   //   onBuy: () => void,                   恒久強化を買ったあとに呼ぶ
   //   onClose: () => void,
   // }
@@ -228,6 +228,12 @@ export class MenuOverlay {
     return worldLayout(layout).points[id];
   }
 
+  // 恒久強化を見るだけか（買えないか）
+  readOnlyUpgrades() {
+    const v = this.options.readOnlyUpgrades;
+    return typeof v === 'function' ? !!v() : !!v;
+  }
+
   get tabId() {
     return this.options.tabs[this.tab];
   }
@@ -243,7 +249,7 @@ export class MenuOverlay {
     this.zoomButton?.setVisible(true);
     this.setZoom(false);
     // スキルツリーは、今すぐ取れるマスがあれば、そこを選んだ状態で開く
-    if (this.tabId === 'upgrade' && !this.options.readOnlyUpgrades) this.jumpToOpen(false);
+    if (this.tabId === 'upgrade' && !this.readOnlyUpgrades()) this.jumpToOpen(false);
     this.render();
   }
 
@@ -497,7 +503,7 @@ export class MenuOverlay {
   }
 
   buy(id) {
-    if (this.options.readOnlyUpgrades) return;
+    if (this.readOnlyUpgrades()) return;
     const { save } = this.options.context();
     if (buyNode(save, id)) {
       playSe('buy');
@@ -837,7 +843,7 @@ export class MenuOverlay {
   }
 
   renderUpgrades(save) {
-    const readOnly = this.options.readOnlyUpgrades;
+    const readOnly = this.readOnlyUpgrades();
     this.text(40, 114, readOnly ? '取った恒久強化（取るのは隠れ家の強化端末で）' : 'ボス素材で、死んでも残る強化を取る。中心から線でつながったマスを、外へ向かって順に取っていく', 12, COLORS.dim);
     // 持っているボス素材（ここで使うので、ここに出す）
     this.panel(40, 132, 880, 28);
