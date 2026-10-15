@@ -48,11 +48,11 @@ function run(world, seconds, input = idle) {
 describe('槍', () => {
   const def = DATA.weapons.get('spear');
 
-  it('タイタンコア2個で解放できる。会心率 +5%、被ダメージ +5%', () => {
-    expect(weaponUnlocks.find((w) => w.weapon === 'spear').cost).toEqual({ titanCore: 2 });
+  it('ラストコア2個で解放できる。会心率 +5%、被ダメージ +5%', () => {
+    expect(weaponUnlocks.find((w) => w.weapon === 'spear').cost).toEqual({ rustCore: 2 });
     const save = createSave();
     expect(unlockWeapon(save, 'spear')).toBe(false);
-    save.materials.titanCore = 2;
+    save.materials.rustCore = 2;
     expect(unlockWeapon(save, 'spear')).toBe(true);
     expect(save.weapons).toContain('spear');
     expect(weaponTraitText(def)).toBe('会心率 +5%／被ダメージ +5%');
@@ -144,7 +144,7 @@ describe('チャクラム', () => {
   const throwing = { ...idle, attack: true, attackPressed: true };
 
   it('モスコア2個で解放できる。移動速度 +5%、被ダメージ +5%', () => {
-    expect(weaponUnlocks.find((w) => w.weapon === 'chakram').cost).toEqual({ mothCore: 2 });
+    expect(weaponUnlocks.find((w) => w.weapon === 'chakram').cost).toEqual({ intakeCore: 2 });
     expect(weaponTraitText(def)).toBe('移動速度 +5%／被ダメージ +5%');
   });
 
@@ -242,10 +242,12 @@ describe('ドローンユニット', () => {
   const def = DATA.weapons.get('drone');
   const alive = (world) => world.player.drones.filter((d) => d.alive).length;
 
-  it('スパイダーコア×2で解放できる。最初から子機を2機持っていて、上限は4機', () => {
+  it('マップ7の5ボスの素材で解放できる。最初から子機を2機持っていて、上限は4機', () => {
     const save = createSave();
-    expect(weaponUnlocks.find((w) => w.weapon === 'drone').cost).toEqual({ rainCore: 2 });
-    save.materials.rainCore = 2;
+    expect(weaponUnlocks.find((w) => w.weapon === 'drone').cost).toEqual({ gateCore: 2, archiveCore: 2, fabCore: 2, cogCore: 2, noiseCore: 2 });
+    save.materials = { gateCore: 2, archiveCore: 2, fabCore: 2, cogCore: 2, noiseCore: 1 };
+    expect(unlockWeapon(save, 'drone')).toBe(false); // 5種類そろっていないと解放できない
+    save.materials.noiseCore = 2;
     expect(unlockWeapon(save, 'drone')).toBe(true);
     const world = makeWorld('drone');
     run(world, 0.2);

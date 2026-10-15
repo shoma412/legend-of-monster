@@ -1675,14 +1675,14 @@ export const upgrades = [
   },
 ];
 
-// 武器の解放
+// 武器の解放（片手剣はマップ1、銃は2、ナックルは3、大砲は4、槍は5、チャクラムは6、ドローンユニットは7の、ボス素材。2026-10-16 から）
 export const weaponUnlocks = [
   { weapon: 'greatsword', name: '大剣', note: '重い一撃と溜め斬り', cost: null },
   { weapon: 'sword', name: '片手剣', note: '手数とジャストガード', cost: { boarCore: 2 } },
-  { weapon: 'gun', name: '銃', note: '遠距離と拡散射撃', cost: { cryoCore: 2 } },
-  { weapon: 'knuckle', name: 'ナックル', note: '超高速の拳とバーストブロー', cost: { serpentCore: 2 } },
-  { weapon: 'cannon', name: '大砲', note: '爆発する砲弾と徹甲砲撃', cost: { crabCore: 2 } },
-  { weapon: 'spear', name: '槍', note: '貫く突きと突進突き', cost: { titanCore: 2 } },
-  { weapon: 'chakram', name: 'チャクラム', note: '戻ってくる輪と設置', cost: { mothCore: 2 } },
-  { weapon: 'drone', name: 'ドローンユニット', note: '子機が自動で撃つ。帰還シールド', cost: { rainCore: 2 } },
+  { weapon: 'gun', name: '銃', note: '遠距離と拡散射撃', cost: { serpentCore: 2 } },
+  { weapon: 'knuckle', name: 'ナックル', note: '超高速の拳とバーストブロー', cost: { houndCore: 2 } },
+  { weapon: 'cannon', name: '大砲', note: '爆発する砲弾と徹甲砲撃', cost: { mothCore: 2 } },
+  { weapon: 'spear', name: '槍', note: '貫く突きと突進突き', cost: { rustCore: 2 } },
+  { weapon: 'chakram', name: 'チャクラム', note: '戻ってくる輪と設置', cost: { intakeCore: 2 } },
+  { weapon: 'drone', name: 'ドローンユニット', note: '子機が自動で撃つ。帰還シールド', cost: { gateCore: 2, archiveCore: 2, fabCore: 2, cogCore: 2, noiseCore: 2 } },
 ];

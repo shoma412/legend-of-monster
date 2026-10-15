@@ -223,7 +223,7 @@ export class HideoutScene extends Phaser.Scene {
         if (o.selected) Object.assign(o, { color: COLORS.cyan, sub: '選択中', prompt: `${def.name}：${note}（選択中）` });
         else if (owned) Object.assign(o, { color: COLORS.ink, sub: '使える', prompt: `E：${def.name}を選ぶ（${note}）` });
         else if (!ready) Object.assign(o, { color: LOCKED, sub: '準備中', prompt: `${def.name}（${def.note}）：準備中。解放には ${costText(def.cost, save)}` });
-        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: costText(def.cost, save), prompt: `E：${def.name}を解放する（${costText(def.cost, save)}）　${ownedText(save, def.cost)}` });
+        else Object.assign(o, { color: canAfford(save, def.cost) ? COLORS.amber : LOCKED, sub: Object.keys(def.cost).length > 2 ? `素材 ${Object.keys(def.cost).length} 種` : costText(def.cost, save), prompt: `E：${def.name}を解放する（${costText(def.cost, save)}）　${ownedText(save, def.cost)}` });
       } else if (o.id === 'menu:upgrade') {
         // 今すぐ取れるマスがあれば、端末に数を出して知らせる
         const open = saveTree(save).nodes.filter((n) => treeNodeState(save, n.id) === 'open').length;

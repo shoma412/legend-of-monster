@@ -443,7 +443,7 @@ describe('ナックル（2026-10-07 追加）', () => {
 
   it('ステータス：移動速度 +10%、被ダメージ +5%。解放はサーペントコア2個', () => {
     expect(knuckle.mods).toEqual([{ stat: 'moveSpeedMul', add: 0.1 }, { stat: 'damageTaken', add: 0.05 }]);
-    expect(weaponUnlocks.find((w) => w.weapon === 'knuckle').cost).toEqual({ serpentCore: 2 });
+    expect(weaponUnlocks.find((w) => w.weapon === 'knuckle').cost).toEqual({ houndCore: 2 });
   });
 });
 
@@ -464,7 +464,7 @@ describe('大砲（2026-10-07 追加）', () => {
       const speed = (w.mods ?? []).filter((m) => m.stat === 'moveSpeedMul').reduce((s, m) => s + m.add, 0);
       if (w.id !== 'cannon') expect(speed, w.id).toBeGreaterThan(-0.3);
     }
-    expect(weaponUnlocks.find((w) => w.weapon === 'cannon').cost).toEqual({ crabCore: 2 });
+    expect(weaponUnlocks.find((w) => w.weapon === 'cannon').cost).toEqual({ mothCore: 2 });
   });
 
   it('撃つ間隔は長い：同じ時間で、銃よりずっと少ない弾数になる', () => {

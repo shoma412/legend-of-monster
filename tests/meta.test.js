@@ -193,16 +193,16 @@ describe('ボス素材', () => {
 });
 
 describe('恒久強化', () => {
-  it('武器の解放：片手剣はボアコア2個、銃はクライオコア2個。足りないと解放できない', () => {
+  it('武器の解放：片手剣はボアコア2個、銃はサーペントコア2個。足りないと解放できない', () => {
     const save = createSave();
     save.materials = { boarCore: 1 };
     expect(unlockWeapon(save, 'sword')).toBe(false);
-    save.materials = { boarCore: 2, cryoCore: 2 };
+    save.materials = { boarCore: 2, serpentCore: 2 };
     expect(unlockWeapon(save, 'sword')).toBe(true);
     expect(unlockWeapon(save, 'sword')).toBe(false); // 2回は買えない
     expect(unlockWeapon(save, 'gun')).toBe(true);
     expect(save.weapons).toEqual(['greatsword', 'sword', 'gun']);
-    expect(save.materials).toEqual({ boarCore: 0, cryoCore: 0 });
+    expect(save.materials).toEqual({ boarCore: 0, serpentCore: 0 });
   });
 
   it('買った強化は次のランに乗る：最大HP、攻撃力、修復キット、二重ダッシュ、起動プログラム', () => {
