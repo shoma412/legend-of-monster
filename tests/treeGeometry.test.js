@@ -1,34 +1,45 @@
 import { describe, expect, it } from 'vitest';
 import { buildTree, layoutTree } from '../src/logic/skillTree.js';
-import { NODE_GAP, RING_STEP, TREE_RINGS, worldLayout } from '../src/logic/treeGeometry.js';
+import { MIN_STEP, NODE_GAP, worldLayout } from '../src/logic/treeGeometry.js';
 import { countOverlaps } from '../src/logic/treeSpread.js';
 import { TREE_VIEW, clampView, createTreeView, setTreeLimits } from '../src/logic/treeView.js';
 
-// スキルツリーの並び：マスがどんなに増えても、1つも重ならない（輪を広げる）。枠より大きくても、引いて全体を見られる
+// スキルツリーの並び：放射状の樹。マスがどんなに増えても、1つも重ならない。枠より大きくても、引いて全体を見られる
 
-const SEEDS = [1, 7, 42, 99, 123456, 2026, 31337, 777777];
+const SEEDS = [1, 7, 42, 99, 123456, 2026, 31337, 777777, 5, 88, 4242, 909090];
 
 describe('マスが増えても、1つも重ならない', () => {
   it('どの種でも、マス同士・マスと線の重なりが 0（マスの半径 8 で数える）', () => {
     for (const seed of SEEDS) {
       const world = worldLayout(layoutTree(buildTree(seed)));
-      const hits = countOverlaps(world.nodes, world.pts, 8);
-      expect(hits, `seed ${seed}`).toEqual({ nodes: 0, lines: 0 });
+      expect(countOverlaps(world.nodes, world.pts, 8), `seed ${seed}`).toEqual({ nodes: 0, lines: 0 });
     }
   });
 
-  it('マスの数に合わせて輪が広がる（391マスでは、広げる前の何倍にもなる）。同じ輪の隣り合うマスは、NODE_GAP 以上あく', () => {
+  it('同じ輪の隣り合うマスは NODE_GAP 以上あき、輪の間隔は、どの段でも同じ（線が急に長くならない）', () => {
     const tree = buildTree(42);
     expect(tree.nodes.length).toBeGreaterThan(300);
-    const world = worldLayout(layoutTree(tree));
-    expect(world.radiusFor(TREE_RINGS.at(-1) * world.fit)).toBeGreaterThan(TREE_RINGS.at(-1) * 3);
-    expect(world.extent.x).toBeGreaterThan(TREE_RINGS.at(-1) * 3);
-    // 全部のマスが、ほかのどのマスからも 21px 以上離れている
+    const layout = layoutTree(tree);
+    const world = worldLayout(layout);
+    expect(world.step).toBeGreaterThanOrEqual(MIN_STEP);
+    // 輪の間隔は同じ：段 d のマスは、中心から step × d の距離にいる
+    for (const [i, id] of world.ids.entries()) {
+      expect(Math.hypot(world.pts[i].x, world.pts[i].y), id).toBeCloseTo(world.step * layout.pos[id].col, 3);
+    }
+    // 同じ段の、近くのマスどうしの距離
     let nearest = Infinity;
     for (let i = 0; i < world.pts.length; i++) for (let j = i + 1; j < world.pts.length; j++) nearest = Math.min(nearest, Math.hypot(world.pts[i].x - world.pts[j].x, world.pts[i].y - world.pts[j].y));
-    expect(nearest).toBeGreaterThanOrEqual(20.99);
-    expect(NODE_GAP).toBeGreaterThan(30);
-    expect(RING_STEP).toBeGreaterThan(40);
+    expect(nearest).toBeGreaterThanOrEqual(NODE_GAP * 0.99);
+  });
+
+  it('親と子の線の長さは、どれも、輪の間隔の 1.5 倍以内（長い線がない）', () => {
+    const world = worldLayout(layoutTree(buildTree(99)));
+    for (const [i, id] of world.ids.entries()) {
+      const p = world.nodes[i].parent;
+      const a = p >= 0 ? world.pts[p] : { x: 0, y: 0 };
+      const len = Math.hypot(world.pts[i].x - a.x, world.pts[i].y - a.y);
+      expect(len, id).toBeLessThanOrEqual(world.step * 1.5);
+    }
   });
 
   it('同じ種なら、いつも同じ位置（キャッシュされる）', () => {

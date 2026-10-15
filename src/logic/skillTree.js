@@ -19,6 +19,8 @@ export const TREE = {
   maxChildren: 3, // 1〜2段目のマスから伸ばせる数
   maxChildrenDeep: 2, // 3段目より先のマスから伸ばせる数
   attempts: 400, // 決まりを満たす配置が見つかるまで、作り直す回数の上限
+  lateFrom: 9, // since がこの値以上の強化は、1種類の素材のマスも、深い段（lateSingleMax 段目まで）に置ける。マスが増えても、枝が「ふくらむ」のでなく、「伸びる」ようにするため
+  lateSingleMax: 8,
   wideFrom: 2, // 画面の並び：この段のマスから3つに分かれるとき、左右の2つを外へずらす
 };
 
@@ -139,7 +141,11 @@ function extendTree(nodes, key) {
   const children = new Map(placed.map((n) => [n.id, 0]));
   for (const n of placed) if (n.parent) children.set(n.parent, children.get(n.parent) + 1);
   const room = (node) => children.get(node.id) < (node.depth <= 2 ? TREE.maxChildren : TREE.maxChildrenDeep);
-  const inRange = (def, depth) => depth >= TREE.depthByTypes[def.types][0] && depth <= Math.min(def.maxDepth ?? 99, TREE.depthByTypes[def.types][1]);
+  const inRange = (def, depth) => {
+    // あとから大量に足したマス（since: 9 以上）の、1種類の素材のマスは、3段目より深くにも置ける（きれいな枝になる）
+    if (def.since >= TREE.lateFrom && def.types === 1) return depth >= 1 && depth <= Math.min(def.maxDepth ?? 99, TREE.lateSingleMax);
+    return depth >= TREE.depthByTypes[def.types][0] && depth <= Math.min(def.maxDepth ?? 99, TREE.depthByTypes[def.types][1]);
+  };
   const rngs = new Map();
   for (const def of extra) {
     if (!rngs.has(def.since)) rngs.set(def.since, mulberry((key ^ Math.imul(def.since, 0x51ed270b)) >>> 0));

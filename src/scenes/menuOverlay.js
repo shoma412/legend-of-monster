@@ -22,7 +22,7 @@ import { ELEMENT_NAMES, describeItem, describeLine } from '../logic/loot.js';
 import { ENDLESS_LINES, buyEndless, describeEndless, endlessCost, endlessLevel, endlessValue } from '../logic/endless.js';
 import { buyNode, canAfford, saveTree, treeNodeState } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
-import { TREE_RINGS, TREE_STRETCH, worldLayout } from '../logic/treeGeometry.js';
+import { worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
 import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomKeep } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
@@ -934,15 +934,15 @@ export class MenuOverlay {
       if (c) g.lineBetween(c.x1, c.y1, c.x2, c.y2);
     };
     // 段の目安の輪（薄く）。枠の中に見えているところだけ、短い線をつないで描く
-    for (let d = 1; d < TREE_RINGS.length; d++) {
+    for (let d = 1; d <= world.maxDepth; d++) {
       g.lineStyle(1, hex(COLORS.line), d <= 3 ? 0.32 : 0.2);
-      const parts = 160;
+      const parts = 240;
       for (let k = 0; k < parts; k++) {
         const a1 = (k / parts) * Math.PI * 2;
         const a2 = ((k + 1) / parts) * Math.PI * 2;
-        const ring = world.radiusFor(TREE_RINGS[d] * world.fit);
-        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * ring * TREE_STRETCH, y: Math.sin(a1) * ring });
-        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * ring * TREE_STRETCH, y: Math.sin(a2) * ring });
+        const ring = world.radiusOf(d);
+        const p1 = toScreen(view, TREE_CENTER, { x: Math.cos(a1) * ring, y: Math.sin(a1) * ring });
+        const p2 = toScreen(view, TREE_CENTER, { x: Math.cos(a2) * ring, y: Math.sin(a2) * ring });
         line(p1.x, p1.y, p2.x, p2.y);
       }
     }

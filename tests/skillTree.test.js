@@ -83,7 +83,8 @@ describe('配置の決まり（どの種でも守られる）', () => {
       for (const n of buildTree(seed).nodes) {
         const types = Object.keys(n.cost).length;
         if (types === 1) {
-          expect(n.depth).toBeLessThanOrEqual(3);
+          // あとから大量に足したマス（since: 9 以上）は、枝が伸びるように、8段目まで置ける
+          expect(n.depth).toBeLessThanOrEqual(n.since >= 9 ? 8 : 3);
           expect(units(n.cost)).toBe(1); // 1〜3段目は、1種類を1個
         } else if (types === 2) {
           expect(n.depth).toBeGreaterThanOrEqual(4);
@@ -143,7 +144,8 @@ describe('配置の決まり（どの種でも守られる）', () => {
     for (const seed of SEEDS.slice(0, 80)) {
       const tree = buildTree(seed);
       const { pos, maxDepth } = layoutTree(tree);
-      expect(maxDepth).toBe(6);
+      expect(maxDepth).toBeGreaterThanOrEqual(6); // 最初の配置は 6 段まで。あとから足した枝は、8 段まで伸びる
+      expect(maxDepth).toBeLessThanOrEqual(8);
       const seen = new Set();
       for (const n of tree.nodes) {
         const p = pos[n.id];
@@ -312,14 +314,14 @@ describe('あとからマスを足す（マップ4の7マス）：今ある配�
       expect(tree.byId['catalyzer#0'].depth).toBeLessThanOrEqual(5);
       expect(tree.byId['memory#0'].depth).toBeGreaterThanOrEqual(4);
       expect(tree.byId['memory#0'].depth).toBeLessThanOrEqual(5);
-      expect(Math.max(...tree.nodes.map((n) => n.depth))).toBe(6);
+      expect(Math.max(...tree.nodes.map((n) => n.depth))).toBeLessThanOrEqual(8);
       expect(tree.byId['sparekit#0'].depth).toBe(6);
       for (const n of extra) {
         const parent = tree.byId[n.parent];
         expect(parent, n.id).toBeDefined();
         expect(parent.depth).toBe(n.depth - 1);
         expect(parent.rank).toBeLessThanOrEqual(n.rank);
-        if (n.types === 1) expect(n.depth).toBeLessThanOrEqual(3);
+        if (n.types === 1) expect(n.depth).toBeLessThanOrEqual(n.since >= 9 ? 8 : 3);
       }
     }
   });
@@ -376,7 +378,8 @@ describe('マップ5で足した8マス（since: 4）', () => {
       const tree = buildTree(seed);
       expect(tree.nodes).toHaveLength(ALL_NODES);
       const { pos, maxDepth } = layoutTree(tree);
-      expect(maxDepth).toBe(6);
+      expect(maxDepth).toBeGreaterThanOrEqual(6); // 最初の配置は 6 段まで。あとから足した枝は、8 段まで伸びる
+      expect(maxDepth).toBeLessThanOrEqual(8);
       expect(new Set(tree.nodes.map((n) => `${pos[n.id].col}/${pos[n.id].row.toFixed(4)}`)).size).toBe(ALL_NODES);
     }
   });

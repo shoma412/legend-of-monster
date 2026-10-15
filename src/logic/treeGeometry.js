@@ -1,75 +1,94 @@
 // スキルツリーの、画面の上の位置を決める計算（画面には触らない。docs/詳細仕様.md「23. スキルツリー」の「マスが増えても重ならない並び」）。
-//   マスが増えても重ならないように、輪ごとに、乗るマスの数に合わせて半径を広げる。画面の枠の広さには、縛られない（引いて見る・寄って見る・動かす）。
-import { SPREAD, countOverlaps, spreadNodes } from './treeSpread.js';
-
-export const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114]; // 段ごとの、中心からの距離（縦の長さ。広げる前）
-export const TREE_PUSH = 0.5; // 3つに分かれた枝の左右を、外へずらす長さ（次の輪までの間の、何割か）
-export const TREE_PUSH_OUTER = 7; // いちばん外の輪のマスを、外へずらす長さ
-export const TREE_STRETCH = 2.15; // 横は、縦の何倍に広げるか
-export const NODE_GAP = 40; // 同じ輪の上で、隣り合うマスの中心の間に、最低限あけたい長さ（マスの直径 16 ＋ 名前や線の余裕）
-export const RING_STEP = 64; // 隣り合う輪の、半径の最低限の差（輪と輪の間に、線と名前が通れる）
-const SPARE = 1.3; // 輪に乗るマスは、均等には並ばないので、少し余裕を見る
-
-// マスの、中心からの距離（広げる前）。外へずらすマスは、次の輪との間に置く
-export function ringRadius(p) {
-  const col = Math.min(TREE_RINGS.length - 1, p.col);
-  const gap = col < TREE_RINGS.length - 1 ? (TREE_RINGS[col + 1] - TREE_RINGS[col]) * TREE_PUSH : TREE_PUSH_OUTER;
-  return TREE_RINGS[col] + (p.push > 0 ? gap : 0);
-}
+//   放射状の樹（中心から外へ枝が伸びる）。段（深さ）ごとの輪の間隔はいつも同じ。
+//   枝ごとに「扇形の取り分」を持ち、取り分の広さは「その枝の先のマスが、輪の上で隣と NODE_GAP 以上あく広さ」から決める。
+//   取り分は重ならないので、マス同士・マスと線は、作りから重ならない。マスが増えたら、輪の間隔が広がる（枠の広さには縛られない）。
+export const TREE_RINGS = [0, 24, 46, 68, 86, 101, 114, 126, 138, 150]; // 旧：段ごとの、中心からの距離（広げる前）。もう位置には使わない（互換のために残す）
+export const TREE_STRETCH = 1; // 輪は、真円
+export const NODE_GAP = 30; // 同じ輪の上で、隣り合うマスの中心の間に、最低限あけたい長さ（マスの直径 16 ＋ 名前や線の余裕）
+export const MIN_STEP = 70; // 輪の間隔の、最低限の長さ
 
 const cache = new WeakMap();
 
 // layout は layoutTree(tree) の返り値。返り値：
-//   fit      : 外へずらしたマスがはみ出さないように縮める割合
-//   radiusFor: 広げる前の半径 → 広げたあとの半径（輪の目安の線を描くのに使う）
+//   step     : 輪の間隔（段 d の輪の半径は step × d）
 //   points   : { マスの id: { x, y } }（中心が 0,0）
-//   ids・nodes・pts: テストと確認用（spreadNodes に渡した入力と、その結果）
+//   ids・nodes・pts: テストと確認用（nodes は { x, y, parent }。parent は ids の中の番号、中心につながるマスは -1）
 //   extent   : { x, y }（いちばん外のマスの、中心からの長さ）
+//   radiusOf : 段 → 輪の半径
 export function worldLayout(layout) {
   if (cache.has(layout)) return cache.get(layout);
   const ids = Object.keys(layout.pos);
-  const outer = TREE_RINGS.at(-1);
-  const fit = outer / Math.max(outer, ...ids.map((id) => ringRadius(layout.pos[id])));
-  const perimeter = 2 * Math.PI * Math.sqrt((1 + TREE_STRETCH * TREE_STRETCH) / 2); // 半径 1 の横長の円の、まわりの長さ（おおよそ）
-  const key = (u) => u.toFixed(2);
-  // 輪ごとの、マスの数
-  const counts = new Map();
-  for (const id of ids) {
-    const u = ringRadius(layout.pos[id]) * fit;
-    counts.set(key(u), (counts.get(key(u)) ?? 0) + 1);
-  }
-  const rings = [...counts.keys()].map(Number).sort((a, b) => a - b);
   const index = Object.fromEntries(ids.map((id, i) => [id, i]));
-
-  let spread = 1.5; // 輪を、さらに広げる倍率（重なりが残ったときに上げる）
-  let radii;
-  let nodes;
-  let pts;
-  for (let attempt = 0; attempt < 16; attempt++) {
-    // 外へ向かって、輪の半径を決める：マスの数に合わせ、前の輪から RING_STEP 以上あける
-    radii = new Map();
-    let prev = 0;
-    rings.forEach((u, k) => {
-      const need = (counts.get(key(u)) * NODE_GAP * SPARE * spread) / perimeter;
-      const r = u <= 0 ? 0 : Math.max(u, need, k === 0 ? 0 : prev + RING_STEP * Math.min(1, spread));
-      radii.set(key(u), r);
-      prev = r;
-    });
-    nodes = ids.map((id) => {
-      const p = layout.pos[id];
-      const angle = -Math.PI / 2 + (Math.PI * 2 * p.row * Math.max(1, layout.leaves - 1)) / layout.leaves;
-      const radius = radii.get(key(ringRadius(p) * fit));
-      return { x: Math.cos(angle) * radius * TREE_STRETCH, y: Math.sin(angle) * radius, parent: p.parent ? index[p.parent] : -1 };
-    });
-    const top = Math.max(...radii.values());
-    pts = spreadNodes(nodes, { x: top * TREE_STRETCH * 1.3, y: top * 1.3 }, { ...SPREAD, rounds: 120 });
-    const hits = countOverlaps(nodes, pts, SPREAD.nodeGap / 2);
-    if (hits.nodes === 0 && hits.lines === 0) break;
-    spread *= 1.15;
+  const kids = new Map();
+  for (const id of ids) {
+    const parent = layout.pos[id].parent ?? null;
+    if (!kids.has(parent)) kids.set(parent, []);
+    kids.get(parent).push(id);
   }
+  for (const list of kids.values()) list.sort((a, b) => layout.pos[a].row - layout.pos[b].row);
+  const roots = kids.get(null) ?? [];
+  const depthOf = (id) => layout.pos[id].col;
+
+  // 輪の間隔が step のとき、各マスの枝が必要とする角度の広さ（自分の輪で NODE_GAP あくための広さと、枝の先の合計の、大きいほう）
+  const needs = (step) => {
+    const memo = new Map();
+    const need = (id) => {
+      if (memo.has(id)) return memo.get(id);
+      const own = NODE_GAP / (step * depthOf(id));
+      const sum = (kids.get(id) ?? []).reduce((s, c) => s + need(c), 0);
+      const value = Math.max(own, sum);
+      memo.set(id, value);
+      return value;
+    };
+    return { need, total: roots.reduce((s, r) => s + need(r), 0) };
+  };
+  // 全体の角度が 2π に収まる、いちばん小さい間隔を探す
+  let lo = MIN_STEP;
+  let hi = MIN_STEP;
+  while (needs(hi).total > Math.PI * 2 && hi < 100000) hi *= 2;
+  if (needs(lo).total > Math.PI * 2) {
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      if (needs(mid).total > Math.PI * 2) lo = mid;
+      else hi = mid;
+    }
+  } else {
+    hi = lo;
+  }
+  const step = Math.ceil(hi * 1.01);
+  const { need } = needs(step);
+
+  // 扇形を割り振る：自分の取り分の真ん中に自分を置き、枝の先へ、必要な広さに比例して分ける
+  const angle = new Map();
+  const place = (id, a0, a1) => {
+    angle.set(id, (a0 + a1) / 2);
+    const list = kids.get(id) ?? [];
+    const total = list.reduce((s, c) => s + need(c), 0);
+    let at = a0;
+    for (const c of list) {
+      const width = ((a1 - a0) * need(c)) / total;
+      place(c, at, at + width);
+      at += width;
+    }
+  };
+  {
+    const total = roots.reduce((s, r) => s + need(r), 0);
+    let at = -Math.PI / 2;
+    for (const r of roots) {
+      const width = (Math.PI * 2 * need(r)) / total;
+      place(r, at, at + width);
+      at += width;
+    }
+  }
+  const nodes = ids.map((id) => {
+    const radius = step * depthOf(id);
+    return { x: Math.cos(angle.get(id)) * radius, y: Math.sin(angle.get(id)) * radius, parent: layout.pos[id].parent ? index[layout.pos[id].parent] : -1 };
+  });
+  const pts = nodes.map((n) => ({ x: n.x, y: n.y }));
   const points = Object.fromEntries(ids.map((id, i) => [id, pts[i]]));
+  const maxDepth = Math.max(1, ...ids.map(depthOf));
   const extent = { x: Math.max(1, ...pts.map((q) => Math.abs(q.x))), y: Math.max(1, ...pts.map((q) => Math.abs(q.y))) };
-  const result = { fit, radiusFor: (u) => radii.get(key(u)) ?? u, points, ids, nodes, pts, extent };
+  const result = { step, points, ids, nodes, pts, extent, maxDepth, radiusOf: (d) => step * d };
   cache.set(layout, result);
   return result;
 }
