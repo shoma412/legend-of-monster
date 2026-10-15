@@ -138,6 +138,13 @@ function normalizeCarryOver(co) {
   };
 }
 
+// 素材の入れ物に、素材を足したものを返す
+function addMaterials(materials, extra) {
+  const out = { ...materials };
+  for (const [m, n] of Object.entries(extra)) out[m] = (out[m] ?? 0) + n;
+  return out;
+}
+
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
 export function normalizeSave(data) {
   const base = createSave();
@@ -146,11 +153,18 @@ export function normalizeSave(data) {
   // スキルツリー：種が読めなければ作り直す。取ったマスは、手前を取っていないものなどを除く。強化の段数は、取ったマスから数える
   const seed = Number.isInteger(d.tree?.seed) && d.tree.seed >= 0 ? d.tree.seed : newTreeSeed();
   const tree = buildTree(seed);
-  const owned = cleanOwned(tree, Array.isArray(d.tree?.owned) ? d.tree.owned : []);
+  const rawOwned = Array.isArray(d.tree?.owned) ? d.tree.owned : [];
+  const owned = cleanOwned(tree, rawOwned);
+  // スキルツリーの形が変わって、取ってあったマスが外れたとき（手前のマスの親が変わった、など）：そのマスに使った素材を、返す
+  const refund = {};
+  for (const id of new Set(rawOwned)) {
+    if (owned.includes(id) || !tree.byId[id]) continue;
+    for (const [m, n] of Object.entries(tree.byId[id].cost)) refund[m] = (refund[m] ?? 0) + n;
+  }
   return {
     version: SAVE_VERSION,
     // 隠しボスの素材（2026-10-08 追加）：足す前にアーキテクトを倒していたデータには、1個渡す（もう一度倒さなくてよい）
-    materials: { ...base.materials, ...((d.bossKills?.architect ?? 0) > 0 && d.materials?.architectCore === undefined ? { architectCore: 1 } : {}), ...(d.materials ?? {}) },
+    materials: addMaterials({ ...base.materials, ...((d.bossKills?.architect ?? 0) > 0 && d.materials?.architectCore === undefined ? { architectCore: 1 } : {}), ...(d.materials ?? {}) }, refund),
     upgrades: upgradeCounts(tree, owned),
     weapons: Array.isArray(d.weapons) && d.weapons.length > 0 ? [...new Set(d.weapons)] : base.weapons,
     selected: typeof d.selected === 'string' ? d.selected : base.selected,

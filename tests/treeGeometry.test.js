@@ -92,3 +92,28 @@ describe('奥のマスほど、素材がたくさん要る', () => {
     }
   });
 });
+
+describe('ツリーの形が変わって、取ってあったマスが外れたとき', () => {
+  it('手前を取っていないマスは外れて、そのマスに使った素材が戻る。ふつうのセーブは、そのまま', async () => {
+    const { createSave, normalizeSave } = await import('../src/logic/save.js');
+    const save = createSave();
+    save.tree.seed = 42;
+    const tree = buildTree(42);
+    // 親が根元でないマスを、親を取らずに「取ってある」ことにする
+    const orphan = tree.nodes.find((n) => n.parent !== null && n.depth >= 3);
+    save.tree.owned = [orphan.id];
+    save.materials = { boarCore: 1 };
+    const loaded = normalizeSave(JSON.parse(JSON.stringify(save)));
+    expect(loaded.tree.owned).toEqual([]);
+    for (const [m, n] of Object.entries(orphan.cost)) expect(loaded.materials[m] ?? 0).toBe(n + (m === 'boarCore' ? 1 : 0));
+    // ふつうのセーブ（根元から順に取ってある）は、変わらない
+    const root = tree.nodes.find((n) => n.parent === null);
+    const normal = createSave();
+    normal.tree.seed = 42;
+    normal.tree.owned = [root.id];
+    normal.materials = { boarCore: 3 };
+    const again = normalizeSave(JSON.parse(JSON.stringify(normal)));
+    expect(again.tree.owned).toEqual([root.id]);
+    expect(again.materials).toEqual({ boarCore: 3 });
+  });
+});
