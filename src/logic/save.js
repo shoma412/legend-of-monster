@@ -146,6 +146,12 @@ function addMaterials(materials, extra) {
 }
 
 // 壊れたデータや足りない項目があっても遊べるように、初期値で埋める。読めないデータなら null
+// 取りやめた実績の id を、あとの実績に置き換える（2026-10-16：「依頼完了」(noise) は「核心区停止」(map7) にまとめた）
+function migrateAchievements(list) {
+  if (!Array.isArray(list)) return [];
+  return [...new Set(list.map((id) => (id === 'noise' ? 'map7' : id)))];
+}
+
 // { id: 回数 } の形の記録を、壊れた値を捨てて整える
 function sanitizeCounts(value) {
   const out = {};
@@ -177,7 +183,7 @@ export function normalizeSave(data) {
     selected: typeof d.selected === 'string' ? d.selected : base.selected,
     bossKills: { ...(d.bossKills ?? {}) },
     fragments: Array.isArray(d.fragments) ? [...new Set(d.fragments)] : [],
-    achievements: Array.isArray(d.achievements) ? [...new Set(d.achievements)] : [],
+    achievements: migrateAchievements(d.achievements),
     records: { ...base.records, ...(d.records ?? {}), weaponClears: sanitizeCounts(d.records?.weaponClears) },
     tutorialSeen: d.tutorialSeen === true,
     seenDialogues: Array.isArray(d.seenDialogues) ? [...new Set(d.seenDialogues)] : [],

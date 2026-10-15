@@ -1890,6 +1890,11 @@ export const en = {
     "通算100回クリアした": "Cleared 100 times in total",
     "狩り尽くし": "Hunted Them All",
     "隠しボスを含む、すべてのボスを倒した": "Defeated every boss, including hidden ones",
+    "停電区停止": "Blackout District Halted",
+    "溶解区停止": "Dissolution District Halted",
+    "送風区停止": "Ventilation District Halted",
+    "核心区停止": "Heart District Halted",
+    "マップ7を完了した（依頼人を止めた）": "Completed Map 7 (stopped the client)",
   },
   names: {
     "ステータス": "Status",

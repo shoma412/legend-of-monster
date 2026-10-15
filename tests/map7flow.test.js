@@ -56,7 +56,7 @@ describe('マップ7を通しで遊ぶ', () => {
     expect(advanceCycle(save)).toBe(true);
     expect(save.cycle).toBe(2);
     expect(save.materials.noiseCore).toBeGreaterThanOrEqual(1);
-    expect(save.achievements).toContain('noise');
+    expect(save.achievements).toContain('map7');
     expect(allMapsCleared(save)).toBe(true);
   });
 });

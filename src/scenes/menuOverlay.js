@@ -1311,7 +1311,8 @@ export class MenuOverlay {
       this.panel(x, y, 287, 42, done ? COLORS.amber : COLORS.line);
       drawAchievementIcon(g, def.icon, x + 21, y + 21, 10, hex(color));
       // 特定のボスを倒す実績は、解除するまで、名前も説明も伏せる（ネタバレになるため）
-      const hide = !done && def.check === 'bossIs';
+      // 周回の実績も、何周目まであるかが分かってしまうので、伏せる
+      const hide = !done && (def.check === 'bossIs' || def.check === 'cycleAtLeast');
       this.text(x + 42, y + 4, hide ? '？？？' : def.name, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
       this.text(x + 42, y + 24, hide ? '？？？' : def.desc, 10, done ? COLORS.ink : LOCKED);
     });

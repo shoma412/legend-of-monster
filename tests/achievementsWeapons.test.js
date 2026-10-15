@@ -82,3 +82,18 @@ describe('武器の実績', () => {
     expect(normalizeSave({ version: 8 }).records.weaponClears).toEqual({});
   });
 });
+
+describe('マップの実績', () => {
+  it('マップ1〜7の「完了した」実績がある。「依頼完了」（noise）は、「核心区停止」（map7）にまとめた', () => {
+    for (let n = 1; n <= 7; n++) expect(DATA.achievements.has(`map${n}`), `map${n}`).toBe(true);
+    expect(DATA.achievements.has('noise')).toBe(false);
+  });
+
+  it('以前のセーブデータで「依頼完了」を解除していたら、「核心区停止」に置き換わる（実績の数は減らない）', () => {
+    const save = createSave();
+    save.achievements.push('noise', 'map1');
+    const loaded = normalizeSave(JSON.parse(JSON.stringify(save)));
+    expect(loaded.achievements).toEqual(['map7', 'map1']);
+    expect(loaded.achievements).not.toContain('noise');
+  });
+});

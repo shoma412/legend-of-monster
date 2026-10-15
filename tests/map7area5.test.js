@@ -87,7 +87,8 @@ describe('エリア5「中枢」の定義', () => {
     const fragments = DATA.fragments.all().filter((f) => f.area === 'core');
     expect(fragments.filter((f) => f.source === 'vault')).toHaveLength(3);
     expect(fragments.filter((f) => f.source === 'boss')).toHaveLength(1);
-    expect(DATA.achievements.get('noise').name).toBe('依頼完了');
+    expect(DATA.achievements.has('noise')).toBe(false); // 「依頼完了」は、「核心区停止」(map7) にまとめた
+    expect(DATA.achievements.get('map7').name).toBe('核心区停止');
     expect(species.order.boss).toBe('noise');
     expect(DATA.implants.all().filter((d) => d.species === 'order')).toHaveLength(5);
   });
