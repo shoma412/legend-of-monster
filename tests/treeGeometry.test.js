@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTree, layoutTree } from '../src/logic/skillTree.js';
+import { TREE, buildTree, layoutTree, treeNodeDefs } from '../src/logic/skillTree.js';
 import { MIN_STEP, NODE_GAP, worldLayout } from '../src/logic/treeGeometry.js';
 import { countOverlaps } from '../src/logic/treeSpread.js';
 import { TREE_VIEW, clampView, createTreeView, setTreeLimits } from '../src/logic/treeView.js';
@@ -72,6 +72,23 @@ describe('枠より大きいツリーを、引いて全体を見る・寄って�
       expect(near.x).toBeLessThanOrEqual(TREE_VIEW.reach);
     } finally {
       Object.assign(TREE_VIEW, saved);
+    }
+  });
+});
+
+describe('奥のマスほど、素材がたくさん要る', () => {
+  it('あとから足したマスは、段が深いほど個数が増える（3段目まで 1倍、4〜5段目 2倍、6段目 3倍、7段目 4倍、8段目 5倍）。もとのマスは変わらない', () => {
+    for (const seed of [42, 7]) {
+      const tree = buildTree(seed);
+      const base = new Map(treeNodeDefs().map((d) => [d.id, d]));
+      for (const n of tree.nodes) {
+        const factor = n.since >= 9 ? TREE.lateCostByDepth[n.depth] : 1;
+        for (const [m, c] of Object.entries(base.get(n.id).cost)) expect(n.cost[m], n.id).toBe(c * factor);
+      }
+      // 深いマスは、浅いマスより高い
+      const deep = tree.nodes.filter((n) => n.since >= 9 && n.depth >= 7);
+      expect(deep.length).toBeGreaterThan(0);
+      for (const n of deep) expect(Object.values(n.cost)[0]).toBeGreaterThanOrEqual(4);
     }
   });
 });

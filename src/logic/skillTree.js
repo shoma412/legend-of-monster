@@ -21,6 +21,8 @@ export const TREE = {
   attempts: 400, // 決まりを満たす配置が見つかるまで、作り直す回数の上限
   lateFrom: 9, // since がこの値以上の強化は、1種類の素材のマスも、深い段（lateSingleMax 段目まで）に置ける。マスが増えても、枝が「ふくらむ」のでなく、「伸びる」ようにするため
   lateSingleMax: 8,
+  // あとから足したマス（since: 9 以上）は、奥のマスほど、素材がたくさん要る：段ごとの、値段の倍率（もとの値段 × この数）
+  lateCostByDepth: { 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 4, 8: 5 },
   wideFrom: 2, // 画面の並び：この段のマスから3つに分かれるとき、左右の2つを外へずらす
 };
 
@@ -29,6 +31,11 @@ const RANK = Object.fromEntries(materials.map((m, i) => [m.id, i]));
 // そのマスの値段に含まれる素材のうち、いちばん先のボスの素材の順番
 function rankOf(cost) {
   return Math.max(...Object.keys(cost).map((id) => RANK[id] ?? 0));
+}
+
+// 値段の素材の個数を、factor 倍にする
+export function scaleCost(cost, factor) {
+  return Object.fromEntries(Object.entries(cost).map(([id, n]) => [id, n * factor]));
 }
 
 // すべてのマス（配置を決める前）。id は「強化のid#何段目か」で、配置が変わっても同じ
@@ -154,7 +161,8 @@ function extendTree(nodes, key) {
     if (options.length === 0) throw new Error(`スキルツリーに、マス ${def.id} を足せませんでした（seed ${key}）`);
     const free = options.filter(room);
     const parent = pick(free.length > 0 ? free : options, rng);
-    placed.push({ ...def, parent: parent.id, depth: parent.depth + 1 });
+    const depth = parent.depth + 1;
+    placed.push({ ...def, cost: def.since >= TREE.lateFrom ? scaleCost(def.cost, TREE.lateCostByDepth[depth] ?? 5) : def.cost, parent: parent.id, depth });
     children.set(def.id, 0);
     children.set(parent.id, children.get(parent.id) + 1);
   }

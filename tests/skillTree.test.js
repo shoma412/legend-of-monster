@@ -85,7 +85,8 @@ describe('配置の決まり（どの種でも守られる）', () => {
         if (types === 1) {
           // あとから大量に足したマス（since: 9 以上）は、枝が伸びるように、8段目まで置ける
           expect(n.depth).toBeLessThanOrEqual(n.since >= 9 ? 8 : 3);
-          expect(units(n.cost)).toBe(1); // 1〜3段目は、1種類を1個
+          // 1〜3段目は、1種類を1個。あとから足したマス（since: 9 以上）は、奥ほど個数が増える
+          expect(units(n.cost)).toBe(n.since >= 9 ? TREE.lateCostByDepth[n.depth] : 1);
         } else if (types === 2) {
           expect(n.depth).toBeGreaterThanOrEqual(4);
           expect(n.depth).toBeLessThanOrEqual(5);
@@ -136,7 +137,11 @@ describe('配置の決まり（どの種でも守られる）', () => {
       }
       const map1 = tree.nodes.filter((n) => n.rank <= RANK.overCore);
       expect(save.tree.owned).toHaveLength(map1.length);
-      expect(save.materials).toEqual({ boarCore: 99 - 21, cryoCore: 99 - 18, overCore: 99 - 11 }); // マップ7に向けて足した、各ボスの強化3段ぶん（since: 9）を含む
+      // 使った素材は、マスの値段の合計（あとから足したマスは、奥ほど個数が増える）
+      const spent = { boarCore: 0, cryoCore: 0, overCore: 0 };
+      for (const n of map1) for (const [m, c] of Object.entries(n.cost)) spent[m] += c;
+      expect(save.materials).toEqual({ boarCore: 99 - spent.boarCore, cryoCore: 99 - spent.cryoCore, overCore: 99 - spent.overCore });
+      expect(spent.boarCore).toBeGreaterThan(21); // 奥のマスは、素材をたくさん使う
     }
   });
 
