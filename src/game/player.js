@@ -814,7 +814,7 @@ function fireDroneShot(world, d, angle) {
       vx: Math.cos(angle + spread) * cfg.speed,
       vy: Math.sin(angle + spread) * cfg.speed,
       r: cfg.radius,
-      damage: cfg.damage,
+      damage: shots.length > 1 ? cfg.damage * (cfg.wideMul ?? 1) : cfg.damage,
       knockback: cfg.knockback,
       pierce: p.stats.pierce,
       boomerang: null,

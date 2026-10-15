@@ -3,6 +3,7 @@ import { META } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { weaponUnlocks } from '../data/upgrades.js';
 import { unlockAchievements } from './achievements.js';
+import { clearedCycle } from './maps.js';
 import { buildTree, isReachable } from './skillTree.js';
 
 // ---- 恒久強化 ----
@@ -41,6 +42,13 @@ export function buyNode(save, id) {
   save.tree.owned.push(id);
   save.upgrades[node.upgrade] = upgradeLevel(save, node.upgrade) + 1;
   return true;
+}
+
+// その武器が、もう現れているか（隠れ家にラックが出る・名前を伏せない）。持っている武器か、現れるマップを1回クリアしていれば true。大剣は最初から
+export function weaponAvailable(save, weaponId) {
+  if (save.weapons.includes(weaponId)) return true;
+  const def = weaponUnlocks.find((w) => w.weapon === weaponId);
+  return !def?.map || clearedCycle(save, def.map) >= 1;
 }
 
 export function unlockWeapon(save, weaponId) {

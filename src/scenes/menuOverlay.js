@@ -19,7 +19,7 @@ import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscr
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
 import { ELEMENT_NAMES, describeItem } from '../logic/loot.js';
-import { buyNode, canAfford, saveTree, treeNodeState } from '../logic/meta.js';
+import { buyNode, canAfford, saveTree, treeNodeState, weaponAvailable } from '../logic/meta.js';
 import { layoutTree } from '../logic/skillTree.js';
 import { worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
@@ -593,7 +593,7 @@ export class MenuOverlay {
     else if (id === 'record') this.renderRecords(save);
     else if (id === 'fragment') this.renderFragments(save);
     else if (id === 'achievement') this.renderAchievements(save);
-    else if (id === 'controls') renderControls(this, ctx.player?.weapon ?? null);
+    else if (id === 'controls') renderControls(this, ctx.player?.weapon ?? null, (weaponId) => !ctx.save || weaponAvailable(ctx.save, weaponId));
     else if (id === 'settings') this.renderSettings();
     else if (id === 'credits') this.renderCredits();
 
@@ -996,7 +996,7 @@ export class MenuOverlay {
       else if (onPath.has(n.id)) g.lineStyle(1.5, hex(COLORS.cyan), 0.8).strokeCircle(p.x, p.y, R + 3);
       if (R >= 6) this.text(p.x, p.y, cat.label, Math.round(10 * Math.min(1.6, zoom ** 0.7)), st === 'locked' ? LOCKED : cat.color, { fontStyle: '700' }).setOrigin(0.5);
       // 十分に寄ったら、マスの下に強化の名前も出す
-      if (zoom >= 1.9) labels.push({ id: n.id, p, name: def.name, color: st === 'locked' ? LOCKED : COLORS.ink });
+      if (zoom >= 1.9) labels.push({ id: n.id, p, name: def.weapon && !weaponAvailable(save, def.weapon) ? '？？？' : def.name, color: st === 'locked' ? LOCKED : COLORS.ink });
       }
       // クリックで選ぶ。選んであるマスをもう一度クリックすると、取る（引っぱって動かした直後は、何もしない）
       const hit = this.scene.add.circle(p.x, p.y, R + 3, 0x000000, 0.001).setInteractive({ useHandCursor: true });
@@ -1075,8 +1075,10 @@ export class MenuOverlay {
     const have = save.upgrades[picked.upgrade] ?? 0;
     const X = 592;
     this.panel(X, 166, 328, 296, st === 'open' ? COLORS.amber : COLORS.line);
-    this.text(X + 18, 180, `［${cat.label}］${def.name}`, 17, cat.color, { fontStyle: '700' });
-    this.text(X + 18, 204, def.desc, 13, COLORS.ink, { wordWrap: { width: 294, useAdvancedWrap: true }, lineSpacing: 3 });
+    // まだ現れていない武器の強化は、名前も説明も伏せる（ネタバレになるため）
+    const hidden = !!def.weapon && !weaponAvailable(save, def.weapon);
+    this.text(X + 18, 180, `［${cat.label}］${hidden ? '？？？' : def.name}`, 17, cat.color, { fontStyle: '700' });
+    this.text(X + 18, 204, hidden ? '？？？' : def.desc, 13, COLORS.ink, { wordWrap: { width: 294, useAdvancedWrap: true }, lineSpacing: 3 });
     // 取ったらどうなるか：恒久強化ぜんたいの合計（今 → 取ったあと）。数値で表せない強化（奥義など）には出さない
     const preview = upgradePreview(DATA.upgrades.all(), save.upgrades, def)[0];
     if (preview) {
@@ -1312,7 +1314,8 @@ export class MenuOverlay {
       drawAchievementIcon(g, def.icon, x + 21, y + 21, 10, hex(color));
       // 特定のボスを倒す実績は、解除するまで、名前も説明も伏せる（ネタバレになるため）
       // 周回の実績も、何周目まであるかが分かってしまうので、伏せる
-      const hide = !done && (def.check === 'bossIs' || def.check === 'cycleAtLeast');
+      // まだ現れていない武器の実績も、伏せる
+      const hide = !done && (def.check === 'bossIs' || def.check === 'cycleAtLeast' || (def.weapon && !weaponAvailable(save, def.weapon)));
       this.text(x + 42, y + 4, hide ? '？？？' : def.name, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
       this.text(x + 42, y + 24, hide ? '？？？' : def.desc, 10, done ? COLORS.ink : LOCKED);
     });

@@ -226,7 +226,8 @@ export const weapons = [
     drones: {
       count: 2, // 最初から持っている子機の数（恒久強化・インプラントで、最大 max まで増える）
       max: 4,
-      damage: 8, // 1発
+      damage: 6, // 1発（2026-10-16 に 8 から下げた）
+      wideMul: 0.7, // インプラント「広角ブレード」で2発撃つとき、1発の威力の倍率
       interval: 0.4, // 1機が撃つ間隔（秒）
       range: 240, // 子機から、この距離の中の敵を撃つ（px）
       speed: 560, radius: 4, life: 0.7, knockback: 40, // 弾

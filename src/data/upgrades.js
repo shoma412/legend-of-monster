@@ -161,37 +161,37 @@ export const upgrades = [
   },
   // ---- ここから、武器ごとの強化（since: 5）。その武器の特殊アクションだけを強くする。その武器を持っているときだけ効く ----
   {
-    id: 'wm-greatsword', category: 'skill', name: '溜めの心得', desc: '大剣：溜め斬りの溜め時間 −20%', max: 1, since: 5,
+    id: 'wm-greatsword', weapon: 'greatsword', category: 'skill', name: '溜めの心得', desc: '大剣：溜め斬りの溜め時間 −20%', max: 1, since: 5,
     costs: [{ overCore: 1, hydraCore: 1 }],
     perLevel: { weaponMod: { weapon: 'greatsword', stageTime: 0.8 } },
   },
   {
-    id: 'wm-sword', category: 'skill', name: '見切り', desc: '片手剣：ジャストガードの受付 0.15秒 → 0.20秒', max: 1, since: 5,
+    id: 'wm-sword', weapon: 'sword', category: 'skill', name: '見切り', desc: '片手剣：ジャストガードの受付 0.15秒 → 0.20秒', max: 1, since: 5,
     costs: [{ boarCore: 1, houndCore: 1 }],
     perLevel: { weaponMod: { weapon: 'sword', special: { window: 0.2 } } },
   },
   {
-    id: 'wm-gun', category: 'skill', name: '拡張弾倉', desc: '銃：拡散射撃 5発 → 7発', max: 1, since: 5,
+    id: 'wm-gun', weapon: 'gun', category: 'skill', name: '拡張弾倉', desc: '銃：拡散射撃 5発 → 7発', max: 1, since: 5,
     costs: [{ cryoCore: 1, spiderCore: 1 }],
     perLevel: { weaponMod: { weapon: 'gun', special: { count: 7 } } },
   },
   {
-    id: 'wm-knuckle', category: 'skill', name: '闘気', desc: 'ナックル：バーストブローのゲージの溜まり +25%', max: 1, since: 5,
+    id: 'wm-knuckle', weapon: 'knuckle', category: 'skill', name: '闘気', desc: 'ナックル：バーストブローのゲージの溜まり +25%', max: 1, since: 5,
     costs: [{ serpentCore: 1, titanCore: 1 }],
     perLevel: { weaponMod: { weapon: 'knuckle', scale: { gain: 1.25, gainHeavy: 1.25 } } },
   },
   {
-    id: 'wm-cannon', category: 'skill', name: '急速装填', desc: '大砲：徹甲砲撃のクールダウン 7秒 → 5秒', max: 1, since: 5,
+    id: 'wm-cannon', weapon: 'cannon', category: 'skill', name: '急速装填', desc: '大砲：徹甲砲撃のクールダウン 7秒 → 5秒', max: 1, since: 5,
     costs: [{ crabCore: 1, mothCore: 1 }],
     perLevel: { weaponMod: { weapon: 'cannon', special: { cooldown: 5 } } },
   },
   {
-    id: 'wm-spear', category: 'skill', name: '踏み込み', desc: '槍：突進突きの距離 +25%、クールダウン 5秒 → 4秒', max: 1, since: 5,
+    id: 'wm-spear', weapon: 'spear', category: 'skill', name: '踏み込み', desc: '槍：突進突きの距離 +25%、クールダウン 5秒 → 4秒', max: 1, since: 5,
     costs: [{ titanCore: 1, lensCore: 1 }],
     perLevel: { weaponMod: { weapon: 'spear', special: { cooldown: 4 }, scale: { distance: 1.25 } } },
   },
   {
-    id: 'wm-chakram', category: 'skill', name: '二枚刃', desc: 'チャクラム：設置を、続けて2つ置ける', max: 1, since: 5,
+    id: 'wm-chakram', weapon: 'chakram', category: 'skill', name: '二枚刃', desc: 'チャクラム：設置を、続けて2つ置ける', max: 1, since: 5,
     costs: [{ mothCore: 1, breakerCore: 1 }],
     perLevel: { weaponMod: { weapon: 'chakram', special: { maxPlaced: 2 } } },
   },
@@ -208,12 +208,12 @@ export const upgrades = [
   },
   // ドローンユニットの子機を増やす（2026-10-12 追加。docs/詳細仕様.md「35. 新武器：ドローンユニット」）
   {
-    id: 'droneRack', category: 'skill', name: '増設ラック', desc: 'ドローンユニット：子機 +1機（最初は2機。最大4機）', max: 2, since: 7,
+    id: 'droneRack', weapon: 'drone', category: 'skill', name: '増設ラック', desc: 'ドローンユニット：子機 +1機（最初は2機。最大4機）', max: 2, since: 7,
     costs: [{ intakeCore: 1, hydraCore: 1 }, { intakeCore: 1, titanCore: 1 }], // マップ6のボスの素材（2026-10-12）
     perLevel: { mods: [{ stat: 'droneCount', add: 1 }] },
   },
   {
-    id: 'wm-drone', category: 'skill', name: '強襲プログラム', desc: 'ドローン：帰還シールドの突撃のダメージ 35 → 55、クールダウン 5秒 → 4秒', max: 1, since: 7,
+    id: 'wm-drone', weapon: 'drone', category: 'skill', name: '強襲プログラム', desc: 'ドローン：帰還シールドの突撃のダメージ 35 → 55、クールダウン 5秒 → 4秒', max: 1, since: 7,
     costs: [{ intakeCore: 1, crabCore: 1 }],
     perLevel: { weaponMod: { weapon: 'drone', special: { cooldown: 4, charge: { distance: 320, duration: 0.3, damage: 55, knockback: 420, width: 12, spacing: 22 } } } },
   },
@@ -1675,14 +1675,15 @@ export const upgrades = [
   },
 ];
 
+// map：その武器のラックが、隠れ家に現れるマップ（そのマップを1回クリアすると現れる。2026-10-16）
 // 武器の解放（片手剣はマップ1、銃は2、ナックルは3、大砲は4、槍は5、チャクラムは6、ドローンユニットは7の、ボス素材。2026-10-16 から）
 export const weaponUnlocks = [
   { weapon: 'greatsword', name: '大剣', note: '重い一撃と溜め斬り', cost: null },
-  { weapon: 'sword', name: '片手剣', note: '手数とジャストガード', cost: { boarCore: 2 } },
-  { weapon: 'gun', name: '銃', note: '遠距離と拡散射撃', cost: { serpentCore: 2 } },
-  { weapon: 'knuckle', name: 'ナックル', note: '超高速の拳とバーストブロー', cost: { houndCore: 2 } },
-  { weapon: 'cannon', name: '大砲', note: '爆発する砲弾と徹甲砲撃', cost: { mothCore: 2 } },
-  { weapon: 'spear', name: '槍', note: '貫く突きと突進突き', cost: { rustCore: 2 } },
-  { weapon: 'chakram', name: 'チャクラム', note: '戻ってくる輪と設置', cost: { intakeCore: 2 } },
-  { weapon: 'drone', name: 'ドローンユニット', note: '子機が自動で撃つ。帰還シールド', cost: { gateCore: 2, archiveCore: 2, fabCore: 2, cogCore: 2, noiseCore: 2 } },
+  { weapon: 'sword', map: 'map1', name: '片手剣', note: '手数とジャストガード', cost: { boarCore: 2 } },
+  { weapon: 'gun', map: 'map2', name: '銃', note: '遠距離と拡散射撃', cost: { serpentCore: 2 } },
+  { weapon: 'knuckle', map: 'map3', name: 'ナックル', note: '超高速の拳とバーストブロー', cost: { houndCore: 2 } },
+  { weapon: 'cannon', map: 'map4', name: '大砲', note: '爆発する砲弾と徹甲砲撃', cost: { mothCore: 2 } },
+  { weapon: 'spear', map: 'map5', name: '槍', note: '貫く突きと突進突き', cost: { rustCore: 2 } },
+  { weapon: 'chakram', map: 'map6', name: 'チャクラム', note: '戻ってくる輪と設置', cost: { intakeCore: 2 } },
+  { weapon: 'drone', map: 'map7', name: 'ドローンユニット', note: '子機が自動で撃つ。帰還シールド', cost: { gateCore: 2, archiveCore: 2, fabCore: 2, cogCore: 2, noiseCore: 2 } },
 ];

@@ -14,7 +14,7 @@ import { advanceWorld, createWorld } from '../game/world.js';
 import { createClock } from '../logic/clock.js';
 import { markSeen, pendingDialogue, talkLines } from '../logic/dialogue.js';
 import { advanceCycle, cycleComplete } from '../logic/maps.js';
-import { canAfford, permanentBonuses, saveTree, treeNodeState, unlockWeapon } from '../logic/meta.js';
+import { canAfford, permanentBonuses, saveTree, treeNodeState, unlockWeapon, weaponAvailable } from '../logic/meta.js';
 import { createBuild, weaponTraitText } from '../logic/stats.js';
 import { drawFloor, drawFrame, drawFx, drawPlayer, drawPlayerShots } from '../render/draw.js';
 import { drawObjects, focusPrompt, objectLabels } from '../render/objects.js';
@@ -99,7 +99,7 @@ export class HideoutScene extends Phaser.Scene {
       this.keys.U.on('down', () => {
         for (const w of weaponUnlocks) if (!this.save.weapons.includes(w.weapon)) this.save.weapons.push(w.weapon);
         persist();
-        this.refreshStations();
+        this.scene.restart(); // 現れた武器のラックを、並べ直す
       });
     }
     this.keys.SHIFT.on('down', () => { this.dashPressed = true; });
@@ -200,7 +200,10 @@ export class HideoutScene extends Phaser.Scene {
 
   // 部屋に置くもの。見た目と名前は refreshStations で今の状態に合わせる
   buildStations() {
-    const stations = weaponUnlocks.map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 130 + i * 100, y: 150, r: 46 } /* 8つ並ぶ（130〜830） */));
+    // 武器ラック：現れた武器だけ並べる（最初は大剣だけ。マップをクリアすると、順に増える）。位置は、8つ並んだときのまま（130〜830）
+    const stations = weaponUnlocks
+      .map((w, i) => ({ kind: 'station', id: `weapon:${w.weapon}`, icon: 'weapon', weapon: w.weapon, x: 130 + i * 100, y: 150, r: 46 }))
+      .filter((o) => weaponAvailable(this.save, o.weapon));
     stations.push({ kind: 'station', id: 'menu:upgrade', icon: 'terminal', color: COLORS.green, label: '強化端末', sub: '恒久強化', prompt: 'E：恒久強化を買う', x: 240, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'menu:record', icon: 'terminal', color: COLORS.magenta, label: '記録端末', sub: '記録・データ片・実績', prompt: 'E：記録・データ片・実績を見る', x: 440, y: 400, r: 52 });
     stations.push({ kind: 'station', id: 'talk:hal', icon: 'npc', who: 'hal', color: COLORS.ink, label: 'ハル', sub: '整備士', prompt: 'E：ハルと話す', x: 110, y: 400, r: 50 });

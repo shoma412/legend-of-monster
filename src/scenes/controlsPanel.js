@@ -110,7 +110,7 @@ function drawPadFigure(menu, g) {
 }
 
 // ゲームパッドの操作説明：左にゲームパッドの図、右にボタンの一覧（キーボードとマウスのときと同じ並び）
-function renderPadControls(menu, weapon) {
+function renderPadControls(menu, weapon, available = () => true) {
   const g = menu.graphics();
   menu.text(60, 132, 'ゲームパッド', 12, COLORS.cyan, { fontStyle: '700' });
   drawPadFigure(menu, g);
@@ -118,12 +118,12 @@ function renderPadControls(menu, weapon) {
   const auto = getSettings().controls === 'auto';
   menu.text(60, 428, auto ? '操作方法：オート　右スティックを倒していない間は、ロックオンした敵を向く' : '操作方法：マニュアル　右スティックを倒していない間は、動いている向きを向く', 10, COLORS.dim);
   g.lineStyle(1, hex(COLORS.line), 1).lineBetween(436, 134, 436, 446);
-  const lines = listLines(weapon, true);
+  const lines = listLines(weapon, true, available);
   const start = menu.window(lines.length, VISIBLE, { x: 908, y: LIST_Y, h: VISIBLE * LINE });
   lines.slice(start, start + VISIBLE).forEach((line, i) => line.draw(menu, g, LIST_Y + i * LINE));
 }
 
-function renderTouchControls(menu, weapon) {
+function renderTouchControls(menu, weapon, available = () => true) {
   const g = menu.graphics();
   menu.text(60, 132, '画面のボタン', 12, COLORS.cyan, { fontStyle: '700' });
   menu.text(900, 132, '向きは、いつもオート（近くの敵をロックオンして、その敵のほうを向く）', 11, COLORS.dim).setOrigin(1, 0);
@@ -136,7 +136,7 @@ function renderTouchControls(menu, weapon) {
   });
   // 右：武器ごとの、攻撃と特殊
   menu.text(560, 156, '武器ごとの攻撃と特殊（今の武器は、明るい）', 12, COLORS.cyan, { fontStyle: '700' });
-  mouseLines(weapon).forEach((w, i) => {
+  mouseLines(weapon, available).forEach((w, i) => {
     const y = 180 + i * 36;
     const color = w.current ? COLORS.ink : COLORS.dim;
     menu.text(560, y, w.name, 12, w.current ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
@@ -184,13 +184,16 @@ function keyColor(name) {
 }
 
 // 武器ごとの、マウスの左右のボタンの説明
-export function mouseLines(weapon) {
+// available(武器の id)：その武器が現れているか。まだ現れていない武器は、名前も操作も「？？？」に伏せる（ネタバレになるため）
+export function mouseLines(weapon, available = () => true) {
   const lines = { greatsword: ['攻撃（3段斬り）／長押しで溜め斬り', '奥義（HP20%以下・エリアごとに1回）'], sword: ['攻撃（4段コンボ）', 'ジャストガード'], gun: ['撃つ（押している間ずっと）', '拡散射撃'], knuckle: ['殴る（押している間ずっと）', 'バーストブロー（ゲージ満タンで）'], cannon: ['砲弾を撃つ（押している間ずっと）', '徹甲砲撃（溜めて撃つ）'], spear: ['突く（3段。敵をすべて貫く）', '突進突き（踏み込みの間は無敵）'], chakram: ['輪を投げる（戻ってくる。押している間ずっと）', '設置（回り続ける輪を置く）'], drone: ['子機をカーソルへ飛ばす（子機は自動で撃つ）', '帰還シールド（終わると子機が突撃）'] };
-  return DATA.weapons.all().map((w) => ({ name: w.name, left: lines[w.id]?.[0] ?? '攻撃', right: lines[w.id]?.[1] ?? w.special.name, current: weapon?.id === w.id }));
+  return DATA.weapons.all().map((w) => (available(w.id)
+    ? { id: w.id, name: w.name, left: lines[w.id]?.[0] ?? '攻撃', right: lines[w.id]?.[1] ?? w.special.name, current: weapon?.id === w.id }
+    : { id: w.id, name: '？？？', left: '？？？', right: '？？？', current: false }));
 }
 
 // 右の一覧の行。{ draw(menu, g, y) } の並び。1行は LINE px。isPad: ゲームパッドの一覧にする
-function listLines(weapon, isPad = false) {
+function listLines(weapon, isPad = false, available = () => true) {
   const head = (label) => ({
     draw(menu, g, y) {
       g.lineStyle(1, hex(COLORS.line), 1).lineBetween(LIST_X, y + LINE - 3, LIST_X + LIST_W, y + LINE - 3);
@@ -221,7 +224,7 @@ function listLines(weapon, isPad = false) {
     }
   }
   lines.push(blank, head(isPad ? '武器ごとの攻撃と特殊（今の武器は、明るい）' : '武器ごとのクリック（今の武器は、明るい）'));
-  for (const line of mouseLines(weapon)) {
+  for (const line of mouseLines(weapon, available)) {
     const on = line.current || !weapon;
     lines.push(
       { draw: (menu, g, y) => menu.text(LIST_X, y + 4, `${line.name}${line.current ? '　← 今の武器' : ''}`, 13, on ? COLORS.ink : COLORS.dim, { fontStyle: '700' }) },
@@ -242,15 +245,15 @@ function listLines(weapon, isPad = false) {
 }
 
 // menu: MenuOverlay（text / panel / graphics / window を借りる）, weapon: 今持っている武器（なければ null）
-export function renderControls(menu, weapon) {
+export function renderControls(menu, weapon, available = () => true) {
   menu.panel(40, 122, 880, 336);
   if (touch.enabled) {
-    renderTouchControls(menu, weapon);
+    renderTouchControls(menu, weapon, available);
     return;
   }
   // ゲームパッドで操作しているときは、ゲームパッドのボタンの一覧を出す
   if (pad.active) {
-    renderPadControls(menu, weapon);
+    renderPadControls(menu, weapon, available);
     return;
   }
   const g = menu.graphics();
@@ -293,7 +296,7 @@ export function renderControls(menu, weapon) {
   g.lineStyle(1, hex(COLORS.line), 1).lineBetween(436, 134, 436, 446);
 
   // ---- 右：一覧（上下に動かせる） ----
-  const lines = listLines(weapon);
+  const lines = listLines(weapon, false, available);
   const start = menu.window(lines.length, VISIBLE, { x: 908, y: LIST_Y, h: VISIBLE * LINE });
   lines.slice(start, start + VISIBLE).forEach((line, i) => line.draw(menu, g, LIST_Y + i * LINE));
 }
