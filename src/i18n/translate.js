@@ -3,6 +3,7 @@
 // 対応表に無い文は、日本語のまま出る。
 import { en } from '../data/i18n/en.js';
 import { ko } from '../data/i18n/ko.js';
+import { isKanaWord, romanizeKana } from './kana.js';
 
 export const LANGS = [
   { id: 'ja', label: '日本語' },
@@ -82,12 +83,20 @@ function lookup(str, lang) {
   if (exact.has(str)) return exact.get(str);
   for (const t of templates) {
     const m = t.regex.exec(str);
-    if (m) return t.value.replace(/\{(\d+)\}/g, (_, i) => translate(m[Number(i)] ?? '', lang));
+    if (!m) continue;
+    const out = t.value.replace(/\{(\d+)\}/g, (_, i) => translate(m[Number(i)] ?? '', lang));
+    // 決まった文字の少ない型（「{}、{}」など）は、中身を訳しきれないとき（日本語が残るとき）は使わない（訳せない文が、中途半端に変わらないように）
+    if (t.literal <= 3 && JAPANESE.test(out)) continue;
+    return out;
   }
   // 何行かの文は、1行ずつ
   if (str.includes('\n')) return str.split('\n').map((line) => translate(line, lang)).join('\n');
   // 名前だけ置き換える（名前と数がつながった文など）
   let out = str;
   for (const [ja, tr] of names) if (out.includes(ja)) out = out.split(ja).join(tr);
+  // 名前だけで出来ている文だけ、置き換える（訳せない文の一部だけが、英語・韓国語に変わらないように）
+  if (out !== str && JAPANESE.test(out)) return str;
+  // カタカナだけの語（頭文字の並びなど）は、ローマ字・ハングルに写す
+  if (isKanaWord(out)) return romanizeKana(out, lang);
   return out;
 }
