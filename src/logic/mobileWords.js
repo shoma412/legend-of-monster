@@ -2,6 +2,8 @@
 // 画面の案内は、キーボードとマウスの言葉で書いてある（「E：扉を選ぶ」「Tab：閉じる」など）。
 // モバイル版では、画面に出す直前に、ボタンの名前に言い換える。元の文は書き換えない（パソコンでは、今までどおり）。
 
+import { getLang } from '../i18n/translate.js';
+
 // 上から順に当てはめる。長い言い方を先に置く
 const RULES = [
   [/左クリック長押し/g, '攻撃ボタンの長押し'],
@@ -34,11 +36,27 @@ const RULES = [
   [/(^|[^A-Za-z])M：/g, '$1地図：'],
 ];
 
+// 英語・韓国語の画面では、日本語の言葉を混ぜない（英語の文に残るキー名だけ、ボタンの名前にする）
+const RULES_EN = [
+  [/\bTab\b/g, 'Menu'],
+  [/\bEsc\b/g, 'Menu'],
+  [/\bEnter\b/g, 'Confirm'],
+  [/\bShift\b/g, 'Dash'],
+];
+const RULES_KO = [
+  [/\bTab\b/g, '메뉴'],
+  [/\bEsc\b/g, '메뉴'],
+  [/\bEnter\b/g, '결정'],
+  [/\bShift\b/g, '대시'],
+];
+
 // 画面の案内を、モバイル版のボタンの名前に言い換える
 export function mobileWords(text) {
   if (typeof text !== 'string' || text.length === 0) return text;
   let out = text;
-  for (const [from, to] of RULES) out = out.replace(from, to);
+  const lang = getLang();
+  const rules = lang === 'en' ? RULES_EN : lang === 'ko' ? RULES_KO : RULES;
+  for (const [from, to] of rules) out = out.replace(from, to);
   return out;
 }
 

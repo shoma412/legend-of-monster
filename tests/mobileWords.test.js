@@ -1,8 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { setLang } from '../src/i18n/translate.js';
 import { createSettings, normalizeSettings } from '../src/logic/settings.js';
 import { MOBILE_FONT, mobileFontSize, mobileWords } from '../src/logic/mobileWords.js';
 
 // モバイル版の第2段階：言葉と文字の大きさ（docs/詳細仕様.md「31. モバイル版」）
+
+describe('モバイル版の言葉：英語・韓国語', () => {
+  afterEach(() => setLang('ja'));
+  it('英語・韓国語の画面に、日本語のボタン名を混ぜない', () => {
+    setLang('en');
+    expect(mobileWords('Close (Tab)')).toBe('Close (Menu)');
+    expect(mobileWords('Table')).toBe('Table');
+    setLang('ko');
+    expect(mobileWords('닫기 (Tab)')).toBe('닫기 (메뉴)');
+  });
+});
 
 describe('モバイル版の言葉', () => {
   it('キーの名前を、ボタンの名前に言い換える', () => {
