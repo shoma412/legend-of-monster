@@ -54,8 +54,16 @@ export function implantEffect(def, level = 1) {
   return def.effect(implantScale(level));
 }
 
+// 武器が、もう現れているか（まだなら、その武器の話は、説明から外す）。画面を作るときに、src/main.js が、今のセーブデータで判定する関数を入れる。入れていなければ、すべて現れている扱い
+let weaponCheck = () => true;
+export function setWeaponCheck(fn) {
+  weaponCheck = fn;
+}
+
 export function implantDesc(def, level = 1) {
-  return def.desc(implantScale(level));
+  let text = def.desc(implantScale(level));
+  for (const part of def.weaponText ?? []) if (!weaponCheck(part.weapon)) text = text.replace(part.text, '');
+  return text;
 }
 
 // もう1つ手に入れたときのレベル（上限まで）

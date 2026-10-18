@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DATA } from '../src/data/index.js';
 import { implants, species } from '../src/data/implants.js';
 import { setLang, translate } from '../src/i18n/translate.js';
+import { implantDesc, setWeaponCheck } from '../src/logic/stats.js';
 
 // 名前と説明（段階3）が、英語・韓国語で、日本語が残らずに訳せること（docs/詳細仕様.md「38. 言語（英語・韓国語）」）
 
@@ -41,6 +42,15 @@ describe('名前と説明の訳（段階3）', () => {
       const list = implants.flatMap((i) => [i.name, i.desc?.(1), i.desc?.(2), i.desc?.(3)].filter(Boolean));
       list.push(...strings(species));
       expect(untranslated(lang, list)).toEqual([]);
+    });
+    it(`インプラントの説明：未入手の武器の話を外した形も、${lang} に訳せる`, () => {
+      setWeaponCheck(() => false);
+      try {
+        const list = implants.flatMap((i) => [1, 2, 3].map((lv) => implantDesc(i, lv)));
+        expect(untranslated(lang, list)).toEqual([]);
+      } finally {
+        setWeaponCheck(() => true);
+      }
     });
   }
 });

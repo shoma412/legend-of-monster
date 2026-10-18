@@ -628,6 +628,7 @@ export const implants = [
   // 「重い攻撃」は、溜め斬り・コンボの締めの一撃・反撃・拡散射撃・奥義のこと
   {
     id: 'heavyhand', species: 'titan', name: '剛腕',
+    weaponText: [{ weapon: 'gun', text: '・拡散射撃' }],
     desc: (k) => `重い攻撃（溜め斬り・締めの一撃・反撃・拡散射撃）の威力 +${pct(0.25 * k)}`,
     effect: (k) => ({ mods: [{ stat: 'heavyBonus', add: 0.25 * k }] }),
   },
@@ -674,11 +675,14 @@ export const implants = [
   },
   {
     id: 'blade', species: 'general', name: '拡張ブレード',
+    // weaponText：その武器が、まだ現れていない（マップをクリアしていない）間は、説明から外す文（ネタバレになるため。2026-10-16）
+    weaponText: [{ weapon: 'drone', text: '／ドローンの子機 +1機' }],
     desc: (k) => `近接範囲 +${pct(0.25 * k)}／弾が1体貫通／ドローンの子機 +1機`,
     effect: (k) => ({ mods: [{ stat: 'meleeRange', add: 0.25 * k }, { stat: 'pierce', add: 1 }, { stat: 'droneCount', add: 1 }] }),
   },
   {
     id: 'wideblade', species: 'general', name: '広角ブレード',
+    weaponText: [{ weapon: 'drone', text: '／ドローンの子機が2発ずつ撃つ' }],
     desc: (k) => `近接攻撃の角度 +${pct(0.5 * k)}／ドローンの子機が2発ずつ撃つ`,
     effect: (k) => ({ mods: [{ stat: 'meleeArc', add: 0.5 * k }] }),
   },

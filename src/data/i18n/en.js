@@ -1912,6 +1912,11 @@ export const en = {
     "凪の心臓": "Heart of Calm",
     "全実績達成": "Completionist",
     "すべての実績を達成した": "Unlocked every achievement",
+    "全画面": "Fullscreen",
+    "スマホを横向きにしてください": "Please rotate your phone to landscape",
+    "近接範囲 +{}／弾が1体貫通": "Melee range +{1} / bullets pierce 1 enemy",
+    "近接攻撃の角度 +{}": "Melee attack arc +{1}",
+    "重い攻撃（溜め斬り・締めの一撃・反撃）の威力 +{}": "Heavy attack (charge slash, finisher, counter) power +{1}",
   },
   names: {
     "ステータス": "Status",

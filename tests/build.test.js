@@ -10,7 +10,7 @@ import { createEnemy } from '../src/game/enemyAI.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { addXp, rollImplantChoices, xpToNext } from '../src/logic/level.js';
 import { describeItem, makeItem, rollRarity } from '../src/logic/loot.js';
-import { carryOptions, computeStats, createBuild, implantDesc, implantEffect, mapSpecies, runSpecies } from '../src/logic/stats.js';
+import { carryOptions, computeStats, createBuild, implantDesc, implantEffect, mapSpecies, runSpecies, setWeaponCheck } from '../src/logic/stats.js';
 import { createRun } from '../src/game/run.js';
 import { createSave } from '../src/logic/save.js';
 
@@ -230,6 +230,20 @@ describe('レベルアップとインプラント', () => {
     for (let i = 0; i < 10; i++) addImplant(world, def);
     expect(p.build.implants.overclock).toBe(LEVEL.implantMax);
     expect(p.stats.attackMul).toBeCloseTo(1 + 0.2 * (1 + (LEVEL.implantMax - 1) * LEVEL.implantGrowth));
+  });
+
+  it('まだ現れていない武器の話は、説明から外れる', () => {
+    try {
+      setWeaponCheck((id) => id !== 'drone');
+      expect(implantDesc(DATA.implants.get('blade'), 1)).not.toContain('ドローン');
+      expect(implantDesc(DATA.implants.get('wideblade'), 1)).not.toContain('ドローン');
+      expect(implantDesc(DATA.implants.get('heavyhand'), 1)).toContain('拡散射撃');
+      setWeaponCheck((id) => id !== 'gun');
+      expect(implantDesc(DATA.implants.get('heavyhand'), 1)).not.toContain('拡散射撃');
+      expect(implantDesc(DATA.implants.get('blade'), 1)).toContain('ドローン');
+    } finally {
+      setWeaponCheck(() => true);
+    }
   });
 
   it('説明文は、レベルに合わせた数値になる', () => {

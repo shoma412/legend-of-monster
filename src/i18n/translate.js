@@ -30,9 +30,17 @@ export const isLang = (id) => LANGS.some((l) => l.id === id);
 
 let current = 'ja';
 export const getLang = () => current;
+const listeners = new Set();
+// 言語が切り替わったときに呼ぶ関数を登録する（HTML の部品など、Phaser の文字ではないものを、出し直すため）
+export function onLangChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 export function setLang(id) {
   current = isLang(id) ? id : 'ja';
   caches.clear();
+  for (const fn of listeners) fn(current);
 }
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

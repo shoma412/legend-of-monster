@@ -3,6 +3,7 @@
 //   スティック・攻撃・特殊 … src/game/touchInput.js に書き込む（戦闘と隠れ家の画面が読む）
 //   そのほかのボタン       … キーボードのキーを押したことにする（どの画面でも、キーと同じ働きをする）
 import { touch } from '../game/touchInput.js';
+import { onLangChange, translate } from '../i18n/translate.js';
 import { stickDirection, stickVector } from '../logic/device.js';
 
 // ボタンの定義。key を書いたものは、そのキーを押したことにする。label の下に、小さく hint（画面の案内に出てくるキーの名前）を出す
@@ -78,10 +79,14 @@ function el(tag, className, parent, html = '') {
   return node;
 }
 
+// ボタンの文字（日本語の元の文）。言語が切り替わったときに、出し直す
+const labelNodes = [];
+
 // ボタン1つ。押した瞬間に onDown、離したときに onUp
 function button(parent, def, className, onDown, onUp = null) {
-  const node = el('div', `tbtn ${className}`, parent, def.hint ? `${def.label}<small>${def.hint}</small>` : def.label);
+  const node = el('div', `tbtn ${className}`, parent, def.hint ? `${translate(def.label)}<small>${def.hint}</small>` : translate(def.label));
   node.dataset.id = def.id;
+  labelNodes.push({ node, ja: def.label, hint: def.hint });
   const release = (event) => {
     event.preventDefault();
     node.classList.remove('on');
@@ -191,7 +196,16 @@ export function initTouchControls(parent) {
   const items = el('div', 'row items play', root);
   for (const def of ITEM_BUTTONS) button(items, def, '', () => tapKey(def.key));
   // 縦向きのときの案内
-  el('div', 'turn', root, 'スマホを横向きにしてください<br>ROTATE YOUR DEVICE');
+  const turn = el('div', 'turn', root);
+  const showTurn = () => {
+    turn.innerHTML = `${translate('スマホを横向きにしてください')}<br>ROTATE YOUR DEVICE`;
+  };
+  showTurn();
+  // 言語を切り替えたら、ボタンの文字も、その言語にする
+  onLangChange(() => {
+    for (const { node, ja, hint } of labelNodes) node.innerHTML = hint ? `${translate(ja)}<small>${hint}</small>` : translate(ja);
+    showTurn();
+  });
   // 長押しのメニューや、2本指の拡大を止める
   for (const type of ['contextmenu', 'gesturestart', 'dblclick']) document.addEventListener(type, (event) => event.preventDefault());
   return root;
