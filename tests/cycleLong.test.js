@@ -16,18 +16,22 @@ function seeded(seed) {
 }
 
 describe('敵のHP：10周目から伸びが増える', () => {
-  it('9周目までは毎周 +15%。10周目からは毎周 +20%、そこから 5周ごとに伸びが +5%', () => {
+  // 値は src/data/balance.js の CYCLE（2026-10-20：0.15・0.2・0.05 から、0.3・3.1・0.85 に変えた。恒久強化の伸びに張り合うため）
+  it('9周目までは毎周 +hpPerCycle。10周目からは毎周 +hpLatePerCycle、そこから 5周ごとに伸びが +hpLateStep', () => {
+    const { hpPerCycle: a, hpLatePerCycle: late, hpLateStep: step } = CYCLE;
     expect(hpScaleFor(1)).toBe(1);
-    expect(hpScaleFor(2)).toBeCloseTo(1.15);
-    expect(hpScaleFor(9)).toBeCloseTo(1 + 8 * 0.15);
-    expect(hpScaleFor(10)).toBeCloseTo(1 + 8 * 0.15 + 0.2);
-    expect(hpScaleFor(14)).toBeCloseTo(hpScaleFor(10) + 4 * 0.2);
-    // 15周目から、伸びは 0.25
-    expect(hpScaleFor(15) - hpScaleFor(14)).toBeCloseTo(0.25);
-    expect(hpScaleFor(20) - hpScaleFor(19)).toBeCloseTo(0.3);
+    expect(hpScaleFor(2)).toBeCloseTo(1 + a);
+    expect(hpScaleFor(9)).toBeCloseTo(1 + 8 * a);
+    expect(hpScaleFor(10)).toBeCloseTo(1 + 8 * a + late);
+    expect(hpScaleFor(14)).toBeCloseTo(hpScaleFor(10) + 4 * late);
+    // 15周目から、伸びは late + step
+    expect(hpScaleFor(15) - hpScaleFor(14)).toBeCloseTo(late + step);
+    expect(hpScaleFor(20) - hpScaleFor(19)).toBeCloseTo(late + 2 * step);
     // 上限はない（どこまでも増える）
     expect(hpScaleFor(100)).toBeGreaterThan(hpScaleFor(50));
-    expect(cycleMods(3).hpScale).toBeCloseTo(1.3);
+    expect(cycleMods(3).hpScale).toBeCloseTo(1 + 2 * a);
+    // 20周目でも、桁が大きくなるだけで、ふつうの数（無限や非数にならない）
+    expect(Number.isFinite(hpScaleFor(20))).toBe(true);
   });
 });
 

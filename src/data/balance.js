@@ -50,8 +50,8 @@ export const ENEMY_SCALING = {
 export const CYCLE = {
   // 長い周回（2026-10-15）：10周目から、HP の伸びが毎周 +20% になり、さらに 5周ごとに +5% ずつ増える（上限なし）
   hpLateFrom: 10,
-  hpLatePerCycle: 0.2,
-  hpLateStep: 0.05,
+  hpLatePerCycle: 3.1, // 2026-10-20：0.2 から 3.1 に（恒久強化の伸びが大きく、後半が楽になりすぎるため。シミュレーターで、取れるだけ強化を取った人と、張り合う値。数字の桁が大きくなるのは、狙いどおり）
+  hpLateStep: 0.85, // 2026-10-20：0.05 から 0.85 に
   hpLateEvery: 5,
   mythicFrom: 10, // この周から、ミシックの確率が毎周 +5% ずつ上がる（上限 ×2）
   mythicPerCycle: 0.05,
@@ -59,8 +59,8 @@ export const CYCLE = {
   extraEnvFrom: 15, // この周から、エリアごとにランダムで環境が1つ重なる（暗闇・酸の雨・強風のうち、まだないもの）
   noSupplyFrom: 20, // この周から、補給部屋が出ない。ボス素材も毎周 +1 個
   materialLateEvery: 1,
-  hpPerCycle: 0.15, // 敵の HP の増え方（1周ごと）
-  damagePerCycle: 0.08, // 受けるダメージの増え方（1周ごと）
+  hpPerCycle: 0.3, // 敵の HP の増え方（1周ごと）。2026-10-20：0.15 から 0.3 に
+  damagePerCycle: 1.0, // 受けるダメージの増え方（1周ごと）。2026-10-20：0.08 から 1.0 に（防御の強化も、大きく伸びるため。取れるだけ防御を取った人に対して、余裕が約2〜5倍）
   stepsPerCycle: 1, // 敵の量：1周ごとに、この部屋数ぶん奥のものとして数える
   materialTwoBase: 0.5, // ボス素材が2個になる確率（1周目）。ふつうは1個
   materialTwoPerCycle: 0.1, // 1周ごとに、2個になる確率がこれだけ上がる（最大1）

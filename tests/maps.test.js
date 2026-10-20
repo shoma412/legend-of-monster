@@ -226,14 +226,14 @@ describe('周回', () => {
     expect(mapStateAt(save, maps[2], 2)).toBe('locked');
   });
 
-  it('1周目は何も変わらない。周が進むごとに、HP +15%・受けるダメージ +8%', () => {
+  it('1周目は何も変わらない。周が進むごとに、HP・受けるダメージが増える（値は CYCLE）', () => {
     expect(cycleMods(1)).toMatchObject({ hpScale: 1, damageScale: 1, stepBonus: 0, materialBonus: 0, rarityChance: 0, eliteTraits: 1, bossHard: false, healScale: 1 });
     expect(cycleNotes(1)).toEqual([]);
     const m3 = cycleMods(3);
     expect(m3.hpScale).toBeCloseTo(1 + 2 * CYCLE.hpPerCycle);
     expect(m3.damageScale).toBeCloseTo(1 + 2 * CYCLE.damagePerCycle);
     expect(m3.materialBonus).toBe(1);
-    expect(cycleNotes(3).join(' ')).toContain('+30%');
+    expect(cycleNotes(3).join(' ')).toContain(`+${Math.round(2 * CYCLE.hpPerCycle * 100)}%`);
   });
 
   it('追加のルール：3周目からエリートの特性が2つ、5周目からボスが最初から後半、7周目から補給が半分', () => {
