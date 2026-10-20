@@ -351,8 +351,9 @@ export class HideoutScene extends Phaser.Scene {
     const input = {
       mx: (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0) + (mobile ? touch.mx : 0) + pad.mx,
       my: (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0) + (mobile ? touch.my : 0) + pad.my,
-      aimX: aim ? p.x + aim.x * PAD.aimReach : pad.active ? null : pointer.worldX,
-      aimY: aim ? p.y + aim.y * PAD.aimReach : pad.active ? null : pointer.worldY,
+      // ドローンユニットは、子機を飛ばせる距離（キーボード・マウスと同じ上限）まで、スティックを倒した量に合わせて狙える
+      aimX: aim ? p.x + aim.x * (p.weapon.drones?.reach ?? PAD.aimReach) : pad.active ? null : pointer.worldX,
+      aimY: aim ? p.y + aim.y * (p.weapon.drones?.reach ?? PAD.aimReach) : pad.active ? null : pointer.worldY,
       auto: !aiming && auto, // 操作方法（設定）
       attack: (mobile ? touch.attack : pointer.leftButtonDown()) || pad.attack,
       attackPressed: this.attackPressed || !!presses?.attackPressed || padPresses.attackPressed,
