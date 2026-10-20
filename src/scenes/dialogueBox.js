@@ -4,6 +4,7 @@
 //   1・2：選択肢を選ぶ（クリックでも選べる）
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
+import { pad } from '../game/padInput.js';
 import { SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
@@ -58,6 +59,7 @@ export function createDialogueBox(scene) {
   let glitchT = 0;
   let options = {};
   let choosing = false;
+  let cursor = 0; // ゲームパッドで選んでいる選択肢
   let closedAt = -Infinity;
   const box = {
     isOpen: false,
@@ -130,8 +132,10 @@ export function createDialogueBox(scene) {
     });
   }
 
-  function setChoices(on) {
+  function setChoices(on, keepCursor = false) {
     choosing = on;
+    if (!keepCursor) cursor = 0;
+    pad.talkChoices = on ? (options.choices?.length ?? 0) : 0;
     buttons.forEach(({ bg, label }, i) => {
       const choice = on ? options.choices?.[i] : null;
       bg.setVisible(!!choice);
@@ -141,6 +145,7 @@ export function createDialogueBox(scene) {
       label.setText(`${i + 1}　${choice.label}${blocked ? `（${choice.blocked}）` : ''}`).setColor(blocked ? COLORS.dim : COLORS.ink);
       bg.setStrokeStyle(1, hex(blocked ? COLORS.line : COLORS.cyan));
     });
+    markCursor();
     if (on) {
       // 選択肢を出すときは、本文を1行ぶんにして場所を空ける（長くて2行以上になるなら、小さくして、選択肢を下げる）
       bodyText.setText(textAt(index));
@@ -151,7 +156,27 @@ export function createDialogueBox(scene) {
     }
   }
 
+  // ゲームパッドで選んでいる選択肢に、黄色い太い枠をつける（ゲームパッドで操作しているときだけ）
+  function markCursor() {
+    if (!choosing) return;
+    buttons.forEach(({ bg }, i) => {
+      const choice = options.choices?.[i];
+      if (!choice || !pad.active || i !== cursor) return;
+      bg.setStrokeStyle(3, hex(COLORS.amber));
+    });
+  }
+
+  function moveCursor(step) {
+    if (!box.isOpen || !choosing) return;
+    const n = options.choices?.length ?? 0;
+    if (n === 0) return;
+    cursor = (cursor + step + n) % n;
+    playSe('select');
+    setChoices(true, true);
+  }
+
   function close() {
+    pad.talkChoices = 0;
     box.isOpen = false;
     closedAt = performance.now();
     root.setVisible(false);
@@ -225,6 +250,12 @@ export function createDialogueBox(scene) {
   kb.on('keydown-TAB', skip);
   kb.on('keydown-ONE', () => pick(0));
   kb.on('keydown-TWO', () => pick(1));
+  // ゲームパッド：十字キー・スティックで選んで、A で決める
+  kb.on('keydown', (event) => {
+    if (event.code === 'PadTalkPrev') moveCursor(-1);
+    else if (event.code === 'PadTalkNext') moveCursor(1);
+    else if (event.code === 'PadTalkConfirm') pick(cursor);
+  });
 
   return box;
 }

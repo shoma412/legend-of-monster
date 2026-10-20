@@ -36,6 +36,9 @@ export const PAD_KEYS = {
   padRight: ['PadRight', 0],
   padZoomIn: ['PadZoomIn', 0],
   padZoomOut: ['PadZoomOut', 0],
+  padTalkPrev: ['PadTalkPrev', 0],
+  padTalkNext: ['PadTalkNext', 0],
+  padTalkConfirm: ['PadTalkConfirm', 0],
   padFilter: ['PadFilter', 0],
   // マップ選択：持ち込み（1つ目・2つ目）と、持ち越し（1つ目・2つ目）の切り替え
   carry1: ['KeyE', 69],
@@ -108,7 +111,11 @@ export function padActions(mode, pressed, state) {
       else if (name === 'plus') key('menu');
       else if (name === 'minus') key('map');
     } else if (mode === 'talk') {
-      if (name === 'A') key('interact');
+      // 会話の選択肢が出ているとき：十字キー・スティックで選んで、A で決める（X・Y で、直接選んでもよい）
+      if (state.talkChoices > 0 && name === 'A') key('padTalkConfirm');
+      else if (state.talkChoices > 0 && (name === 'dir:up' || name === 'dir:left')) key('padTalkPrev');
+      else if (state.talkChoices > 0 && (name === 'dir:down' || name === 'dir:right')) key('padTalkNext');
+      else if (name === 'A') key('interact');
       else if (name === 'X') key('digit1');
       else if (name === 'Y') key('digit2');
       else if (name === 'B' || name === 'plus') key('menu');

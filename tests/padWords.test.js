@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { afterEach } from 'vitest';
+import { setLang } from '../src/i18n/translate.js';
 import { padWords } from '../src/logic/padWords.js';
 
 describe('ゲームパッドの言葉への言い換え', () => {
@@ -29,7 +31,7 @@ describe('ゲームパッドの言葉への言い換え', () => {
 
   it('会話・3択・帰還', () => {
     expect(padWords('クリック / E：次へ　　Tab：飛ばす')).toBe('A：次へ　　B：飛ばす');
-    expect(padWords('1 / 2 かクリックで選ぶ')).toBe('X・Y で選ぶ');
+    expect(padWords('1 / 2 かクリックで選ぶ')).toBe('十字キー + A、または X・Y で選ぶ');
     expect(padWords('インプラントを1つ選ぶ（1・2・3 キー または クリック）')).toBe('インプラントを1つ選ぶ（左スティックで選んで、A で決定）');
     expect(padWords('装備を見終わったら、下のボタンか Enter で帰還する')).toBe('装備を見終わったら、A で帰還する');
   });
@@ -46,5 +48,25 @@ describe('ゲームパッドの言葉への言い換え', () => {
     expect(padWords('RB：攻撃（3段斬り）')).toBe('RB：攻撃（3段斬り）');
     expect(padWords('')).toBe('');
     expect(padWords(null)).toBe(null);
+  });
+});
+
+describe('ゲームパッドの言葉：英語・韓国語（2026-10-20）', () => {
+  afterEach(() => setLang('ja'));
+
+  it('英語：キーの名前を、ボタンの名前にする（動詞の Enter は、そのまま）', () => {
+    setLang('en');
+    expect(padWords('Press 1 / 2 or click to choose')).toBe('D-pad + A, or X / Y, to choose');
+    expect(padWords('Click / E: Next   Tab: Skip')).toBe('A: Next   B: Skip');
+    expect(padWords('E: Swap (the old gear goes to the bag)   F: Put in bag')).toBe('X: Put in bag');
+    expect(padWords('E: Enter the hidden door')).toBe('X: Enter the hidden door');
+    expect(padWords('Close (Tab)')).toBe('Close (B)');
+    expect(padWords('Weapon: Sword   A·D: Map   Enter: Sortie   Tab: Cancel')).toBe('Weapon: Sword   LB·RB: Map   A: Sortie   B: Cancel');
+  });
+
+  it('韓国語：同じく、ボタンの名前にする', () => {
+    setLang('ko');
+    expect(padWords('1 / 2 또는 클릭으로 선택')).toBe('십자키 + A, 또는 X / Y로 선택');
+    expect(padWords('클릭 / E: 다음   Tab: 건너뛰기')).toBe('A: 다음   B: 건너뛰기');
   });
 });

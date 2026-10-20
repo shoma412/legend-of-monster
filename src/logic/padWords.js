@@ -2,12 +2,14 @@
 // 画面の案内は、キーボードとマウスの言葉で書いてある（「E：扉を選ぶ」「Tab：閉じる」など）。
 // ゲームパッドで操作している間は、画面に出す直前に、ゲームパッドのボタンの名前に言い換える。元の文は書き換えない。
 
+import { getLang } from '../i18n/translate.js';
+
 // 上から順に当てはめる。長い言い方を先に置く
 const RULES = [
   // 落ちている装備：X は、バッグに入れる（身につけるのは、ポーズ画面から）
   [/E：(付け替える|装備する)[　 ]*F：バッグに入れる/g, 'X：バッグに入れる'],
   [/クリック \/ E：次へ/g, 'A：次へ'],
-  [/1 \/ 2 かクリックで選ぶ/g, 'X・Y で選ぶ'],
+  [/1 \/ 2 かクリックで選ぶ/g, '十字キー + A、または X・Y で選ぶ'],
   [/1・2・3 キー または クリック/g, '左スティックで選んで、A で決定'],
   [/引き直す（4 キー）/g, '引き直す（Y）'],
   [/下のボタンか Enter で帰還する/g, 'A で帰還する'],
@@ -45,10 +47,33 @@ const RULES = [
   [/(^|[^A-Za-z])M：/g, '$1−：'],
 ];
 
+// 英語・韓国語の画面（訳したあとの文）。キーの名前は、アルファベットのまま書いてあるので、日本語の言い換えは使えない（2026-10-20）
+//   例：「E: Swap」「Press 1 / 2 or click to choose」「Tab: Skip」
+const LATIN_KEYS = [
+  [/E: (?:Swap|Equip)[^\n]*?F: Put in bag/g, 'X: Put in bag'],
+  [/E: [^\n]*?F: 가방에 넣기/g, 'X: 가방에 넣기'],
+  [/(?:Click|클릭) \/ E:/g, 'A:'],
+  [/\bEnter:/g, 'A:'],
+  [/\bor Enter\b/g, 'or A'],
+  [/\bTab\b/g, 'B'],
+  [/\bEsc\b/g, 'B'],
+  [/\bShift\b/g, 'LT'],
+  [/A·D/g, 'LB·RB'],
+  [/W·S/g, 'Left stick'],
+  [/(^|[^A-Za-z])[EF]: /g, '$1X: '],
+  [/(^|[^A-Za-z])Q: /g, '$1Y: '],
+  [/(^|[^A-Za-z])R: /g, '$1RT: '],
+  [/(^|[^A-Za-z])M: /g, '$1−: '],
+];
+const RULES_EN = [[/Press 1 \/ 2 or click to choose/g, 'D-pad + A, or X / Y, to choose'], ...LATIN_KEYS];
+const RULES_KO = [[/1 \/ 2 또는 클릭으로 선택/g, '십자키 + A, 또는 X / Y로 선택'], ...LATIN_KEYS];
+
 // 画面の案内を、ゲームパッドのボタンの名前に言い換える
 export function padWords(text) {
   if (typeof text !== 'string' || text.length === 0) return text;
   let out = text;
-  for (const [from, to] of RULES) out = out.replace(from, to);
+  const lang = getLang();
+  const rules = lang === 'en' ? RULES_EN : lang === 'ko' ? RULES_KO : RULES;
+  for (const [from, to] of rules) out = out.replace(from, to);
   return out;
 }

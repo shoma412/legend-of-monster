@@ -133,6 +133,20 @@ describe('ゲームパッドのボタンの働き', () => {
     expect(padActions('choice', ['A'], state({ choice: 2 })).keys).toEqual(['digit3']);
   });
 
+  it('会話の選択肢が出ているとき：十字キー・スティックで選んで、A で決める。X・Y でも選べる', () => {
+    const talk = (extra = {}) => state({ talkChoices: 2, ...extra });
+    expect(padActions('talk', ['dir:up'], talk()).keys).toEqual(['padTalkPrev']);
+    expect(padActions('talk', ['dir:left'], talk()).keys).toEqual(['padTalkPrev']);
+    expect(padActions('talk', ['dir:down'], talk()).keys).toEqual(['padTalkNext']);
+    expect(padActions('talk', ['dir:right'], talk()).keys).toEqual(['padTalkNext']);
+    expect(padActions('talk', ['A'], talk()).keys).toEqual(['padTalkConfirm']);
+    expect(padActions('talk', ['X'], talk()).keys).toEqual(['digit1']);
+    expect(padActions('talk', ['Y'], talk()).keys).toEqual(['digit2']);
+    // 選択肢が出ていないときは、A は「次へ」。十字キーは何もしない
+    expect(padActions('talk', ['A'], state()).keys).toEqual(['interact']);
+    expect(padActions('talk', ['dir:down'], state()).keys).toEqual([]);
+  });
+
   it('会話：A で進める。X・Y で選択肢', () => {
     expect(padActions('talk', ['A'], state()).keys).toEqual(['interact']);
     expect(padActions('talk', ['X'], state()).keys).toEqual(['digit1']);
