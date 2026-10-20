@@ -9,3 +9,5 @@ src/dev.local.js
 debug-save-*.txt
 # Graphify が作るグラフ（このパソコンだけの開発用。Git には入れない）
 graphify-out/
+# 公開ページ（itch.io）の下書き（Git には入れない）
+itch公開ページ案.md
