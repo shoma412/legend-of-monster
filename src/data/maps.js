@@ -31,9 +31,9 @@ export const maps = [
   },
   // 送風区。環境は「強風」。エリアは4つにする（エリア2〜4と隠しボスは、これから足す）。入るには、溶解区の通行証（マップ5の隠しボス）が要る
   // 2026-10-13：雑魚を強めにするため、enemyScale を 5 から 6 に上げた（マップ6から、雑魚もボスも強めに作る）
-  // 隠しボス「カーム」：どこか1部屋に、ひび割れた壁が出る（マップ3と同じ）。開けるには、コアを払う（cost。1回払えば、そのセーブデータでは、次から払わない）。倒すと、送風区の通行証（マップ7に入るのに要る）
+  // 隠しボス「カーム」：エリア4（最後のエリア）のボス前の補給部屋に、隠し扉が開いている（rule: 'rest'。2026-10-20。前は、どこか1部屋に壁が出た）。開けるには、コアを払う（cost。1回払えば、そのセーブデータでは、次から払わない）。倒すと、送風区の通行証（マップ7に入るのに要る）
   { id: 'map6', code: 'MAP 06', name: '送風区', areas: ['airintake', 'airduct', 'airgarden', 'airstack'], enemyScale: 6, environment: 'gale', requiresPass: 'map5',
-    secretBoss: { boss: 'calm', cost: { overCore: 3, hydraCore: 3, titanCore: 3, breakerCore: 3, rainCore: 3, cycloneCore: 3 }, hint: ['@noise＞ ……壁の向こうが、静かだ。風が、止まっている。'] },
+    secretBoss: { boss: 'calm', rule: 'rest', areaIndex: 3, cost: { overCore: 3, hydraCore: 3, titanCore: 3, breakerCore: 3, rainCore: 3, cycloneCore: 3 }, hint: ['@noise＞ ……この扉の向こうが、静かだ。風が、止まっている。'] },
   },
   // 最後のマップ。エリアは5つ（最後のエリアのボスは、依頼人のノイズ）。エリアごとに環境が変わる（エリアの environment）。雑魚もボスも、ミシック装備を前提にした強さ。
   { id: 'map7', code: 'MAP 07', name: '核心区', areas: ['gate', 'archive', 'factory', 'logic', 'core'], enemyScale: 10, requiresPass: 'map6' },

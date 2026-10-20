@@ -5,6 +5,7 @@ import { upgrades } from '../src/data/upgrades.js';
 import { PATTERNS } from '../src/game/bossPatterns.js';
 import { recalcStats } from '../src/game/build.js';
 import { hitEnemy } from '../src/game/combat.js';
+import { createAreaPlan } from '../src/logic/areaGen.js';
 import { SECRET_IN, createRun, enterRoom, handleEvents, leaveRoom, payForSecret, secretCost } from '../src/game/run.js';
 import { createWorld, updateWorld } from '../src/game/world.js';
 import { mapState, recordMapClear } from '../src/logic/maps.js';
@@ -73,6 +74,42 @@ const clampTo = (world, p) => {
   p.x = Math.max(world.bounds.left + 20, Math.min(world.bounds.right - 20, p.x));
   p.y = Math.max(world.bounds.top + 20, Math.min(world.bounds.bottom - 20, p.y));
 };
+
+describe('隠し扉の場所（2026-10-20：エリア4のボス前の補給部屋）と、次のマップへの条件', () => {
+  it('隠し扉は、エリア4（最後のエリア）のボス前の補給部屋にだけ出る。ひび割れた壁は、どこにも出ない', () => {
+    const { run: r } = newRun(COST);
+    expect(r.secret.rule).toBe('rest');
+    for (let area = 0; area < 4; area++) {
+      r.areaIndex = area;
+      r.plan = createAreaPlan(r.map.areas[area] ? DATA.areas.get(r.map.areas[area]) : null, seeded(9), r.mods);
+      const ids = Object.keys(r.plan.nodes);
+      for (const id of ids) {
+        r.plan.current = id;
+        const room = enterRoom(r).room;
+        expect(room.secret, `area ${area} ${id}`).toBeUndefined();
+        const door = room.objects.find((o) => o.kind === 'secretDoor');
+        if (area === 3 && id === 'rest') {
+          expect(door).toBeDefined();
+          expect(door.cost).toEqual(COST);
+          expect(door.target).toBe(SECRET_IN);
+        } else {
+          expect(door, `area ${area} ${id}`).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  it('隠しボスの通行証だけでは、次のマップに行けない。前のマップをクリアしている必要がある（どのマップも）', () => {
+    for (let i = 1; i < maps.length; i++) {
+      const save = createSave();
+      for (let j = 0; j < i - 1; j++) recordMapClear(save, maps[j].id, 1); // 1つ前だけ、クリアしていない
+      save.passes.push(...maps.map((m) => m.id)); // 通行証は、すべて持っている
+      expect(mapState(save, DATA.maps.get(maps[i].id)), maps[i].id).toBe('locked');
+      recordMapClear(save, maps[i - 1].id, 1);
+      expect(['open', 'done']).toContain(mapState(save, DATA.maps.get(maps[i].id)));
+    }
+  });
+});
 
 describe('マップ6の隠しボス「カーム」の出し方と、通行証', () => {
   it('マップ6の隠しボスはカーム。壁を開けるには、マップ1〜6の最終ボスのコアを各3個。マップ7には、送風区の通行証が要る', () => {

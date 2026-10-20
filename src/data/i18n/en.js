@@ -1922,6 +1922,7 @@ export const en = {
     "弱い": "Low",
     "普通": "Normal",
     "強い": "High",
+    "@noise＞ ……この扉の向こうが、静かだ。風が、止まっている。": "@noise＞ ......It's quiet beyond this door. The wind has stopped.",
   },
   names: {
     "ステータス": "Status",

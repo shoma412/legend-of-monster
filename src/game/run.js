@@ -63,6 +63,9 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
   if (map.secretBoss?.rule === 'rain') {
     // 雨に当たらずに進むマップ：dryOk は、今のエリアで、雨のダメージを1回も受けていないか
     run.secret = { boss: map.secretBoss.boss, rule: 'rain', dryOk: true, done: false };
+  } else if (map.secretBoss?.rule === 'rest') {
+    // 決まったエリアの、ボス前の補給部屋に、隠し扉が開いているマップ（areaIndex は、そのエリアの番号）
+    run.secret = { boss: map.secretBoss.boss, rule: 'rest', areaIndex: map.secretBoss.areaIndex ?? map.areas.length - 1, done: false };
   } else if (map.secretBoss?.rule === 'lamps') {
     // 灯りを点けて回るマップ：lampsOk は、今のエリアで通ってきた部屋の非常灯を、すべて点けてきたか
     run.secret = { boss: map.secretBoss.boss, rule: 'lamps', lampsOk: true, done: false };
@@ -133,11 +136,11 @@ export function enterRoom(run) {
   if (s && !s.rule && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
   // 灯りを点けて回るマップ：条件を満たしてボス前の補給部屋に着くと、隠しエリアへの道が開いている
   //   雨に当たらずに進むマップも、同じ場所に開く
-  const ruleOk = s?.rule === 'lamps' ? s.lampsOk : s?.rule === 'rain' ? s.dryOk : false;
+  const ruleOk = s?.rule === 'lamps' ? s.lampsOk : s?.rule === 'rain' ? s.dryOk : s?.rule === 'rest' ? s.areaIndex === run.areaIndex : false;
   if (s && ruleOk && !run.inSecret && !s.done && plan.current === 'rest') {
     room.secretOpen = true;
     // 左の壁の下のほう（上の壁は、区画名と通信の文字に重なる）
-    room.objects.push({ kind: 'secretDoor', x: ROOM.wall + SECRET.wallMargin, y: SCREEN.height - ROOM.wall - 120, r: SECRET.doorRadius, side: 'left', target: SECRET_IN });
+    room.objects.push({ kind: 'secretDoor', x: ROOM.wall + SECRET.wallMargin, y: SCREEN.height - ROOM.wall - 120, r: SECRET.doorRadius, side: 'left', target: SECRET_IN, cost: room.secretCost ?? null });
   }
   // 奥のエリアほど、雑魚のHPと攻撃力が上がる
   room.enemyScale = ENEMY_SCALING.perArea ** run.areaIndex * (run.map.enemyScale ?? 1);
