@@ -1406,18 +1406,6 @@ export class MenuOverlay {
       this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
     }
 
-    // コントローラーの振動（切る／弱い／普通／強い）。操作方法の下に置く。選ぶと、その強さで1回振動する
-    this.text(660, 262, '振動', 12, COLORS.cyan, { fontStyle: '700' });
-    VIBRATIONS.forEach((opt, i) => {
-      this.button(660 + i * 62, 280, 58, 26, opt.label, opt.id === s.vibration ? COLORS.cyan : COLORS.dim, () => {
-        s.vibration = opt.id;
-        saveSettings();
-        playSe('select');
-        playRumble('hurt');
-        this.render();
-      });
-    });
-
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {
       this.text(64, y + 4, label, 14, COLORS.ink, { fontStyle: '700' });
@@ -1472,6 +1460,17 @@ export class MenuOverlay {
       retranslateGame(game);
       playSe('select');
       this.render();
+    });
+    // コントローラーの振動（切る／弱い／普通／強い）。言語の行の右に、小さく並べる。選ぶと、その強さで1回振動する
+    this.text(688, 417, '振動', 14, COLORS.ink, { fontStyle: '700' });
+    VIBRATIONS.forEach((opt, i) => {
+      this.button(744 + i * 40, 412, 36, 26, opt.label, opt.id === s.vibration ? COLORS.cyan : COLORS.dim, () => {
+        s.vibration = opt.id;
+        saveSettings();
+        playSe('select');
+        playRumble('hurt');
+        this.render();
+      }, 12);
     });
     this.text(64, 444, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
     // プレイ時間（セーブデータを開いているときだけ。タイトルの設定では出さない）
