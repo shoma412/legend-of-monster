@@ -733,14 +733,28 @@ export class MenuOverlay {
     this.text(638, 130, 'インプラント', 14, COLORS.cyan, { fontStyle: '700' });
     const entries = Object.entries(b.implants);
     if (entries.length === 0) this.text(638, 156, 'なし', 13, LOCKED);
-    // 入りきらないときは説明を省いて、名前だけ並べる。それでも多ければスクロールで見る
+    // 説明は、いつも出す（2026-10-20：前は、数が多いと、説明が消えて名前だけになっていた）。入りきらないときは、スクロールで見る。
+    //   行（インプラントと、種族ボーナス）は、先に画面の外で作って、高さを測る
     const bonuses = activeSpeciesBonuses(b);
-    const compact = entries.length * 46 + bonuses.length * 18 > LIST_BOTTOM - 156;
-    const compactRows = Math.floor((LIST_BOTTOM - 156) / 17);
-    const implantMax = compact ? entries.length + bonuses.length - compactRows : 0;
+    const implantRows = [
+      ...entries.map(([id, n]) => {
+        const def = DATA.implants.get(id);
+        const fam = species[def.species];
+        const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
+        const title = this.text(638, -2000, `${def.name}　Lv${n}`, 12, color, { fontStyle: '700' });
+        const desc = this.text(638, -2000, implantDesc(def, n), 10, COLORS.dim, { wordWrap: { width: 270, useAdvancedWrap: true } });
+        return { kind: 'implant', title, desc, h: 20 + desc.height };
+      }),
+      ...bonuses.map((bonus) => {
+        const title = this.text(638, -2000, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
+        return { kind: 'bonus', title, desc: null, h: Math.max(18, title.height + 6) }; // 折り返して2行になっても、次の行と重ならないようにする
+      }),
+    ];
+    let implantLast = implantRows.length; // いちばん下まで見たときの、いちばん上の行
+    for (let acc = 0; implantLast > 0 && acc + implantRows[implantLast - 1].h <= LIST_BOTTOM - 156; implantLast--) acc += implantRows[implantLast - 1].h;
     // スクロールは1つ。装備の列とインプラントの列の、長いほうに合わせる
-    const first = this.window(Math.max(gearLast, implantMax) + 1, 1, gearLast > 0 || compact ? { x: 910, y: 156, h: LIST_BOTTOM - 160 } : null);
-    const firstEntry = Math.min(first, Math.max(0, implantMax));
+    const first = this.window(Math.max(gearLast, implantLast) + 1, 1, gearLast > 0 || implantLast > 0 ? { x: 910, y: 156, h: LIST_BOTTOM - 160 } : null);
+    const firstEntry = Math.min(first, implantLast);
     const firstGear = Math.min(first, gearLast);
     let gy = GEAR_TOP;
     gearRows.forEach((row, i) => {
@@ -760,26 +774,21 @@ export class MenuOverlay {
       gy += row.h;
     });
     let iy = 156;
-    let line = 0; // 上から何行目か（詰めて並べるときに数える）
-    const hidden = () => compact && (line++ < firstEntry || line > firstEntry + compactRows);
-    for (const [id, n] of entries) {
-      if (hidden()) continue;
-      const def = DATA.implants.get(id);
-      const fam = species[def.species];
-      const color = ELEMENT_COLORS[fam.color] ?? COLORS[fam.color];
-      this.text(638, iy, `${def.name}　Lv${n}`, 12, color, { fontStyle: '700' });
-      if (compact) {
-        iy += 17;
-      } else {
-        const desc = this.text(638, iy + 15, implantDesc(def, n), 10, COLORS.dim, { wordWrap: { width: 270, useAdvancedWrap: true } });
-        iy += 20 + desc.height;
+    implantRows.forEach((row, i) => {
+      // 上にスクロールして隠れた行と、下に入りきらない行は、出さない
+      if (i < firstEntry || iy + row.h > LIST_BOTTOM + 6) {
+        row.title.destroy();
+        row.desc?.destroy();
+        return;
       }
-    }
-    for (const bonus of bonuses) {
-      if (hidden()) continue;
-      const row = this.text(638, iy + 2, `◆ ${species[bonus.species].name}×${bonus.need}：${bonus.desc}`, 11, COLORS.amber, { fontStyle: '700', wordWrap: { width: 270, useAdvancedWrap: true } });
-      iy += Math.max(18, row.height + 6); // 折り返して2行になっても、次の行と重ならないようにする
-    }
+      if (row.kind === 'implant') {
+        row.title.setY(iy);
+        row.desc.setY(iy + 15);
+      } else {
+        row.title.setY(iy + 2);
+      }
+      iy += row.h;
+    });
   }
 
   // ---- 装備：身につけている装備と、バッグの中身。付ける・外す・捨てる ----
