@@ -1,5 +1,5 @@
 // 1回のラン（出撃から死亡またはクリアまで）の進行。部屋をまたいで持ち越すものをまとめる。
-import { ENEMY_SCALING, LOOT, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
+import { ENEMY_SCALING, ITEMS, LOOT, ROOM, ROOMGEN, SCREEN, SECRET } from '../data/balance.js';
 import { roomBounds } from '../logic/geometry.js';
 import { allLampsLit, placeLamps } from './darkness.js';
 import { placeRoofs } from './acidRain.js';
@@ -178,6 +178,8 @@ export function enterRoom(run) {
     // 換気扇の壁も、戦闘のある部屋に置く（ボス部屋も）
     if (room.environment.hotWalls && room.waves.length > 0) room.hotWalls = placeHotWalls(room.environment, roomBounds(SCREEN, ROOM.wall, ROOM.wallTop), rng);
   }
+  // 修復キットの敵ドロップは、マップ1〜3だけ、少なくする（balance.js の ITEMS.kitDrop）
+  room.kitDropScale = DATA.maps.all().findIndex((m) => m.id === run.map.id) + 1 <= ITEMS.kitDrop.scaleUntilMap ? ITEMS.kitDrop.scale : 1;
   room.lootTier = run.areaIndex;
   room.noBossLoot = !run.inSecret && plan.current === 'boss' && !hasNextArea(run);
   const first = !run.started;

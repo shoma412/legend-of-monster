@@ -544,3 +544,14 @@ describe('修復キットのドロップ', () => {
     expect(kits(world)).toHaveLength(0);
   });
 });
+
+describe('修復キットの敵ドロップ：マップ1〜3だけ半分（2026-10-20）', () => {
+  it('マップ1〜3は、scale 倍。マップ4からは、そのまま', () => {
+    for (const [mapId, expected] of [['map1', ITEMS.kitDrop.scale], ['map3', ITEMS.kitDrop.scale], ['map4', 1], ['map7', 1]]) {
+      const run = createRun({ rng: seeded(3), mapId, weaponId: 'sword' });
+      expect(enterRoom(run).room.kitDropScale, mapId).toBe(expected);
+    }
+    expect(ITEMS.kitDrop.scale).toBe(0.5);
+    expect(ITEMS.kitDrop.scaleUntilMap).toBe(3);
+  });
+});
