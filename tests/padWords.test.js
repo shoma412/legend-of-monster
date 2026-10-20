@@ -10,9 +10,10 @@ describe('ゲームパッドの言葉への言い換え', () => {
     expect(padWords('ロックオンした敵を向く。R：切り替え')).toBe('ロックオンした敵を向く。RT：切り替え');
   });
 
-  it('落ちている装備は、X でバッグに入れる', () => {
-    expect(padWords('E：付け替える　　F：バッグに入れる')).toBe('X：バッグに入れる');
-    expect(padWords('E：装備する　　F：バッグに入れる')).toBe('X：バッグに入れる');
+  it('落ちている装備：X でバッグに入れる、X 長押しで付け替える。何も付けていない部位は、X だけで身につける', () => {
+    expect(padWords('E：付け替える　　F：バッグに入れる')).toBe('X：バッグに入れる　　X長押し：付け替える');
+    expect(padWords('E：付け替える（外した装備はバッグへ）　　F：バッグに入れる')).toBe('X：バッグに入れる　　X長押し：付け替える（外した装備はバッグへ）');
+    expect(padWords('E：装備する　　F：バッグに入れる')).toBe('X：装備する');
   });
 
   it('メニューの案内', () => {
@@ -58,7 +59,8 @@ describe('ゲームパッドの言葉：英語・韓国語（2026-10-20）', () 
     setLang('en');
     expect(padWords('Press 1 / 2 or click to choose')).toBe('D-pad + A, or X / Y, to choose');
     expect(padWords('Click / E: Next   Tab: Skip')).toBe('A: Next   B: Skip');
-    expect(padWords('E: Swap (the old gear goes to the bag)   F: Put in bag')).toBe('X: Put in bag');
+    expect(padWords('E: Swap (the old gear goes to the bag)   F: Put in bag')).toBe('X: Put in bag   Hold X: Swap (the old gear goes to the bag)');
+    expect(padWords('E: Equip   F: Put in bag')).toBe('X: Equip');
     expect(padWords('E: Enter the hidden door')).toBe('X: Enter the hidden door');
     expect(padWords('Close (Tab)')).toBe('Close (B)');
     expect(padWords('Weapon: Sword   A·D: Map   Enter: Sortie   Tab: Cancel')).toBe('Weapon: Sword   LB·RB: Map   A: Sortie   B: Cancel');

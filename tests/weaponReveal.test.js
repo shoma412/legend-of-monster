@@ -91,9 +91,9 @@ describe('ドローンユニットの下方修正', () => {
 });
 
 describe('ドローンの下方修正：子機が多いと、撃つ間隔が伸びる', () => {
-  it('3機は 0.5 秒、4機は 0.7 秒ごと。4機でも、撃つ回数は、2機の 1.5 倍に届かない', () => {
+  it('3機は 0.5 秒、4機は 0.6 秒ごと。4機でも、撃つ回数は、2機の 1.5 倍に届かない', () => {
     const def = DATA.weapons.get('drone').drones;
-    expect(def.crowd).toEqual({ 3: 0.5, 4: 0.7 });
+    expect(def.crowd).toEqual({ 3: 0.5, 4: 0.6 });
     const shots = (count) => {
       const world = createWorld({ waves: [{}], rng: () => 0.99, weaponId: 'drone' });
       world.waveTimer = Infinity;

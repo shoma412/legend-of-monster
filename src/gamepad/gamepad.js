@@ -2,7 +2,7 @@
 //   スティック・攻撃・特殊 … padInput.js に書き込む（戦闘と隠れ家の画面が読む）
 //   そのほかのボタン       … キーボードのキーを押したことにする（どの画面でも、キーと同じ働きをする）
 import { pad, setPadActive } from '../game/padInput.js';
-import { PAD_KEYS, padActions, padPressed, padRepeat, padTouched, readPad } from '../logic/gamepad.js';
+import { PAD_KEYS, padActions, padLootPress, padPressed, padRepeat, padTouched, readPad } from '../logic/gamepad.js';
 
 // キーを1回押したことにする（押して、すぐ離す）。Phaser は keyCode を、メニューは code を見る
 function tapKey([code, keyCode]) {
@@ -25,6 +25,7 @@ export function initGamepad() {
   if (!navigator.getGamepads) return;
   let prev = null;
   let hold = null; // 倒し続けている向きと、その時間
+  let lootHold = null; // 足元に装備があるときの X の押し続け（padLootPress）
   let last = performance.now();
   // マウスを動かしたら、マウスの操作に戻す（向きが、またカーソルのほうになる）
   for (const type of ['mousemove', 'mousedown']) {
@@ -62,7 +63,19 @@ export function initGamepad() {
     pad.ax = playing ? now.aim.x : 0;
     pad.ay = playing ? now.aim.y : 0;
     pad.attack = playing && now.down.RB;
+    // 足元に装備があるとき、X は「押して離す＝バッグに入れる／長押し＝身につける」。ここで受け持つ（padActions には渡さない）
+    const extra = [];
+    if (pad.mode === 'play' && pad.loot && pressed.includes('X')) {
+      lootHold = { t: 0, fired: false, empty: pad.lootEmpty };
+      pressed.splice(pressed.indexOf('X'), 1);
+    }
+    if (lootHold) {
+      const r = padLootPress(lootHold, now.down.X, dt);
+      lootHold = r.hold;
+      if (r.fire) extra.push(r.fire);
+    }
     const out = padActions(pad.mode, pressed, pad);
+    out.keys.push(...extra);
     pad.item = out.item;
     pad.choice = out.choice;
     if (out.attack) pad.attackPressed = true;

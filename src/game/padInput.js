@@ -18,6 +18,7 @@ export const pad = {
   choice: 0, // レベルアップの3択のカーソル
   talkChoices: 0, // 会話の選択肢が出ているとき、その数（会話の画面が書く。出ていなければ 0）
   options: 3,
+  lootEmpty: false, // 足元の装備の部位に、何も付けていないか（戦闘の画面が書く）
   loot: false, // 足元に装備が落ちているか（戦闘の画面が書く）
   canReturn: false, // 「帰還する」のボタンが出ているか（戦闘の画面が書く）
   onActive: null, // active が変わったときに呼ぶ

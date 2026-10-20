@@ -415,6 +415,7 @@ export class BattleScene extends Phaser.Scene {
     pad.items = world.player.build.items.length;
     pad.options = world.choice?.options.length ?? 3;
     pad.loot = !!world.focusLoot;
+    pad.lootEmpty = !!world.focusLoot && !world.player.build.gear[world.focusLoot.item.slot];
     pad.canReturn = this.returnButton.visible;
     // ポーズ画面が開いている間は、ゲームを止める
     if (this.menu.isOpen) {

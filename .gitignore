@@ -11,3 +11,6 @@ debug-save-*.txt
 graphify-out/
 # 公開ページ（itch.io）の下書き（Git には入れない）
 itch公開ページ案.md
+# 自動対戦シミュレーター（バランス確認用。手元だけ。Git には入れない）
+tools/sim/
+sim-out/

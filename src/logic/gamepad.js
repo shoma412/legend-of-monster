@@ -7,6 +7,7 @@ export const PAD = {
   aimReach: 140, // 右スティックで向いているとき、狙う位置までの距離（px）
   repeatDelay: 0.4, // スティック・十字キーを、これだけ倒し続けたら（秒）、速く動く状態になる
   repeatEvery: 0.06, // 速く動く状態での、1つ動くまでの間（秒）
+  holdEquip: 0.45, // 足元の装備で、X をこれだけ押し続けたら、身につける（付け替える）（秒）
 };
 
 export const BUTTONS = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, minus: 8, plus: 9, up: 12, down: 13, left: 14, right: 15 };
@@ -87,6 +88,19 @@ export function padRepeat(hold, direction, dt) {
   if (t < PAD.repeatDelay) return { hold: { direction, t }, fire: false };
   if (t - PAD.repeatDelay >= PAD.repeatEvery) return { hold: { direction, t: PAD.repeatDelay }, fire: true };
   return { hold: { direction, t }, fire: false };
+}
+
+// 足元に装備があるときの X。押してすぐ離したら「バッグに入れる」（何も付けていない部位なら、そのまま身につける）、
+//   PAD.holdEquip 秒以上押し続けたら「身につける」（付け替える）。hold は { t, fired, empty }（押している間の続き。離したら null）
+//   返り値は { hold, fire }。fire は 'interact'（身につける）か 'stash'（バッグに入れる）か null
+export function padLootPress(hold, down, dt) {
+  if (!hold) return { hold: null, fire: null };
+  if (down) {
+    const t = hold.t + dt;
+    if (!hold.fired && t >= PAD.holdEquip) return { hold: { ...hold, t, fired: true }, fire: 'interact' };
+    return { hold: { ...hold, t }, fire: null };
+  }
+  return { hold: null, fire: hold.fired ? null : hold.empty ? 'interact' : 'stash' };
 }
 
 // 押した瞬間のものを、画面ごとの働きに直す。

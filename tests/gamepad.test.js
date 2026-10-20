@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUTTONS, PAD, PAD_KEYS, padActions, padPressed, padRepeat, padTouched, readPad } from '../src/logic/gamepad.js';
+import { BUTTONS, PAD, PAD_KEYS, padActions, padPressed, padRepeat, padTouched, readPad, padLootPress } from '../src/logic/gamepad.js';
 
 // ゲームパッドのふり。down: 押しているボタンの名前, axes: [左X, 左Y, 右X, 右Y]
 function fake(down = [], axes = [0, 0, 0, 0], values = {}) {
@@ -131,6 +131,29 @@ describe('ゲームパッドのボタンの働き', () => {
     expect(padActions('choice', ['dir:right'], state()).choice).toBe(1);
     expect(padActions('choice', ['dir:left'], state()).choice).toBe(2);
     expect(padActions('choice', ['A'], state({ choice: 2 })).keys).toEqual(['digit3']);
+  });
+
+  it('足元の装備：X を押してすぐ離すとバッグへ、長押しで身につける。何も付けていない部位は、押すだけで身につける', () => {
+    const dt = 1 / 60;
+    // 押してすぐ離す → バッグに入れる
+    let r = padLootPress({ t: 0, fired: false, empty: false }, true, dt);
+    expect(r.fire).toBeNull();
+    r = padLootPress(r.hold, false, dt);
+    expect(r).toEqual({ hold: null, fire: 'stash' });
+    // 長押し：しきい値を超えた瞬間に、身につける（1回だけ）。そのあと離しても、バッグには入らない
+    let hold = { t: 0, fired: false, empty: false };
+    let fired = 0;
+    for (let i = 0; i < 60; i++) {
+      r = padLootPress(hold, true, dt);
+      hold = r.hold;
+      if (r.fire === 'interact') fired++;
+    }
+    expect(fired).toBe(1);
+    expect(padLootPress(hold, false, dt)).toEqual({ hold: null, fire: null });
+    // 何も付けていない部位：押してすぐ離すだけで、身につける
+    expect(padLootPress({ t: 0.1, fired: false, empty: true }, false, dt)).toEqual({ hold: null, fire: 'interact' });
+    // 押していない（hold が null）なら、何も起きない
+    expect(padLootPress(null, false, dt)).toEqual({ hold: null, fire: null });
   });
 
   it('会話の選択肢が出ているとき：十字キー・スティックで選んで、A で決める。X・Y でも選べる', () => {

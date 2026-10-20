@@ -5,6 +5,7 @@
 // 開いている間は、使う側がゲームの進行を止める（isOpen を見る）。
 import { playSe } from '../audio/audio.js';
 import { SCREEN } from '../data/balance.js';
+import { pad } from '../game/padInput.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { species } from '../data/implants.js';
@@ -29,6 +30,10 @@ export function createMapSelect(scene, options) {
   let closedAt = -Infinity;
   let index = 0; // 選んでいるマップ
   let cycle = 1; // 選んでいる周
+  // ゲームパッド：十字キーの上下で、項目（マップ → 持ち込み → 持ち越し → ボタン）を選ぶ。左右で、その項目の中身を切り替える
+  let focus = 0;
+  let rowList = []; // 今の画面の項目 { kind: 'map' | 'carry' | 'keep' | 'button', slot, rect }（render が作る）
+  let buttonFocus = 0; // ボタンの項目で選んでいるもの（0：出撃する、1：やめる）
   const maps = DATA.maps.all();
 
   const box = {
@@ -40,6 +45,8 @@ export function createMapSelect(scene, options) {
       const save = options.save();
       index = Math.max(0, maps.findIndex((m) => m.id === save.selectedMap));
       cycle = save.cycle; // 出撃できる周は、今の周だけ（前の周は選び直せない）
+      focus = 0;
+      buttonFocus = 0;
       box.isOpen = true;
       root.setVisible(true);
       render();
@@ -137,6 +144,7 @@ export function createMapSelect(scene, options) {
 
   function render() {
     root.removeAll(true);
+    rowList = [{ kind: 'map' }];
     const save = options.save();
     const cover = scene.add.rectangle(0, 0, W, H, 0x07060d, 0.86).setOrigin(0).setInteractive();
     root.add(cover);
@@ -195,6 +203,7 @@ export function createMapSelect(scene, options) {
         // 枠ごとに ◀ 名前 ▶（枠は、恒久強化で2つまで増える）
         carry.forEach((id, slot) => {
           const sx = tx + 70 + slot * 190;
+          rowList.push({ kind: 'carry', slot, rect: { x: sx - 5, y: py + 84, w: 172, h: 34 } });
           button(sx, py + 88, 26, 26, '◀', COLORS.ink, () => changeCarry(-1, slot));
           text(sx + 80, py + 101, id ? species[id].name : 'なし', 15, id ? COLORS.amber : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
           button(sx + 134, py + 88, 26, 26, '▶', COLORS.ink, () => changeCarry(1, slot));
@@ -224,6 +233,7 @@ export function createMapSelect(scene, options) {
         } else {
           carryOverPicks(save).forEach((id, slot) => {
             const sx = 300 + slot * 250;
+            rowList.push({ kind: 'keep', slot, rect: { x: sx - 5, y: ky - 7, w: 232, h: 36 } });
             button(sx, ky - 2, 26, 26, '◀', COLORS.ink, () => changeKeep(-1, slot));
             text(sx + 110, ky + 11, id ? `${DATA.implants.get(id).name} Lv1` : 'インプラント：なし', 14, id ? COLORS.magenta : COLORS.dim, { fontStyle: '700' }).setOrigin(0.5);
             button(sx + 194, ky - 2, 26, 26, '▶', COLORS.ink, () => changeKeep(1, slot));
@@ -239,22 +249,63 @@ export function createMapSelect(scene, options) {
     }
 
     const weapon = DATA.weapons.get(save.selected);
+    rowList.push({ kind: 'button', slot: 0, rect: { x: W / 2 - 233, y: 435 + keepRow, w: 226, h: 44 } });
+    rowList.push({ kind: 'button', slot: 1, rect: { x: W / 2 + 7, y: 435 + keepRow, w: 226, h: 44 } });
     button(W / 2 - 230, 438 + keepRow, 220, 38, `出撃する（Enter）`, usable ? COLORS.amber : LOCKED, start);
     button(W / 2 + 10, 438 + keepRow, 220, 38, 'やめる（Tab）', COLORS.ink, () => box.close());
-    text(W / 2, Math.max(498 + keepRow * 0.6, 438 + keepRow + 47), `武器：${weapon.name}　　A・D：マップ　Enter：出撃　Tab：やめる`, 12, COLORS.dim).setOrigin(0.5);
+    // ゲームパッド：選んでいる項目に、黄色い太い枠をつける（マップの項目は、選んでいるカードの枠が、その役目）
+    focus = Math.max(0, Math.min(rowList.length - 1, focus));
+    const here = rowList[focus];
+    if (pad.active && here?.rect && (here.kind !== 'button' || here.slot === buttonFocus)) {
+      const frame = scene.add.rectangle(here.rect.x, here.rect.y, here.rect.w, here.rect.h, 0x000000, 0).setOrigin(0).setStrokeStyle(3, hex(COLORS.amber));
+      root.add(frame);
+    }
+    text(W / 2, Math.max(498 + keepRow * 0.6, 438 + keepRow + 47), `武器：${weapon.name}　　A・D：マップ　Enter：出撃　Tab：やめる${pad.active ? '　　十字キー上下：項目　左右：切り替え' : ''}`, 12, COLORS.dim).setOrigin(0.5);
+  }
+
+  // ゲームパッド：上下で項目を選ぶ。左右は、マップの項目ならマップを、持ち込み・持ち越しなら中身を、ボタンなら出撃／やめるを切り替える
+  function focusMove(step) {
+    if (!pad.active || rowList.length === 0) return;
+    focus = Math.max(0, Math.min(rowList.length - 1, focus + step));
+    if (rowList[focus].kind === 'button') buttonFocus = 0;
+    playSe('select');
+    render();
+  }
+
+  function horizontal(dir) {
+    const here = rowList[focus];
+    if (!pad.active || !here || here.kind === 'map') {
+      move(dir);
+      return;
+    }
+    if (here.kind === 'carry') changeCarry(dir, here.slot);
+    else if (here.kind === 'keep') changeKeep(dir, here.slot);
+    else {
+      buttonFocus = dir > 0 ? 1 : 0;
+      playSe('select');
+      render();
+    }
+  }
+
+  function confirm() {
+    // ボタンの項目で「やめる」を選んでいるときだけ、閉じる。それ以外は、出撃する
+    if (pad.active && rowList[focus]?.kind === 'button' && buttonFocus === 1) box.close();
+    else start();
   }
 
   const kb = scene.input.keyboard;
   const on = (keys, run) => keys.forEach((key) => kb.on(`keydown-${key}`, () => box.isOpen && run()));
-  on(['A', 'LEFT'], () => move(-1));
-  on(['D', 'RIGHT'], () => move(1));
+  on(['A', 'LEFT'], () => horizontal(-1));
+  on(['D', 'RIGHT'], () => horizontal(1));
+  on(['W', 'UP'], () => focusMove(-1));
+  on(['S', 'DOWN'], () => focusMove(1));
   on(['Q'], () => changeCarry(-1, 0));
   on(['E'], () => changeCarry(1, 0));
   on(['Z'], () => changeCarry(-1, 1));
   on(['C'], () => changeCarry(1, 1));
   on(['R'], () => changeKeep(1, 0));
   on(['F'], () => changeKeep(1, 1));
-  on(['ENTER'], start);
+  on(['ENTER'], confirm);
   on(['ESC', 'TAB'], () => box.close());
 
   return box;
