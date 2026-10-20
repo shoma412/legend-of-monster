@@ -1923,6 +1923,8 @@ export const en = {
     "普通": "Normal",
     "強い": "High",
     "@noise＞ ……この扉の向こうが、静かだ。風が、止まっている。": "@noise＞ ......It's quiet beyond this door. The wind has stopped.",
+    "E：コアを払って、隠し扉に入る": "E: Pay cores and enter the hidden door",
+    "払うのは1回だけ。入ると、倒すまで出られない": "Paid only once. You can't leave until it's defeated",
   },
   names: {
     "ステータス": "Status",

@@ -38,16 +38,22 @@ describe('換気扇の壁：置き方', () => {
     expect(env.hotWalls).toEqual({ count: { min: 3, max: 5 }, length: { min: 120, max: 200 }, damage: 28, depth: 10 });
   });
 
-  it('3〜5か所。上・下・左の壁だけ（右は扉）。長さは決まった範囲で、同じ壁の上で重ならず、角から離れている', () => {
+  it('4つの壁のどれにも、置かれる（200通りの置き方の中に、右の壁もある）', () => {
+    const seen = new Set();
+    for (let seed = 1; seed <= 200; seed++) for (const w of placeHotWalls(env, bounds, seeded(seed))) seen.add(w.side);
+    expect([...seen].sort()).toEqual(['bottom', 'left', 'right', 'top']);
+  });
+
+  it('3〜5か所。上・下・左・右の壁（右にも置く。2026-10-20）。長さは決まった範囲で、同じ壁の上で重ならず、角から離れている', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const walls = placeHotWalls(env, bounds, seeded(seed));
       expect(walls.length, seed).toBeGreaterThanOrEqual(3);
       expect(walls.length, seed).toBeLessThanOrEqual(5);
       for (const w of walls) {
-        expect(['top', 'bottom', 'left']).toContain(w.side);
+        expect(['top', 'bottom', 'left', 'right']).toContain(w.side);
         expect(w.to - w.from).toBeGreaterThanOrEqual(env.hotWalls.length.min - 1);
         expect(w.to - w.from).toBeLessThanOrEqual(env.hotWalls.length.max + 1);
-        const [lo, hi] = w.side === 'left' ? [bounds.top, bounds.bottom] : [bounds.left, bounds.right];
+        const [lo, hi] = w.side === 'left' || w.side === 'right' ? [bounds.top, bounds.bottom] : [bounds.left, bounds.right];
         expect(w.from).toBeGreaterThanOrEqual(lo + 49);
         expect(w.to).toBeLessThanOrEqual(hi - 49);
       }
@@ -192,6 +198,22 @@ describe('換気扇の壁：絵', () => {
     calls.length = 0;
     drawHotWalls(g, plain);
     expect(calls).toHaveLength(0);
+  });
+
+  it('右の壁にも触れるとダメージ（右に風が吹いても、壁が働く）。範囲の外では受けない', () => {
+    const right = { side: 'right', from: 200, to: 340 };
+    const world = wallWorld([right]);
+    const p = world.player;
+    p.inv = 0;
+    p.x = bounds.right - p.r;
+    p.y = 260;
+    expect(touchingHotWall(world, right)).toBe(true);
+    const before = p.hp;
+    updateWorld(world, DT, idle);
+    expect(before - p.hp).toBeGreaterThan(0);
+    p.inv = 0;
+    p.y = 400;
+    expect(touchingHotWall(world, right)).toBe(false);
   });
 });
 

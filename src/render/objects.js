@@ -2,6 +2,7 @@
 import { LOOT, ROOM, ROOMGEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, ELEMENT_COLORS, RARITY_COLORS, hex } from '../data/theme.js';
+import { getLang, translate } from '../i18n/translate.js';
 import { implantDesc, nextImplantLevel } from '../logic/stats.js';
 import { drawItemIcon, drawSlotIcon } from './icons.js';
 
@@ -390,8 +391,9 @@ export function focusPrompt(world) {
   if (o.kind === 'door' && o.type === 'descend') return { text: 'E：次のエリアへ進む', color: COLORS.cyan };
   if (o.kind === 'door') return { text: `E：${DATA.rooms.get(o.type).label} へ進む`, color: COLORS[DATA.rooms.get(o.type).color] };
   if (o.kind === 'secretDoor' && o.cost) {
-    const list = Object.entries(o.cost).map(([id, n]) => `${DATA.materials.get(id).name} ×${n}`).join('　');
-    return { text: `E：コアを払って、隠し扉に入る（${list}。払うのは1回だけ。入ると、倒すまで出られない）`, color: COLORS.amber };
+    // 長いので、3行に分ける（1行目：操作、2行目：払うコア、3行目：注意）。1つずつ訳してから合わせる
+    const list = Object.entries(o.cost).map(([id, n]) => `${translate(DATA.materials.get(id).name)} ×${n}`).join(getLang() === 'ja' ? '　' : '  ');
+    return { text: `${translate('E：コアを払って、隠し扉に入る')}\n${list}\n${translate('払うのは1回だけ。入ると、倒すまで出られない')}`, color: COLORS.amber };
   }
   if (o.kind === 'secretDoor') return { text: 'E：隠し扉に入る（強い反応がある。入ると、倒すまで出られない）', color: COLORS.amber };
   if (o.kind === 'kit') return { text: `E：修復キットを拾う（所持 ${p.build.kits}）`, color: COLORS.green };

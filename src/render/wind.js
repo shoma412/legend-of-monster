@@ -14,9 +14,11 @@ export function drawHotWalls(g, world) {
   const amber = hex(COLORS.amber);
   const t = world.time;
   for (const wall of world.hotWalls ?? []) {
-    const horizontal = wall.side !== 'left';
+    // 右の壁は、部屋をクリアしたら消す（そこに、次の部屋への扉が並ぶ）
+    if (wall.side === 'right' && world.mode !== 'play') continue;
+    const horizontal = wall.side === 'top' || wall.side === 'bottom';
     // 土台と、警告の縞（斜めの線）
-    const x0 = horizontal ? wall.from : b.left;
+    const x0 = horizontal ? wall.from : wall.side === 'right' ? b.right - depth : b.left;
     const y0 = wall.side === 'top' ? b.top : wall.side === 'bottom' ? b.bottom - depth : wall.from;
     const w = horizontal ? wall.to - wall.from : depth;
     const h = horizontal ? depth : wall.to - wall.from;
@@ -30,7 +32,7 @@ export function drawHotWalls(g, world) {
     }
     // 回る羽根（40px ごとに1つ。壁のすぐ内側）
     for (let q = 20; q < len - 8; q += 40) {
-      const cx = horizontal ? x0 + q : b.left + depth + 12;
+      const cx = horizontal ? x0 + q : wall.side === 'right' ? b.right - depth - 12 : b.left + depth + 12;
       const cy = horizontal ? (wall.side === 'top' ? b.top + depth + 12 : b.bottom - depth - 12) : y0 + q;
       for (let i = 0; i < 3; i++) {
         const a = t * 9 + (i * Math.PI * 2) / 3 + wall.from;

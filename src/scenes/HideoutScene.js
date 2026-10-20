@@ -76,7 +76,7 @@ export class HideoutScene extends Phaser.Scene {
     const body = (size, color, extra = {}) => ({ fontFamily: FONTS.body, fontSize: `${size}px`, color, ...extra });
     this.add.text(40, 7, 'HIDEOUT // 隠れ家', body(13, COLORS.cyan, { fontStyle: '700' }));
     this.refreshStations();
-    this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700' })).setOrigin(0.5).setDepth(7).setVisible(false);
+    this.promptText = this.add.text(W / 2, H - 50, '', body(14, COLORS.ink, { fontStyle: '700', align: 'center' })).setOrigin(0.5).setDepth(7).setVisible(false);
 
     // 依頼文（出撃ゲートに近づくと出る）
     this.briefPanel = this.add.container(W - 330, 60).setDepth(8).setVisible(false);

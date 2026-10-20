@@ -175,11 +175,12 @@ export function loosenScreen(world, screen, warn, seconds) {
   screen.restore = seconds;
 }
 
-// 換気扇の壁を置く場所を決める（部屋を作るときに呼ぶ）。上・下・左の壁に、count か所。右の壁には、扉が並ぶので置かない。
-//   返す値は { side: 'top' | 'bottom' | 'left', from, to }（from〜to は、その壁に沿った位置。上下は x、左は y）。同じ壁の上では、40px 以上あける
+// 換気扇の壁を置く場所を決める（部屋を作るときに呼ぶ）。上・下・左・右の壁に、count か所。
+//   右の壁にも置く（2026-10-20。右に風が吹いたとき、壁がないと意味がないため）。扉は、部屋をクリアしたあとに並ぶ（壁のダメージは、戦闘の間だけ。クリアしたら、右の壁の絵は消す）
+//   返す値は { side: 'top' | 'bottom' | 'left' | 'right', from, to }（from〜to は、その壁に沿った位置。上下は x、左右は y）。同じ壁の上では、40px 以上あける
 export function placeHotWalls(env, bounds, rng) {
   const cfg = env.hotWalls;
-  const sides = { top: [bounds.left, bounds.right], bottom: [bounds.left, bounds.right], left: [bounds.top, bounds.bottom] };
+  const sides = { top: [bounds.left, bounds.right], bottom: [bounds.left, bounds.right], left: [bounds.top, bounds.bottom], right: [bounds.top, bounds.bottom] };
   const names = Object.keys(sides);
   const count = cfg.count.min + Math.min(cfg.count.max - cfg.count.min, Math.floor(rng() * (cfg.count.max - cfg.count.min + 1)));
   const walls = [];
@@ -203,7 +204,7 @@ export function touchingHotWall(world, wall) {
   const b = world.bounds;
   const p = world.player;
   const d = env.hotWalls.depth;
-  const rect = wall.side === 'top' ? [wall.from, b.top, wall.to, b.top + d] : wall.side === 'bottom' ? [wall.from, b.bottom - d, wall.to, b.bottom] : [b.left, wall.from, b.left + d, wall.to];
+  const rect = wall.side === 'top' ? [wall.from, b.top, wall.to, b.top + d] : wall.side === 'bottom' ? [wall.from, b.bottom - d, wall.to, b.bottom] : wall.side === 'right' ? [b.right - d, wall.from, b.right, wall.to] : [b.left, wall.from, b.left + d, wall.to];
   const nx = Math.max(rect[0], Math.min(rect[2], p.x));
   const ny = Math.max(rect[1], Math.min(rect[3], p.y));
   return Math.hypot(p.x - nx, p.y - ny) <= p.r;

@@ -207,7 +207,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.bossName = this.add.text(W / 2, H - 66, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0.5).setVisible(false);
     // 近くのものを調べるときの案内
-    this.promptText = this.add.text(W / 2, H - 50, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink })
+    this.promptText = this.add.text(W / 2, H - 50, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink, align: 'center' })
       .setOrigin(0.5).setDepth(7).setVisible(false);
     // 部屋をクリアしたあとの案内。装備を拾えるように、画面は止めない
     this.clearText = this.add.text(W / 2, 140, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '16px', color: COLORS.green, align: 'center', lineSpacing: 6 })
