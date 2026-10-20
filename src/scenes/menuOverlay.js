@@ -14,7 +14,7 @@ import { formatPlayTime } from '../logic/gearLog.js';
 import { species } from '../data/implants.js';
 import { AREA_THEMES, COLORS, ELEMENT_COLORS, FONTS, RARITY_COLORS, hex } from '../data/theme.js';
 import { discardFromBag, equipFromBag, unequipToBag } from '../game/build.js';
-import { bestReachText } from '../logic/maps.js';
+import { bestReachText, clearedCycle } from '../logic/maps.js';
 import { applyDisplaySize, applyFrameRate, canFullscreen, getSettings, isFullscreen, saveSettings, toggleFullscreen } from '../game/settingsStore.js';
 import { nodeState } from '../logic/areaGen.js';
 import { xpToNext } from '../logic/level.js';
@@ -1322,7 +1322,10 @@ export class MenuOverlay {
       const where = f.source === 'boss' ? 'ボスを倒すと手に入る' : 'データ金庫で見つかる';
       drawFragmentIcon(g, 388, 152, 12, 0x4a4470, true);
       this.text(412, 140, '未回収', 16, LOCKED, { fontStyle: '700' });
-      this.text(376, 182, `${area.name}の${where}。`, 14, COLORS.dim);
+      // そのエリアのあるマップを、まだ完了していないときは、どこで手に入るかを伏せる（マップの名前が、先に分かってしまうため。2026-10-20）
+      const map = DATA.maps.all().find((m) => m.areas.includes(f.area));
+      const known = !map || clearedCycle(save, map.id) >= 1;
+      this.text(376, 182, known ? `${area.name}の${where}。` : '？？？', 14, COLORS.dim);
     }
   }
 
@@ -1346,7 +1349,8 @@ export class MenuOverlay {
       // 特定のボスを倒す実績は、解除するまで、名前も説明も伏せる（ネタバレになるため）
       // 周回の実績も、何周目まであるかが分かってしまうので、伏せる
       // まだ現れていない武器の実績も、伏せる
-      const hide = !done && (def.check === 'bossIs' || def.check === 'cycleAtLeast' || (def.weapon && !weaponAvailable(save, def.weapon)));
+      // 「マップnを完了した」系も、そのマップを完了するまで、伏せる（マップの名前が、先に分かってしまうため。2026-10-20）
+      const hide = !done && (def.check === 'bossIs' || def.check === 'mapIs' || def.check === 'cycleAtLeast' || (def.weapon && !weaponAvailable(save, def.weapon)));
       this.text(x + 42, y + 4, hide ? '？？？' : def.name, 13, done ? COLORS.amber : COLORS.dim, { fontStyle: '700' });
       this.text(x + 42, y + 24, hide ? '？？？' : def.desc, 10, done ? COLORS.ink : LOCKED);
     });
