@@ -1,5 +1,5 @@
 // 遭遇部屋の選択肢で起きること。遭遇の定義（src/data/encounters.js）の action で、下の部品を選ぶ。
-import { ROOMGEN } from '../data/balance.js';
+import { LOOT, ROOMGEN } from '../data/balance.js';
 import { COLORS } from '../data/theme.js';
 import { rollImplantChoices } from '../logic/level.js';
 import { makeItem } from '../logic/loot.js';
@@ -14,9 +14,25 @@ function say(world, text, color) {
 }
 
 // 装備を足元に落とす（拾うかどうかは、比べてから決められる）
-function dropGear(world, rarityBonus) {
+//   部位はランダム。いま着ている、その部位の装備のレア度を基準にする（2026-10-20）。
+//     mode 'up'     ：確定で、1段階上（流れの商人）
+//     mode 'upOrSame'：同じか、1段階上（倒れた回収屋）。1段階上になる確率は cfg().lootStepChance
+//   上限はレジェンド（着ているものがレジェンドなら、レジェンドのまま。通常のミシックの抽選だけ、そのまま使う）。
+//   その部位に何も着けていないときは、今までどおり（rarityBonus の底上げ）
+function dropGear(world, rarityBonus, mode) {
   const p = world.player;
-  world.loot.push({ x: p.x + 46, y: p.y, item: makeItem(world.rng, { rarityBonus, tier: world.room.lootTier, mythic: world.room.mythicChance ?? 0, mythicLuck: !!world.room.mythicLuck }), t: 0 });
+  const slot = LOOT.slots[Math.floor(world.rng() * LOOT.slots.length)].id;
+  const options = { rarityBonus, tier: world.room.lootTier, mythic: world.room.mythicChance ?? 0, mythicLuck: !!world.room.mythicLuck, slot };
+  const current = p.build.gear[slot];
+  if (current) {
+    const top = LOOT.rarities.findIndex((r) => r.id === 'legend');
+    if (current.rarity >= top) options.rarity = current.rarity; // レジェンド・ミシックを着ているときは、そのまま（ミシックは、通常の抽選で出る）
+    else if (mode === 'up') options.rarity = current.rarity + 1;
+    else options.rarity = current.rarity + (world.rng() < cfg().lootStepChance ? 1 : 0);
+    // レジェンドになるときだけ、通常のミシックの抽選（確率は、そのマップ・エリアのもの）を使う
+    if (options.rarity === top && world.rng() < (world.room.mythicChance ?? 0)) options.rarity = LOOT.rarities.findIndex((r) => r.mythic);
+  }
+  world.loot.push({ x: p.x + 46, y: p.y, item: makeItem(world.rng, options), t: 0 });
   sfx(world, 'equip');
 }
 
@@ -36,7 +52,7 @@ const ACTIONS = {
       const cost = hpCost(world);
       world.player.hp -= cost;
       say(world, `HP -${cost}`, COLORS.red);
-      dropGear(world, cfg().gearRarityBonus);
+      dropGear(world, cfg().gearRarityBonus, 'up');
     },
   },
 
@@ -66,7 +82,7 @@ const ACTIONS = {
   lootBody: {
     can: () => null,
     run(world) {
-      dropGear(world, cfg().lootRarityBonus);
+      dropGear(world, cfg().lootRarityBonus, 'upOrSame');
       world.player.build.ambush = true;
     },
   },
