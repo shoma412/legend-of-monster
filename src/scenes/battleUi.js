@@ -1,5 +1,6 @@
 // 戦闘画面の上に重ねるパネル（装備の比較、インプラント3択、装備とインプラントの一覧）
 import { LEVEL, LOOT, ROOM, SCREEN } from '../data/balance.js';
+import { getLang, translate } from '../i18n/translate.js';
 import { species } from '../data/implants.js';
 import { pad } from '../game/padInput.js';
 import { implantCap } from '../logic/level.js';
@@ -59,7 +60,9 @@ export function createComparePanel(scene) {
       shown = item;
       shownEquipped = equipped;
 
-      left.head.setText(`${focus.head}（${slotName(item.slot)}）`);
+      // 「落ちている装備（武器モッド）」のように、2つを合わせた文は、先に1つずつ訳す（英語・韓国語では、半角のかっこ）
+      const slot = translate(slotName(item.slot));
+      left.head.setText(getLang() === 'ja' ? `${focus.head}（${slot}）` : `${translate(focus.head)} (${slot})`);
       left.name.setText(item.name).setColor(rarityColor(item));
       left.lines.setText(describeItem(item).join('\n'));
       right.head.setText('今の装備');
