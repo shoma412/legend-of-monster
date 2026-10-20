@@ -23,7 +23,7 @@ import { buyNode, canAfford, saveTree, treeNodeState, weaponAvailable } from '..
 import { layoutTree } from '../logic/skillTree.js';
 import { worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
-import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomBy, zoomKeep } from '../logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomBy, zoomHold } from '../logic/treeView.js';
 import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VIBRATIONS, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
 import { playRumble } from '../gamepad/rumble.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
@@ -354,11 +354,13 @@ export class MenuOverlay {
   updatePadTree(dt) {
     if (!this.padTreeOn() || this.treePoints.length === 0) return;
     const before = this.treeView;
-    const moving = pad.lx !== 0 || pad.ly !== 0;
-    let view = before;
-    if (moving) {
+    // RT・LT を押している間は、なめらかに拡大・縮小する（押すだけで、段階的に動くのではなく、押し続けると、徐々に動く）
+    const zooming = pad.zoom !== 0;
+    const moving = pad.lx !== 0 || pad.ly !== 0 || zooming;
+    let view = zooming ? zoomHold(before, pad.zoom, dt) : before;
+    if (pad.lx !== 0 || pad.ly !== 0) {
       view = panStick(view, pad.lx, pad.ly, dt, this.treeBounds);
-    } else {
+    } else if (!zooming) {
       const near = nearestNode(view, this.treePoints, TREE_PAD.snap);
       if (near >= 0) view = easeTo(view, this.treePoints[near], dt);
     }
@@ -368,7 +370,7 @@ export class MenuOverlay {
       this.cursor = picked;
       playSe('select');
     }
-    if (!changed && view.x === before.x && view.y === before.y) return;
+    if (!changed && view.x === before.x && view.y === before.y && view.zoom === before.zoom) return;
     this.treeView = view;
     // 描き直しは重いので、動かしている間は、間をあける（選ぶマスが変わったときと、止まったときは、すぐ描く）
     this.treeDrawT -= dt;
@@ -387,9 +389,7 @@ export class MenuOverlay {
         return;
       }
       if (this.tabId !== 'upgrade') return;
-      // スキルツリー：RT で拡大、LT で縮小（照準の場所は、そのまま）
-      this.treeView = zoomKeep(this.treeView, code === 'PadZoomIn' ? 1 : -1);
-      this.render();
+      // スキルツリー：RT で拡大、LT で縮小（照準の場所は、そのまま）。押し続けている間は、updatePadTree が、なめらかに動かす
       return;
     }
     if (code === 'PadFilter') {

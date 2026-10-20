@@ -11,6 +11,7 @@ export const pad = {
   attack: false, // RB を押している間 true
   attackPressed: false, // 押した瞬間（読んだら消える）
   specialPressed: false,
+  zoom: 0, // メニューで RT を押している間 +1、LT を押している間 −1（スキルツリーを、押している間じゅう、拡大・縮小する）
   confirmPressed: false, // リザルトで A を押した瞬間（読んだら消える）
   mode: 'select', // 今の画面（src/logic/gamepad.js の padActions の mode）
   item: 0, // 選んでいる消耗品の枠

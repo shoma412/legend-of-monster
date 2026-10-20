@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TREE_PAD, TREE_VIEW, easeTo, nearestNode, panStick, zoomKeep, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt, zoomBy } from '../src/logic/treeView.js';
+import { TREE_PAD, TREE_VIEW, easeTo, nearestNode, panStick, zoomKeep, centerOn, clampView, clipSegment, createTreeView, inRect, panBy, toLocal, toScreen, zoomAt, zoomBy, zoomHold } from '../src/logic/treeView.js';
 
 // スキルツリーの円の、拡大・縮小と移動（docs/詳細仕様.md「23. スキルツリー → 画面」）
 
@@ -135,5 +135,29 @@ describe('ゲームパッド：真ん中の照準にマスを合わせる', () =
     expect(v.zoom).toBeCloseTo(TREE_VIEW.step);
     expect([v.x, v.y]).toEqual([40, 10]);
     expect(zoomKeep({ zoom: 1, x: 40, y: 10 }, -1).zoom).toBe(TREE_VIEW.min);
+  });
+
+  it('RT・LT を押し続けている間は、なめらかに拡大・縮小する（段階ではなく、時間に比例）。照準の場所は変わらず、範囲を超えない', () => {
+    let v = { zoom: 1, x: 40, y: 10 };
+    // 押し続けると、少しずつ大きくなる（1コマごとに増える）
+    const steps = [];
+    for (let i = 0; i < 30; i++) {
+      v = zoomHold(v, 1, 1 / 60);
+      steps.push(v.zoom);
+    }
+    for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
+    expect(steps[0] - 1).toBeLessThan(0.05); // 1コマでは、ほんの少し
+    expect(v.x).toBe(40);
+    expect(v.y).toBe(10);
+    // 長く押すと、上限で止まる。逆に押すと、下限で止まる
+    for (let i = 0; i < 600; i++) v = zoomHold(v, 1, 1 / 60);
+    expect(v.zoom).toBe(TREE_VIEW.max);
+    for (let i = 0; i < 600; i++) v = zoomHold(v, -1, 1 / 60);
+    expect(v.zoom).toBe(TREE_VIEW.min);
+    // 押した時間が同じなら、フレームレートによらず、同じだけ動く
+    const a = zoomHold({ zoom: 1, x: 0, y: 0 }, 1, 0.5).zoom;
+    let b = { zoom: 1, x: 0, y: 0 };
+    for (let i = 0; i < 30; i++) b = zoomHold(b, 1, 1 / 60);
+    expect(b.zoom).toBeCloseTo(a, 6);
   });
 });

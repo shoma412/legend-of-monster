@@ -19,6 +19,7 @@ function release() {
   pad.ax = 0;
   pad.ay = 0;
   pad.attack = false;
+  pad.zoom = 0;
 }
 
 export function initGamepad() {
@@ -63,6 +64,7 @@ export function initGamepad() {
     pad.ax = playing ? now.aim.x : 0;
     pad.ay = playing ? now.aim.y : 0;
     pad.attack = playing && now.down.RB;
+    pad.zoom = pad.mode === 'menu' ? (now.down.RT ? 1 : 0) - (now.down.LT ? 1 : 0) : 0;
     // 足元に装備があるとき、X は「押して離す＝バッグに入れる／長押し＝身につける」。ここで受け持つ（padActions には渡さない）
     const extra = [];
     if (pad.mode === 'play' && pad.loot && pressed.includes('X')) {

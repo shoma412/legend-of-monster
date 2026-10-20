@@ -62,6 +62,7 @@ export const TREE_PAD = {
   snap: 26, // スティックを離したとき、この距離までにあるマスへ、自動で合わせる
   pull: 14, // 合わせる速さ（大きいほど速い）
   margin: 14, // いちばん外のマスより、これだけ外まで動かせる（円の中の長さ）
+  zoomRate: 0.8, // RT・LT を押し続けている間の、拡大・縮小の速さ（1秒に、倍率が e の何乗になるか。0.8 なら、いちばん引いた状態からいちばん寄った状態まで、約1.4秒）
 };
 
 // スティックの傾き (lx, ly) のぶん、見ている場所を動かす。bounds: { x, y } は、動かせる範囲（円の中心からの長さ）。
@@ -105,6 +106,12 @@ export function zoomBy(view, center, pointer, factor) {
   const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom * factor));
   const under = toLocal(view, center, pointer);
   return clampView({ zoom, x: under.x - (pointer.x - center.x) / zoom, y: under.y - (pointer.y - center.y) / zoom });
+}
+
+// 倍率を、dt 秒ぶん、direction の向き（1：拡大、−1：縮小）になめらかに変える。照準（真ん中）の場所は、そのまま。RT・LT を押し続けている間に、毎コマ呼ぶ
+export function zoomHold(view, direction, dt) {
+  const zoom = Math.max(TREE_VIEW.min, Math.min(TREE_VIEW.max, view.zoom * Math.exp(direction * TREE_PAD.zoomRate * dt)));
+  return { zoom, x: view.x, y: view.y };
 }
 
 export function zoomKeep(view, direction) {
