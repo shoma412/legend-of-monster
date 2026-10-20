@@ -56,7 +56,7 @@ const crack = (world) => world.enemies.find((e) => e.def.id === 'crackwall');
 const door = (world) => world.objects.find((o) => o.kind === 'secretDoor');
 
 describe('ひび割れた壁の場所', () => {
-  it('隠しボスのいるマップだけに出る。エリアと部屋は、出撃ごとに変わる', () => {
+  it('隠しボスのいるマップだけに出る。エリアは、エリア3だけ（2026-10-20。エリア1で出ると強すぎるため）。部屋は、出撃ごとに変わる', () => {
     expect(createRun({ rng: seeded(1), save: createSave(), mapId: 'map1' }).secret).toBeNull();
     const areas = new Set();
     for (let seed = 1; seed <= 40; seed++) {
@@ -66,7 +66,7 @@ describe('ひび割れた壁の場所', () => {
       expect(run.secret.areaIndex).toBeLessThan(run.map.areas.length);
       areas.add(run.secret.areaIndex);
     }
-    expect([...areas].sort()).toEqual([0, 1, 2]);
+    expect([...areas]).toEqual([2]);
   });
 
   it('そのエリアに入ったときに部屋が決まる。最初の部屋・ボス前の補給・ボス部屋には出ない', () => {

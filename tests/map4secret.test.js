@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createAreaPlan } from '../src/logic/areaGen.js';
 import { BGM } from '../src/data/audio.js';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
@@ -25,11 +26,17 @@ function seeded(seed = 1) {
   };
 }
 
-function newRun(seed = 5) {
+// 隠しボスへの入口は、エリア3（番号 2）だけ（2026-10-20）。area で、どのエリアから始めるかを選ぶ
+function newRun(seed = 5, area = 2) {
   const save = createSave();
   for (const id of ['map1', 'map2', 'map3']) recordMapClear(save, id, 1);
   save.passes.push('map3');
-  return { save, run: createRun({ rng: seeded(seed), save, mapId: 'map4', weaponId: 'sword' }) };
+  const run = createRun({ rng: seeded(seed), save, mapId: 'map4', weaponId: 'sword' });
+  if (area > 0) {
+    run.areaIndex = area;
+    run.plan = createAreaPlan(DATA.areas.get(run.map.areas[area]), seeded(seed + 1), run.mods);
+  }
+  return { save, run };
 }
 
 // 今の部屋から、ボス前の補給部屋まで進む。light が true なら、どの部屋でも非常灯を全部点けてから出る
@@ -134,14 +141,23 @@ describe('隠しボスの出し方（マップ4）：通ってきた部屋の非
     expect(allLampsLit(world)).toBe(true);
   });
 
+  it('入口が出るのは、エリア3だけ（エリア1・2の補給部屋には、条件を満たしても出ない）', () => {
+    for (const area of [0, 1]) {
+      const { run: r } = newRun(5, area);
+      expect(secretDoor(walkToRest(r, true)), `エリア${area + 1}`).toBeUndefined();
+    }
+    const { run: r3 } = newRun(5, 2);
+    expect(secretDoor(walkToRest(r3, true))).toBeDefined();
+  });
+
   it('判定はエリアごと。次のエリアに入ると、やり直しになる', () => {
-    const { run: r } = newRun();
+    const { run: r } = newRun(5, 1);
     const world = enterRoom(r);
     leaveRoom(r, world, world.room.doors[0].id);
     expect(r.secret.lampsOk).toBe(false);
     r.plan.current = 'boss';
     leaveRoom(r, enterRoom(r), NEXT_AREA);
-    expect(r.areaIndex).toBe(1);
+    expect(r.areaIndex).toBe(2);
     expect(r.secret.lampsOk).toBe(true);
     const rest = walkToRest(r, true);
     expect(secretDoor(rest)).toBeDefined();
@@ -161,17 +177,17 @@ describe('隠しボスの出し方（マップ4）：通ってきた部屋の非
     handleEvents(r, world);
     expect(save.passes).toEqual(['map3', 'map4']);
     expect(save.achievements).toContain('nocturne');
-    expect(save.materials).toMatchObject({ nocturneCore: 1 }); // 隠しボスの素材が1個
+    // 隠しボスの素材は1個（周回の「2個になる確率」に当たると2個。乱数の並びで決まるので、1〜2個）
+    expect(save.materials.nocturneCore).toBeGreaterThanOrEqual(1);
+    expect(save.materials.nocturneCore).toBeLessThanOrEqual(2);
     expect(save.materials.breakerCore ?? 0).toBe(0);
     leaveRoom(r, world, SECRET_OUT);
     world = enterRoom(r);
     expect(r.plan.current).toBe('rest');
     expect(r.secret.done).toBe(true);
     expect(secretDoor(world)).toBeUndefined();
-    // 次のエリアで条件を満たしても、もう開かない
-    leaveRoom(r, world, world.room.doors[0].id);
-    leaveRoom(r, enterRoom(r), NEXT_AREA);
-    expect(secretDoor(walkToRest(r, true))).toBeUndefined();
+    // 入口はエリア3だけ（最後のエリア）なので、倒したあとは、もう開かない（done）
+    expect(r.secret.done).toBe(true);
   });
 
   it('停電区の通行証は、マップ5に入る条件になる（マップ4の完了だけでは、入れない）', () => {

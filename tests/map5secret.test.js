@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createAreaPlan } from '../src/logic/areaGen.js';
 import { BGM } from '../src/data/audio.js';
 import { DATA } from '../src/data/index.js';
 import { maps } from '../src/data/maps.js';
@@ -28,11 +29,17 @@ function seeded(seed = 1) {
   };
 }
 
-function newRun(seed = 5) {
+// 隠しボスへの入口は、エリア3（番号 2）だけ（2026-10-20）。area で、どのエリアから始めるかを選ぶ
+function newRun(seed = 5, area = 2) {
   const save = createSave();
   for (const id of ['map1', 'map2', 'map3', 'map4']) recordMapClear(save, id, 1);
   save.passes.push('map3', 'map4');
-  return { save, run: createRun({ rng: seeded(seed), save, mapId: 'map5', weaponId: 'sword' }) };
+  const run = createRun({ rng: seeded(seed), save, mapId: 'map5', weaponId: 'sword' });
+  if (area > 0) {
+    run.areaIndex = area;
+    run.plan = createAreaPlan(DATA.areas.get(run.map.areas[area]), seeded(seed + 1), run.mods);
+  }
+  return { save, run };
 }
 
 // 今の部屋から、ボス前の補給部屋まで進む（雨には当たらない）
@@ -141,8 +148,17 @@ describe('隠しボスの出し方（マップ5）：雨のダメージを、1�
     expect(r.secret.dryOk).toBe(true);
   });
 
+  it('入口が出るのは、エリア3だけ（エリア1・2の補給部屋には、条件を満たしても出ない）', () => {
+    for (const area of [0, 1]) {
+      const { run: r } = newRun(5, area);
+      expect(secretDoor(walkToRest(r)), `エリア${area + 1}`).toBeUndefined();
+    }
+    const { run: r3 } = newRun(5, 2);
+    expect(secretDoor(walkToRest(r3))).toBeDefined();
+  });
+
   it('判定はエリアごと。次のエリアに入ると、やり直しになる', () => {
-    const { run: r } = newRun();
+    const { run: r } = newRun(5, 1);
     const world = enterRoom(r);
     world.rainHits = 2;
     leaveRoom(r, world, world.room.doors[0].id);

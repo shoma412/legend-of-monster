@@ -62,15 +62,15 @@ export function createRun({ weaponId = 'greatsword', rng = Math.random, save = c
   // 隠しボスのいるマップ：出撃ごとに、どこか1部屋にひび割れた壁が出る（エリアも部屋も毎回変わる）
   if (map.secretBoss?.rule === 'rain') {
     // 雨に当たらずに進むマップ：dryOk は、今のエリアで、雨のダメージを1回も受けていないか
-    run.secret = { boss: map.secretBoss.boss, rule: 'rain', dryOk: true, done: false };
+    run.secret = { boss: map.secretBoss.boss, rule: 'rain', areaIndex: map.secretBoss.areaIndex ?? null, dryOk: true, done: false };
   } else if (map.secretBoss?.rule === 'rest') {
     // 決まったエリアの、ボス前の補給部屋に、隠し扉が開いているマップ（areaIndex は、そのエリアの番号）
     run.secret = { boss: map.secretBoss.boss, rule: 'rest', areaIndex: map.secretBoss.areaIndex ?? map.areas.length - 1, done: false };
   } else if (map.secretBoss?.rule === 'lamps') {
     // 灯りを点けて回るマップ：lampsOk は、今のエリアで通ってきた部屋の非常灯を、すべて点けてきたか
-    run.secret = { boss: map.secretBoss.boss, rule: 'lamps', lampsOk: true, done: false };
+    run.secret = { boss: map.secretBoss.boss, rule: 'lamps', areaIndex: map.secretBoss.areaIndex ?? null, lampsOk: true, done: false };
   } else if (map.secretBoss) {
-    run.secret = { boss: map.secretBoss.boss, areaIndex: Math.min(map.areas.length - 1, Math.floor(rng() * map.areas.length)), node: null, done: false };
+    run.secret = { boss: map.secretBoss.boss, areaIndex: map.secretBoss.areaIndex ?? Math.min(map.areas.length - 1, Math.floor(rng() * map.areas.length)), node: null, done: false };
     placeSecret(run);
   }
   // 前の出撃でマップをクリアしていたら、持ち越しを使う（クレジットの半分と、選んだインプラント。使ったら消える）
@@ -136,7 +136,9 @@ export function enterRoom(run) {
   if (s && !s.rule && !run.inSecret && !s.done && s.areaIndex === run.areaIndex && s.node === plan.current) room.secret = makeCrack(rng);
   // 灯りを点けて回るマップ：条件を満たしてボス前の補給部屋に着くと、隠しエリアへの道が開いている
   //   雨に当たらずに進むマップも、同じ場所に開く
-  const ruleOk = s?.rule === 'lamps' ? s.lampsOk : s?.rule === 'rain' ? s.dryOk : s?.rule === 'rest' ? s.areaIndex === run.areaIndex : false;
+  // 灯り・雨のマップは、入口が出るエリアが決まっていれば（areaIndex）、そのエリアだけ
+  const areaOk = s?.areaIndex == null || s.areaIndex === run.areaIndex;
+  const ruleOk = areaOk && (s?.rule === 'lamps' ? s.lampsOk : s?.rule === 'rain' ? s.dryOk : s?.rule === 'rest' ? s.areaIndex === run.areaIndex : false);
   if (s && ruleOk && !run.inSecret && !s.done && plan.current === 'rest') {
     room.secretOpen = true;
     // 左の壁の下のほう（上の壁は、区画名と通信の文字に重なる）
