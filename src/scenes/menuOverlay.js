@@ -1476,8 +1476,9 @@ export class MenuOverlay {
     // プレイ時間（セーブデータを開いているときだけ。タイトルの設定では出さない）
     const save = this.options.context().save;
     if (save?.records) {
-      this.text(896, 382, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
-      this.text(896, 400, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      // フルスクリーンの行の右端に、1行で置く（振動の欄と重ならないように）
+      this.text(780, 385, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
+      this.text(896, 381, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
     }
   }
 }
