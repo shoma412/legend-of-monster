@@ -33,6 +33,14 @@ export const CONTROL_MODES = [
   { id: 'auto', label: 'オート' },
 ];
 
+// コントローラーの振動の強さ（切る／弱い／普通／強い）
+export const VIBRATIONS = [
+  { id: 'off', label: '切る' },
+  { id: 'low', label: '弱い' },
+  { id: 'normal', label: '普通' },
+  { id: 'high', label: '強い' },
+];
+
 // mobile: モバイル版（スマホ・タブレット）の初期値にする。画面が小さく、点が細かいので、画質の初期値を「高」にする（文字がくっきりする）
 export function createSettings({ mobile = false } = {}) {
   return {
@@ -42,6 +50,7 @@ export function createSettings({ mobile = false } = {}) {
     quality: mobile ? 2 : 1,
     frameRate: 0,
     controls: 'manual',
+    vibration: 'normal',
     language: null, // 言語（ja / en / ko）。null は、まだ選んでいない（ブラウザの言語に合わせる）
   };
 }
@@ -63,6 +72,7 @@ export function normalizeSettings(data, options = {}) {
     quality: QUALITIES.some((q) => q.id === data.quality) ? data.quality : base.quality,
     frameRate: FRAME_RATES.some((r) => r.id === data.frameRate) ? data.frameRate : base.frameRate,
     controls: CONTROL_MODES.some((c) => c.id === data.controls) ? data.controls : base.controls,
+    vibration: VIBRATIONS.some((v) => v.id === data.vibration) ? data.vibration : base.vibration,
     language: ['ja', 'en', 'ko'].includes(data.language) ? data.language : null,
   };
 }

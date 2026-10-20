@@ -4,6 +4,7 @@ import { ROOM, SCREEN } from '../data/balance.js';
 import { DATA } from '../data/index.js';
 import { COLORS, FONTS, hex } from '../data/theme.js';
 import { floatText } from '../game/fx.js';
+import { playRumble } from '../gamepad/rumble.js';
 import { chooseImplant, skipImplantChoice } from '../game/build.js';
 import { useItem } from '../game/consumables.js';
 import { interact, stash, useKit } from '../game/objects.js';
@@ -440,6 +441,7 @@ export class BattleScene extends Phaser.Scene {
     }
     // ゲームの中で起きた音を鳴らす
     for (const name of world.fx.sounds.splice(0)) playSe(name);
+    for (const r of world.fx.rumbles.splice(0)) playRumble(r.name, r.index);
     this.toasts.update(delta);
 
     // 扉を選んだら次の部屋へ

@@ -1,7 +1,7 @@
 // 演出（火花・残像・ダメージ数字・画面揺れ・ヒットストップ）。world.fx に溜めて、描画側が読む。
 
 export function createFx() {
-  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], beams: [], sounds: [], shake: 0, hitstop: 0 };
+  return { particles: [], ghosts: [], texts: [], rings: [], bolts: [], beams: [], sounds: [], rumbles: [], shake: 0, hitstop: 0 };
 }
 
 export function burst(world, x, y, color, count, speed = 200) {
@@ -30,6 +30,11 @@ export function floatText(world, x, y, text, color, size = 15) {
 // 効果音を鳴らす予約。画面側が毎フレーム取り出して鳴らす（名前は src/data/audio.js の SE のキー）
 export function sfx(world, name) {
   if (world.fx.sounds.length < 12) world.fx.sounds.push(name);
+}
+
+// コントローラーの振動の予約。画面側が毎フレーム取り出して振動させる（名前は src/data/balance.js の RUMBLE.events のキー。index は段階）
+export function rumble(world, name, index = 0) {
+  if (world.fx.rumbles.length < 8) world.fx.rumbles.push({ name, index });
 }
 
 export function addShake(world, amount) {

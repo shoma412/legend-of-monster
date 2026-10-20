@@ -1917,6 +1917,11 @@ export const en = {
     "近接範囲 +{}／弾が1体貫通": "Melee range +{1} / bullets pierce 1 enemy",
     "近接攻撃の角度 +{}": "Melee attack arc +{1}",
     "重い攻撃（溜め斬り・締めの一撃・反撃）の威力 +{}": "Heavy attack (charge slash, finisher, counter) power +{1}",
+    "振動": "Vibration",
+    "切る": "Off",
+    "弱い": "Low",
+    "普通": "Normal",
+    "強い": "High",
   },
   names: {
     "ステータス": "Status",

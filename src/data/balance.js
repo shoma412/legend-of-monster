@@ -211,6 +211,25 @@ export const STATUS = {
   },
 };
 
+// コントローラーの振動（docs/詳細仕様.md「32. ゲームパッド」の「振動」）。weak＝軽い振動、strong＝重い振動（0〜1）、ms＝長さ（ミリ秒）
+//   levels：設定の「振動」の強さ（弱い／普通／強い）に掛ける倍率。「切る」は振動しない
+//   events：場面ごとの振動。配列のものは、段階ごと（溜め斬りの溜め：1段目・2段目・3段目）
+export const RUMBLE = {
+  levels: { low: 0.5, normal: 1, high: 1.5 },
+  events: {
+    chargeStage: [
+      { weak: 0.3, strong: 0, ms: 90 },
+      { weak: 0.5, strong: 0.25, ms: 110 },
+      { weak: 0.7, strong: 0.6, ms: 140 },
+    ],
+    chargeHit: { weak: 0.4, strong: 0.2, ms: 120 }, // 溜め斬りが当たった
+    hurt: { weak: 0.5, strong: 0.5, ms: 140 }, // 被弾
+    bigHurt: { weak: 0.8, strong: 1, ms: 320 }, // 大ダメージ（最大HPの bigHit 割合以上）
+    bossKill: { weak: 0.8, strong: 1, ms: 700 },
+    death: { weak: 1, strong: 1, ms: 800 },
+  },
+};
+
 // 手触りの演出
 export const FEEL = {
   hitstop: { normal: 0.04, heavy: 0.08, charged: 0.12, bossKill: 0.5 }, // 当てた瞬間に一瞬止める（秒）

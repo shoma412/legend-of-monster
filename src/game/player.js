@@ -9,7 +9,7 @@ import { recalcStats } from './build.js';
 import { healPlayer, hitEnemy, hurtPlayer } from './combat.js';
 import { updateItemEffects } from './consumables.js';
 import { fire, statWith } from './effects.js';
-import { addHitstop, addShake, burst, floatText, ghost, ring, sfx } from './fx.js';
+import { addHitstop, addShake, burst, floatText, ghost, ring, rumble, sfx } from './fx.js';
 import { onIce } from './ice.js';
 
 // carry: 前の部屋から引き継ぐもの { hp, build }。省略するとまっさらな状態で始まる
@@ -319,6 +319,7 @@ const SPECIALS = {
         if (stage > p.charge.stage) {
           p.charge.stage = stage;
           sfx(world, 'charge');
+          rumble(world, 'chargeStage', stage);
           ring(world, p.x, p.y, 30 + stage * 12, stage === special.stages.length - 1 ? COLORS.amber : COLORS.cyan);
         }
       } else {
@@ -674,6 +675,7 @@ function resolveSwing(world, a) {
   }
   const kind = a.charged ? 'charged' : a.heavy ? 'heavy' : 'normal';
   if (hits > 0) {
+    if (a.charged) rumble(world, 'chargeHit');
     addHitstop(world, FEEL.hitstop[kind]);
     addShake(world, kind === 'normal' ? FEEL.shake.hit : FEEL.shake[kind]);
   } else if (kind !== 'normal') {

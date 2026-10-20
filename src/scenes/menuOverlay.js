@@ -24,7 +24,8 @@ import { layoutTree } from '../logic/skillTree.js';
 import { worldLayout } from '../logic/treeGeometry.js';
 import { nextOpenIndex, pathTo, totalCost, upgradePreview } from '../logic/treeInfo.js';
 import { TREE_PAD, TREE_VIEW, centerOn, clampView, clipSegment, createTreeView, easeTo, inRect, nearestNode, panBy, panStick, setTreeLimits, toScreen, zoomAt, zoomBy, zoomKeep } from '../logic/treeView.js';
-import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
+import { CONTROL_MODES, DISPLAY_SIZES, FRAME_RATES, QUALITIES, VIBRATIONS, VOLUME_STEPS, stepVolume } from '../logic/settings.js';
+import { playRumble } from '../gamepad/rumble.js';
 import { activeSpeciesBonuses, implantDesc } from '../logic/stats.js';
 import { drawAreaMap, nodePosition } from '../render/areaMap.js';
 import { drawSlotIcon } from '../render/icons.js';
@@ -1404,6 +1405,18 @@ export class MenuOverlay {
       });
       this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
     }
+
+    // コントローラーの振動（切る／弱い／普通／強い）。操作方法の下に置く。選ぶと、その強さで1回振動する
+    this.text(660, 262, '振動', 12, COLORS.cyan, { fontStyle: '700' });
+    VIBRATIONS.forEach((opt, i) => {
+      this.button(660 + i * 62, 280, 58, 26, opt.label, opt.id === s.vibration ? COLORS.cyan : COLORS.dim, () => {
+        s.vibration = opt.id;
+        saveSettings();
+        playSe('select');
+        playRumble('hurt');
+        this.render();
+      });
+    });
 
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {

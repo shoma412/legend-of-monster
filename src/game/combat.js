@@ -11,7 +11,7 @@ import { fire, statWith } from './effects.js';
 import { rollConsumable } from './consumables.js';
 import { eliteDeath } from './elite.js';
 import { createEnemy } from './enemyAI.js';
-import { addHitstop, addShake, burst, floatText, ring, sfx } from './fx.js';
+import { addHitstop, addShake, burst, floatText, ring, rumble, sfx } from './fx.js';
 import { triggerCounter } from './player.js';
 
 // ---- 状態異常 ----
@@ -221,6 +221,7 @@ export function killEnemy(world, enemy) {
   addShake(world, enemy.boss ? FEEL.shake.bossKill : FEEL.shake.kill);
   if (enemy.boss) addHitstop(world, FEEL.hitstop.bossKill);
   sfx(world, enemy.boss ? 'bossKill' : 'kill');
+  if (enemy.boss) rumble(world, 'bossKill');
 
   const p = world.player;
   if (p.stats.killHeal > 0) healPlayer(world, p.stats.killHeal);
@@ -406,6 +407,7 @@ export function hurtPlayer(world, damage) {
   p.sinceHurt = 0;
   addShake(world, FEEL.shake.hurt);
   sfx(world, p.hp <= 0 ? 'death' : 'hurt');
+  rumble(world, p.hp <= 0 ? 'death' : amount >= p.stats.maxHp * STATUS.bigHit.threshold ? 'bigHurt' : 'hurt');
   floatText(world, p.x, p.y - 22, '-' + amount, COLORS.red, 18);
   burst(world, p.x, p.y, COLORS.red, 12);
   // 予備の首（種族「多頭」）：出撃ごとに1回だけ、倒れても起き上がる
