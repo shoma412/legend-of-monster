@@ -19,6 +19,8 @@ const FACE = PORTRAIT_SIZE * 2; // 顔は2倍に拡大して出す
 const TEXT_X = 40 + 14 + FACE + 18;
 const TYPE_SPEED = 48; // 1秒に出す文字数
 const GLITCH_INTERVAL = 90; // ごまかした名前を入れ替える間隔（ミリ秒）
+// 選択肢を出すとき、本文が2行以上になる（英語・韓国語は長い）なら、本文を小さくして、選択肢を少し下げる
+const COMPACT = { fontSize: 14, lineSpacing: 3, buttonY: 84, buttonStep: 32, buttonH: 28 };
 const GUARD_MS = 180; // 閉じた直後に、同じキーやクリックがゲーム側に効かないようにする時間
 
 export function createDialogueBox(scene) {
@@ -36,8 +38,9 @@ export function createDialogueBox(scene) {
   root.add([backdrop, panel, faceFrame, face, nameText, bodyText, hint]);
 
   // 選択肢のボタン（2つ）
+  const buttonY = (i, compact) => (compact ? PANEL_Y + COMPACT.buttonY + i * COMPACT.buttonStep : PANEL_Y + 70 + i * 38);
   const buttons = [0, 1].map((i) => {
-    const y = PANEL_Y + 70 + i * 38;
+    const y = buttonY(i, false);
     const bg = scene.add.rectangle(TEXT_X, y, 530, 32, 0x110f1d, 0.95).setOrigin(0).setStrokeStyle(1, hex(COLORS.cyan)).setInteractive({ useHandCursor: true });
     const label = scene.add.text(TEXT_X + 12, y + 16, '', { fontFamily: FONTS.body, fontStyle: '700', fontSize: '14px', color: COLORS.ink }).setOrigin(0, 0.5);
     bg.on('pointerdown', (_pointer, _x, _y, event) => {
@@ -115,6 +118,18 @@ export function createDialogueBox(scene) {
     hint.setText('クリック / E：次へ　　Tab：飛ばす');
   }
 
+  // compact：本文を小さくして、選択肢を下げる
+  function layout(compact) {
+    bodyText.setFontSize(compact ? COMPACT.fontSize : 17).setLineSpacing(compact ? COMPACT.lineSpacing : 9);
+    buttons.forEach(({ bg, label }, i) => {
+      const y = buttonY(i, compact);
+      const h = compact ? COMPACT.buttonH : 32;
+      bg.setPosition(TEXT_X, y).setSize(530, h);
+      bg.input?.hitArea?.setSize?.(530, h);
+      label.setPosition(TEXT_X + 12, y + h / 2);
+    });
+  }
+
   function setChoices(on) {
     choosing = on;
     buttons.forEach(({ bg, label }, i) => {
@@ -127,9 +142,12 @@ export function createDialogueBox(scene) {
       bg.setStrokeStyle(1, hex(blocked ? COLORS.line : COLORS.cyan));
     });
     if (on) {
-      // 選択肢を出すときは、本文を1行ぶんにして場所を空ける
+      // 選択肢を出すときは、本文を1行ぶんにして場所を空ける（長くて2行以上になるなら、小さくして、選択肢を下げる）
       bodyText.setText(textAt(index));
+      layout(bodyText.height > 30);
       hint.setText('1 / 2 かクリックで選ぶ');
+    } else {
+      layout(false);
     }
   }
 
