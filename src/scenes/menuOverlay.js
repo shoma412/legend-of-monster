@@ -433,6 +433,11 @@ export class MenuOverlay {
     // ボタンのあるタブ（装備・設定）：上下左右で、ボタンを選ぶ
     const now = this.focused();
     const next = now ? moveFocus(this.targets, this.targets.indexOf(now), dir) : firstTarget(content.length > 0 ? content : this.targets);
+    // 設定：見えている範囲のいちばん上・下で、さらに上下に倒したら、一覧を動かす（見えていない項目に行けるように）
+    if (this.tabId === 'settings' && vertical && now && this.targets[next] === now) {
+      this.scrollBy(dir === 'up' ? -1 : 1);
+      return;
+    }
     this.setFocus(now ? this.targets[next] : (content.length > 0 ? content : this.targets)[next]);
   }
 
@@ -1347,7 +1352,8 @@ export class MenuOverlay {
     });
   }
 
-  // ---- 設定：音量、表示の大きさ、画質 ----
+  // ---- 設定：音量、操作、画面 ----
+  // 項目が多いので、1行ずつ関数にして並べ、見える範囲だけ描く（スクロールバーつき。ホイール・W・S・指のなぞりで動かす）
   renderSettings() {
     const s = getSettings();
     const game = this.scene.game;
@@ -1356,6 +1362,9 @@ export class MenuOverlay {
       applyVolume();
       this.render();
     };
+    const LINE = 36; // 1行の高さ
+    const VISIBLE = 9; // 一度に見える行数
+    const TOP = 132; // 最初の行の上端
     this.panel(40, 122, 880, 336);
 
     // 音量のゲージ。[−][＋] か、ゲージを直接クリックして変える
@@ -1379,33 +1388,6 @@ export class MenuOverlay {
       this.button(510, y, 30, 26, '＋', COLORS.ink, set(stepVolume(value, 1)), 16);
       this.text(556, y + 4, `${Math.round(value * 100)}%`, 14, COLORS.dim);
     };
-    this.text(64, 134, '音', 12, COLORS.cyan, { fontStyle: '700' });
-    volumeRow(156, '全体の音量', 'master');
-    volumeRow(190, 'BGM', 'bgm');
-    volumeRow(224, '効果音', 'se');
-    this.button(660, 156, 150, 26, s.muted ? '消音：ON' : '消音：OFF', s.muted ? COLORS.red : COLORS.dim, () => {
-      s.muted = !s.muted;
-      changed();
-    });
-
-    // 操作方法（マニュアル／オート）。音の欄の右に置く
-    this.text(660, 196, '操作方法', 12, COLORS.cyan, { fontStyle: '700' });
-    if (touch.enabled) {
-      // モバイル版：オートに固定（選べない。設定の中身は書き換えないので、パソコンで選んだ操作方法は残る）
-      this.button(660, 216, 116, 26, 'オート（固定）', COLORS.cyan, () => playSe('deny'));
-      this.text(660, 248, 'ロックオンした敵を向く。R：切り替え', 11, COLORS.dim);
-    } else {
-      CONTROL_MODES.forEach((opt, i) => {
-        this.button(660 + i * 122, 216, 116, 26, opt.label, opt.id === s.controls ? COLORS.cyan : COLORS.dim, () => {
-          s.controls = opt.id;
-          saveSettings();
-          playSe('select');
-          this.render();
-        });
-      });
-      this.text(660, 248, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
-    }
-
     // 選択肢を横に並べる
     const choiceRow = (y, label, options, current, pick) => {
       this.text(64, y + 4, label, 14, COLORS.ink, { fontStyle: '700' });
@@ -1414,71 +1396,114 @@ export class MenuOverlay {
         this.button(220 + i * 156, y, 148, 26, opt.label, on ? COLORS.cyan : COLORS.dim, () => pick(opt));
       });
     };
-    this.text(64, 266, '画面', 12, COLORS.cyan, { fontStyle: '700' });
-    choiceRow(286, '表示の大きさ', DISPLAY_SIZES, s.displaySize, (opt) => {
+    const header = (y, label) => this.text(64, y + 8, label, 12, COLORS.cyan, { fontStyle: '700' });
+    const save = this.options.context().save;
+
+    // 1行ずつ、y（その行の上端）を受け取って描く関数
+    const rows = [];
+    rows.push((y) => header(y, '音'));
+    rows.push((y) => {
+      volumeRow(y, '全体の音量', 'master');
+      this.button(660, y, 150, 26, s.muted ? '消音：ON' : '消音：OFF', s.muted ? COLORS.red : COLORS.dim, () => {
+        s.muted = !s.muted;
+        changed();
+      });
+    });
+    rows.push((y) => volumeRow(y, 'BGM', 'bgm'));
+    rows.push((y) => volumeRow(y, '効果音', 'se'));
+
+    rows.push((y) => header(y, '操作'));
+    // 操作方法（マニュアル／オート）
+    rows.push((y) => {
+      this.text(64, y + 4, '操作方法', 14, COLORS.ink, { fontStyle: '700' });
+      if (touch.enabled) {
+        // モバイル版：オートに固定（選べない。設定の中身は書き換えないので、パソコンで選んだ操作方法は残る）
+        this.button(220, y, 148, 26, 'オート（固定）', COLORS.cyan, () => playSe('deny'));
+        this.text(384, y + 7, 'ロックオンした敵を向く。R：切り替え', 11, COLORS.dim);
+      } else {
+        CONTROL_MODES.forEach((opt, i) => {
+          this.button(220 + i * 156, y, 148, 26, opt.label, opt.id === s.controls ? COLORS.cyan : COLORS.dim, () => {
+            s.controls = opt.id;
+            saveSettings();
+            playSe('select');
+            this.render();
+          });
+        });
+        this.text(540, y + 7, s.controls === 'auto' ? 'ロックオンした敵を向く。R：切り替え' : 'カーソルのあるほうを向く', 11, COLORS.dim);
+      }
+    });
+    // コントローラーの振動（切る／弱い／普通／強い）。選ぶと、その強さで1回振動する
+    rows.push((y) => {
+      choiceRow(y, '振動', VIBRATIONS, s.vibration, (opt) => {
+        s.vibration = opt.id;
+        saveSettings();
+        playSe('select');
+        playRumble('hurt');
+        this.render();
+      });
+    });
+
+    rows.push((y) => header(y, '画面'));
+    rows.push((y) => choiceRow(y, '表示の大きさ', DISPLAY_SIZES, s.displaySize, (opt) => {
       s.displaySize = opt.id;
       saveSettings();
       applyDisplaySize(game);
       playSe('select');
       this.render();
-    });
-    choiceRow(316, '画質', QUALITIES, s.quality, (opt) => {
-      if (opt.id === s.quality) return;
-      // 画質は起動時に決まるので、変えるには読み込み直す必要がある
-      this.confirm('画質を変えるには、ゲームを読み込み直します。\nランの途中なら、今回の進捗は失われます。よろしいですか？', () => {
-        s.quality = opt.id;
-        saveSettings();
-        window.location.reload();
+    }));
+    rows.push((y) => {
+      choiceRow(y, '画質', QUALITIES, s.quality, (opt) => {
+        if (opt.id === s.quality) return;
+        // 画質は起動時に決まるので、変えるには読み込み直す必要がある
+        this.confirm('画質を変えるには、ゲームを読み込み直します。\nランの途中なら、今回の進捗は失われます。よろしいですか？', () => {
+          s.quality = opt.id;
+          saveSettings();
+          window.location.reload();
+        });
       });
+      this.text(696, y + 9, '上げるほどくっきりするが、重くなる', 11, COLORS.dim);
     });
-    this.text(696, 321, '上げるほどくっきりするが、重くなる', 11, COLORS.dim);
-    choiceRow(346, 'フレームレート', FRAME_RATES, s.frameRate, (opt) => {
+    rows.push((y) => choiceRow(y, 'フレームレート', FRAME_RATES, s.frameRate, (opt) => {
       s.frameRate = opt.id;
       saveSettings();
       applyFrameRate(game);
       playSe('select');
       this.render();
-    });
-    this.text(64, 382, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
-    if (canFullscreen()) {
-      this.button(220, 378, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
-        toggleFullscreen().then((ok) => {
-          if (!ok) playSe('deny');
-          this.scene.time.delayedCall(200, () => this.isOpen && this.render());
+    }));
+    rows.push((y) => {
+      this.text(64, y + 4, 'フルスクリーン', 14, COLORS.ink, { fontStyle: '700' });
+      if (canFullscreen()) {
+        this.button(220, y, 148, 26, isFullscreen() ? '解除する' : '切り替える', COLORS.dim, () => {
+          toggleFullscreen().then((ok) => {
+            if (!ok) playSe('deny');
+            this.scene.time.delayedCall(200, () => this.isOpen && this.render());
+          });
         });
-      });
-    } else {
-      // アプリに埋め込まれた画面などでは、フルスクリーンにできない
-      this.button(220, 378, 148, 26, '使えない', LOCKED, () => playSe('deny'));
-      this.text(380, 383, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim);
-    }
+      } else {
+        // アプリに埋め込まれた画面などでは、フルスクリーンにできない
+        this.button(220, y, 148, 26, '使えない', LOCKED, () => playSe('deny'));
+      }
+    });
+    if (!canFullscreen()) rows.push((y) => this.text(220, y + 4, 'この画面ではフルスクリーンにできない（Chrome などのブラウザで開くと使える）', 11, COLORS.dim));
     // 言語：選んだら、すぐ画面の文字が変わる
-    choiceRow(412, '言語', LANGS, getLang(), (opt) => {
+    rows.push((y) => choiceRow(y, '言語', LANGS, getLang(), (opt) => {
       s.language = opt.id;
       saveSettings();
       setLang(opt.id);
       retranslateGame(game);
       playSe('select');
       this.render();
-    });
-    // コントローラーの振動（切る／弱い／普通／強い）。言語の行の右に、小さく並べる。選ぶと、その強さで1回振動する
-    this.text(688, 417, '振動', 14, COLORS.ink, { fontStyle: '700' });
-    VIBRATIONS.forEach((opt, i) => {
-      this.button(744 + i * 40, 412, 36, 26, opt.label, opt.id === s.vibration ? COLORS.cyan : COLORS.dim, () => {
-        s.vibration = opt.id;
-        saveSettings();
-        playSe('select');
-        playRumble('hurt');
-        this.render();
-      }, 12);
-    });
-    this.text(64, 444, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim);
+    }));
     // プレイ時間（セーブデータを開いているときだけ。タイトルの設定では出さない）
-    const save = this.options.context().save;
     if (save?.records) {
-      // フルスクリーンの行の右端に、1行で置く（振動の欄と重ならないように）
-      this.text(780, 385, 'プレイ時間', 12, COLORS.cyan, { fontStyle: '700' }).setOrigin(1, 0);
-      this.text(896, 381, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' }).setOrigin(1, 0);
+      rows.push((y) => {
+        this.text(64, y + 4, 'プレイ時間', 14, COLORS.ink, { fontStyle: '700' });
+        this.text(220, y + 2, formatPlayTime(save.records.playTime), 16, COLORS.ink, { fontStyle: '700' });
+      });
     }
+    rows.push((y) => this.text(64, y + 8, '設定は、セーブデータとは別に、このブラウザに保存される。', 11, COLORS.dim));
+
+    const first = this.window(rows.length, VISIBLE, { x: 926, y: TOP, h: VISIBLE * LINE - 10 });
+    rows.slice(first, first + VISIBLE).forEach((draw, i) => draw(TOP + i * LINE));
   }
 }
